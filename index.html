@@ -387,6 +387,19 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
 @media(max-width:720px){
   .hero{display:none !important}
 }
+
+/* v8.3 SKIPPED EXERCISE STATE */
+.log-exercise.exercise-not-done{border-color:#314052;background:linear-gradient(180deg,#111820,#0d131a)}
+.log-exercise .performance-disabled{opacity:.34;filter:saturate(.4)}
+.log-exercise .performance-disabled input,
+.log-exercise .performance-disabled select,
+.log-exercise .performance-disabled textarea{cursor:not-allowed}
+.log-exercise.exercise-not-done .planned{opacity:.55}
+.log-exercise.exercise-not-done::after{
+  content:"Exercise not performed — change Status to Complete or Partial to enter performance data.";
+  display:block;margin:9px 0 0;padding:8px 10px;border:1px dashed #3a4a5c;border-radius:10px;
+  color:var(--muted);font-size:.72rem;line-height:1.35
+}
 </style>
 </head>
 <body>
@@ -902,7 +915,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v8.2</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v8.3</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -1935,7 +1948,7 @@ function tbBlockPerformance(lift,block){
  const lo=(block-1)*6+1,hi=block*6;
  if(lift==="deadlift"&&blockModeForWeek(lo)!=="tb")return {rows:0,delta:0,reason:"Deadlift was not programmed in this hybrid block; holding TM"};
  if(currentTrainingWeek()<=hi)return {rows:0,delta:tbStandardIncrement(lift),reason:"Block still in progress; provisional standard increase"};
- const rows=state.logs.filter(x=>x.session==="TB Maintenance"&&Number(x.week)>=lo&&Number(x.week)<=hi&&tbLiftExerciseMatch(lift,x.exercise));
+ const rows=state.logs.filter(x=>x.session==="TB Maintenance"&&Number(x.week)>=lo&&Number(x.week)<=hi&&tbLiftExerciseMatch(lift,x.exercise)&&String(x.status||"").toLowerCase()!=="skipped");
  if(!rows.length)return {rows:0,delta:tbStandardIncrement(lift),reason:"No logged data; using standard progression"};
  let good=0,bad=0,complete=0,rpes=[];
  rows.forEach(x=>{
@@ -2341,7 +2354,7 @@ function conditioningFieldsHTML(activity){
   const common =
     '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"></div>'+
     '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
-    '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option></select></div>'+
+    '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
     '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Route, conditions, soreness, breathing, etc."></div>';
 
   if(kind==="yoga") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step="1"></div>'+
@@ -2652,7 +2665,7 @@ function kbRowQuality(x){
  return {good,bad,r};
 }
 function kbHistoryBefore(exercise,dateISO,days=3650){
- return state.logs.filter(x=>x.date&&x.date<dateISO&&daysBetweenISO(x.date,dateISO)<=days&&x.session&&x.session.startsWith("KB ")&&x.exercise===exercise).sort((a,b)=>a.date.localeCompare(b.date));
+ return state.logs.filter(x=>x.date&&x.date<dateISO&&daysBetweenISO(x.date,dateISO)<=days&&x.session&&x.session.startsWith("KB ")&&x.exercise===exercise&&String(x.status||"").toLowerCase()!=="skipped").sort((a,b)=>a.date.localeCompare(b.date));
 }
 function relatedKbEvidence(exercise,dateISO,sinceDate=""){
  const target=kbExercise(exercise);if(!target)return [];
@@ -2720,7 +2733,7 @@ function gymRowQuality(x){
  const bad=status==="partial"||status==="missed"||r>=9.5||feel==="bad"||feel==="grindy"||tech==="sloppy"||sf==="very rough";
  const positive=(r>0&&r<=8.5)||feel==="easy"||feel==="good"||sf==="great"||sf==="good";return {good:status==="complete"&&positive&&!bad,bad,r};
 }
-function gymDirectHistory(exercise,dateISO){return state.logs.filter(x=>x.date&&x.date<dateISO&&x.exercise===exercise&&x.session!=="Conditioning"&&x.session!=="Class / Activity").sort((a,b)=>a.date.localeCompare(b.date))}
+function gymDirectHistory(exercise,dateISO){return state.logs.filter(x=>x.date&&x.date<dateISO&&x.exercise===exercise&&x.session!=="Conditioning"&&x.session!=="Class / Activity"&&String(x.status||"").toLowerCase()!=="skipped").sort((a,b)=>a.date.localeCompare(b.date))}
 function relatedStrengthEvidenceForGym(exercise,dateISO,sinceDate=""){
  return state.logs.filter(x=>x.date&&x.date<dateISO&&x.exercise!==exercise&&(!sinceDate||x.date>sinceDate)&&daysBetweenISO(x.date,dateISO)<=56&&relationshipWeightForRow(exercise,x)>=.20)
    .map(x=>({row:x,family:strengthFamilyForRow(x),rel:relationshipWeightForRow(exercise,x),q:gymRowQuality(x)}));
@@ -2887,9 +2900,28 @@ function appendAdditionalLogExercise(){
  '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"></div>'+
  '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
  '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
- '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option></select></div>'+
+ '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
  '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Optional exercise notes"></div></div>';
- plannedExercises.appendChild(d);const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus()};sel.addEventListener("change",sync);sync();
+ plannedExercises.appendChild(d);const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus()};sel.addEventListener("change",sync);sync();wireExerciseCompletionState(d);
+}
+
+function syncExerciseCompletionState(card){
+ const status=card.querySelector(".le-status");if(!status)return;
+ const notDone=["missed","skipped"].includes(String(status.value||"").toLowerCase());
+ card.classList.toggle("exercise-not-done",notDone);
+ const exempt=new Set(["le-ex","le-custom","le-status","le-notes"]);
+ card.querySelectorAll("input,select,textarea").forEach(el=>{
+   const classes=[...el.classList],keep=classes.some(c=>exempt.has(c));
+   if(!keep){
+     el.disabled=notDone;
+     const field=el.closest(".field");if(field)field.classList.toggle("performance-disabled",notDone);
+   }
+ });
+}
+function wireExerciseCompletionState(card){
+ const status=card.querySelector(".le-status");if(!status)return;
+ status.addEventListener("change",()=>syncExerciseCompletionState(card));
+ syncExerciseCompletionState(card);
 }
 
 function loadPlannedSession(){
@@ -2916,7 +2948,7 @@ function loadPlannedSession(){
       '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"></div>'+
       '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
       '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
-      '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option></select></div>'+
+      '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
       '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Optional exercise notes"></div>'+
       '</div>';
   }
@@ -2930,13 +2962,17 @@ function loadPlannedSession(){
   }
   function syncConditioningFields(){
     if(d.dataset.conditioning!=="1")return;
-    const holder=d.querySelector(".conditioning-fields");
+    const holder=d.querySelector(".conditioning-fields"),priorStatus=d.querySelector(".le-status")?.value||"Complete",priorNotes=d.querySelector(".le-notes")?.value||"";
     const activity=sel.value==="__custom__" ? (custom.value||"Other") : sel.value;
     holder.innerHTML=conditioningFieldsHTML(activity);
+    const status=d.querySelector(".le-status"),notes=d.querySelector(".le-notes");
+    if(status)status.value=priorStatus;if(notes)notes.value=priorNotes;
+    wireExerciseCompletionState(d);
   }
   sel.addEventListener("change",()=>{syncCustom();syncConditioningFields()});
   custom.addEventListener("change",syncConditioningFields);
   syncCustom();
+  wireExerciseCompletionState(d);
  });
 }
 function renderHistory(){
@@ -3695,13 +3731,13 @@ saveSession.addEventListener("click",()=>{
  const rows=cards.map(c=>{
    const sel=c.querySelector(".le-ex");
    const exercise=(sel.value==="__custom__"?valueOf(c,".le-custom"):sel.value.trim());
+   const status=valueOf(c,".le-status"),notDone=["missed","skipped"].includes(String(status||"").toLowerCase());
    const base={sessionId,date:logDate.value,week:+logWeek.value,session:logSession.value,exercise:exercise,
-     rpe:valueOf(c,".le-rpe"),feel:valueOf(c,".le-feel"),status:valueOf(c,".le-status"),notes:valueOf(c,".le-notes"),
+     rpe:notDone?"":valueOf(c,".le-rpe"),feel:notDone?"":valueOf(c,".le-feel"),status:status,notes:valueOf(c,".le-notes"),
      sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value.trim()};
    if(c.dataset.conditioning==="1"){
-     base.technique="";
-     base.sets="";base.reps="";base.weight="";
-     base.metrics={
+     base.technique="";base.sets="";base.reps="";base.weight="";
+     base.metrics=notDone?{}:{
        distance:valueOf(c,".le-distance"),distanceUnit:valueOf(c,".le-unit"),
        time:valueOf(c,".le-time"),avgHr:valueOf(c,".le-avghr"),maxHr:valueOf(c,".le-maxhr"),
        pace:valueOf(c,".le-pace"),speed:valueOf(c,".le-speed"),elevation:valueOf(c,".le-elev"),
@@ -3716,10 +3752,10 @@ saveSession.addEventListener("click",()=>{
        cadence:valueOf(c,".le-cadence"),strokeRate:valueOf(c,".le-strokerate"),floors:valueOf(c,".le-floors"),
        runDistance:valueOf(c,".le-rundistance"),rowDistance:valueOf(c,".le-rowdistance")
      };
-     const ckind=conditioningKind(exercise);if(!base.metrics.distanceUnit){if(ckind==="rowingclass")base.metrics.distanceUnit="m";else if(ckind==="cyclingclass"||ckind==="runclass")base.metrics.distanceUnit="mi"}
+     if(!notDone){const ckind=conditioningKind(exercise);if(!base.metrics.distanceUnit){if(ckind==="rowingclass")base.metrics.distanceUnit="m";else if(ckind==="cyclingclass"||ckind==="runclass")base.metrics.distanceUnit="mi"}}
    }else{
-     base.sets=valueOf(c,".le-sets");base.reps=valueOf(c,".le-reps");base.weight=valueOf(c,".le-weight");
-     base.technique=valueOf(c,".le-tech");base.metrics={};
+     base.sets=notDone?"":valueOf(c,".le-sets");base.reps=notDone?"":valueOf(c,".le-reps");base.weight=notDone?"":valueOf(c,".le-weight");
+     base.technique=notDone?"":valueOf(c,".le-tech");base.metrics={};
    }
    return base;
  }).filter(x=>x.exercise);
@@ -3736,7 +3772,7 @@ saveSession.addEventListener("click",()=>{
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:8.2,exportedAt:new Date().toISOString(),settings:state.settings,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:8.3,exportedAt:new Date().toISOString(),settings:state.settings,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:3,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
