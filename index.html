@@ -231,6 +231,157 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
  .cal-builder-row{grid-template-columns:1fr 1fr}
  .cal-builder-row .exercise-field,.cal-builder-row .builder-guide,.cal-builder-row .remove-field{grid-column:1/-1}
 }
+
+/* v8.1 MOBILE UI OVERHAUL
+   Intentionally last in the stylesheet so these rules win over earlier responsive CSS. */
+@media(max-width:720px){
+  html,body{max-width:100%;overflow-x:hidden}
+  body{font-size:15px}
+  .shell{
+    width:100%;
+    max-width:100%;
+    padding:6px max(6px,env(safe-area-inset-left)) calc(24px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-right));
+  }
+
+  /* Top navigation stays compact and swipeable instead of squeezing tabs. */
+  .toolbar{position:relative;overflow:hidden}
+  .tabs{
+    width:100%;
+    max-width:100%;
+    overflow-x:auto;
+    overflow-y:hidden;
+    overscroll-behavior-x:contain;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+    flex-wrap:nowrap;
+    padding:2px 1px 5px;
+  }
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;white-space:nowrap;min-height:42px;padding:8px 13px}
+  .actions{width:100%}
+  .actions .btn{width:100%;flex:1 1 100%}
+  #quickLog{min-height:48px;font-size:1rem}
+
+  /* Panels and nested builders use the screen width instead of nesting large gutters. */
+  .panel{width:100%;max-width:100%;padding:10px;margin:8px 0;border-radius:14px;overflow:hidden}
+  .gym-step{width:100%;max-width:100%;padding:10px;margin:8px 0;border-radius:12px}
+  .gym-builder-grid,.kb-builder-grid{grid-template-columns:1fr;gap:7px}
+  .field{min-width:0}
+  input,select,textarea{width:100%;max-width:100%;box-sizing:border-box}
+  textarea{min-height:82px}
+
+  /* Major muscle groups become a true mobile accordion: one full-width row each.
+     This fixes the paired cards stretching each other and the clipped sub-muscle labels. */
+  #gymFocusChoices{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:7px !important;
+    width:100%;
+    min-width:0;
+  }
+  #gymFocusChoices .muscle-parent{
+    width:100%;
+    min-width:0;
+    border-radius:11px;
+    overflow:hidden;
+  }
+  #gymFocusChoices .muscle-parent-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:5px;
+    width:100%;
+    padding:5px 7px;
+  }
+  #gymFocusChoices .gym-choice{
+    min-width:0;
+    width:100%;
+    padding:5px 3px;
+    font-size:.9rem;
+    line-height:1.2;
+  }
+  #gymFocusChoices .gym-choice input{flex:0 0 auto}
+  #gymFocusChoices .muscle-specific-toggle{
+    max-width:100%;
+    padding:8px 5px;
+    font-size:.74rem;
+    line-height:1;
+  }
+  #gymFocusChoices .muscle-subchoices{
+    width:100%;
+    min-width:0;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+    padding:2px 7px 8px;
+  }
+  #gymFocusChoices .muscle-subchoice{
+    min-width:0;
+    width:100%;
+    padding:9px 8px;
+    font-size:.82rem;
+    line-height:1.18;
+    overflow-wrap:anywhere;
+  }
+
+  /* Equipment / focus check grids can stay two-up because these labels are short. */
+  .gym-choice-grid:not(#gymFocusChoices){grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .gym-choice-grid:not(#gymFocusChoices) .gym-choice{min-width:0}
+
+  /* Workout rows: prioritize readability over density on a phone. */
+  .gym-builder-row,.kb-builder-row,.cal-builder-row{
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+    padding:10px 0;
+  }
+  .gym-builder-row .exercise-field,.kb-builder-row .exercise-field,.cal-builder-row .exercise-field,
+  .gym-builder-row .builder-guide,.kb-builder-row .builder-guide,.cal-builder-row .builder-guide,
+  .gym-builder-row .remove-field,.kb-builder-row .remove-field,.cal-builder-row .remove-field{
+    grid-column:1/-1;
+  }
+
+  /* Movement instructions were too narrow beside the drawing. Stack them vertically. */
+  .movement-detail{grid-template-columns:1fr;gap:8px}
+  .movement-visual{width:100%;min-height:130px;padding:8px}
+  .movement-svg{max-height:150px}
+  .movement-copy{font-size:.78rem;line-height:1.42}
+
+  /* Data-entry screens are single-column on phones. */
+  .log-grid{grid-template-columns:1fr}
+  .log-grid .notes{grid-column:1}
+  .session-feel,.log-toolbar,.form-grid{grid-template-columns:1fr}
+  .conditioning-filter-row{grid-template-columns:1fr}
+
+  /* Reduce button grids that otherwise become narrow pill clusters. */
+  .inline-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .inline-actions .btn{width:100%;min-width:0}
+  .day-control-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .day-control-row .btn{width:100%;min-width:0}
+
+  /* Library cards always use the available width. */
+  .gym-library-grid,.kb-library-grid,.conditioning-grid{grid-template-columns:1fr}
+  .gym-lib-card,.kb-lib-card,.conditioning-card{width:100%;min-width:0}
+
+  /* Keep the date/duration controls readable. */
+  .duration-line{grid-template-columns:minmax(0,1fr) 88px;gap:8px}
+  .duration-line .field{min-width:0}
+
+  /* TB max cards: shorten the fixed label column slightly on narrow screens. */
+  #maxes td{grid-template-columns:98px minmax(0,1fr)}
+  #maxes td .muted{grid-column:2}
+}
+
+@media(max-width:430px){
+  /* On actual phone widths, sub-muscles are one-per-row. No clipping or half cards. */
+  #gymFocusChoices .muscle-subchoices{grid-template-columns:1fr}
+  .gym-builder-row,.kb-builder-row,.cal-builder-row{grid-template-columns:1fr}
+  .gym-builder-row>* ,.kb-builder-row>* ,.cal-builder-row>*{grid-column:1/-1}
+  .inline-actions,.day-control-row{grid-template-columns:1fr}
+  .duration-line{grid-template-columns:1fr}
+  .duration-line .field{max-width:none}
+  .stats{grid-template-columns:1fr 1fr}
+  #maxes td{grid-template-columns:88px minmax(0,1fr)}
+}
+
 </style>
 </head>
 <body>
@@ -745,7 +896,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v8</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v8.1</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -2751,9 +2902,26 @@ function syncGymSubfocusParents(){
  });
 }
 function wireGymMuscleSpecifics(){
- document.querySelectorAll(".muscle-specific-toggle").forEach(btn=>btn.onclick=()=>{const box=btn.closest(".muscle-parent").querySelector(".muscle-subchoices"),opening=box.classList.contains("hidden");box.classList.toggle("hidden");btn.textContent=opening?"Specifics ▴":"Specifics ▾"});
+ document.querySelectorAll(".muscle-specific-toggle").forEach(btn=>{
+   btn.onclick=()=>{
+     const parent=btn.closest(".muscle-parent"),box=parent.querySelector(".muscle-subchoices"),opening=box.classList.contains("hidden");
+     if(opening&&window.matchMedia("(max-width:720px)").matches){
+       document.querySelectorAll("#gymFocusChoices .muscle-subchoices:not(.hidden)").forEach(other=>{
+         if(other!==box){
+           other.classList.add("hidden");
+           const otherBtn=other.closest(".muscle-parent").querySelector(".muscle-specific-toggle");
+           if(otherBtn)otherBtn.textContent="Specifics ▾";
+         }
+       });
+     }
+     box.classList.toggle("hidden");
+     btn.textContent=opening?"Specifics ▴":"Specifics ▾";
+   };
+ });
  document.querySelectorAll(".gym-subfocus").forEach(sub=>sub.onchange=syncGymSubfocusParents);
- document.querySelectorAll(".gym-focus").forEach(parent=>parent.onchange=()=>{if(!parent.checked)document.querySelectorAll('.gym-subfocus[data-parent="'+parent.value+'"]').forEach(x=>x.checked=false)});
+ document.querySelectorAll(".gym-focus").forEach(parent=>parent.onchange=()=>{
+   if(!parent.checked)document.querySelectorAll('.gym-subfocus[data-parent="'+parent.value+'"]').forEach(x=>x.checked=false);
+ });
 }
 
 
