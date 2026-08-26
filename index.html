@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hybrid Training Dashboard</title>
+<meta name="theme-color" content="#0b0f14">
+<meta name="application-name" content="Hybrid Training">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
+  --line:#273445; --accent:#57d27f; --accent2:#73a7ff; --warn:#f0c66b; --danger:#ff7a86;
+  --p45:#c63b3b; --p25:#d8b22f; --p10:#3d8f4e; --p5:#1f2329; --p2:#f4f6f8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0b0f14,#0e131a);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.shell{max-width:1180px;margin:auto;padding:12px 12px 36px}
+.hero,.panel,.card,.day-card,.exercise,.log-exercise{background:linear-gradient(180deg,var(--surface),#0f151d);border:1px solid var(--line);border-radius:18px}
+.hero{padding:18px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}
+.eyebrow{font-size:.74rem;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:900}
+h1{font-size:clamp(1.45rem,4vw,2.2rem);line-height:1.05;margin:7px 0}
+.muted{color:var(--muted)}
+.hero-pull{text-align:right}.hero-pull strong{display:block;font-size:1.05rem}
+.toolbar{position:sticky;top:0;z-index:20;padding:7px 0 9px;background:linear-gradient(180deg,rgba(11,15,20,.96),rgba(11,15,20,.80),rgba(11,15,20,0));backdrop-filter:blur(12px)}
+.tabs,.actions{display:flex;gap:7px;overflow:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.actions{flex-wrap:wrap;margin-top:7px}
+.tab,.btn{min-height:44px;border:1px solid var(--line);border-radius:12px;font-weight:900}
+.tab{padding:9px 14px;border-radius:999px;background:#141c26;color:var(--muted);white-space:nowrap}.tab.active{background:var(--accent);color:#071109;border-color:transparent}
+.btn{padding:10px 14px;background:#182331;color:var(--text)}.btn.primary{background:var(--accent);color:#071109;border-color:transparent}.btn.danger{background:#3a1d25;color:#ffd7dd}
+.view{display:none}.view.active{display:block}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:10px}
+.card{padding:13px}.label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:900}.value{font-size:1.15rem;font-weight:950;margin-top:4px}.hint{font-size:.76rem;color:var(--muted);margin-top:3px}
+.panel{padding:14px;margin-bottom:10px}.panel-title{font-weight:950}.panel-sub{font-size:.8rem;color:var(--muted);margin-top:2px}.panel-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:11px}
+.week-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;scroll-behavior:smooth}
+.week-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.week-nav .btn{min-height:38px;padding:7px 11px}
+.week-nav-label{font-size:.78rem;color:var(--muted);font-weight:850;white-space:nowrap}
+.day-card{padding:10px;min-width:0;text-align:left;color:var(--text);cursor:pointer}
+button.day-card{font:inherit}
+.day-card:hover{border-color:#3a4c61}
+.day-card.today{outline:2px solid var(--accent);outline-offset:1px}
+.day-card.selected{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(115,167,255,.13);background:linear-gradient(180deg,#182536,#111a24)}
+.day-date{font-size:.68rem;color:var(--accent2);font-weight:850;margin-top:2px}
+.day-name{font-size:.72rem;color:var(--muted);text-transform:uppercase;font-weight:900}.day-session{font-weight:950;margin-top:5px}.day-focus{font-size:.75rem;color:var(--muted);margin-top:4px;line-height:1.25}
+.prescription-note{margin-top:10px;padding:10px 12px;border:1px solid #2a3b50;border-radius:12px;background:#0d141c;font-size:.8rem;line-height:1.4}
+.prescription-note strong{color:#dce6f2}
+.selected-date-badge{font-size:.75rem;font-weight:900;color:var(--accent2);white-space:nowrap}
+
+.exercise-list{display:grid;gap:8px}.exercise{padding:12px}.exercise-top{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:start}.exercise-name{font-weight:950}.exercise-meta{font-size:.76rem;color:var(--muted);margin-top:3px}.exercise-sr,.exercise-weight{font-weight:900;text-align:right;white-space:nowrap}.exercise-weight{font-size:1.05rem}
+.load-helper{margin-top:10px;padding:9px;border-radius:13px;background:#0d141c;border:1px solid #26384c}
+.load-caption{display:flex;justify-content:space-between;gap:8px;font-size:.76rem;color:var(--muted);margin-bottom:7px}.load-caption strong{color:#dce6f2}
+.barbell{display:grid;grid-template-columns:1fr 70px 1fr;gap:5px;align-items:center}.bar-side{display:flex;align-items:center;gap:3px;min-height:46px}.bar-side.left{justify-content:flex-end}.bar-side.right{justify-content:flex-start}.bar{height:8px;background:linear-gradient(90deg,#7d8997,#d5d9df,#7d8997);border-radius:999px}
+.machine{display:grid;grid-template-columns:1fr 52px 1fr;gap:6px;align-items:center}.machine-side{display:flex;justify-content:center;align-items:center;gap:3px;min-height:46px}.no-bar{font-size:.64rem;color:#74859a;text-align:center;border:1px dashed #34475d;border-radius:8px;padding:5px}
+.plate{width:14px;border-radius:3px;border:1px solid rgba(255,255,255,.22);display:block}.p45{height:44px;background:var(--p45)}.p25{height:39px;background:var(--p25)}.p10{height:34px;background:var(--p10)}.p5{height:29px;background:var(--p5)}.p2{height:24px;background:var(--p2)}
+.legend{display:flex;gap:9px;flex-wrap:wrap;margin-top:8px;font-size:.7rem;color:var(--muted)}.legend span{display:inline-flex;align-items:center;gap:5px}.dot{width:10px;height:15px;border-radius:2px;display:inline-block}
+.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.field label{display:block;font-size:.76rem;color:var(--muted);font-weight:850;margin-bottom:5px}
+input,select,textarea{width:100%;min-height:46px;background:#0c1219;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:10px 11px;font-size:16px;outline:none}textarea{min-height:82px;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(115,167,255,.12)}
+.log-toolbar{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px}
+.log-exercise{padding:11px;margin-bottom:8px}.log-title{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:9px}.planned{font-size:.73rem;color:var(--accent2);font-weight:850}
+.log-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.log-grid .notes{grid-column:span 2}
+.session-feel{display:grid;grid-template-columns:1fr 2fr;gap:9px;margin-top:10px}
+.notice{margin-top:9px;padding:10px 12px;border-radius:11px;background:#162332;border:1px solid #25384d;font-size:.82rem}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:13px}table{border-collapse:collapse;width:100%;min-width:800px}th,td{padding:9px;border-bottom:1px solid var(--line);font-size:.83rem;text-align:left;vertical-align:top}th{background:#172330;position:sticky;top:0;z-index:1}
+.hidden{display:none!important}.empty{padding:18px;text-align:center;color:var(--muted)}
+@media(max-width:900px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.week-strip{grid-template-columns:repeat(7,132px);overflow:auto}.form-grid{grid-template-columns:1fr 1fr}.log-toolbar{grid-template-columns:1fr 1fr}.log-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.log-grid .notes{grid-column:span 3}}
+@media(max-width:620px){.hero{grid-template-columns:1fr}.panel-head.calendar-head{align-items:flex-start;flex-direction:column}.week-nav{width:100%;justify-content:space-between}.week-nav-label{order:-1;width:100%}.hero-pull{text-align:left}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.exercise-top{grid-template-columns:1fr auto}.exercise-sr{grid-column:1/-1;text-align:left}.form-grid,.log-toolbar,.session-feel{grid-template-columns:1fr}.log-grid{grid-template-columns:1fr 1fr}.log-grid .notes{grid-column:span 2}.actions .btn{flex:1 1 130px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Hybrid Training Dashboard</div>
+      <h1>Maintain the barbell. Push the kettlebells.</h1>
+      <div class="muted">TB maintenance • kettlebell progression • conditioning • notes • visual plate loading</div>
+    </div>
+    <div class="hero-pull"><strong id="heroCurrent">Neutral +30 lb • 3×5</strong><span class="muted" id="heroNext">Next: Overhand +30 lb • 3×2</span></div>
+  </section>
+
+  <div class="toolbar">
+    <div class="tabs">
+      <button class="tab active" data-view="dashboard">Dashboard</button>
+      <button class="tab" data-view="log">Log Workout</button>
+      <button class="tab" data-view="history">History</button>
+      <button class="tab" data-view="progress">Progression</button>
+      <button class="tab" data-view="maxes">TB Maxes</button>
+      <button class="tab" data-view="settings">Settings</button>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="quickLog">+ Log Today's Workout</button>
+      <button class="btn" id="installApp" type="button">Install App</button>
+      <button class="btn" id="exportJson">Export Data</button>
+      <button class="btn" id="importJson">Import Data</button>
+      <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+      <button class="btn" id="exportCsv">Export CSV</button>
+    </div>
+  </div>
+
+  <section id="dashboard" class="view active">
+    <div class="stats">
+      <div class="card"><div class="label">Current Week</div><div class="value" id="statWeek">Week 5</div><div class="hint" id="statBlock">Block 1 • W5</div></div>
+      <div class="card"><div class="label">TB Prescription</div><div class="value" id="statTB">3×5 @ 85%</div><div class="hint">Maintenance</div></div>
+      <div class="card"><div class="label">Current Pull-up</div><div class="value" id="statPull">Neutral +30</div><div class="hint">3×5</div></div>
+      <div class="card"><div class="label">Logged Sessions</div><div class="value" id="statSessions">0</div><div class="hint" id="statEntries">0 entries</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head calendar-head">
+        <div>
+          <div class="panel-title">Training Calendar</div>
+          <div class="panel-sub">Tap any day to view that day's workout.</div>
+        </div>
+        <div class="week-nav">
+          <button class="btn" type="button" id="prevWeek" aria-label="Previous training week">‹</button>
+          <span class="week-nav-label" id="weekNavLabel">Week 5</span>
+          <button class="btn" type="button" id="nextWeek" aria-label="Next training week">›</button>
+          <select id="blockModeSelect" aria-label="Training mode for this six-week block" style="width:auto;min-height:38px;padding:6px 34px 6px 10px">
+            <option value="tb">TB Only</option>
+            <option value="hybrid">TB + KB</option>
+          </select>
+          <button class="btn primary" type="button" id="jumpToday">Today</button>
+        </div>
+      </div>
+      <div class="week-strip" id="weekStrip"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="panel-title" id="workoutTitle">Workout Prescription</div><div class="panel-sub" id="tbSub">Selected day</div></div>
+        <div class="selected-date-badge" id="selectedDateBadge"></div>
+      </div>
+      <div class="exercise-list" id="tbList"></div>
+      <div class="legend" id="plateLegend">
+        <span><i class="dot" style="background:var(--p45)"></i>45</span>
+        <span><i class="dot" style="background:var(--p25)"></i>25</span>
+        <span><i class="dot" style="background:var(--p10)"></i>10</span>
+        <span><i class="dot" style="background:var(--p5)"></i>5</span>
+        <span><i class="dot" style="background:var(--p2)"></i>2.5</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="log" class="view">
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="panel-title">Log Workout</div><div class="panel-sub">The selected day controls the fields. Strength days ask for sets, reps, load, RPE, technique, and feel. Conditioning days ask for the metrics that actually matter—distance, time, heart rate, pace/speed, elevation, or interval details.</div></div>
+      </div>
+      <div class="log-toolbar">
+        <div class="field"><label>Date</label><input type="date" id="logDate"></div>
+        <div class="field"><label>Training Week</label><input type="number" min="1" max="18" id="logWeek"></div>
+        <div class="field"><label>Session</label><select id="logSession"></select></div>
+        <button class="btn" type="button" id="loadPlan">Reload Plan</button>
+      </div>
+      <div id="plannedExercises"></div>
+      <div class="session-feel">
+        <div class="field"><label>Overall session feel</label>
+          <select id="sessionFeel"><option value=""></option><option>Great</option><option>Good</option><option>Average</option><option>Rough</option><option>Very Rough</option></select>
+        </div>
+        <div class="field"><label>Overall notes</label><textarea id="sessionNotes" placeholder="Energy, soreness, pain, sleep, what felt strong or weak, etc."></textarea></div>
+      </div>
+      <button class="btn primary" id="saveSession" type="button">Save Entire Session</button>
+      <div id="saveMsg" class="notice hidden"></div>
+    </div>
+  </section>
+
+  <section id="history" class="view">
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Workout History</div><div class="panel-sub">Every exercise saved from completed sessions</div></div><button class="btn danger" id="clearLog">Clear Log</button></div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Session</th><th>Exercise</th><th>Actual</th><th>RPE</th><th>Feel</th><th>Technique</th><th>Notes</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="progress" class="view">
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Weighted Pull-up Progression</div><div class="panel-sub">Current Week 5 is Neutral +30 lb for 3×5</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Week</th><th>Block</th><th>Wk in Block</th><th>Grip</th><th>Sets × Reps</th><th>Weight</th></tr></thead><tbody id="pullBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Kettlebell Starting Targets</div><div class="panel-sub">These populate automatically on KB days</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Day</th><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th></tr></thead><tbody id="kbBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Tactical Barbell Endurance Library</div><div class="panel-sub">Official E sessions you've provided so far. Fun-runs are intentionally treated as occasional harder E work.</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Session</th><th>Standard</th><th>Basic</th><th>Advanced</th></tr></thead><tbody id="tbELibraryBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Tactical Barbell HIC Library</div><div class="panel-sub">HIC sessions supplied from your book screenshots. Equipment-specific sessions stay available even when they are not in the default rotation.</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>#</th><th>Session</th><th>Category</th><th>Standard</th><th>Basic</th><th>Advanced</th></tr></thead><tbody id="tbHICLibraryBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">TB Power Sessions</div><div class="panel-sub">Later-book power sessions you supplied. I am keeping these out of the default Saturday rotation because Friday is already your kettlebell power day.</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>#</th><th>Session</th><th>Category</th><th>Prescription</th><th>Basic</th><th>Advanced</th></tr></thead><tbody id="tbPowerLibraryBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">TB Core / Grip Finishers</div><div class="panel-sub">Optional accessory work from the pages you supplied; not treated as primary conditioning sessions.</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Session</th><th>Prescription</th><th>Note</th></tr></thead><tbody id="tbAccessoryLibraryBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Strength-Endurance (SE) Clusters</div><div class="panel-sub">Book rules: choose 5–8 movements, keep resistance light, reps high, and rests short. Barbell/DB work is generally ~15–30% of estimated 1RM.</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Cluster</th><th>Exercises</th><th>Guidance</th></tr></thead><tbody id="tbSELibraryBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">18-Week Conditioning Rotation</div><div class="panel-sub">Each 6-week block can be set independently to TB Only (TB M/W/F) or Hybrid (2 TB + 3 KB). Use the calendar toggle or TB Maxes tab.</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Week</th><th>Phase</th><th>Easy / Recovery</th><th>HIC / Athletic</th><th>Saturday / Extra</th></tr></thead><tbody id="condBody"></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="conditioning" class="hidden"></section>
+
+  
+  <section id="maxes" class="view">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Manual TB Training Maxes</div>
+          <div class="panel-sub">Override any 6-week block if the automatic progression no longer matches your current strength. Leave a field blank to use the automatic TM.</div>
+        </div>
+      </div>
+      <div class="notice" style="margin-top:0">
+        These are <strong>training maxes</strong>, not workout weights. The normal 70/80/90/75/85/95% TB wave is applied afterward. Weighted pull-ups keep their separate progression.
+      </div>
+      <div class="tablewrap" style="margin-top:12px">
+        <table>
+          <thead><tr><th>Block</th><th>Weeks</th><th>Mode</th><th>Squat TM</th><th>Row TM</th><th>Chest TM</th><th>Incline TM</th></tr></thead>
+          <tbody id="tbMaxBody"></tbody>
+        </table>
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <button class="btn primary" id="saveTbMaxes" type="button">Save TB Maxes</button>
+        <button class="btn" id="resetTbMaxes" type="button">Reset to Automatic</button>
+      </div>
+      <div class="notice" id="tbMaxStatus">Blank fields use the automatic block progression from Settings.</div>
+    </div>
+  </section>
+
+<section id="settings" class="view">
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Program Settings</div><div class="panel-sub">Edit current position or training maxes</div></div></div>
+      <div class="form-grid">
+        <div class="field"><label>Current Global Week</label><input type="number" min="1" max="18" id="currentWeek"></div>
+        <div class="field"><label>Squat TM</label><input type="number" id="squatTm"></div>
+        <div class="field"><label>Row TM</label><input type="number" id="rowTm"></div>
+        <div class="field"><label>Chest Machine TM</label><input type="number" id="chestTm"></div>
+        <div class="field"><label>Incline Chest TM</label><input type="number" id="inclineTm"></div>
+        <div class="field"><label>Squat TM Increase / 6 Weeks</label><input type="number" id="squatInc"></div>
+        <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
+      </div>
+      <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
+      <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
+      The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
+      <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const defaults={
+ settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"}},
+ logs:[],
+ kb:[
+  ["KB Heavy","Double Clean & Press",5,"3","16 kg / bell"],["KB Heavy","Double Front Squat",5,"5","20 kg / bell"],
+  ["KB Heavy","Gorilla Row",4,"6/side","20 kg / bell"],["KB Heavy","Double Farmer Carry",3,"40 sec","24 kg / bell"],
+  ["KB Power","Double Clean",5,"5","16 kg / bell"],["KB Power","Double Push Press",5,"3","16 kg / bell"],
+  ["KB Power","Double Swing",5,"8","16 kg / bell"],["KB Power","Double Reverse Lunge",3,"6/leg","16 kg / bell"],
+  ["KB Power","Double Farmer Carry",3,"40 sec","24 kg / bell"],
+  ["KB Volume","Double Clean & Press",4,"6","14 kg / bell"],["KB Volume","Double Front Squat",4,"8","18 kg / bell"],
+  ["KB Volume","Single-Arm Row",3,"10/side","24 kg"],["KB Volume","Single-Arm Snatch",4,"5/side","12 kg"],
+  ["KB Volume","Suitcase Carry",3,"40 sec/side","24 kg"]
+ ]
+};
+const pullups=[
+ [1,1,1,"Side / Neutral",3,5,25],[2,1,2,"Overhand",3,5,25],[3,1,3,"Side / Neutral",3,3,30],
+ [4,1,4,"Overhand",3,5,25],[5,1,5,"Side / Neutral",3,5,30],[6,1,6,"Overhand",3,2,30],
+ [7,2,1,"Overhand",3,5,25],[8,2,2,"Side / Neutral",3,5,30],[9,2,3,"Overhand",3,3,30],
+ [10,2,4,"Side / Neutral",3,5,30],[11,2,5,"Overhand",3,5,30],[12,2,6,"Side / Neutral",3,2,35],
+ [13,3,1,"Side / Neutral",3,5,30],[14,3,2,"Overhand",3,5,30],[15,3,3,"Side / Neutral",3,3,35],
+ [16,3,4,"Overhand",3,5,30],[17,3,5,"Side / Neutral",3,5,35],[18,3,6,"Overhand",3,2,35]
+];
+const wave=[[.70,3,5],[.80,3,5],[.90,3,3],[.75,3,5],[.85,3,5],[.95,3,2]];
+const preKbSchedule=[
+ ["Monday","TB Maintenance","Squat + pull-up + row + chest + incline"],
+ ["Tuesday","Conditioning","Easy aerobic / recovery conditioning"],
+ ["Wednesday","TB Maintenance","Squat + pull-up + row + chest + incline"],
+ ["Thursday","Conditioning","HIC / athletic conditioning"],
+ ["Friday","TB Maintenance","Squat + pull-up + row + chest + incline"],
+ ["Saturday","Conditioning","Longer aerobic / mixed conditioning"],
+ ["Sunday","Recovery / Rest","Recovery, mobility, or complete rest"]
+];
+const hybridSchedule=[
+ ["Monday","TB Maintenance","Squat + pull-up + row + chest + incline"],
+ ["Tuesday","KB Heavy","Clean & press + front squat + row + carry"],
+ ["Wednesday","Conditioning","Easy aerobic / recovery"],
+ ["Thursday","TB Maintenance","Same TB prescription"],
+ ["Friday","KB Power","Cleans + push press + swings + lunge + carry"],
+ ["Saturday","Conditioning","Harder / athletic conditioning"],
+ ["Sunday","KB Volume","Higher-volume KB work"]
+];
+function blockModeForWeek(gw){
+  const b=String(blockInfo(clamp(gw,1,18)).block);
+  return (state.settings.blockModes||{})[b]||"hybrid";
+}
+function scheduleForWeek(gw){return blockModeForWeek(gw)==="tb" ? preKbSchedule : hybridSchedule}
+function schedulePhase(gw){return blockModeForWeek(gw)==="tb" ? "TB Only • TB M/W/F" : "Hybrid • 2 TB + 3 KB"}
+
+const conditioningPlan = [
+  {"week": 1, "wed": {"activity": "LSS Run", "detail": "45 min easy, steady, conversational pace", "target": "45 min", "rpe": "4–5"}, "sat": {"activity": "Connaught Range 10 to 1s", "detail": "HIC #1 • aerobic/anaerobic mix", "target": "10-to-1", "rpe": "8–9"}},
+  {"week": 2, "wed": {"activity": "LSS Swim", "detail": "45 min easy continuous aerobic work", "target": "45 min", "rpe": "4"}, "sat": {"activity": "GC 1 — Beat Your Face", "detail": "HIC #25 • general conditioning; record burpees by interval", "target": "1–3 rounds", "rpe": "8–9"}},
+  {"week": 3, "wed": {"activity": "LSS Cycle", "detail": "50 min easy, steady, conversational effort", "target": "50 min", "rpe": "4–5"}, "sat": {"activity": "600 Meter Resets", "detail": "HIC #3 • 600 m max effort / 3–5 min reset ×6", "target": "6 × 600 m", "rpe": "9"}},
+  {"week": 4, "wed": {"activity": "Triples", "detail": "Jump rope 10 + run 10 + row 10 ×2, all easy", "target": "2 circuits", "rpe": "4–5"}, "sat": {"activity": "GC 9", "detail": "HIC #33 • 10-min AMRAP then 100 m sprints", "target": "A + B", "rpe": "8"}},
+  {"week": 5, "wed": {"activity": "LSS Swim", "detail": "45–60 min easy continuous aerobic work", "target": "45–60 min", "rpe": "4"}, "sat": {"activity": "Short Hills", "detail": "HIC #10 • 10–15 sec hills with walk-back recovery", "target": "10 hills", "rpe": "8–9"}},
+  {"week": 6, "wed": {"activity": "LSS Run", "detail": "45 min very comfortable; keep it genuinely easy", "target": "45 min", "rpe": "4"}, "sat": {"activity": "GC 10", "detail": "HIC #34 • controlled version for the end of the strength block", "target": "4 rounds + finisher", "rpe": "7–8"}},
+  {"week": 7, "wed": {"activity": "LSS Cycle", "detail": "60 min easy", "target": "60 min", "rpe": "4–5"}, "sat": {"activity": "BOO II", "detail": "HIC #8 • burpee/run circuit", "target": "3 rounds", "rpe": "8–9"}},
+  {"week": 8, "wed": {"activity": "LSS Run", "detail": "60 min easy and steady", "target": "60 min", "rpe": "4–5"}, "sat": {"activity": "GC 3 — Brig Rat", "detail": "HIC #27 • 30-sec work intervals ×3–5 rounds", "target": "3–5 rounds", "rpe": "8"}},
+  {"week": 9, "wed": {"activity": "LSS Swim", "detail": "45 min easy aerobic swim", "target": "45 min", "rpe": "4"}, "sat": {"activity": "Indoor Power Intervals", "detail": "HIC #5 • 2 min hard / 3–5 min rest ×5", "target": "5 rounds", "rpe": "9"}},
+  {"week": 10, "wed": {"activity": "Ruck Up", "detail": "30–45 min with roughly 20–30 lb, purposeful walk", "target": "30–45 min", "rpe": "4–5"}, "sat": {"activity": "GC 5", "detail": "HIC #29 • max dips/push-ups then pull-up/burpee work", "target": "A + B", "rpe": "8"}},
+  {"week": 11, "wed": {"activity": "LSS Cycle", "detail": "60 min easy and steady", "target": "60 min", "rpe": "4"}, "sat": {"activity": "Black on Oxygen (BOO)", "detail": "HIC #7 • swings + 800 m hard run", "target": "5 rounds", "rpe": "8–9"}},
+  {"week": 12, "wed": {"activity": "LSS Run", "detail": "45 min easy recovery-focused run", "target": "45 min", "rpe": "4"}, "sat": {"activity": "GC 6", "detail": "HIC #30 • 5-min AMRAPs; use KB swings if no sledge", "target": "3 rounds", "rpe": "7–8"}},
+  {"week": 13, "wed": {"activity": "LSS Swim", "detail": "60 min easy continuous aerobic work", "target": "60 min", "rpe": "4"}, "sat": {"activity": "Oxygen Debt 101", "detail": "HIC #11 • repeated 200 m efforts", "target": "3–4 rounds", "rpe": "9"}},
+  {"week": 14, "wed": {"activity": "LSS Run", "detail": "60 min easy and conversational", "target": "60 min", "rpe": "4–5"}, "sat": {"activity": "GC 7", "detail": "HIC #31 • bodyweight + 800 m work capacity", "target": "3 rounds", "rpe": "8"}},
+  {"week": 15, "wed": {"activity": "LSS Cycle", "detail": "60 min easy steady ride", "target": "60 min", "rpe": "4"}, "sat": {"activity": "Meat-Eater", "detail": "HIC #13 • sprint + KB swing repeats", "target": "10 rounds", "rpe": "8–9"}},
+  {"week": 16, "wed": {"activity": "Triples", "detail": "2 easy circuits", "target": "2 circuits", "rpe": "4–5"}, "sat": {"activity": "GC 2", "detail": "HIC #26 • descending 10→1 bodyweight ladder", "target": "for time", "rpe": "8"}},
+  {"week": 17, "wed": {"activity": "LSS Run", "detail": "60 min comfortable steady run", "target": "60 min", "rpe": "4–5"}, "sat": {"activity": "Warrior Run", "detail": "45-min distance benchmark", "target": "45 min", "rpe": "8"}},
+  {"week": 18, "wed": {"activity": "LSS Swim", "detail": "45 min easy recovery-focused swim", "target": "45 min", "rpe": "4"}, "sat": {"activity": "GC 10", "detail": "HIC #34 • use basic/controlled version if fatigue is high", "target": "4 rounds + finisher", "rpe": "7–8"}}
+];
+
+const preKbSaturdayPlan = [
+ {activity:"LSS Run",detail:"60 min easy, steady, conversational pace",target:"60 min",rpe:"4–5"},
+ {activity:"Triples",detail:"2 easy circuits: jump rope / run / row",target:"2 circuits",rpe:"4–5"},
+ {activity:"LSS Run",detail:"60 min easy steady run",target:"60 min",rpe:"4–5"},
+ {activity:"Ruck Up",detail:"45–60 min purposeful walk with a moderate load",target:"45–60 min",rpe:"4–5"},
+ {activity:"LSS Run",detail:"60 min easy; work for time, not pace",target:"60 min",rpe:"4–5"},
+ {activity:"LSS Swim",detail:"45–60 min easy continuous aerobic work",target:"45–60 min",rpe:"4"},
+ {activity:"LSS Run",detail:"60 min easy steady run",target:"60 min",rpe:"4–5"},
+ {activity:"Triples",detail:"2 easy circuits; keep the entire session conversational",target:"2 circuits",rpe:"4–5"},
+ {activity:"Ruck Up",detail:"45–60 min purposeful walk with a moderate load",target:"45–60 min",rpe:"4–5"},
+ {activity:"LSS Run",detail:"60 min easy and steady",target:"60 min",rpe:"4–5"},
+ {activity:"LSS Cycle",detail:"60 min easy aerobic ride",target:"60 min",rpe:"4"},
+ {activity:"LSS Run",detail:"45–60 min comfortable aerobic work before the hybrid phase starts",target:"45–60 min",rpe:"4"}
+];
+
+
+const tbEnduranceLibrary = [
+  {name:"LSS Run", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"run"},
+  {name:"LSS Cycle", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"bike"},
+  {name:"LSS Swim", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"swim"},
+  {name:"LSS Row", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"row"},
+  {name:"Ruck Up", category:"E", prescription:"90 min with 50 lb", basic:"20–30 lb for 30–60 min", advanced:"2–4+ hr and/or 80–100+ lb; distance option 3–10 mi", logging:"ruck"},
+  {name:"Triples", category:"E", prescription:"Jump rope 10 min + run 10 min + row 10 min × 2, no rest", basic:"1 circuit", advanced:"3–4 circuits", logging:"triples"},
+  {name:"Fun-Run — Standard Issue", category:"E / Fun-Run", prescription:"10 km easy run; every 6 min alternate burpees ×10 and squats ×20 + push-ups ×20", basic:"5 km; burpees ×5 / squats ×10 + push-ups ×10", advanced:"10 km; all 3 every 6 min OR 10–15 lb vest", logging:"funrun"},
+  {name:"Fun-Run — Cannonball Run", category:"E / Fun-Run", prescription:"3 mi easy run with 12–24 kg KB in pack; every 7 min rotate swings ×10 / goblet squats ×10 / push-ups ×10", basic:"1.5 mi", advanced:"6 mi and/or 20 reps each and/or heavier KB", logging:"cannonball"},
+  {name:"Fun-Run — 03 at Stupid-Dark 30", category:"E / Fun-Run", prescription:"6 mi for time; every 7 min rotate A/B/C calisthenics; timer pauses during exercises", basic:"2–3 mi with reduced reps", advanced:"8–10 mi with standard A/B/C", logging:"03"},
+  {name:"Warrior Run", category:"E test", prescription:"Run as far as possible in 45 min", basic:"30 min", advanced:"60 min", logging:"warrior"},
+  {name:"Strength-Endurance Circuit", category:"E / SE", prescription:"5–8 exercises; high reps; 30–120 sec between exercises; 2 min between circuits", basic:"Use accessible high-rep exercises", advanced:"Reduce rest intervals as capacity improves", logging:"se"}
+];
+
+const tbHICLibrary = [
+  {num:1,name:"Connaught Range 10 to 1s",prescription:"10 burpees + 100 m sprint, then 9 + 100 m, continuing to 1",basic:"Start 5\u21921 and/or shorten run to 50 m",advanced:"Progress to full 10\u21921; optional squats at stops",logging:"connaught"},
+  {num:2,name:"Fast 5 Tempo Run",prescription:"5 km / 3 mi at roughly 80\u201385% max HR",basic:"Start with half the distance",advanced:"Increase pace and/or distance to 4\u20135 mi",logging:"tempo"},
+  {num:3,name:"600 Meter Resets",prescription:"600 m maximum effort, rest 3\u20135 min \u00d76",basic:"4 reps",advanced:"Use full standard prescription when ready",logging:"resets600"},
+  {num:4,name:"Heavy Bag Resets",prescription:"90 sec maximum-effort strikes, rest 2\u20135 min \u00d75",basic:"4 rounds and/or 60 sec work",advanced:"Up to 10 rounds and/or 2 min striking",logging:"heavybag"},
+  {num:5,name:"Indoor Power Intervals",prescription:"2 min hard treadmill / Airdyne / row, rest 3\u20135 min \u00d75",basic:"Scale rounds/output while preserving long recovery",advanced:"Progress output while retaining 2-min work",logging:"powerinterval"},
+  {num:6,name:"Sledge Drill",prescription:"Sledge 60s / jump rope 60s / sledge 30s / rope 30s; rest 2\u20133 min \u00d75",basic:"3 rounds",advanced:"1 min for each of four movements \u00d75",logging:"sledge"},
+  {num:7,name:"Black on Oxygen (BOO)",prescription:"KB swings 60 sec (or 30) + 800 m hard run; rest 2\u20133 min \u00d75",basic:"Scale bell/rounds as needed",advanced:"Progress bell or running output",logging:"boo"},
+  {num:8,name:"BOO II",prescription:"10 burpees / 800 m / 5 burpees / 400 m max effort; rest 2\u20133 min \u00d73",basic:"5 burpees / 400 m / 5 burpees / 400 m max \u00d72",advanced:"20 burpees / 800 m / 10 burpees / 400 m max \u00d73\u20135",logging:"boo2"},
+  {num:9,name:"Fobbit Intervals",prescription:"Easy cardio 2 min / 20 KB swings / easy cardio 2 min / 10 KB snatches per arm; repeat 20 min",basic:"10 swings, 5 snatches/arm and/or 15 min",advanced:"Heavier bells and/or 30 min",logging:"fobbit"},
+  {num:10,name:"Short Hills",prescription:"10\u201315 sec hill sprint, 30\u201360 sec / walk-back recovery \u00d710",basic:"Start \u00d75 and build to \u00d710",advanced:"\u00d715\u201320 and/or 10\u201320 lb vest",logging:"shorthills"},
+  {num:11,name:"Oxygen Debt 101",prescription:"3 \u00d7 200 m max-effort runs with 30 sec between; rest 3 min between rounds; 3\u20134 rounds",basic:"2 rounds, build toward 4",advanced:"Complete all 4 rounds",logging:"oxygen101"},
+  {num:12,name:"Speed-Endurance Ladders",prescription:"400 / 300 / 200 / 100 m max effort with 40 / 30 / 20 / 10 sec rests, then reverse back up",basic:"Rest 2 min at bottom before climbing back up",advanced:"Multiple continuous down-and-up ladders",logging:"seladder"},
+  {num:13,name:"Meat-Eater",prescription:"100 m sprint + 20 Russian KB swings; walk back; \u00d710",basic:"5 rounds and/or lighter bell",advanced:"For time; jog back and/or heavier bell",logging:"meateater"},
+  {num:14,name:"Meat-Eater II",prescription:"10 Russian KB swings + 10 burpees; rest 60 sec \u00d710; for time",basic:"5 rounds and/or lighter bell",advanced:"Heavier bell while keeping form",logging:"meateater2"},
+  {num:15,name:"Disarmed",prescription:"10 burpees + 2 min heavy-bag work; rest 60 sec \u00d73\u20135, then plank/shank finisher",basic:"Use 1 min bag work",advanced:"Use 3 min bag work",logging:"disarmed"},
+  {num:16,name:"Standard Issue Hills",prescription:"5\u201310 hill sprints with 1\u20132 min recovery; aim for 30\u201345 sec hill",basic:"Start 3\u20134 rounds; up to 3 min recovery",advanced:"Jog down and remove extra rest",logging:"standardhills"},
+  {num:17,name:"Apex Hills",prescription:"Hill sprint + 10 Russian KB swings at top; walk down; rest 1\u20132 min \u00d75\u201310",basic:"Start 3\u20134 rounds and/or lighter bell",advanced:"Jog down and eliminate extra rest",logging:"apexhills"},
+  {num:18,name:"Bloody Lungs I",prescription:"10 plank push-ups + hill sprint + 10 burpees; walk down \u00d75",basic:"Add 1\u20132 min rest and/or use 5 reps",advanced:"Up to 10 rounds; jog down; optional 10\u201320 lb vest",logging:"bloody1"},
+  {num:19,name:"Bloody Lungs II",prescription:"10 burpees + hill sprint + 5 KB/DB snatches per arm; walk down; rest 1\u20132 min \u00d75\u201310",basic:"5 rounds, lighter bell, swings instead of snatches, and/or 5 burpees",advanced:"10+ rounds, 10 snatches/arm, jog down, reduce rest; optional 10\u201315 lb vest",logging:"bloody2"},
+  {num:20,name:"Anaerobic Capacity",prescription:"Jog 800 / sprint 400 / jog 800 / sprint 400 / jog 400 / sprint 200 / jog 400 / sprint 200 continuously; finish 50 plank push-ups",basic:"25 plank push-ups",advanced:"Optional 5\u201310 lb vest",logging:"hiccomplex"},
+  {num:21,name:"Pepper Potting",prescription:"30\u201350 lb ruck/vest; 1.5 mi route or 30-min hike; every 5 min pepper-pot roughly 100 m",basic:"Not shown in supplied page",advanced:"Not shown in supplied page",logging:"hiccomplex"},
+  {num:22,name:"Buffalo Laps",prescription:"10 burpees + 400 m run + 10 two-hand KB swings (or 20 one-hand) \u00d74; page lists 45\u201360 sec rest",basic:"60 sec between rounds",advanced:"Use double-kettlebell swings",logging:"hiccomplex"},
+  {num:23,name:"Meat-Eater III",prescription:"10 double KB clean & presses + 300 m sprint + 100 m walking lunge back \u00d74\u20136",basic:"5 C&Ps; skip lunges and walk final 100 m",advanced:"Heavier bells and/or 6+ rounds",logging:"hiccomplex"},
+  {num:24,name:"Devil's Trinity Combat Conditioning Circuit",prescription:"1 min KB swings + 1 min burpees + 1 min heavy bag/spar/shadowbox + 1 min rest \u00d75",basic:"2\u20133 rounds",advanced:"All 5 rounds without rest and/or double KB swings",logging:"hiccomplex"},
+  {num:25,name:"GC 1 \u2014 Beat Your Face",prescription:"Burpees 3 min/rest 3; 2/rest 2; 1/rest 1 \u00d71\u20133 rounds",basic:"Start with 1 round",advanced:"5 min burpees / 2 min rest \u00d73\u20134 and/or 5\u201315 lb vest",logging:"hiccomplex"},
+  {num:26,name:"GC 2",prescription:"Descending 10\u21921 ladder: pull-ups, burpees, squat jumps, plyometric push-ups; for time",basic:"Not shown in supplied page",advanced:"Not shown in supplied page",logging:"hiccomplex"},
+  {num:27,name:"GC 3 \u2014 Brig Rat",prescription:"30 sec each: burpees / dips / burpees / squats / burpees / back extensions; rest 1 min \u00d73\u20135",basic:"N/A",advanced:"Optional 10\u201315 lb vest",logging:"hiccomplex"},
+  {num:28,name:"GC 4",prescription:"100 pull-ups / 400 m / 100 push-ups / 400 m / 100 KB or DB swings / 400 m; 1 round for time",basic:"50 reps per exercise",advanced:"48 kg+ KB or double KBs and/or 2 rounds",logging:"hiccomplex"},
+  {num:29,name:"GC 5",prescription:"A: max dips 1 min / rest 90 sec / max push-ups 1 min / rest 90 sec \u00d73. Rest 2 min. B: 5 pull-ups + 10 burpees \u00d73",basic:"30 sec dips and push-ups",advanced:"Use weight vest on movements",logging:"hiccomplex"},
+  {num:30,name:"GC 6",prescription:"10 sledge/tire strikes + 5 burpees + 10 squats; AMRAP 5 min; rest 60\u201390 sec \u00d73",basic:"N/A",advanced:"10 burpees, 5+ rounds, and/or 5\u201315 lb vest",logging:"hiccomplex"},
+  {num:31,name:"GC 7",prescription:"50 burpees + 50 squats + 50 diamond push-ups + 800 m run \u00d73; for time",basic:"1\u20132 rounds",advanced:"100 reps each \u00d73\u20135 rounds",logging:"hiccomplex"},
+  {num:32,name:"GC 8",prescription:"A: 10 KB/DB snatches/arm + 25 box jumps + 25 hanging knees-to-elbows + 25 dips + 5 burpees \u00d74. B: 60-sec handstand hold / rest 2\u20133 min \u00d73",basic:"2 rounds A + 1 round B",advanced:"N/A",logging:"hiccomplex"},
+  {num:33,name:"GC 9",prescription:"A: 3 pull-ups + 5 burpees + 10 squats; AMRAP 10 min. B: 10 \u00d7 100 m sprints",basic:"5 \u00d7 100 m sprints",advanced:"Muscle-ups instead of pull-ups",logging:"hiccomplex"},
+  {num:34,name:"GC 10",prescription:"A: jog 2 min + 25 burpees \u00d74. B: core or grip finisher of choice",basic:"15 burpees",advanced:"50 burpees and/or 5\u201320 lb vest",logging:"hiccomplex"},
+  {num:35,name:"GC 11 \u2014 Outside the Wire",prescription:"A: 100 m sprint + 50 m bear crawl \u00d75 for time. B: 100 sledge/tire strikes for time",basic:"N/A",advanced:"5\u201320 lb vest; B alternatives include muscle-ups or pull-ups",logging:"hiccomplex"},
+  {num:36,name:"GC 12",prescription:"A: 1.5 mi run for time. B: 20 barbell push-press + 20 back extensions + 20 pull-ups \u00d73 for time; push-press ~15\u201330% 1RM",basic:"1\u20132 rounds of B",advanced:"N/A",logging:"hiccomplex"}
+];
+
+const tbPowerLibrary = [
+  {num:37,name:"BW Plyo \u2013 Power",prescription:"3 rounds: explosive push-ups \u00d710, jump squats \u00d710, plyo pull-ups \u00d75\u201310; then 5 \u00d7 50 m sprints",basic:"2 rounds and/or 5 plyo pull-ups",advanced:"N/A",logging:"hiccomplex"},
+  {num:38,name:"Power Complex",prescription:"3 rounds: push-press \u00d75 at ~60\u201370% 1RM; double KB/DB squat jumps \u00d710; KB/DB snatch \u00d75/arm; plyo pull-ups \u00d75",basic:"2 rounds, lighter loads, and/or 3 plyo pull-ups",advanced:"N/A",logging:"hiccomplex"},
+  {num:39,name:"Kinetic Conditioning",prescription:"50 m sprint + 5 explosive plyo push-ups; rest 2 min; 50 m sprint + 5 squat jumps; rest 2 min \u00d73",basic:"2 rounds",advanced:"N/A",logging:"hiccomplex"},
+  {num:40,name:"Transition Complex",prescription:"2\u20133 rounds: front squat \u00d73 + 10 squat jumps; overhead press \u00d73 + 10 plyo push-ups; weighted pull-ups \u00d73 + 10 med-ball slams",basic:"Use bodyweight pull-ups",advanced:"Muscle-ups and/or plyo pull-ups substitutions",logging:"hiccomplex"}
+];
+
+function hicCategory(n){
+  if(n<=10) return "Aerobic / Anaerobic Mix";
+  if(n<=24) return "Anaerobic Emphasis";
+  if(n<=36) return "General Conditioning";
+  return "Power Development";
+}
+const tbSEClusters = [
+  {name:"Bodyweight Cluster",exercises:["Push-Ups","Squats","Kipping Pull-ups or Inverted Rows","Bicycle Crunches","Dips","Back Extensions"],guidance:"High-rep circuit; add roughly 5–10 lb via vest/backpack to progress if appropriate."},
+  {name:"Barbell Cluster",exercises:["Push Press","Front Squat","Row","Bench Press / Floor Press","Shrugs","Romanian Deadlift"],guidance:"Use the same light bar/weight when practical; roughly 15–30% estimated 1RM."},
+  {name:"Kettlebell Cluster",exercises:["Swings","Goblet Squat","Renegade Rows","Single-Arm Floor Press","Kettlebell Deadlift"],guidance:"For unilateral exercises, split prescribed reps between sides."},
+  {name:"Dumbbell Cluster",exercises:["Bench / Floor Press","Lunges","Rows","DB Push Press","Squats","Lying Leg Raises"],guidance:"Use light DBs, roughly 15–30% estimated 1RM where applicable; split unilateral reps between sides."},
+  {name:"Mixed SE Circuit",exercises:["Choose 5–8 exercises covering all major body parts"],guidance:"Mix modalities. Keep resistance light, reps high, rests short, and equipment immediately accessible."}
+];
+const tbSEGuidance = {
+  principle:"Light resistance + high repetitions + short rest intervals.",
+  exerciseCount:"Choose 5–8 exercises covering all major body parts.",
+  loading:"For barbell/dumbbell work, roughly 15–30% of estimated 1RM.",
+  reps:"SE work commonly falls in the 20–50 rep range.",
+  selection:"For higher-tension exercises, a useful rule is to already be capable of roughly 15–20 reps before including them."
+};
+
+
+const tbAccessoryLibrary = [
+  {name:"Plank & Shank", prescription:"Plank 1–5 min + static back-extension hold 1–5 min; rest 1–2 min ×1–3", note:"Quick core / posterior-chain finisher", logging:"plankshank"},
+  {name:"Full Core", prescription:"RDL total 100 reps at ~20–30% 1RM + hanging knees-to-elbows / leg raises total 100; finish with Plank & Shank ×3", note:"Basic version uses 50 reps each", logging:"fullcore"},
+  {name:"Quarterdeck Core", prescription:"Plank push-ups ×10 / back extensions ×10 / V-ups ×10 / ab rollouts ×5–10 for 5–10 rounds", note:"Basic: 5 rounds; advanced: weighted vest", logging:"quarterdeck"},
+  {name:"Progressive Grip Circuit", prescription:"100 m farmer walk between DB overhead press, reverse curl, shrug, and hammer curl stations; rest 2–3 min ×1–3", note:"Use one conservative pair of DBs for the entire circuit; the next progression paragraph was not included in the screenshot", logging:"gripcircuit"}
+];
+
+
+
+const dayExerciseOptions={
+  Monday:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"],
+  Tuesday:["Double Clean & Press","Double Front Squat","Gorilla Row","Double Farmer Carry"],
+  Wednesday:["LSS Run","LSS Cycle","LSS Swim","LSS Row","Ruck Up","Triples","Strength-Endurance Circuit","Easy Run","Swim","Bike","Hike","Other"],
+  Thursday:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"],
+  Friday:["Double Clean","Double Push Press","Double Swing","Double Reverse Lunge","Double Farmer Carry"],
+  Saturday:["Connaught Range 10 to 1s", "Fast 5 Tempo Run", "600 Meter Resets", "Heavy Bag Resets", "Indoor Power Intervals", "Sledge Drill", "Black on Oxygen (BOO)", "BOO II", "Fobbit Intervals", "Short Hills", "Oxygen Debt 101", "Speed-Endurance Ladders", "Meat-Eater", "Meat-Eater II", "Disarmed", "Standard Issue Hills", "Apex Hills", "Bloody Lungs I", "Bloody Lungs II", "Anaerobic Capacity", "Pepper Potting", "Buffalo Laps", "Meat-Eater III", "Devil's Trinity Combat Conditioning Circuit", "GC 1 — Beat Your Face", "GC 2", "GC 3 — Brig Rat", "GC 4", "GC 5", "GC 6", "GC 7", "GC 8", "GC 9", "GC 10", "GC 11 — Outside the Wire", "GC 12", "BW Plyo – Power", "Power Complex", "Kinetic Conditioning", "Transition Complex", "Fun-Run — Standard Issue", "Fun-Run — Cannonball Run", "Fun-Run — 03 at Stupid-Dark 30", "Warrior Run", "Ruck Up", "Triples", "Strength-Endurance Circuit", "Other"],
+  Sunday:["Double Clean & Press","Double Front Squat","Single-Arm Row","Single-Arm Snatch","Suitcase Carry"]
+};
+
+let state;
+try{state=JSON.parse(localStorage.getItem("hybridTrainingDashboardV3")||"null")||JSON.parse(JSON.stringify(defaults))}
+catch(e){state=JSON.parse(JSON.stringify(defaults))}
+state.settings=Object.assign({},defaults.settings,state.settings||{});state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});
+function save(){try{localStorage.setItem("hybridTrainingDashboardV3",JSON.stringify(state))}catch(e){}}
+function clamp(n,a,b){n=Number(n);return Number.isFinite(n)?Math.max(a,Math.min(b,n)):a}
+function localISO(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day}
+function parseLocalISO(s){const p=String(s||"").split("-").map(Number);return p.length===3?new Date(p[0],p[1]-1,p[2],12,0,0):new Date(NaN)}
+function mondayOf(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12,0,0),dow=x.getDay();x.setDate(x.getDate()-((dow+6)%7));return x}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function ensureWeekAnchor(){
+  if(state.settings.week1Monday && !isNaN(parseLocalISO(state.settings.week1Monday)))return;
+  const thisMonday=mondayOf(new Date());
+  const week1=addDays(thisMonday,-7*(clamp(state.settings.currentWeek,1,18)-1));
+  state.settings.week1Monday=localISO(week1);
+  save();
+}
+function dateForTrainingWeek(gw,dayIndex=0){
+  ensureWeekAnchor();
+  return addDays(parseLocalISO(state.settings.week1Monday),(clamp(gw,1,18)-1)*7+dayIndex);
+}
+function trainingWeekForDate(d){
+  ensureWeekAnchor();
+  const anchor=parseLocalISO(state.settings.week1Monday);
+  const days=Math.round((mondayOf(d)-anchor)/86400000);
+  return Math.floor(days/7)+1;
+}
+function formatWeekRange(gw){
+  const a=dateForTrainingWeek(gw,0),b=dateForTrainingWeek(gw,6);
+  const sameMonth=a.getMonth()===b.getMonth();
+  return sameMonth
+    ? a.toLocaleDateString("en-US",{month:"short",day:"numeric"})+"–"+b.toLocaleDateString("en-US",{day:"numeric",year:"numeric"})
+    : a.toLocaleDateString("en-US",{month:"short",day:"numeric"})+" – "+b.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+}
+ensureWeekAnchor();
+let selectedDateISO=localISO(new Date());
+let browseWeek=clamp(trainingWeekForDate(new Date()),1,18);
+if(trainingWeekForDate(new Date())<1 || trainingWeekForDate(new Date())>18){
+  browseWeek=clamp(state.settings.currentWeek,1,18);
+  selectedDateISO=localISO(dateForTrainingWeek(browseWeek,(new Date().getDay()+6)%7));
+}
+function blockInfo(gw){return {block:Math.floor((gw-1)/6)+1,wib:(gw-1)%6+1}}
+function round5(x){return Math.round(x/5)*5}
+function currentTM(base,inc,b){return base+(b-1)*inc}
+function plates(side){let rem=side,out={45:0,25:0,10:0,5:0,2.5:0};[45,25,10,5,2.5].forEach(p=>{let n=Math.floor((rem+1e-9)/p);out[p]=n;rem-=n*p});return out}
+function plateSpans(c,rev){let a=[];[45,25,10,5,2.5].forEach(p=>{for(let i=0;i<c[p];i++)a.push('<i class="plate '+(p===2.5?'p2':'p'+p)+'"></i>')});if(rev)a.reverse();return a.join("")}
+function plateText(c){let a=[];[45,25,10,5,2.5].forEach(p=>{if(c[p])a.push(c[p]+"×"+p)});return a.join(" + ")||"0"}
+function visualLoad(total,bar){
+ const side=(total-(bar?45:0))/2,c=plates(side),cap='<div class="load-caption"><strong>'+side+' lb / side</strong><span>'+plateText(c)+'</span></div>';
+ if(bar)return '<div class="load-helper">'+cap+'<div class="barbell"><div class="bar-side left">'+plateSpans(c,true)+'</div><div class="bar"></div><div class="bar-side right">'+plateSpans(c,false)+'</div></div></div>';
+ return '<div class="load-helper">'+cap+'<div class="machine"><div class="machine-side">'+plateSpans(c,true)+'</div><div class="no-bar">NO<br>BAR</div><div class="machine-side">'+plateSpans(c,false)+'</div></div></div>';
+}
+function automaticTM(lift,block){
+ const s=state.settings;
+ if(lift==="squat")return currentTM(s.squatTm,s.squatInc,block);
+ if(lift==="row")return currentTM(s.rowTm,s.otherInc,block);
+ if(lift==="chest")return currentTM(s.chestTm,s.otherInc,block);
+ if(lift==="incline")return currentTM(s.inclineTm,s.otherInc,block);
+ return 0;
+}
+function effectiveTM(lift,block){
+ const o=(state.settings.tbOverrides||{})[String(block)]||{},v=Number(o[lift]);
+ return Number.isFinite(v)&&v>0 ? v : automaticTM(lift,block);
+}
+function getTBPlan(gw){
+ const s=state.settings,bi=blockInfo(gw),w=wave[bi.wib-1],pu=pullups[gw-1];
+ return [
+  {exercise:"Squat",sets:w[1],reps:String(w[2]),weight:round5(effectiveTM("squat",bi.block)*w[0])+" lb",numeric:round5(effectiveTM("squat",bi.block)*w[0]),bar:true,meta:Math.round(w[0]*100)+"%"},
+  {exercise:"Weighted Pull-up — "+pu[3],sets:pu[4],reps:String(pu[5]),weight:"+"+pu[6]+" lb",meta:"Added weight"},
+  {exercise:"Barbell Row",sets:w[1],reps:String(w[2]),weight:round5(effectiveTM("row",bi.block)*w[0])+" lb",numeric:round5(effectiveTM("row",bi.block)*w[0]),bar:true,meta:Math.round(w[0]*100)+"%"},
+  {exercise:"Chest Machine",sets:w[1],reps:String(w[2]),weight:round5(effectiveTM("chest",bi.block)*w[0])+" lb",numeric:round5(effectiveTM("chest",bi.block)*w[0]),bar:false,meta:Math.round(w[0]*100)+"%"},
+  {exercise:"Incline Chest Machine",sets:w[1],reps:String(w[2]),weight:round5(effectiveTM("incline",bi.block)*w[0])+" lb",numeric:round5(effectiveTM("incline",bi.block)*w[0]),bar:false,meta:Math.round(w[0]*100)+"%"}
+ ];
+}
+function expectedSession(day,gw){
+  const row=scheduleForWeek(gw).find(x=>x[0]===day);
+  return row ? row[1] : "Other";
+}
+function conditioningFor(day,gw){
+  const idx=Math.max(0,Math.min(conditioningPlan.length-1,Number(gw)-1));
+  const item=conditioningPlan[idx];
+  if(blockModeForWeek(gw)==="tb"){
+    if(day==="Tuesday")return item.wed;
+    if(day==="Thursday")return item.sat;
+    if(day==="Saturday")return preKbSaturdayPlan[idx]||item.wed;
+  }
+  return day==="Saturday" ? item.sat : item.wed;
+}
+
+function dayNameFromDate(value){
+  const d=new Date(value+"T12:00:00");
+  return isNaN(d) ? "Monday" : d.toLocaleDateString("en-US",{weekday:"long"});
+}
+function exerciseChoicesForDate(value){
+  const day=dayNameFromDate(value),d=parseLocalISO(value),tw=trainingWeekForDate(d),gw=(tw>=1&&tw<=18)?tw:state.settings.currentWeek;
+  const session=expectedSession(day,gw);
+  if(session==="TB Maintenance")return ["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"];
+  if(session==="KB Heavy")return ["Double Clean & Press","Double Front Squat","Gorilla Row","Double Farmer Carry"];
+  if(session==="KB Power")return ["Double Clean","Double Push Press","Double Swing","Double Reverse Lunge","Double Farmer Carry"];
+  if(session==="KB Volume")return ["Double Clean & Press","Double Front Squat","Single-Arm Row","Single-Arm Snatch","Suitcase Carry"];
+  if(session==="Conditioning")return [...new Set([...(dayExerciseOptions.Wednesday||[]),...(dayExerciseOptions.Saturday||[])])];
+  if(session==="Recovery / Rest")return ["Recovery / Rest","Mobility","Easy Walk","Other"];
+  return ["Other"];
+}
+function buildExerciseSelect(selected,dateValue){
+  const opts=exerciseChoicesForDate(dateValue);
+  const normalized=String(selected||"");
+  const match=opts.find(x=>normalized===x || normalized.startsWith(x+" —"));
+  let list=opts.map(x=>'<option value="'+x.replaceAll('"','&quot;')+'"'+(match===x?' selected':'')+'>'+x+'</option>');
+  if(normalized && !match){
+    list.unshift('<option value="'+normalized.replaceAll('"','&quot;')+'" selected>'+normalized+'</option>');
+  }
+  list.push('<option value="__custom__">Custom exercise…</option>');
+  return list.join("");
+}
+function conditioningKind(activity){
+  const a=String(activity||"");
+  const lib=[...tbHICLibrary,...tbPowerLibrary].find(x=>x.name===a);
+  if(lib && lib.logging==="hiccomplex")return "hiccomplex";
+  const s=a.toLowerCase();
+  if(s.includes("oxygen debt"))return "oxygen101";
+  if(s.includes("speed-endurance"))return "seladder";
+  if(s==="meat-eater")return "meateater";
+  if(s.includes("meat-eater ii"))return "meateater2";
+  if(s.includes("disarmed"))return "disarmed";
+  if(s.includes("standard issue hills"))return "standardhills";
+  if(s.includes("apex hills"))return "apexhills";
+  if(s.includes("bloody lungs i") && !s.includes("ii"))return "bloody1";
+  if(s.includes("bloody lungs ii"))return "bloody2";
+  if(s.includes("connaught"))return "connaught";
+  if(s.includes("fast 5"))return "tempo";
+  if(s.includes("600 meter"))return "resets600";
+  if(s.includes("heavy bag"))return "heavybag";
+  if(s.includes("indoor power"))return "powerinterval";
+  if(s.includes("sledge"))return "sledge";
+  if(s.includes("black on oxygen"))return "boo";
+  if(s.includes("boo ii"))return "boo2";
+  if(s.includes("fobbit"))return "fobbit";
+  if(s.includes("short hills"))return "shorthills";
+  if(s.includes("ruck"))return "ruck";
+  if(s.includes("triples"))return "triples";
+  if(s.includes("standard issue"))return "funrun";
+  if(s.includes("cannonball"))return "cannonball";
+  if(s.includes("stupid-dark"))return "03";
+  if(s.includes("warrior run"))return "warrior";
+  if(s.includes("strength-endurance"))return "se";
+  if(s.includes("lss row"))return "row";
+  if(s.includes("lss swim")||s==="swim"||s.includes("swim interval"))return "swim";
+  if(s.includes("lss cycle")||s==="bike"||s.includes("bike interval"))return "bike";
+  if(s.includes("sprint")||s.includes("hill repeat"))return "sprint";
+  if(s.includes("hike")||s.includes("walk"))return "hike";
+  if(s.includes("run")||s.includes("tempo")||s.includes("fartlek"))return "run";
+  if(s.includes("hic")||s.includes("interval"))return "interval";
+  return "generic";
+}
+function conditioningFieldsHTML(activity){
+  const kind=conditioningKind(activity);
+  const common =
+    '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"></div>'+
+    '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
+    '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option></select></div>'+
+    '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Route, conditions, soreness, breathing, etc."></div>';
+
+
+
+  if(kind==="connaught") return '<div class="field"><label>Lowest Rung Reached</label><input class="le-lowrung" type="number" min="1" max="10" step="1" value="1"></div>'+
+    '<div class="field"><label>Sprint Distance (m)</label><input class="le-sprintdistance" type="number" min="0" step="10" value="100"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="tempo") return '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01" placeholder="3.1"></div>'+
+    '<div class="field"><label>Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 7:45 /mi"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="resets600") return '<div class="field"><label>Reps Completed</label><input class="le-intervals" type="number" min="0" step="1" value="6"></div>'+
+    '<div class="field"><label>Best 600 m</label><input class="le-bestrep" placeholder="e.g. 2:08"></div>'+
+    '<div class="field"><label>Average 600 m</label><input class="le-avgrep" placeholder="e.g. 2:13"></div>'+
+    '<div class="field"><label>Last 600 m</label><input class="le-lastrep" placeholder="e.g. 2:18"></div>'+
+    '<div class="field"><label>Rest Used</label><input class="le-rest" placeholder="e.g. 4 min"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="heavybag") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="5"></div>'+
+    '<div class="field"><label>Work Interval</label><input class="le-work" value="90 sec"></div>'+
+    '<div class="field"><label>Rest Interval</label><input class="le-rest" placeholder="2–5 min"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="powerinterval") return '<div class="field"><label>Machine</label><select class="le-activities"><option>Treadmill</option><option>Airdyne / Air Bike</option><option>Rower</option></select></div>'+
+    '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="5"></div>'+
+    '<div class="field"><label>Hard Interval</label><input class="le-work" value="2 min"></div>'+
+    '<div class="field"><label>Rest Interval</label><input class="le-rest" value="3–5 min"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="sledge") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="5"></div>'+
+    '<div class="field"><label>Sledge Weight</label><input class="le-sledgeweight" placeholder="lb"></div>'+
+    '<div class="field"><label>Rest Interval</label><input class="le-rest" value="2–3 min"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="boo") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="5"></div>'+
+    '<div class="field"><label>KB Weight</label><input class="le-kbweight" placeholder="e.g. 24 kg"></div>'+
+    '<div class="field"><label>Swings</label><input class="le-work" placeholder="60 sec or 30 reps"></div>'+
+    '<div class="field"><label>Average 800 m</label><input class="le-avgrep" placeholder="e.g. 3:20"></div>'+
+    '<div class="field"><label>Rest Interval</label><input class="le-rest" value="2–3 min"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="boo2") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="3"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Average 800 m</label><input class="le-avgrep" placeholder="optional"></div>'+
+    '<div class="field"><label>Average 400 m</label><input class="le-lastrep" placeholder="optional"></div>'+
+    '<div class="field"><label>Rest Interval</label><input class="le-rest" value="2–3 min"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="fobbit") return '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1" value="20"></div>'+
+    '<div class="field"><label>Cardio Mode</label><select class="le-activities"><option>Treadmill</option><option>Rower</option><option>Jump Rope</option></select></div>'+
+    '<div class="field"><label>Swing Weight</label><input class="le-kbweight" placeholder="kg"></div>'+
+    '<div class="field"><label>Snatch Weight</label><input class="le-secondweight" placeholder="kg"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="shorthills") return '<div class="field"><label>Hills Completed</label><input class="le-intervals" type="number" min="0" step="1" value="10"></div>'+
+    '<div class="field"><label>Typical Sprint Time</label><input class="le-work" placeholder="10–15 sec"></div>'+
+    '<div class="field"><label>Recovery</label><input class="le-rest" placeholder="walk-back / 30–60 sec"></div>'+
+    '<div class="field"><label>Vest Weight (lb)</label><input class="le-vestweight" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+
+  if(kind==="oxygen101") return '<div class="field"><label>Rounds Completed</label><input class="le-intervals" type="number" min="0" step="1" value="4"></div>'+
+    '<div class="field"><label>200 m Reps / Round</label><input class="le-work" value="3"></div>'+
+    '<div class="field"><label>Best 200 m</label><input class="le-bestrep" placeholder="e.g. 0:34"></div>'+
+    '<div class="field"><label>Average 200 m</label><input class="le-avgrep" placeholder="e.g. 0:37"></div>'+
+    '<div class="field"><label>30-sec Recovery Kept?</label><select class="le-activities"><option>Yes</option><option>Mostly</option><option>No</option></select></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+common;
+
+  if(kind==="seladder") return '<div class="field"><label>Ladders Completed</label><input class="le-intervals" type="number" min="0" step="1" value="1"></div>'+
+    '<div class="field"><label>400 m Time</label><input class="le-bestrep" placeholder="time"></div>'+
+    '<div class="field"><label>300 m Time</label><input class="le-avgrep" placeholder="time"></div>'+
+    '<div class="field"><label>200 m Time</label><input class="le-lastrep" placeholder="time"></div>'+
+    '<div class="field"><label>100 m Time</label><input class="le-sprint100" placeholder="time"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+common;
+
+  if(kind==="meateater") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="10"></div>'+
+    '<div class="field"><label>KB Weight</label><input class="le-kbweight" placeholder="kg"></div>'+
+    '<div class="field"><label>Sprint Distance (m)</label><input class="le-sprintdistance" type="number" value="100"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0"></div>'+common;
+
+  if(kind==="meateater2") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="10"></div>'+
+    '<div class="field"><label>KB Weight</label><input class="le-kbweight" placeholder="kg"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Rest / Round</label><input class="le-rest" value="60 sec"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0"></div>'+common;
+
+  if(kind==="disarmed") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" placeholder="3–5"></div>'+
+    '<div class="field"><label>Bag Work / Round</label><input class="le-work" value="2 min"></div>'+
+    '<div class="field"><label>Rest / Round</label><input class="le-rest" value="60 sec"></div>'+
+    '<div class="field"><label>Finisher Completed?</label><select class="le-activities"><option>Yes</option><option>No</option></select></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+common;
+
+  if(kind==="standardhills") return '<div class="field"><label>Hills Completed</label><input class="le-intervals" type="number" min="0" step="1" placeholder="5–10"></div>'+
+    '<div class="field"><label>Typical Hill Time</label><input class="le-work" placeholder="30–45 sec"></div>'+
+    '<div class="field"><label>Rest at Bottom</label><input class="le-rest" placeholder="1–2 min"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0"></div>'+common;
+
+  if(kind==="apexhills") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" placeholder="5–10"></div>'+
+    '<div class="field"><label>KB Weight</label><input class="le-kbweight" placeholder="kg"></div>'+
+    '<div class="field"><label>Hill Sprint Time</label><input class="le-work" placeholder="sec"></div>'+
+    '<div class="field"><label>Rest at Bottom</label><input class="le-rest" placeholder="1–2 min"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+common;
+
+  if(kind==="bloody1") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="5"></div>'+
+    '<div class="field"><label>Plank Push-ups / Round</label><input class="le-work" value="10"></div>'+
+    '<div class="field"><label>Burpees / Round</label><input class="le-secondwork" value="10"></div>'+
+    '<div class="field"><label>Vest Weight (lb)</label><input class="le-vestweight" type="number" min="0"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+common;
+
+  if(kind==="bloody2") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" placeholder="5–10"></div>'+
+    '<div class="field"><label>KB / DB Weight</label><input class="le-kbweight" placeholder="kg or lb"></div>'+
+    '<div class="field"><label>Snatches / Arm</label><input class="le-work" value="5"></div>'+
+    '<div class="field"><label>Burpees / Round</label><input class="le-secondwork" value="10"></div>'+
+    '<div class="field"><label>Rest</label><input class="le-rest" value="1–2 min"></div>'+
+    '<div class="field"><label>Vest Weight (lb)</label><input class="le-vestweight" type="number" min="0"></div>'+common;
+
+  if(kind==="hiccomplex") return '<div class="field"><label>Rounds / Work Completed</label><input class="le-intervals" placeholder="rounds, reps, or completed work"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Primary Load</label><input class="le-kbweight" placeholder="KB / DB / barbell / vest if used"></div>'+
+    '<div class="field"><label>Key Result</label><input class="le-work" placeholder="AMRAP rounds, reps, splits, etc."></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0"></div>'+common;
+
+  if(kind==="ruck") return '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Ruck Weight (lb)</label><input class="le-ruckweight" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Elevation Gain (ft)</label><input class="le-elev" type="number" min="0" step="1"></div>'+common;
+
+  if(kind==="triples") return '<div class="field"><label>Circuits Completed</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Minutes / Activity</label><input class="le-work" placeholder="e.g. 10 min"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Activities Used</label><input class="le-activities" placeholder="Jump rope / run / row"></div>'+common;
+
+  if(kind==="funrun") return '<div class="field"><label>Run Distance (km)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Run Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Exercise Stops</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Vest Weight (lb)</label><input class="le-vestweight" type="number" min="0" step="1"></div>'+common;
+
+  if(kind==="cannonball") return '<div class="field"><label>Run Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Run Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>KB Weight</label><input class="le-kbweight" placeholder="e.g. 16 kg"></div>'+
+    '<div class="field"><label>Exercise Stops</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="03") return '<div class="field"><label>Run Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Running Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Exercise Stops</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 8:10 /mi"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="warrior") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1" value="45"></div>'+
+    '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 7:45 /mi"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="se") return '<div class="field"><label>Cluster Type</label><select class="le-clustertype"><option>Kettlebell Cluster</option><option>Bodyweight Cluster</option><option>Barbell Cluster</option><option>Dumbbell Cluster</option><option>Mixed SE Circuit</option></select></div>'+
+    '<div class="field"><label>Circuits Completed</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Target Reps / Exercise</label><input class="le-work" placeholder="typically 20–50"></div>'+
+    '<div class="field"><label>Rest Between Exercises</label><input class="le-rest" placeholder="short; e.g. 30–120 sec"></div>'+
+    '<div class="field"><label>Rest Between Circuits</label><input class="le-circuitrest" placeholder="e.g. 2 min"></div>'+
+    '<div class="field notes"><label>Exercise Cluster</label><input class="le-activities" placeholder="e.g. swings / goblet squat / renegade row / floor press / KB deadlift"></div>'+common;
+
+  if(kind==="row") return '<div class="field"><label>Distance</label><input class="le-distance" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Distance Unit</label><select class="le-unit"><option>m</option><option>km</option></select></div>'+
+    '<div class="field"><label>Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Avg Split</label><input class="le-pace" placeholder="e.g. 2:20 /500m"></div>'+common;
+
+  if(kind==="run") return '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 8:20 /mi"></div>'+common;
+
+  if(kind==="swim") return '<div class="field"><label>Distance</label><input class="le-distance" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Distance Unit</label><select class="le-unit"><option>yd</option><option>m</option><option>mi</option></select></div>'+
+    '<div class="field"><label>Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="bike") return '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Avg Speed (mph)</label><input class="le-speed" type="number" min="0" step=".1"></div>'+common;
+
+  if(kind==="hike") return '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Elevation Gain (ft)</label><input class="le-elev" type="number" min="0" step="1"></div>'+common;
+
+  if(kind==="sprint") return '<div class="field"><label>Reps Completed</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Rep Distance / Time</label><input class="le-work" placeholder="e.g. 60 m or 10 sec"></div>'+
+    '<div class="field"><label>Recovery</label><input class="le-rest" placeholder="e.g. 2 min walk"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  if(kind==="interval") return '<div class="field"><label>Intervals Completed</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Work Interval</label><input class="le-work" placeholder="e.g. 2 min hard"></div>'+
+    '<div class="field"><label>Recovery Interval</label><input class="le-rest" placeholder="e.g. 2 min easy"></div>'+
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+
+  return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Distance</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+}
+function valueOf(card,selector){
+  const el=card.querySelector(selector); return el ? el.value.trim() : "";
+}
+function conditioningSummary(x){
+  const m=x.metrics||{}, bits=[];
+  if(m.distance) bits.push(m.distance+(m.distanceUnit ? " "+m.distanceUnit : (x.exercise&&x.exercise.includes("Standard Issue") ? " km" : " mi")));
+  if(m.time) bits.push(m.time+" min");
+  if(m.intervals) bits.push(m.intervals+" rounds/reps");
+  if(m.lowRung) bits.push("to "+m.lowRung);
+  if(m.sprintDistance) bits.push(m.sprintDistance+" m sprints");
+  if(m.ruckWeight) bits.push(m.ruckWeight+" lb ruck");
+  if(m.vestWeight) bits.push(m.vestWeight+" lb vest");
+  if(m.kbWeight) bits.push(m.kbWeight+" KB");
+  if(m.secondWeight) bits.push("2nd KB "+m.secondWeight);
+  if(m.sledgeWeight) bits.push(m.sledgeWeight+" lb sledge");
+  if(m.bestRep) bits.push("best "+m.bestRep);
+  if(m.avgRep) bits.push("avg rep "+m.avgRep);
+  if(m.avgHr) bits.push("avg HR "+m.avgHr);
+  if(m.maxHr) bits.push("max HR "+m.maxHr);
+  if(m.elevation) bits.push(m.elevation+" ft gain");
+  if(m.pace) bits.push(m.pace);
+  if(m.speed) bits.push(m.speed+" mph");
+  return bits.join(" • ") || "Conditioning logged";
+}
+
+
+function planFor(session,gw){
+ if(session==="TB Maintenance")return getTBPlan(gw);
+ if(session.startsWith("KB "))return state.kb.filter(x=>x[0]===session).map(x=>({exercise:x[1],sets:x[2],reps:x[3],weight:x[4],meta:"Planned KB target",conditioning:false}));
+ if(session==="Conditioning"){
+   const day=dayNameFromDate(logDate.value);
+   const c=conditioningFor(day,gw);
+   return [{exercise:c.activity,plannedTarget:c.target,meta:c.detail+" • target RPE "+c.rpe,conditioning:true}];
+ }
+ return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"",conditioning:false}];
+}
+function render(){
+ const gw=clamp(state.settings.currentWeek,1,18),b=blockInfo(gw),w=wave[b.wib-1],pu=pullups[gw-1],nx=pullups[Math.min(17,gw)];
+ heroCurrent.textContent=pu[3]+" +"+pu[6]+" lb • "+pu[4]+"×"+pu[5];heroNext.textContent=gw<18?"Next: "+nx[3]+" +"+nx[6]+" lb • "+nx[4]+"×"+nx[5]:"End of current view";
+ statWeek.textContent="Week "+gw;statBlock.textContent="Block "+b.block+" • W"+b.wib;statTB.textContent=w[1]+"×"+w[2]+" @ "+Math.round(w[0]*100)+"%";statPull.textContent=pu[3].replace("Side / ","")+" +"+pu[6];
+ statSessions.textContent=new Set(state.logs.map(x=>x.sessionId)).size;statEntries.textContent=state.logs.length+" entries";
+ renderWeek();renderSelectedWorkout();renderHistory();renderProgress();renderTbMaxes();syncSettings();
+}
+function renderWeek(){
+ weekStrip.innerHTML="";
+ const todayISO=localISO(new Date()),start=dateForTrainingWeek(browseWeek,0),weekSchedule=scheduleForWeek(browseWeek);
+ weekNavLabel.textContent="Week "+browseWeek+" • "+formatWeekRange(browseWeek)+" • "+schedulePhase(browseWeek);
+ blockModeSelect.value=blockModeForWeek(browseWeek);
+ prevWeek.disabled=browseWeek<=1;nextWeek.disabled=browseWeek>=18;
+ weekSchedule.forEach((x,i)=>{
+   const date=addDays(start,i),iso=localISO(date),day=x[0],session=x[1];
+   let focus=x[2];
+   if(session==="Conditioning"){const c=conditioningFor(day,browseWeek);focus=c.activity+" • "+c.target;}
+   const d=document.createElement("button");
+   d.type="button";d.className="day-card"+(iso===todayISO?" today":"")+(iso===selectedDateISO?" selected":"");
+   d.setAttribute("aria-label",day+", "+date.toLocaleDateString("en-US",{month:"long",day:"numeric"})+", "+session);
+   d.innerHTML='<div class="day-name">'+day+'</div><div class="day-date">'+date.toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</div><div class="day-session">'+session+'</div><div class="day-focus">'+focus+'</div>';
+   d.addEventListener("click",()=>{selectedDateISO=iso;browseWeek=clamp(trainingWeekForDate(date),1,18);renderWeek();renderSelectedWorkout()});
+   weekStrip.appendChild(d);
+ });
+ const selectedCard=weekStrip.querySelector(".day-card.selected");
+ if(selectedCard)selectedCard.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
+}
+function appendExerciseCard(x){
+ const d=document.createElement("div");d.className="exercise";
+ d.innerHTML='<div class="exercise-top"><div><div class="exercise-name">'+x.exercise+'</div><div class="exercise-meta">'+(x.meta||"")+'</div></div><div class="exercise-sr">'+(x.sets!==undefined&&x.sets!==""?x.sets+' × '+x.reps:(x.target||""))+'</div><div class="exercise-weight">'+(x.weight||"")+'</div></div>'+(x.numeric?visualLoad(x.numeric,x.bar):"")+(x.note?'<div class="prescription-note">'+x.note+'</div>':"");
+ tbList.appendChild(d);
+}
+function renderTB(gw){
+ tbList.innerHTML="";getTBPlan(gw).forEach(appendExerciseCard);
+}
+function renderSelectedWorkout(){
+ const d=parseLocalISO(selectedDateISO);
+ let gw=trainingWeekForDate(d);
+ if(gw<1||gw>18){
+   tbList.innerHTML='<div class="empty">This date is outside the current 18-week plan.</div>';
+   workoutTitle.textContent="Workout Prescription";tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});selectedDateBadge.textContent="Outside plan";plateLegend.classList.add("hidden");return;
+ }
+ const day=d.toLocaleDateString("en-US",{weekday:"long"}),session=expectedSession(day,gw),bi=blockInfo(gw);
+ workoutTitle.textContent=session;
+ tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})+" • Week "+gw+" • Block "+bi.block+" W"+bi.wib;
+ selectedDateBadge.textContent=selectedDateISO===localISO(new Date())?"TODAY":"SELECTED DAY";
+ plateLegend.classList.toggle("hidden",session!=="TB Maintenance");
+ tbList.innerHTML="";
+ if(session==="TB Maintenance"){getTBPlan(gw).forEach(appendExerciseCard);return;}
+ if(session.startsWith("KB ")){
+   state.kb.filter(x=>x[0]===session).forEach(x=>appendExerciseCard({exercise:x[1],sets:x[2],reps:x[3],weight:x[4],meta:"Planned kettlebell target"}));
+   return;
+ }
+ if(session==="Conditioning"){
+   const c=conditioningFor(day,gw);
+   const lib=[...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary].find(x=>x.name===c.activity);
+   let note='<strong>Planned recommendation:</strong> '+c.detail;
+   if(lib){
+     note+='<br><strong>Full prescription:</strong> '+lib.prescription;
+     if(lib.basic)note+='<br><strong>Basic:</strong> '+lib.basic;
+     if(lib.advanced)note+='<br><strong>Advanced:</strong> '+lib.advanced;
+   }
+   appendExerciseCard({exercise:c.activity,target:c.target,weight:"RPE "+c.rpe,meta:lib&&lib.num?"HIC #"+lib.num+" • "+hicCategory(lib.num):(lib?lib.category||"Endurance":"Conditioning"),note});
+   return;
+ }
+ appendExerciseCard({exercise:session==="Recovery / Rest"?"Recovery / Rest":"Other",meta:session==="Recovery / Rest"?"No formal training prescribed. Use recovery, mobility, or complete rest.":"No programmed workout for this day."});
+}
+function populateSessionOptions(){
+ const opts=["TB Maintenance","KB Heavy","Conditioning","KB Power","KB Volume","Recovery / Rest","Other"];logSession.innerHTML=opts.map(x=>'<option>'+x+'</option>').join("");
+}
+function loadPlannedSession(){
+ const gw=clamp(logWeek.value,1,18),session=logSession.value,plan=planFor(session,gw);plannedExercises.innerHTML="";
+ plan.forEach((x,i)=>{
+  const d=document.createElement("div");d.className="log-exercise";d.dataset.i=i;d.dataset.conditioning=x.conditioning?"1":"0";
+  const planLine=x.conditioning
+    ? '<div class="planned">Planned: '+(x.plannedTarget||"—")+' • '+x.meta+'</div>'
+    : '<div class="planned">Planned: '+(x.sets||"—")+' × '+(x.reps||"—")+' • '+(x.weight||"no load")+'</div>';
+
+  if(x.conditioning){
+    d.innerHTML='<div class="log-title"><div><strong>'+x.exercise+'</strong>'+planLine+'</div></div>'+
+      '<div class="log-grid">'+
+      '<div class="field notes"><label>Activity</label><select class="le-ex">'+buildExerciseSelect(x.exercise,logDate.value)+'</select><input class="le-custom hidden" placeholder="Custom activity"></div>'+
+      '<div class="conditioning-fields" style="display:contents">'+conditioningFieldsHTML(x.exercise)+'</div>'+
+      '</div>';
+  }else{
+    d.innerHTML='<div class="log-title"><div><strong>'+x.exercise+'</strong>'+planLine+'</div></div>'+
+      '<div class="log-grid">'+
+      '<div class="field"><label>Exercise</label><select class="le-ex">'+buildExerciseSelect(x.exercise,logDate.value)+'</select><input class="le-custom hidden" placeholder="Custom exercise"></div>'+
+      '<div class="field"><label>Sets</label><input class="le-sets" value="'+(x.sets??"")+'"></div>'+
+      '<div class="field"><label>Reps / Time</label><input class="le-reps" value="'+(x.reps??"")+'"></div>'+
+      '<div class="field"><label>Weight</label><input class="le-weight" value="'+(x.weight??"")+'"></div>'+
+      '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"></div>'+
+      '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
+      '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
+      '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option></select></div>'+
+      '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Optional exercise notes"></div>'+
+      '</div>';
+  }
+
+  plannedExercises.appendChild(d);
+  const sel=d.querySelector(".le-ex"), custom=d.querySelector(".le-custom");
+  function syncCustom(){
+    const isCustom=sel.value==="__custom__";
+    custom.classList.toggle("hidden",!isCustom);
+    if(isCustom) custom.focus();
+  }
+  function syncConditioningFields(){
+    if(d.dataset.conditioning!=="1")return;
+    const holder=d.querySelector(".conditioning-fields");
+    const activity=sel.value==="__custom__" ? (custom.value||"Other") : sel.value;
+    holder.innerHTML=conditioningFieldsHTML(activity);
+  }
+  sel.addEventListener("change",()=>{syncCustom();syncConditioningFields()});
+  custom.addEventListener("change",syncConditioningFields);
+  syncCustom();
+ });
+}
+function renderHistory(){
+ historyBody.innerHTML="";
+ if(!state.logs.length){historyBody.innerHTML='<tr><td colspan="9"><div class="empty">No workouts logged yet.</div></td></tr>';return}
+ [...state.logs].reverse().forEach((x,ri)=>{
+   const idx=state.logs.length-1-ri,tr=document.createElement("tr");
+   const actual=x.session==="Conditioning" ? conditioningSummary(x) : ((x.sets||"")+" × "+(x.reps||"")+" • "+(x.weight||""));
+   tr.innerHTML='<td>'+x.date+'</td><td>'+x.session+'</td><td>'+x.exercise+'</td><td>'+actual+'</td><td>'+(x.rpe||"")+'</td><td>'+(x.feel||"")+'</td><td>'+(x.technique||"")+'</td><td>'+(x.notes||"")+'</td><td><button class="btn danger del" data-i="'+idx+'">Delete</button></td>';
+   historyBody.appendChild(tr)
+ });
+ historyBody.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{state.logs.splice(+b.dataset.i,1);save();render()}));
+}
+function renderProgress(){
+ pullBody.innerHTML=pullups.map(p=>'<tr><td>'+p[0]+'</td><td>'+p[1]+'</td><td>'+p[2]+'</td><td>'+p[3]+'</td><td>'+p[4]+'×'+p[5]+'</td><td>+'+p[6]+' lb</td></tr>').join("");
+ kbBody.innerHTML=state.kb.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td><td>'+x[2]+'</td><td>'+x[3]+'</td><td>'+x[4]+'</td></tr>').join("");
+ tbELibraryBody.innerHTML=tbEnduranceLibrary.map(x=>'<tr><td><strong>'+x.name+'</strong><br><span class="muted">'+x.category+'</span></td><td>'+x.prescription+'</td><td>'+x.basic+'</td><td>'+x.advanced+'</td></tr>').join("");
+ tbHICLibraryBody.innerHTML=tbHICLibrary.map(x=>'<tr><td>'+x.num+'</td><td><strong>'+x.name+'</strong></td><td>'+hicCategory(x.num)+'</td><td>'+x.prescription+'</td><td>'+x.basic+'</td><td>'+x.advanced+'</td></tr>').join("");
+ tbPowerLibraryBody.innerHTML=tbPowerLibrary.map(x=>'<tr><td>'+x.num+'</td><td><strong>'+x.name+'</strong></td><td>Power Development</td><td>'+x.prescription+'</td><td>'+x.basic+'</td><td>'+x.advanced+'</td></tr>').join("");
+ tbSELibraryBody.innerHTML=tbSEClusters.map(x=>'<tr><td><strong>'+x.name+'</strong></td><td>'+x.exercises.join(' • ')+'</td><td>'+x.guidance+'</td></tr>').join("");
+ tbAccessoryLibraryBody.innerHTML=tbAccessoryLibrary.map(x=>'<tr><td><strong>'+x.name+'</strong></td><td>'+x.prescription+'</td><td>'+x.note+'</td></tr>').join("");
+ condBody.innerHTML=conditioningPlan.map(c=>{const pre=blockModeForWeek(c.week)==="tb",sat=preKbSaturdayPlan[c.week-1];return '<tr><td>'+c.week+'</td><td><strong>'+(pre?'TB M/W/F':'Hybrid')+'</strong><br><span class="muted">'+(pre?'TB M/W/F':'2 TB + 3 KB')+'</span></td><td><strong>'+(pre?'Tue: ':'Wed: ')+c.wed.activity+'</strong><br><span class="muted">'+c.wed.target+' • RPE '+c.wed.rpe+'</span></td><td><strong>'+(pre?'Thu: ':'Sat: ')+c.sat.activity+'</strong><br><span class="muted">'+c.sat.target+' • RPE '+c.sat.rpe+'</span></td><td>'+(pre?'<strong>Sat: '+sat.activity+'</strong><br><span class="muted">'+sat.target+' • RPE '+sat.rpe+'</span>':'—')+'</td></tr>'}).join("");
+}
+function renderTbMaxes(){
+ const lifts=[["squat","Squat"],["row","Row"],["chest","Chest"],["incline","Incline"]],
+       overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{};
+ tbMaxBody.innerHTML=[1,2,3].map(b=>{
+   const o=overrides[String(b)]||{},mode=modes[String(b)]||"hybrid";
+   const modeCell='<td><select class="tb-mode-input" data-block="'+b+'"><option value="tb"'+(mode==="tb"?' selected':'')+'>TB Only</option><option value="hybrid"'+(mode==="hybrid"?' selected':'')+'>TB + KB</option></select></td>';
+   const cells=lifts.map(([key,label])=>{
+     const auto=automaticTM(key,b),val=(o[key]!==undefined&&o[key]!==null&&o[key]!=="")?o[key]:"";
+     return '<td><input class="tb-max-input" data-block="'+b+'" data-lift="'+key+'" type="number" min="0" step="5" value="'+val+'" placeholder="'+auto+' auto"><div class="muted" style="font-size:.7rem;margin-top:4px">Auto '+auto+' lb</div></td>';
+   }).join("");
+   return '<tr><td><strong>Block '+b+'</strong></td><td>'+((b-1)*6+1)+'–'+(b*6)+'</td>'+modeCell+cells+'</tr>';
+ }).join("");
+}
+function saveManualTbMaxes(){
+ const next={},modes=Object.assign({},state.settings.blockModes||{});
+ document.querySelectorAll(".tb-max-input").forEach(inp=>{
+   const v=inp.value.trim();if(!v)return;
+   const b=inp.dataset.block,l=inp.dataset.lift,n=Number(v);if(!Number.isFinite(n)||n<=0)return;
+   next[b]=next[b]||{};next[b][l]=n;
+ });
+ document.querySelectorAll(".tb-mode-input").forEach(sel=>{modes[sel.dataset.block]=sel.value});
+ state.settings.tbOverrides=next;state.settings.blockModes=modes;save();render();
+ tbMaxStatus.textContent="Block modes and manual TM overrides saved.";
+}
+function syncSettings(){currentWeek.value=state.settings.currentWeek;squatTm.value=state.settings.squatTm;rowTm.value=state.settings.rowTm;chestTm.value=state.settings.chestTm;inclineTm.value=state.settings.inclineTm;squatInc.value=state.settings.squatInc;otherInc.value=state.settings.otherInc}
+function showView(id){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===id));document.getElementById(id).classList.add("active")}
+function setLogDefaults(){
+ const d=new Date();logDate.value=localISO(d);const tw=trainingWeekForDate(d);logWeek.value=(tw>=1&&tw<=18)?tw:state.settings.currentWeek;
+ const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=(tw>=1&&tw<=18)?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw);loadPlannedSession();
+}
+function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500)}
+
+let deferredInstallPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();deferredInstallPrompt=e;installApp.disabled=false;installApp.textContent="Install App";
+});
+window.addEventListener("appinstalled",()=>{
+  deferredInstallPrompt=null;installApp.textContent="Installed";installApp.disabled=true;updateStorageStatus();
+});
+async function updateStorageStatus(){
+  const standalone=window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true;
+  let persisted=false;
+  try{if(navigator.storage&&navigator.storage.persisted)persisted=await navigator.storage.persisted()}catch(e){}
+  if(typeof storageStatus!=="undefined")storageStatus.textContent=
+    standalone ? ("Installed app • autosave on"+(persisted?" • persistent storage":"")) :
+    (location.protocol==="file:" ? "Local file mode — Chrome may discard this storage. Install the hosted PWA for reliable saving." : "Browser mode • autosave on");
+  if(standalone){installApp.textContent="Installed";installApp.disabled=true}
+}
+installApp.addEventListener("click",async()=>{
+  if(window.matchMedia("(display-mode: standalone)").matches){alert("The app is already installed.");return}
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    try{await deferredInstallPrompt.userChoice}catch(e){}
+    deferredInstallPrompt=null;updateStorageStatus();return;
+  }
+  if(location.protocol==="file:"){
+    alert("Android cannot install a PWA directly from a downloaded HTML file. Upload the contents of the PWA zip to any HTTPS static host, open index.html there, then tap Install App.");
+    return;
+  }
+  alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
+});
+if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
+  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+}
+if(navigator.storage&&navigator.storage.persist){
+  navigator.storage.persist().catch(()=>{});
+}
+updateStorageStatus();
+
+populateSessionOptions();
+prevWeek.addEventListener("click",()=>{
+  if(browseWeek<=1)return;
+  const selected=parseLocalISO(selectedDateISO),weekday=(selected.getDay()+6)%7;
+  browseWeek--;selectedDateISO=localISO(dateForTrainingWeek(browseWeek,weekday));renderWeek();renderSelectedWorkout();
+});
+nextWeek.addEventListener("click",()=>{
+  if(browseWeek>=18)return;
+  const selected=parseLocalISO(selectedDateISO),weekday=(selected.getDay()+6)%7;
+  browseWeek++;selectedDateISO=localISO(dateForTrainingWeek(browseWeek,weekday));renderWeek();renderSelectedWorkout();
+});
+jumpToday.addEventListener("click",()=>{
+  const now=new Date(),tw=trainingWeekForDate(now);
+  if(tw>=1&&tw<=18){browseWeek=tw;selectedDateISO=localISO(now)}
+  else{browseWeek=clamp(state.settings.currentWeek,1,18);selectedDateISO=localISO(dateForTrainingWeek(browseWeek,(now.getDay()+6)%7))}
+  renderWeek();renderSelectedWorkout();
+});
+
+blockModeSelect.addEventListener("change",()=>{
+  const b=String(blockInfo(browseWeek).block);
+  state.settings.blockModes=state.settings.blockModes||{};
+  state.settings.blockModes[b]=blockModeSelect.value;
+  save();render();
+});
+
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
+saveTbMaxes.addEventListener("click",saveManualTbMaxes);
+resetTbMaxes.addEventListener("click",()=>{state.settings.tbOverrides={};save();render();tbMaxStatus.textContent="Manual TM overrides cleared. Block modes were kept.";});
+quickLog.addEventListener("click",()=>{showView("log");setLogDefaults()});
+loadPlan.addEventListener("click",loadPlannedSession);
+logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!isNaN(d)){const tw=trainingWeekForDate(d);if(tw>=1&&tw<=18)logWeek.value=tw;logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),(tw>=1&&tw<=18)?tw:state.settings.currentWeek);loadPlannedSession()}});
+logSession.addEventListener("change",loadPlannedSession);
+saveSession.addEventListener("click",()=>{
+ const sessionId=Date.now().toString(),cards=[...plannedExercises.querySelectorAll(".log-exercise")];
+ const rows=cards.map(c=>{
+   const sel=c.querySelector(".le-ex");
+   const exercise=(sel.value==="__custom__"?valueOf(c,".le-custom"):sel.value.trim());
+   const base={sessionId,date:logDate.value,week:+logWeek.value,session:logSession.value,exercise:exercise,
+     rpe:valueOf(c,".le-rpe"),feel:valueOf(c,".le-feel"),status:valueOf(c,".le-status"),notes:valueOf(c,".le-notes"),
+     sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value.trim()};
+   if(c.dataset.conditioning==="1"){
+     base.technique="";
+     base.sets="";base.reps="";base.weight="";
+     base.metrics={
+       distance:valueOf(c,".le-distance"),distanceUnit:valueOf(c,".le-unit"),
+       time:valueOf(c,".le-time"),avgHr:valueOf(c,".le-avghr"),maxHr:valueOf(c,".le-maxhr"),
+       pace:valueOf(c,".le-pace"),speed:valueOf(c,".le-speed"),elevation:valueOf(c,".le-elev"),
+       intervals:valueOf(c,".le-intervals"),workInterval:valueOf(c,".le-work"),restInterval:valueOf(c,".le-rest"),
+       ruckWeight:valueOf(c,".le-ruckweight"),vestWeight:valueOf(c,".le-vestweight"),kbWeight:valueOf(c,".le-kbweight"),
+       secondWeight:valueOf(c,".le-secondweight"),sledgeWeight:valueOf(c,".le-sledgeweight"),
+       activities:valueOf(c,".le-activities"),circuitRest:valueOf(c,".le-circuitrest"),
+       lowRung:valueOf(c,".le-lowrung"),sprintDistance:valueOf(c,".le-sprintdistance"),
+       bestRep:valueOf(c,".le-bestrep"),avgRep:valueOf(c,".le-avgrep"),lastRep:valueOf(c,".le-lastrep"),
+       sprint100:valueOf(c,".le-sprint100"),secondWork:valueOf(c,".le-secondwork"),clusterType:valueOf(c,".le-clustertype")
+     };
+   }else{
+     base.sets=valueOf(c,".le-sets");base.reps=valueOf(c,".le-reps");base.weight=valueOf(c,".le-weight");
+     base.technique=valueOf(c,".le-tech");base.metrics={};
+   }
+   return base;
+ }).filter(x=>x.exercise);
+ if(!rows.length)return;
+ state.logs.push(...rows);save();render();
+ saveMsg.classList.remove("hidden");saveMsg.textContent="Session saved with "+rows.length+" exercise entries.";
+ setTimeout(()=>saveMsg.classList.add("hidden"),2500);
+});
+clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];save();render()}});
+saveSettings.addEventListener("click",()=>{const newWeek=clamp(currentWeek.value,1,18),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"};state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
+exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({exportVersion:3,exportedAt:new Date().toISOString(),settings:state.settings,pullupProgression:pullups,kettlebellTargets:state.kb,conditioningPlan:conditioningPlan,tbEnduranceLibrary:tbEnduranceLibrary,tbHICLibrary:tbHICLibrary,tbPowerLibrary:tbPowerLibrary,tbAccessoryLibrary:tbAccessoryLibrary,tbSEClusters:tbSEClusters,tbSEGuidance:tbSEGuidance,logs:state.logs},null,2),"application/json"));
+exportCsv.addEventListener("click",()=>{
+ const keys=["date","week","session","exercise","sets","reps","weight","distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
+ const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
+ const row=x=>keys.map(k=>{
+   if(["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork"].includes(k)) return esc((x.metrics||{})[k]);
+   return esc(x[k]);
+ }).join(",");
+ const csv=[keys.join(","),...state.logs.map(row)].join("\n");
+ download("hybrid-training-log.csv",csv,"text/csv")
+});
+importJson.addEventListener("click",()=>importFile.click());
+importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.logs=o.logs;state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(clamp(state.settings.currentWeek,1,18)-1));state.settings.week1Monday=localISO(week1)}browseWeek=clamp(trainingWeekForDate(new Date()),1,18);selectedDateISO=localISO(new Date());save();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
+render();setLogDefaults();
+})();
+</script>
+</body>
+</html>
