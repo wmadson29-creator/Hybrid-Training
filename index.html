@@ -100,6 +100,20 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
  .kb-builder-row .remove-field{grid-column:1/-1}
  .kb-library-grid{grid-template-columns:1fr}
 }
+
+.gym-builder-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-bottom:12px}
+.gym-builder-row{display:grid;grid-template-columns:minmax(190px,2fr) .6fr .8fr .9fr auto;gap:8px;align-items:end;padding:10px 0;border-bottom:1px solid #223244}
+.gym-library-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}
+.gym-lib-card{border:1px solid #26384b;border-radius:13px;background:#101923;padding:10px;cursor:pointer}
+.gym-lib-card .name{font-weight:900}.gym-lib-card .meta{font-size:.72rem;color:var(--accent2);margin-top:3px}.gym-lib-card .desc{font-size:.76rem;color:var(--muted);margin-top:6px;line-height:1.3}
+.day-control-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:720px){
+ .gym-builder-grid{grid-template-columns:1fr}
+ .gym-builder-row{grid-template-columns:1fr 1fr}
+ .gym-builder-row .exercise-field{grid-column:1/-1}
+ .gym-builder-row .remove-field{grid-column:1/-1}
+ .gym-library-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -121,6 +135,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
       <button class="tab" data-view="progress">Progression</button>
       <button class="tab" data-view="conditioninglib">Conditioning</button>
       <button class="tab" data-view="kbworkouts">KB Workouts</button>
+      <button class="tab" data-view="gymworkouts">Gym</button>
+      <button class="tab" data-view="classes">Classes</button>
       <button class="tab" data-view="maxes">TB Maxes</button>
       <button class="tab" data-view="settings">Settings</button>
     </div>
@@ -196,6 +212,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         <button class="btn" type="button" id="logRestDay">Rest Day</button>
       </div>
       <div id="plannedExercises"></div>
+      <div class="inline-actions" style="margin:10px 0"><button class="btn" id="addLogExercise" type="button">+ Add Exercise</button></div>
       <div class="session-feel">
         <div class="field"><label>Overall session feel</label>
           <select id="sessionFeel"><option value=""></option><option>Great</option><option>Good</option><option>Average</option><option>Rough</option><option>Very Rough</option></select>
@@ -284,6 +301,49 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
     </div>
   </section>
 
+
+  <section id="gymworkouts" class="view">
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Generic Gym Workout Builder</div><div class="panel-sub">Use a miscellaneous gym day anywhere in the calendar. Describe what you want, let the app build sets/reps/weights, then edit anything you want.</div></div></div>
+      <div class="gym-builder-grid">
+        <div class="field"><label>Date</label><input id="gymBuilderDate" type="date"></div>
+        <div class="field"><label>Workout Name</label><input id="gymWorkoutName" placeholder="e.g. Biceps + shoulders"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>Quick Workout Request</label><textarea id="gymRequestText" placeholder="Example: I want to hit biceps and shoulders, high reps low weight, medium difficulty, about 60 minutes."></textarea></div>
+      <div class="inline-actions" style="margin-bottom:12px"><button class="btn primary" id="generateGymWorkout" type="button">Build From Request</button><button class="btn" id="surpriseGymWorkout" type="button">Build Balanced Accessory Day</button></div>
+      <div class="panel" style="padding:12px;margin:0 0 12px">
+        <div class="panel-title" style="font-size:.92rem">Gym Equipment Profile</div>
+        <div class="panel-sub">Uncheck anything your gym does not have. Dumbbell targets stay inside your real range and use your real increment.</div>
+        <div class="gym-builder-grid" style="margin-top:10px">
+          <div class="field"><label>Dumbbell Minimum (lb)</label><input id="gymDbMin" type="number" min="0" step="2.5"></div>
+          <div class="field"><label>Dumbbell Maximum (lb)</label><input id="gymDbMax" type="number" min="0" step="2.5"></div>
+          <div class="field"><label>Dumbbell Increment (lb)</label><input id="gymDbIncrement" type="number" min="1" step="2.5"></div>
+        </div>
+        <div class="inline-actions"><button class="btn" id="saveGymEquipment" type="button">Save Equipment Profile</button><button class="btn" id="gymAllAvailable" type="button">Mark All Available</button><button class="btn" id="gymNoneAvailable" type="button">Mark All Unavailable</button></div>
+      </div>
+      <div class="notice" id="gymAdaptiveStatus"><strong>Adaptive weights:</strong> Same-exercise history is strongest. New/returning exercises use conservative evidence from related TB, kettlebell, and gym movements.</div>
+      <div id="gymBuilderRows"></div>
+      <div class="inline-actions" style="margin-top:12px"><button class="btn" id="addGymExercise" type="button">+ Add Exercise</button><button class="btn primary" id="saveGymWorkout" type="button">Save Workout to Date</button><button class="btn" id="clearGymWorkout" type="button">Clear Gym Override</button></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Gym Exercise Library</div><div class="panel-sub">Check only exercises you can actually do. The automatic builder never intentionally selects an unchecked exercise.</div></div></div>
+      <div class="field" style="max-width:360px"><label>Filter</label><input id="gymLibrarySearch" placeholder="Search exercise, equipment, or family"></div>
+      <div class="gym-library-grid" id="gymLibraryGrid"></div>
+    </div>
+  </section>
+
+  <section id="classes" class="view">
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Classes & Other Training</div><div class="panel-sub">Schedule a class on any selected day. Logging fields adapt to time, difficulty/RPE, heart rate, and activity-specific metrics.</div></div></div>
+      <div class="conditioning-filter-row">
+        <div class="field"><label>Category</label><select id="classCategory"><option value="all">All</option><option value="mindbody">Yoga / Pilates / Mobility</option><option value="cardio">Cardio Classes</option><option value="combat">Combat / HIIT</option><option value="strength">Strength / Mixed</option></select></div>
+        <div class="field"><label>Search</label><input id="classSearch" placeholder="Search classes"></div>
+      </div>
+      <div class="notice" id="classStatus">Select a day on the Dashboard, then tap <strong>Use for selected day</strong>. A class can replace a scheduled workout or a rest day.</div>
+      <div class="conditioning-grid" id="classLibraryGrid"></div>
+    </div>
+  </section>
+
 <section id="maxes" class="view">
     <div class="panel">
       <div class="panel-head">
@@ -352,7 +412,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v5</strong> • conditioning, TB block progression, KB progression/family transfer, rest-day handling, and infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v6</strong> • conditioning, TB block progression, KB progression/family transfer, rest-day handling, and infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -361,9 +421,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
 </div>
 
 <script>
+
 (function(){
 const defaults={
- settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{}},
+ settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},classOverrides:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5},
  logs:[],
  kb:[
   ["KB Heavy","Double Clean & Press",5,"3","16 kg / bell"],["KB Heavy","Double Front Squat",5,"5","20 kg / bell"],
@@ -462,6 +523,135 @@ function kbPresetWorkout(session,block){
  return {name:p.name,rows:p.rows.map(r=>({exercise:r[0],sets:r[1],reps:r[2],manualKg:""}))};
 }
 
+
+const gymExerciseLibrary=[
+ {name:"Machine Chest Press",equipment:"Machine",family:"chest_press",defaultLb:90,increment:5,load:"total",note:"Horizontal machine press"},
+ {name:"Incline Chest Press Machine",equipment:"Machine",family:"chest_press",defaultLb:75,increment:5,load:"total",note:"Incline machine press"},
+ {name:"Pec Deck / Machine Fly",equipment:"Machine",family:"chest_isolation",defaultLb:70,increment:5,load:"total",note:"Chest isolation"},
+ {name:"Assisted Dip Machine",equipment:"Machine",family:"triceps",defaultLb:40,increment:5,load:"assist",note:"Assistance weight; lower is harder"},
+ {name:"Machine Shoulder Press",equipment:"Machine",family:"shoulder_press",defaultLb:60,increment:5,load:"total",note:"Overhead machine press"},
+ {name:"Machine Lateral Raise",equipment:"Machine",family:"delts",defaultLb:40,increment:5,load:"total",note:"Lateral deltoid isolation"},
+ {name:"Reverse Pec Deck",equipment:"Machine",family:"rear_delts",defaultLb:55,increment:5,load:"total",note:"Rear delts / upper back"},
+ {name:"Lat Pulldown",equipment:"Machine/Cable",family:"vertical_pull",defaultLb:100,increment:5,load:"total",note:"Vertical pull"},
+ {name:"Neutral-Grip Lat Pulldown",equipment:"Machine/Cable",family:"vertical_pull",defaultLb:100,increment:5,load:"total",note:"Neutral-grip vertical pull"},
+ {name:"Seated Row Machine",equipment:"Machine",family:"horizontal_pull",defaultLb:90,increment:5,load:"total",note:"Horizontal pull"},
+ {name:"Chest-Supported Row Machine",equipment:"Machine",family:"horizontal_pull",defaultLb:80,increment:5,load:"total",note:"Chest-supported horizontal pull"},
+ {name:"High Row Machine",equipment:"Machine",family:"horizontal_pull",defaultLb:80,increment:5,load:"total",note:"Upper-back row"},
+ {name:"Back Extension Machine",equipment:"Machine",family:"hinge",defaultLb:70,increment:5,load:"total",note:"Posterior-chain accessory"},
+ {name:"Leg Press",equipment:"Machine",family:"squat",defaultLb:180,increment:10,load:"total",note:"Machine squat pattern"},
+ {name:"Hack Squat Machine",equipment:"Machine",family:"squat",defaultLb:90,increment:10,load:"total",note:"Machine squat pattern"},
+ {name:"Pendulum Squat",equipment:"Machine",family:"squat",defaultLb:70,increment:10,load:"total",note:"Machine squat pattern"},
+ {name:"Leg Extension",equipment:"Machine",family:"quads",defaultLb:70,increment:5,load:"total",note:"Quadriceps isolation"},
+ {name:"Seated Leg Curl",equipment:"Machine",family:"hamstrings",defaultLb:65,increment:5,load:"total",note:"Hamstring isolation"},
+ {name:"Lying Leg Curl",equipment:"Machine",family:"hamstrings",defaultLb:60,increment:5,load:"total",note:"Hamstring isolation"},
+ {name:"Hip Abduction Machine",equipment:"Machine",family:"hip_accessory",defaultLb:80,increment:5,load:"total",note:"Hip abductor accessory"},
+ {name:"Hip Adduction Machine",equipment:"Machine",family:"hip_accessory",defaultLb:80,increment:5,load:"total",note:"Hip adductor accessory"},
+ {name:"Standing Calf Raise Machine",equipment:"Machine",family:"calves",defaultLb:90,increment:10,load:"total",note:"Standing calf raise"},
+ {name:"Seated Calf Raise Machine",equipment:"Machine",family:"calves",defaultLb:70,increment:5,load:"total",note:"Seated calf raise"},
+ {name:"Ab Crunch Machine",equipment:"Machine",family:"core",defaultLb:60,increment:5,load:"total",note:"Trunk flexion"},
+ {name:"Dumbbell Bench Press",equipment:"Dumbbell",family:"chest_press",defaultLb:40,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Incline Dumbbell Press",equipment:"Dumbbell",family:"chest_press",defaultLb:35,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Floor Press",equipment:"Dumbbell",family:"chest_press",defaultLb:40,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Shoulder Press",equipment:"Dumbbell",family:"shoulder_press",defaultLb:30,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Arnold Press",equipment:"Dumbbell",family:"shoulder_press",defaultLb:25,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Lateral Raise",equipment:"Dumbbell",family:"delts",defaultLb:12.5,increment:2.5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Front Raise",equipment:"Dumbbell",family:"delts",defaultLb:15,increment:2.5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Rear-Delt Dumbbell Fly",equipment:"Dumbbell",family:"rear_delts",defaultLb:15,increment:2.5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"One-Arm Dumbbell Row",equipment:"Dumbbell",family:"horizontal_pull",defaultLb:45,increment:5,load:"single",note:"Single-dumbbell row"},
+ {name:"Chest-Supported Dumbbell Row",equipment:"Dumbbell",family:"horizontal_pull",defaultLb:35,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Pullover",equipment:"Dumbbell",family:"vertical_pull",defaultLb:35,increment:5,load:"single",note:"Lat/chest accessory"},
+ {name:"Dumbbell Romanian Deadlift",equipment:"Dumbbell",family:"hinge",defaultLb:45,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Goblet Squat",equipment:"Dumbbell",family:"squat",defaultLb:50,increment:5,load:"single",note:"Single-dumbbell squat"},
+ {name:"Dumbbell Reverse Lunge",equipment:"Dumbbell",family:"lunge",defaultLb:25,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Bulgarian Split Squat",equipment:"Dumbbell",family:"lunge",defaultLb:25,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Step-Up",equipment:"Dumbbell",family:"lunge",defaultLb:25,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Shrug",equipment:"Dumbbell",family:"traps",defaultLb:50,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Dumbbell Curl",equipment:"Dumbbell",family:"biceps",defaultLb:20,increment:2.5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Hammer Curl",equipment:"Dumbbell",family:"biceps",defaultLb:20,increment:2.5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Incline Dumbbell Curl",equipment:"Dumbbell",family:"biceps",defaultLb:17.5,increment:2.5,load:"per_db",note:"Weight shown per dumbbell"},
+ {name:"Concentration Curl",equipment:"Dumbbell",family:"biceps",defaultLb:17.5,increment:2.5,load:"single",note:"Single-arm curl"},
+ {name:"Dumbbell Skull Crusher",equipment:"Dumbbell",family:"triceps",defaultLb:20,increment:2.5,load:"per_db",note:"Triceps extension"},
+ {name:"Single-Dumbbell Overhead Triceps Extension",equipment:"Dumbbell",family:"triceps",defaultLb:30,increment:5,load:"single",note:"Two-hand overhead extension"},
+ {name:"Cable Chest Press",equipment:"Cable",family:"chest_press",defaultLb:30,increment:5,load:"per_side",note:"Weight shown per cable side"},
+ {name:"Cable Fly",equipment:"Cable",family:"chest_isolation",defaultLb:15,increment:2.5,load:"per_side",note:"Weight shown per cable side"},
+ {name:"Low-to-High Cable Fly",equipment:"Cable",family:"chest_isolation",defaultLb:12.5,increment:2.5,load:"per_side",note:"Upper-chest cable fly"},
+ {name:"Straight-Arm Pulldown",equipment:"Cable",family:"vertical_pull",defaultLb:35,increment:5,load:"total",note:"Lat isolation"},
+ {name:"Cable Seated Row",equipment:"Cable",family:"horizontal_pull",defaultLb:80,increment:5,load:"total",note:"Horizontal cable pull"},
+ {name:"Single-Arm Cable Row",equipment:"Cable",family:"horizontal_pull",defaultLb:35,increment:5,load:"single",note:"Single-arm cable row"},
+ {name:"Face Pull",equipment:"Cable",family:"rear_delts",defaultLb:30,increment:5,load:"total",note:"Rear delts / external rotation"},
+ {name:"Cable Lateral Raise",equipment:"Cable",family:"delts",defaultLb:10,increment:2.5,load:"single",note:"Single-arm lateral raise"},
+ {name:"Cable Curl",equipment:"Cable",family:"biceps",defaultLb:30,increment:5,load:"total",note:"Cable biceps curl"},
+ {name:"Rope Hammer Curl",equipment:"Cable",family:"biceps",defaultLb:30,increment:5,load:"total",note:"Neutral-grip curl"},
+ {name:"Cable Preacher Curl",equipment:"Cable",family:"biceps",defaultLb:25,increment:5,load:"total",note:"Supported biceps curl"},
+ {name:"Rope Triceps Pushdown",equipment:"Cable",family:"triceps",defaultLb:35,increment:5,load:"total",note:"Triceps pushdown"},
+ {name:"Straight-Bar Triceps Pushdown",equipment:"Cable",family:"triceps",defaultLb:40,increment:5,load:"total",note:"Triceps pushdown"},
+ {name:"Overhead Cable Triceps Extension",equipment:"Cable",family:"triceps",defaultLb:30,increment:5,load:"total",note:"Long-head triceps"},
+ {name:"Cable Pull-Through",equipment:"Cable",family:"hinge",defaultLb:50,increment:5,load:"total",note:"Cable hinge"},
+ {name:"Cable Kickback",equipment:"Cable",family:"hip_accessory",defaultLb:20,increment:5,load:"single",note:"Hip extension accessory"},
+ {name:"Cable Wood Chop",equipment:"Cable",family:"core",defaultLb:25,increment:5,load:"total",note:"Rotational core"},
+ {name:"Pallof Press",equipment:"Cable",family:"core",defaultLb:20,increment:5,load:"total",note:"Anti-rotation core"}
+];
+const gymFamilyRelations={
+ chest_press:{chest_press:1,chest_isolation:.55,triceps:.30,shoulder_press:.25},
+ chest_isolation:{chest_isolation:1,chest_press:.55},
+ shoulder_press:{shoulder_press:1,delts:.55,triceps:.30,chest_press:.25},
+ delts:{delts:1,shoulder_press:.55,rear_delts:.20},
+ rear_delts:{rear_delts:1,horizontal_pull:.45,delts:.20},
+ vertical_pull:{vertical_pull:1,horizontal_pull:.40,biceps:.30},
+ horizontal_pull:{horizontal_pull:1,vertical_pull:.40,rear_delts:.45,biceps:.30},
+ squat:{squat:1,lunge:.65,quads:.55,hinge:.15},lunge:{lunge:1,squat:.65,quads:.45,hip_accessory:.25},
+ quads:{quads:1,squat:.55,lunge:.45},hinge:{hinge:1,hamstrings:.60,squat:.15},hamstrings:{hamstrings:1,hinge:.60},
+ biceps:{biceps:1,horizontal_pull:.30,vertical_pull:.30},triceps:{triceps:1,chest_press:.30,shoulder_press:.30},
+ traps:{traps:1,horizontal_pull:.25},calves:{calves:1,squat:.10,lunge:.10},hip_accessory:{hip_accessory:1,lunge:.25},core:{core:1}
+};
+function gymExercise(name){return gymExerciseLibrary.find(x=>x.name===name)}
+function gymRelationWeight(targetFamily,otherFamily){return ((gymFamilyRelations[targetFamily]||{})[otherFamily])||0}
+function strengthFamilyForRow(x){
+ const n=String(x.exercise||"").toLowerCase(),known=gymExercise(x.exercise);if(known)return known.family;
+ if(x.session==="TB Maintenance"){
+   if(n==="squat")return "squat";if(n==="deadlift")return "hinge";if(n.includes("weighted pull-up"))return "vertical_pull";
+   if(n.includes("barbell row"))return "horizontal_pull";if(n==="chest machine"||n.includes("incline chest"))return "chest_press";
+ }
+ if(x.session&&x.session.startsWith("KB ")){
+   if(/floor press/.test(n))return "chest_press";if(/press/.test(n))return "shoulder_press";if(/row/.test(n))return "horizontal_pull";
+   if(/front squat|goblet squat|double kb squat/.test(n))return "squat";if(/lunge|split squat|cossack|step-up/.test(n))return "lunge";
+   if(/swing|rdl|deadlift/.test(n))return "hinge";
+ }
+ return "";
+}
+
+const classActivityLibrary=[
+ {name:"Yoga — Vinyasa",category:"mindbody",kind:"yoga",note:"Flow-based yoga; duration, difficulty/RPE, HR, and optional room temperature."},
+ {name:"Yoga — Hot Yoga",category:"mindbody",kind:"yoga",note:"Heated yoga; room temperature and hydration notes are useful."},
+ {name:"Yoga — Power Yoga",category:"mindbody",kind:"yoga",note:"More strength/endurance focused yoga."},
+ {name:"Yoga — Yin / Restorative",category:"mindbody",kind:"yoga",note:"Low-intensity mobility/recovery emphasis."},
+ {name:"Yoga Sculpt",category:"mindbody",kind:"strengthclass",note:"Yoga plus resistance/cardio; duration, HR, RPE, and muscle focus."},
+ {name:"Pilates — Mat",category:"mindbody",kind:"pilates",note:"Mat Pilates; duration, difficulty, HR, and core/whole-body feel."},
+ {name:"Pilates — Reformer",category:"mindbody",kind:"pilates",note:"Reformer Pilates; duration, difficulty, HR, and spring/resistance notes."},
+ {name:"Hot Pilates",category:"mindbody",kind:"pilates",note:"Heated Pilates; duration, HR, RPE, temperature, and muscle focus."},
+ {name:"Lagree / Megaformer",category:"mindbody",kind:"lagree",note:"High-tension slow resistance class; duration, RPE, HR, and muscle emphasis."},
+ {name:"Barre",category:"mindbody",kind:"barre",note:"Barre / high-rep isometric class."},
+ {name:"Mobility / Stretch Class",category:"mindbody",kind:"mobility",note:"Mobility-focused recovery class."},
+ {name:"Indoor Cycling / Spin",category:"cardio",kind:"cyclingclass",note:"Time, distance, avg/max HR, watts, cadence, and difficulty."},
+ {name:"Rowing Class",category:"cardio",kind:"rowingclass",note:"Time, distance, HR, average watts, and stroke rate."},
+ {name:"Treadmill Running Class",category:"cardio",kind:"runclass",note:"Time, distance, pace/speed, incline/elevation, and HR."},
+ {name:"Stair / Climb Class",category:"cardio",kind:"stairclass",note:"Time, floors/elevation, HR, and difficulty."},
+ {name:"Dance Cardio / Zumba",category:"cardio",kind:"dance",note:"Dance-based cardio; duration, HR, and difficulty."},
+ {name:"Aerobics / Step Class",category:"cardio",kind:"dance",note:"Aerobic class; duration, HR, and difficulty."},
+ {name:"Aqua Fitness",category:"cardio",kind:"aquaclass",note:"Pool-based cardio/strength class."},
+ {name:"Boxing Fitness Class",category:"combat",kind:"combatclass",note:"Rounds or class time, HR, RPE, and bag/pad emphasis."},
+ {name:"Kickboxing Fitness Class",category:"combat",kind:"combatclass",note:"Rounds or class time, HR, RPE, and technique/conditioning emphasis."},
+ {name:"HIIT Class",category:"combat",kind:"hiitclass",note:"Intervals / mixed modalities; duration, work/rest structure, HR, and RPE."},
+ {name:"Bootcamp Class",category:"combat",kind:"hiitclass",note:"Mixed conditioning; duration, rounds, HR, and RPE."},
+ {name:"Circuit Training Class",category:"strength",kind:"strengthclass",note:"Mixed resistance circuit; duration, stations/rounds, HR, and RPE."},
+ {name:"Strength Class",category:"strength",kind:"strengthclass",note:"Instructor-led resistance; duration, emphasis, RPE, and HR."},
+ {name:"BodyPump / Barbell Class",category:"strength",kind:"strengthclass",note:"High-rep barbell resistance class."},
+ {name:"TRX / Suspension Class",category:"strength",kind:"strengthclass",note:"Suspension/bodyweight strength class."},
+ {name:"Functional Fitness Class",category:"strength",kind:"hiitclass",note:"Mixed strength/conditioning; rounds, HR, and RPE."},
+ {name:"Treadmill + Row + Strength Class",category:"strength",kind:"mixedstudio",note:"Studio treadmill, rower, and floor work; log each modality plus HR."}
+];
+function classActivity(name){return classActivityLibrary.find(x=>x.name===name)}
+
 const pullups=[
  [1,1,1,"Side / Neutral",3,5,25],[2,1,2,"Overhand",3,5,25],[3,1,3,"Side / Neutral",3,3,30],
  [4,1,4,"Overhand",3,5,25],[5,1,5,"Side / Neutral",3,5,30],[6,1,6,"Overhand",3,2,30],
@@ -554,6 +744,7 @@ const preKbSaturdayPlan = [
 
 const tbEnduranceLibrary = [
   {name:"LSS Run", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"run"},
+  {name:"LSS Walk", category:"E", prescription:"45–60 min brisk but conversational walking", basic:"30 min easy-to-brisk walk", advanced:"75–120+ min brisk or hilly walk", logging:"walk"},
   {name:"LSS Cycle", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"bike"},
   {name:"LSS Swim", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"swim"},
   {name:"LSS Row", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"row"},
@@ -656,7 +847,7 @@ const dayExerciseOptions={
 let state;
 try{state=JSON.parse(localStorage.getItem("hybridTrainingDashboardV3")||"null")||JSON.parse(JSON.stringify(defaults))}
 catch(e){state=JSON.parse(JSON.stringify(defaults))}
-state.settings=Object.assign({},defaults.settings,state.settings||{});state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};
+state.settings=Object.assign({},defaults.settings,state.settings||{});state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
 function save(){try{localStorage.setItem("hybridTrainingDashboardV3",JSON.stringify(state))}catch(e){}}
 function clamp(n,a,b){n=Number(n);return Number.isFinite(n)?Math.max(a,Math.min(b,n)):a}
 function localISO(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day}
@@ -788,14 +979,28 @@ function baseExpectedSession(day,gw){
 }
 function expectedSession(day,gw,dateISO=""){
  const override=(state.settings.dayOverrides||{})[dateISO];
- return override||baseExpectedSession(day,gw);
+ if(override==="Recovery / Rest"&&!((state.settings.noRestDates||{})[dateISO]))return "Recovery / Rest";
+ if(dateISO&&((state.settings.classOverrides||{})[dateISO]))return "Class / Activity";
+ if(dateISO&&((state.settings.genericGymWorkouts||{})[dateISO]))return "Generic Gym";
+ if(override==="Generic Gym")return "Generic Gym";
+ if(override==="Class / Activity")return "Class / Activity";
+ const base=baseExpectedSession(day,gw);
+ if(base==="Recovery / Rest"&&dateISO&&((state.settings.noRestDates||{})[dateISO]))return "Open Training";
+ return override&&override!=="Recovery / Rest"?override:base;
 }
 function markRestDay(dateISO){
- state.settings.dayOverrides=state.settings.dayOverrides||{};
- state.settings.dayOverrides[dateISO]="Recovery / Rest";save();render();
+ state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};
+ delete state.settings.noRestDates[dateISO];state.settings.dayOverrides[dateISO]="Recovery / Rest";save();render();
 }
-function clearDayOverride(dateISO){
- if((state.settings.dayOverrides||{})[dateISO]){delete state.settings.dayOverrides[dateISO];save();render()}
+function markNoRestDay(dateISO){
+ state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides=state.settings.dayOverrides||{};
+ state.settings.noRestDates[dateISO]=true;if(state.settings.dayOverrides[dateISO]==="Recovery / Rest")delete state.settings.dayOverrides[dateISO];save();render();
+}
+function clearNoRestDay(dateISO){if((state.settings.noRestDates||{})[dateISO])delete state.settings.noRestDates[dateISO];save();render();}
+function clearDayOverride(dateISO){if((state.settings.dayOverrides||{})[dateISO])delete state.settings.dayOverrides[dateISO];save();render();}
+function setGenericGymDay(dateISO){
+ state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides=state.settings.classOverrides||{};
+ delete state.settings.classOverrides[dateISO];state.settings.dayOverrides[dateISO]="Generic Gym";state.settings.noRestDates[dateISO]=true;save();render();
 }
 function numberRpe(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function daysBetweenISO(a,b){
@@ -816,39 +1021,37 @@ function sessionSummariesBefore(dateISO,days=14){
    if(x.session==="Recovery / Rest"||/rest day|recovery \/ rest/i.test(String(x.exercise||"")))g.rest=true;
    if(sf.includes("rough")||feel==="bad"||feel==="grindy"||tech==="sloppy")g.rough=true;
    if(String(x.status||"").toLowerCase()==="missed")g.missed=true;
-   if(/squat|deadlift|lunge|swing|snatch|clean|run|sprint|hill/i.test(String(x.exercise||"")) && (r>=8.5||feel==="bad"||feel==="grindy"||tech==="sloppy"))g.lowerHard=true;
+   if(/squat|deadlift|lunge|swing|snatch|clean|run|sprint|hill|lagree|cycling|spin|stair|bootcamp|hiit|bodypump/i.test(String(x.exercise||""))&&(r>=8.5||feel==="bad"||feel==="grindy"||tech==="sloppy"))g.lowerHard=true;
  });
  return Object.values(groups);
 }
 function milesForConditioningRow(x){
- if(x.session!=="Conditioning")return 0;
- const m=x.metrics||{},d=Number(m.distance);if(!Number.isFinite(d)||d<=0)return 0;
- let unit=String(m.distanceUnit||"").toLowerCase();
- const ex=String(x.exercise||"").toLowerCase();
- if(!unit){
-   if(ex.includes("standard issue"))unit="km";
-   else unit="mi";
- }
- if(unit==="mi")return d;
- if(unit==="km")return d*0.621371;
- if(unit==="m")return d/1609.344;
- if(unit==="yd")return d/1760;
- return 0;
+ const m=x.metrics||{},cls=classActivity(x.exercise);
+ if(x.session!=="Conditioning"&&x.session!=="Class / Activity")return 0;
+ if(cls&&cls.kind==="mixedstudio"&&Number(m.runDistance)>0)return Number(m.runDistance);
+ if(cls&&cls.kind!=="runclass")return 0;
+ const d=Number(m.distance);if(!Number.isFinite(d)||d<=0)return 0;
+ let unit=String(m.distanceUnit||"").toLowerCase(),ex=String(x.exercise||"").toLowerCase();
+ if(!unit){if(ex.includes("standard issue"))unit="km";else unit="mi"}
+ if(unit==="mi")return d;if(unit==="km")return d*0.621371;if(unit==="m")return d/1609.344;if(unit==="yd")return d/1760;return 0;
 }
-function medianNum(arr){
- const a=arr.filter(Number.isFinite).sort((x,y)=>x-y);if(!a.length)return 0;
- const mid=Math.floor(a.length/2);return a.length%2?a[mid]:(a[mid-1]+a[mid])/2;
-}
+function medianNum(arr){const a=arr.filter(Number.isFinite).sort((x,y)=>x-y);if(!a.length)return 0;const mid=Math.floor(a.length/2);return a.length%2?a[mid]:(a[mid-1]+a[mid])/2}
 function conditioningLoadSignals(dateISO){
- const rows=historyRowsBefore(dateISO,35).filter(x=>x.session==="Conditioning");
+ const rows=historyRowsBefore(dateISO,35).filter(x=>x.session==="Conditioning"||x.session==="Class / Activity");
  const recent=rows.filter(x=>daysBetweenISO(x.date,dateISO)<=7),base=rows.filter(x=>{const d=daysBetweenISO(x.date,dateISO);return d>=8&&d<=35});
- const mins=r=>r.reduce((a,x)=>a+(Number((x.metrics||{}).time)||0),0);
- const runMiles=r=>r.filter(x=>/run|sprint|hill|meter|oxygen|ladders|connaught|capacity/i.test(String(x.exercise||""))).reduce((a,x)=>a+milesForConditioningRow(x),0);
+ const weightedMinutes=x=>{
+   const t=Number((x.metrics||{}).time)||0;if(x.session==="Conditioning")return t;
+   const cls=classActivity(x.exercise);if(!cls)return t*.6;
+   if(cls.kind==="mobility"||/yin|restorative/i.test(cls.name))return t*.20;if(cls.kind==="yoga")return t*.35;
+   if(["pilates","barre"].includes(cls.kind))return t*.55;if(["lagree","strengthclass"].includes(cls.kind))return t*.75;return t;
+ };
+ const mins=r=>r.reduce((a,x)=>a+weightedMinutes(x),0),runMiles=r=>r.reduce((a,x)=>a+milesForConditioningRow(x),0);
  const recentMin=mins(recent),baseWeeklyMin=mins(base)/4,recentMiles=runMiles(recent),baseWeeklyMiles=runMiles(base)/4;
- const recentHr=medianNum(recent.map(x=>Number((x.metrics||{}).avgHr)).filter(x=>x>0));
- const baseHr=medianNum(base.map(x=>Number((x.metrics||{}).avgHr)).filter(x=>x>0));
- const recentMaxHr=medianNum(recent.map(x=>Number((x.metrics||{}).maxHr)).filter(x=>x>0));
- const baseMaxHr=medianNum(base.map(x=>Number((x.metrics||{}).maxHr)).filter(x=>x>0));
+ const hrEligible=x=>x.session==="Conditioning"||(()=>{const c=classActivity(x.exercise);return c&&["cardio","combat"].includes(c.category)})();
+ const recentHr=medianNum(recent.filter(hrEligible).map(x=>Number((x.metrics||{}).avgHr)).filter(x=>x>0));
+ const baseHr=medianNum(base.filter(hrEligible).map(x=>Number((x.metrics||{}).avgHr)).filter(x=>x>0));
+ const recentMaxHr=medianNum(recent.filter(hrEligible).map(x=>Number((x.metrics||{}).maxHr)).filter(x=>x>0));
+ const baseMaxHr=medianNum(base.filter(hrEligible).map(x=>Number((x.metrics||{}).maxHr)).filter(x=>x>0));
  const timeSpike=baseWeeklyMin>=60&&recentMin>baseWeeklyMin*1.30&&recentMin-baseWeeklyMin>=30;
  const mileageSpike=baseWeeklyMiles>=4&&recentMiles>baseWeeklyMiles*1.30&&recentMiles-baseWeeklyMiles>=2;
  const hrElevated=(baseHr>0&&recentHr>0&&recentHr>=baseHr+8)||(baseMaxHr>0&&recentMaxHr>0&&recentMaxHr>=baseMaxHr+8);
@@ -912,7 +1115,7 @@ function tinyTie(text){
 function conditioningTraits(name){
  const s=String(name||"").toLowerCase();
  return {
-   lowImpact:/swim|cycle|row/.test(s),
+   lowImpact:/swim|cycle|row|walk/.test(s),
    run:/run|meter|hills|oxygen|ladders|connaught|buffalo|capacity/.test(s),
    sprint:/sprint|hills|600 meter|oxygen debt|speed-endurance|anaerobic capacity|connaught/.test(s),
    hinge:/black on oxygen|fobbit|meat-eater|apex|buffalo|devil|gc 4|gc 6|gc 8/.test(s),
@@ -921,7 +1124,7 @@ function conditioningTraits(name){
  };
 }
 function easyAdaptivePick(day,gw,dateISO,readiness,longer=false,reasonPrefix=""){
- const names=["LSS Run","LSS Cycle","LSS Swim","LSS Row","Triples","Ruck Up"];
+ const names=["LSS Run","LSS Walk","LSS Cycle","LSS Swim","LSS Row","Triples","Ruck Up"];
  const mode=blockModeForWeek(gw);
  let scored=names.map(name=>{
    const e=entryForName(name),t=conditioningTraits(name),days=daysSinceConditioning(name,dateISO);
@@ -929,7 +1132,7 @@ function easyAdaptivePick(day,gw,dateISO,readiness,longer=false,reasonPrefix="")
    if(days<10)score-=55;
    if(readiness.recoveryGuard||readiness.lowerFatigue||readiness.mileageSpike||readiness.timeSpike){
      if(t.lowImpact)score+=30;
-     if(name==="LSS Run"||name==="Ruck Up"||name==="Triples")score-=18;
+     if(name==="LSS Run"||name==="Ruck Up"||name==="Triples")score-=18;if(name==="LSS Walk")score+=10;
    }
    if(mode==="hybrid"&&day==="Wednesday"&&t.lowImpact)score+=9;
    if(mode==="tb"&&day==="Tuesday"&&t.lowImpact)score+=7;
@@ -1048,13 +1251,14 @@ function dayNameFromDate(value){
   return isNaN(d) ? "Monday" : d.toLocaleDateString("en-US",{weekday:"long"});
 }
 function exerciseChoicesForDate(value){
-  const day=dayNameFromDate(value),d=parseLocalISO(value),tw=trainingWeekForDate(d),gw=tw>=1?tw:state.settings.currentWeek;
-  const session=expectedSession(day,gw,value);
-  if(session==="TB Maintenance")return blockModeForWeek(gw)==="tb"?["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine"]:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"];
-  if(session.startsWith("KB "))return kbExerciseLibrary.map(x=>x.name);
-  if(session==="Conditioning")return [...new Set([...(dayExerciseOptions.Wednesday||[]),...(dayExerciseOptions.Saturday||[])])];
-  if(session==="Recovery / Rest")return ["Rest Day","Recovery / Rest","Mobility","Easy Walk","Other"];
-  return ["Other"];
+ const day=dayNameFromDate(value),d=parseLocalISO(value),tw=trainingWeekForDate(d),gw=tw>=1?tw:state.settings.currentWeek,session=expectedSession(day,gw,value),gym=gymExerciseLibrary.map(x=>x.name);
+ if(session==="TB Maintenance")return [...(blockModeForWeek(gw)==="tb"?["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine"]:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"]),...gym];
+ if(session.startsWith("KB "))return [...kbExerciseLibrary.map(x=>x.name),...gym];
+ if(session==="Generic Gym"||session==="Open Training")return gym;
+ if(session==="Class / Activity")return [...classActivityLibrary.map(x=>x.name),...gym];
+ if(session==="Conditioning")return [...new Set([...(dayExerciseOptions.Wednesday||[]),...(dayExerciseOptions.Saturday||[]),...gym])];
+ if(session==="Recovery / Rest")return ["Rest Day","Recovery / Rest","Mobility","Easy Walk",...gym,"Other"];
+ return [...gym,"Other"];
 }
 function buildExerciseSelect(selected,dateValue){
   const opts=exerciseChoicesForDate(dateValue);
@@ -1068,7 +1272,7 @@ function buildExerciseSelect(selected,dateValue){
   return list.join("");
 }
 function conditioningKind(activity){
-  const a=String(activity||"");
+  const a=String(activity||""),cls=classActivity(a);if(cls)return cls.kind;
   const lib=[...tbHICLibrary,...tbPowerLibrary].find(x=>x.name===a);
   if(lib && lib.logging==="hiccomplex")return "hiccomplex";
   const s=a.toLowerCase();
@@ -1114,6 +1318,70 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
     '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option></select></div>'+
     '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Route, conditions, soreness, breathing, etc."></div>';
+
+  if(kind==="yoga") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Room Temperature (°F)</label><input class="le-temperature" type="number" min="40" max="130" step="1"></div>'+
+    '<div class="field"><label>Focus / Style</label><input class="le-activities" placeholder="hips, balance, flow, recovery..."></div>'+common;
+  if(kind==="pilates"||kind==="lagree"||kind==="barre") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Muscle / Resistance Focus</label><input class="le-activities" placeholder="core, legs, upper body, springs..."></div>'+common;
+  if(kind==="mobility") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Focus</label><input class="le-activities" placeholder="hips, shoulders, full body..."></div>'+common;
+  if(kind==="cyclingclass") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Power (W)</label><input class="le-avgwatts" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Power (W)</label><input class="le-maxwatts" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Cadence (rpm)</label><input class="le-cadence" type="number" min="0" step="1"></div>'+common;
+  if(kind==="rowingclass") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Distance (m)</label><input class="le-distance" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Power (W)</label><input class="le-avgwatts" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Stroke Rate (spm)</label><input class="le-strokerate" type="number" min="0" step="1"></div>'+common;
+  if(kind==="runclass") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 8:15 /mi"></div>'+
+    '<div class="field"><label>Avg Speed (mph)</label><input class="le-speed" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Elevation / Climb (ft)</label><input class="le-elev" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+common;
+  if(kind==="stairclass") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Floors / Flights</label><input class="le-floors" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Elevation (ft)</label><input class="le-elev" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+common;
+  if(kind==="dance"||kind==="aquaclass") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Class Focus</label><input class="le-activities" placeholder="optional"></div>'+common;
+  if(kind==="combatclass") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Emphasis</label><input class="le-activities" placeholder="bag, pads, technique, conditioning..."></div>'+common;
+  if(kind==="hiitclass") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Rounds / Intervals</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Work Interval</label><input class="le-work" placeholder="e.g. 45 sec"></div>'+
+    '<div class="field"><label>Recovery Interval</label><input class="le-rest" placeholder="e.g. 15 sec"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+common;
+  if(kind==="strengthclass") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Rounds / Stations</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Muscle / Class Focus</label><input class="le-activities" placeholder="full body, legs, upper body..."></div>'+common;
+  if(kind==="mixedstudio") return '<div class="field"><label>Total Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Treadmill Distance (mi)</label><input class="le-rundistance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Row Distance (m)</label><input class="le-rowdistance" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Floor Focus</label><input class="le-activities" placeholder="strength exercises / muscle groups"></div>'+common;
 
 
 
@@ -1423,6 +1691,55 @@ function getKbPlan(session,gw,dateISO){
    return {exercise:r.exercise,sets:r.sets,reps:r.reps,weight:formatKbWeight(r.exercise,a.kg),numeric:null,bar:false,meta:(a.manual?"MANUAL":"ADAPTIVE")+" • "+(kbExercise(r.exercise)?.family||"KB"),note:a.why,kg:a.kg,manualKg:r.manualKg||""};
  });
 }
+
+function parseLb(value){const m=String(value||"").match(/-?\d+(?:\.\d+)?/);return m?Number(m[0]):0}
+function gymRound(value,step){const s=Number(step)||5;return Math.max(s,Math.round(Number(value)/s)*s)}
+function gymRowQuality(x){
+ const r=numberRpe(x.rpe),feel=String(x.feel||"").toLowerCase(),tech=String(x.technique||"").toLowerCase(),status=String(x.status||"").toLowerCase(),sf=String(x.sessionFeel||"").toLowerCase();
+ const bad=status==="partial"||status==="missed"||r>=9.5||feel==="bad"||feel==="grindy"||tech==="sloppy"||sf==="very rough";
+ const positive=(r>0&&r<=8.5)||feel==="easy"||feel==="good"||sf==="great"||sf==="good";return {good:status==="complete"&&positive&&!bad,bad,r};
+}
+function gymDirectHistory(exercise,dateISO){return state.logs.filter(x=>x.date&&x.date<dateISO&&x.exercise===exercise&&x.session!=="Conditioning"&&x.session!=="Class / Activity").sort((a,b)=>a.date.localeCompare(b.date))}
+function relatedStrengthEvidenceForGym(exercise,dateISO,sinceDate=""){
+ const target=gymExercise(exercise);if(!target)return [];
+ return state.logs.filter(x=>x.date&&x.date<dateISO&&x.exercise!==exercise&&(!sinceDate||x.date>sinceDate)&&daysBetweenISO(x.date,dateISO)<=56&&strengthFamilyForRow(x)&&gymRelationWeight(target.family,strengthFamilyForRow(x))>=.25)
+   .map(x=>({row:x,family:strengthFamilyForRow(x),rel:gymRelationWeight(target.family,strengthFamilyForRow(x)),q:gymRowQuality(x)}));
+}
+function gymAvailable(name){return (state.settings.gymAvailability||{})[name]!==false}
+function gymIncrementFor(ex){return ex&&ex.equipment==="Dumbbell"?Math.max(1,Number(state.settings.gymDbIncrement)||5):(Number(ex&&ex.increment)||5)}
+function gymClampLoad(ex,value){
+ let v=Number(value)||0,step=gymIncrementFor(ex);
+ if(ex&&ex.equipment==="Dumbbell"){const lo=Math.max(0,Number(state.settings.gymDbMin)||0),hi=Math.max(lo,Number(state.settings.gymDbMax)||100);v=Math.max(lo,Math.min(hi,v));return Math.max(lo,Math.min(hi,Math.round(v/step)*step))}
+ return gymRound(v,step);
+}
+function adaptiveGymTarget(exercise,dateISO,manualLb=""){
+ const ex=gymExercise(exercise),manual=Number(manualLb);if(!ex)return {lb:manual||0,manual:manual>0,why:"Custom exercise — enter a manual load or log it to establish history."};
+ const inc=gymIncrementFor(ex);if(Number.isFinite(manual)&&manual>0)return {lb:gymClampLoad(ex,manual),manual:true,why:"Manually selected target"};
+ const direct=gymDirectHistory(exercise,dateISO),last=direct.length?direct[direct.length-1]:null,readiness=adaptiveReadiness(dateISO);
+ let target=last&&parseLb(last.weight)>0?parseLb(last.weight):ex.defaultLb,direction=ex.load==="assist"?-1:1;
+ if(last&&daysBetweenISO(last.date,dateISO)<=35){
+   const q=gymRowQuality(last);
+   if(q.good&&!readiness.recoveryGuard){target+=direction*inc;return {lb:gymClampLoad(ex,target),why:"Last direct session was clean and manageable, so one available load step is progressed.",direct:true}}
+   if(q.good&&readiness.recoveryGuard)return {lb:gymClampLoad(ex,target),why:"Direct performance earned progression, but recent overall recovery/load signals are elevated, so the load is held.",direct:true};
+   if(q.bad){target-=direction*inc;return {lb:gymClampLoad(ex,target),why:"Last direct session showed grind, partial completion, high RPE, or poor technique, so one available step is backed off.",direct:true}}
+   return {lb:gymClampLoad(ex,target),why:"Recent direct performance was mixed, so the same load is repeated.",direct:true};
+ }
+ const related=relatedStrengthEvidenceForGym(exercise,dateISO,last?last.date:"");
+ if(related.length>=2){
+   let score=0,families={};related.forEach(e=>{score+=(e.q.good?1:(e.q.bad?-1:0))*e.rel;families[e.family]=(families[e.family]||0)+1});
+   const top=Object.entries(families).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0].replaceAll("_"," ")).join(" + ");
+   if(score>=1.4&&!readiness.recoveryGuard){target+=direction*inc;return {lb:gymClampLoad(ex,target),why:"Related strength work ("+top+") has progressed well, so one conservative available load step transfers.",familyTransfer:true}}
+   if(score<=-.9){target-=direction*inc;return {lb:gymClampLoad(ex,target),why:"Related strength work has recently struggled, so one conservative step is backed off.",familyTransfer:true}}
+   return {lb:gymClampLoad(ex,target),why:"Related strength evidence is mixed, so the previous/default load is held.",familyTransfer:true};
+ }
+ return {lb:gymClampLoad(ex,target),why:last?"This exercise has been away for a while, so its last load is reused until new direct data is logged.":"No direct history yet; using the library starting target inside your equipment range.",starting:true};
+}
+function formatGymWeight(exercise,lb){const ex=gymExercise(exercise);if(!ex)return lb?lb+" lb":"";if(ex.load==="per_db")return lb+" lb / DB";if(ex.load==="per_side")return lb+" lb / side";if(ex.load==="assist")return lb+" lb assistance";return lb+" lb"}
+function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];return saved?JSON.parse(JSON.stringify(saved)):{name:"Generic Gym",request:"",rows:[]}}
+function getGenericGymPlan(dateISO){
+ const w=genericGymWorkoutFor(dateISO);return w.rows.map(r=>{const a=adaptiveGymTarget(r.exercise,dateISO,r.manualLb);return {exercise:r.exercise,sets:r.sets,reps:r.reps,weight:formatGymWeight(r.exercise,a.lb),meta:(a.manual?"MANUAL":"ADAPTIVE")+" • "+(gymExercise(r.exercise)?.equipment||"Gym"),note:a.why,conditioning:false}});
+}
+
 function conditioningSummary(x){
   const m=x.metrics||{}, bits=[];
   if(m.distance) bits.push(m.distance+(m.distanceUnit ? " "+m.distanceUnit : (x.exercise&&x.exercise.includes("Standard Issue") ? " km" : " mi")));
@@ -1442,19 +1759,21 @@ function conditioningSummary(x){
   if(m.elevation) bits.push(m.elevation+" ft gain");
   if(m.pace) bits.push(m.pace);
   if(m.speed) bits.push(m.speed+" mph");
-  return bits.join(" • ") || "Conditioning logged";
+  if(m.avgWatts) bits.push("avg "+m.avgWatts+" W");if(m.maxWatts) bits.push("max "+m.maxWatts+" W");if(m.cadence) bits.push(m.cadence+" rpm");if(m.strokeRate) bits.push(m.strokeRate+" spm");
+  if(m.floors) bits.push(m.floors+" floors");if(m.temperature) bits.push(m.temperature+"°F");if(m.runDistance) bits.push(m.runDistance+" mi run");if(m.rowDistance) bits.push(m.rowDistance+" m row");
+  return bits.join(" • ") || "Conditioning / class logged";
 }
 
 
+function selectedClassForDate(dateISO){return (state.settings.classOverrides||{})[dateISO]||""}
 function planFor(session,gw){
  if(session==="TB Maintenance")return getTBPlan(gw);
  if(session.startsWith("KB "))return getKbPlan(session,gw,logDate.value).map(x=>Object.assign({},x,{conditioning:false}));
+ if(session==="Generic Gym")return getGenericGymPlan(logDate.value);
+ if(session==="Class / Activity"){const activity=selectedClassForDate(logDate.value)||"Yoga — Vinyasa";return [{exercise:activity,plannedTarget:"Log class metrics",meta:"Class / activity",conditioning:true}]}
+ if(session==="Open Training")return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"Open training day — add exercises as needed",conditioning:false}];
  if(session==="Recovery / Rest")return [{exercise:"Rest Day",sets:"",reps:"",weight:"",meta:"Recovery / Rest",conditioning:false}];
- if(session==="Conditioning"){
-   const day=dayNameFromDate(logDate.value);
-   const c=conditioningFor(day,gw,logDate.value);
-   return [{exercise:c.activity,plannedTarget:c.target,meta:c.detail+" • target RPE "+c.rpe,conditioning:true}];
- }
+ if(session==="Conditioning"){const day=dayNameFromDate(logDate.value),c=conditioningFor(day,gw,logDate.value);return [{exercise:c.activity,plannedTarget:c.target,meta:c.detail+" • target RPE "+c.rpe,conditioning:true}]}
  return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"",conditioning:false}];
 }
 function render(){
@@ -1473,7 +1792,7 @@ function renderWeek(){
  weekSchedule.forEach((x,i)=>{
    const date=addDays(start,i),iso=localISO(date),day=x[0],session=expectedSession(x[0],browseWeek,iso);
    let focus=x[2];
-   if(session==="Conditioning"){const c=conditioningFor(day,browseWeek,iso);focus=c.activity+" • "+c.target;}else if(session==="Recovery / Rest"){focus="Recovery / rest day";}
+   if(session==="Conditioning"){const c=conditioningFor(day,browseWeek,iso);focus=c.activity+" • "+c.target;}else if(session==="Generic Gym"){const g=genericGymWorkoutFor(iso);focus=(g.name||"Generic Gym")+" • "+g.rows.length+" exercises";}else if(session==="Class / Activity"){focus=selectedClassForDate(iso)||"Class / Activity";}else if(session==="Open Training"){focus="Protected from rest • optional training";}else if(session==="Recovery / Rest"){focus="Recovery / rest day";}
    const d=document.createElement("button");
    d.type="button";d.className="day-card"+(iso===todayISO?" today":"")+(iso===selectedDateISO?" selected":"");
    d.setAttribute("aria-label",day+", "+date.toLocaleDateString("en-US",{month:"long",day:"numeric"})+", "+session);
@@ -1492,50 +1811,58 @@ function appendExerciseCard(x){
 function renderTB(gw){
  tbList.innerHTML="";getTBPlan(gw).forEach(appendExerciseCard);
 }
-function appendRestDayControl(session){
- const isRest=(state.settings.dayOverrides||{})[selectedDateISO]==="Recovery / Rest";
- const b=document.createElement("button");b.className="btn";b.type="button";
- if(isRest){b.textContent="Restore Scheduled Workout";b.addEventListener("click",()=>clearDayOverride(selectedDateISO))}
- else{b.textContent="Make This a Rest Day";b.addEventListener("click",()=>markRestDay(selectedDateISO))}
- tbList.appendChild(b);
+function appendDayControls(session){
+ const isManualRest=(state.settings.dayOverrides||{})[selectedDateISO]==="Recovery / Rest",noRest=!!((state.settings.noRestDates||{})[selectedDateISO]),wrap=document.createElement("div");wrap.className="day-control-row";
+ if(isManualRest){const b=document.createElement("button");b.className="btn";b.type="button";b.textContent="Restore Scheduled Workout";b.addEventListener("click",()=>clearDayOverride(selectedDateISO));wrap.appendChild(b)}
+ else if(session!=="Recovery / Rest"){const b=document.createElement("button");b.className="btn";b.type="button";b.textContent="Make This a Rest Day";b.addEventListener("click",()=>markRestDay(selectedDateISO));wrap.appendChild(b)}
+ const protect=document.createElement("button");protect.className="btn";protect.type="button";
+ if(noRest){protect.textContent="Allow Rest Day Again";protect.addEventListener("click",()=>clearNoRestDay(selectedDateISO))}
+ else{protect.textContent="Do Not Use as Rest Day";protect.addEventListener("click",()=>markNoRestDay(selectedDateISO))}
+ wrap.appendChild(protect);
+ const gym=document.createElement("button");gym.className="btn";gym.type="button";gym.textContent=session==="Generic Gym"?"Edit Generic Gym Workout":"+ Generic Gym Workout";gym.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts")});wrap.appendChild(gym);
+ const cls=document.createElement("button");cls.className="btn";cls.type="button";cls.textContent=session==="Class / Activity"?"Change Class":"+ Class / Activity";cls.addEventListener("click",()=>showView("classes"));wrap.appendChild(cls);
+ if(session==="Class / Activity"){const clear=document.createElement("button");clear.className="btn";clear.type="button";clear.textContent="Clear Class Override";clear.addEventListener("click",()=>clearClassOverride(selectedDateISO));wrap.appendChild(clear)}
+ tbList.appendChild(wrap);
 }
 function renderSelectedWorkout(){
- const d=parseLocalISO(selectedDateISO);
- let gw=trainingWeekForDate(d);
- if(gw<1){
-   tbList.innerHTML='<div class="empty">This date is before Training Week 1.</div>';
-   workoutTitle.textContent="Workout Prescription";tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});selectedDateBadge.textContent="Before plan";plateLegend.classList.add("hidden");return;
- }
+ const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);
+ if(gw<1){tbList.innerHTML='<div class="empty">This date is before Training Week 1.</div>';workoutTitle.textContent="Workout Prescription";tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});selectedDateBadge.textContent="Before plan";plateLegend.classList.add("hidden");return}
  const day=d.toLocaleDateString("en-US",{weekday:"long"}),session=expectedSession(day,gw,selectedDateISO),bi=blockInfo(gw);
- workoutTitle.textContent=session;
- tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})+" • Week "+gw+" • Block "+bi.block+" W"+bi.wib;
- selectedDateBadge.textContent=selectedDateISO===localISO(new Date())?"TODAY":"SELECTED DAY";
- plateLegend.classList.toggle("hidden",session!=="TB Maintenance");
- tbList.innerHTML="";
- if(session==="TB Maintenance"){getTBPlan(gw).forEach(appendExerciseCard);appendRestDayControl(session);return;}
- if(session.startsWith("KB ")){
-   getKbPlan(session,gw,selectedDateISO).forEach(appendExerciseCard);
-   const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent="Edit This KB Workout";edit.addEventListener("click",()=>{kbBuilderBlock.value=bi.block;kbBuilderSlot.value=session;loadKbBuilder();showView("kbworkouts")});tbList.appendChild(edit);appendRestDayControl(session);
-   return;
+ workoutTitle.textContent=session;tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})+" • Week "+gw+" • Block "+bi.block+" W"+bi.wib;
+ selectedDateBadge.textContent=selectedDateISO===localISO(new Date())?"TODAY":"SELECTED DAY";plateLegend.classList.toggle("hidden",session!=="TB Maintenance");tbList.innerHTML="";
+ if(session==="TB Maintenance"){getTBPlan(gw).forEach(appendExerciseCard);appendDayControls(session);return}
+ if(session.startsWith("KB ")){getKbPlan(session,gw,selectedDateISO).forEach(appendExerciseCard);const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent="Edit This KB Workout";edit.addEventListener("click",()=>{kbBuilderBlock.value=bi.block;kbBuilderSlot.value=session;showView("kbworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
+ if(session==="Generic Gym"){
+   const g=genericGymWorkoutFor(selectedDateISO),plan=getGenericGymPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Generic Gym",meta:"No exercises saved yet",note:"Open the Gym tab and describe what you want to train, or add exercises manually."});
+   const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Generic Gym Workout":"Build Generic Gym Workout";edit.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts")});tbList.appendChild(edit);appendDayControls(session);return;
  }
+ if(session==="Class / Activity"){const activity=selectedClassForDate(selectedDateISO)||"Class / Activity",cls=classActivity(activity);appendExerciseCard({exercise:activity,target:"Log after class",meta:"CLASS / ACTIVITY",note:cls?cls.note:"Log duration, difficulty/RPE, HR, and relevant metrics afterward."});appendDayControls(session);return}
+ if(session==="Open Training"){appendExerciseCard({exercise:"Open Training Day",meta:"PROTECTED FROM REST",note:"This date is marked as a day you do not want used as a rest day. Add a gym workout, class, conditioning, or whatever you choose."});appendDayControls(session);return}
  if(session==="Conditioning"){
-   const c=conditioningFor(day,gw,selectedDateISO);
-   const lib=[...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary].find(x=>x.name===c.activity);
-   let note='<strong>Recommendation:</strong> '+c.detail+(c.why?'<br><strong>Why this was chosen:</strong> '+c.why:'');
-   if(lib){
-     note+='<br><strong>Full prescription:</strong> '+lib.prescription;
-     if(lib.basic)note+='<br><strong>Basic:</strong> '+lib.basic;
-     if(lib.advanced)note+='<br><strong>Advanced:</strong> '+lib.advanced;
-   }
+   const c=conditioningFor(day,gw,selectedDateISO),lib=[...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary].find(x=>x.name===c.activity);let note='<strong>Recommendation:</strong> '+c.detail+(c.why?'<br><strong>Why this was chosen:</strong> '+c.why:'');
+   if(lib){note+='<br><strong>Full prescription:</strong> '+lib.prescription;if(lib.basic)note+='<br><strong>Basic:</strong> '+lib.basic;if(lib.advanced)note+='<br><strong>Advanced:</strong> '+lib.advanced}
    appendExerciseCard({exercise:c.activity,target:c.target,weight:"RPE "+c.rpe,meta:(c.override?"MANUAL OVERRIDE • ":(c.adaptive?"ADAPTIVE • ":""))+(lib&&lib.num?"HIC #"+lib.num+" • "+hicCategory(lib.num):(lib?lib.category||"Endurance":"Conditioning")),note});
-   if(c.override){const clr=document.createElement("button");clr.className="btn";clr.type="button";clr.textContent="Clear Conditioning Override";clr.addEventListener("click",clearConditioningOverrideForSelected);tbList.appendChild(clr);}appendRestDayControl(session);
-   return;
+   if(c.override){const clr=document.createElement("button");clr.className="btn";clr.type="button";clr.textContent="Clear Conditioning Override";clr.addEventListener("click",clearConditioningOverrideForSelected);tbList.appendChild(clr)}appendDayControls(session);return;
  }
- appendExerciseCard({exercise:session==="Recovery / Rest"?"Rest Day":"Other",meta:session==="Recovery / Rest"?"No formal training prescribed. A marked/logged rest day is included in the adaptive recovery model.":"No programmed workout for this day."});appendRestDayControl(session);
+ appendExerciseCard({exercise:session==="Recovery / Rest"?"Rest Day":"Other",meta:session==="Recovery / Rest"?"No formal training prescribed. Marked/logged rest is included in adaptive recovery.":"No programmed workout for this day."});appendDayControls(session);
 }
 function populateSessionOptions(){
- const opts=["TB Maintenance","KB Heavy","Conditioning","KB Power","KB Volume","Recovery / Rest","Other"];logSession.innerHTML=opts.map(x=>'<option>'+x+'</option>').join("");
+ const opts=["TB Maintenance","KB Heavy","Conditioning","KB Power","KB Volume","Generic Gym","Class / Activity","Open Training","Recovery / Rest","Other"];logSession.innerHTML=opts.map(x=>'<option>'+x+'</option>').join("");
 }
+
+function appendAdditionalLogExercise(){
+ const d=document.createElement("div");d.className="log-exercise";d.dataset.conditioning="0";
+ d.innerHTML='<div class="log-title"><div><strong>Additional Exercise</strong><div class="planned">Add any extra exercise performed in this session</div></div></div>'+
+ '<div class="log-grid"><div class="field"><label>Exercise</label><select class="le-ex">'+buildExerciseSelect("",logDate.value)+'</select><input class="le-custom hidden" placeholder="Custom exercise"></div>'+
+ '<div class="field"><label>Sets</label><input class="le-sets"></div><div class="field"><label>Reps / Time</label><input class="le-reps"></div><div class="field"><label>Weight</label><input class="le-weight"></div>'+
+ '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"></div>'+
+ '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
+ '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
+ '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option></select></div>'+
+ '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Optional exercise notes"></div></div>';
+ plannedExercises.appendChild(d);const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus()};sel.addEventListener("change",sync);sync();
+}
+
 function loadPlannedSession(){
  const gw=Math.max(1,Math.floor(Number(logWeek.value)||1)),session=logSession.value,plan=planFor(session,gw);plannedExercises.innerHTML="";
  plan.forEach((x,i)=>{
@@ -1588,7 +1915,7 @@ function renderHistory(){
  if(!state.logs.length){historyBody.innerHTML='<tr><td colspan="9"><div class="empty">No workouts logged yet.</div></td></tr>';return}
  [...state.logs].reverse().forEach((x,ri)=>{
    const idx=state.logs.length-1-ri,tr=document.createElement("tr");
-   const actual=x.session==="Conditioning" ? conditioningSummary(x) : ((x.sets||"")+" × "+(x.reps||"")+" • "+(x.weight||""));
+   const actual=(x.session==="Conditioning"||x.session==="Class / Activity") ? conditioningSummary(x) : ((x.sets||"")+" × "+(x.reps||"")+" • "+(x.weight||""));
    tr.innerHTML='<td>'+x.date+'</td><td>'+x.session+'</td><td>'+x.exercise+'</td><td>'+actual+'</td><td>'+(x.rpe||"")+'</td><td>'+(x.feel||"")+'</td><td>'+(x.technique||"")+'</td><td>'+(x.notes||"")+'</td><td><button class="btn danger del" data-i="'+idx+'">Delete</button></td>';
    historyBody.appendChild(tr)
  });
@@ -1670,6 +1997,79 @@ function renderKbLibrary(){
    '<div class="kb-lib-card"><div class="name">'+x.name+'</div><div class="meta">'+x.family+' • preset '+x.defaultKg+' kg'+(x.load==="double"?" / bell":"")+'</div><div class="desc">'+x.note+'</div></div>'
  ).join("");
 }
+
+function gymRequestProfile(text){
+ const s=String(text||"").toLowerCase();let duration=60,mm=s.match(/(\d{2,3})\s*(?:min|minute)/),hh=s.match(/(\d+(?:\.\d+)?)\s*(?:hr|hour)/);
+ if(mm)duration=Math.max(20,Math.min(120,Number(mm[1])));else if(hh)duration=Math.max(20,Math.min(120,Math.round(Number(hh[1])*60)));
+ const difficulty=/very hard|max(?:imum)?|brutal/.test(s)?"very hard":(/hard|challenging|difficult/.test(s)?"hard":(/easy|light difficulty|low difficulty|recovery/.test(s)?"easy":"medium"));
+ const style=/high[- ]?rep|higher[- ]?rep|low weight|light weight|pump/.test(s)?"high-rep":(/low[- ]?rep|heavy weight|strength[- ]?focus|heavy/.test(s)?"strength":"moderate"),equipment=[];
+ if(/machine/.test(s))equipment.push("Machine");if(/dumbbell|\bdb\b/.test(s))equipment.push("Dumbbell");if(/cable/.test(s))equipment.push("Cable");
+ const families=[],add=(...xs)=>xs.forEach(x=>{if(!families.includes(x))families.push(x)});
+ if(/bicep|curl/.test(s))add("biceps");if(/tricep/.test(s))add("triceps");if(/\barms?\b/.test(s))add("biceps","triceps");
+ if(/shoulder|delt/.test(s))add("shoulder_press","delts","rear_delts");if(/chest|pec/.test(s))add("chest_press","chest_isolation");
+ if(/back|lat/.test(s))add("vertical_pull","horizontal_pull","rear_delts");if(/quad/.test(s))add("quads","squat");if(/hamstring/.test(s))add("hamstrings","hinge");
+ if(/glute/.test(s))add("lunge","hinge","hip_accessory");if(/\blegs?\b|lower body/.test(s))add("squat","lunge","quads","hamstrings","calves");if(/calf|calves/.test(s))add("calves");
+ if(/core|abs|abdominal/.test(s))add("core");if(/upper body/.test(s))add("chest_press","horizontal_pull","shoulder_press","biceps","triceps");if(/full body|whole body/.test(s))add("squat","chest_press","horizontal_pull","shoulder_press","biceps","triceps");
+ if(!families.length)add("horizontal_pull","delts","biceps","triceps","core");return {duration,difficulty,style,equipment,families,text:String(text||"").trim()};
+}
+function gymRepScheme(ex,p){
+ const isolation=["biceps","triceps","delts","rear_delts","chest_isolation","calves","core","hip_accessory"].includes(ex.family);
+ if(p.style==="high-rep")return {sets:p.difficulty==="hard"||p.difficulty==="very hard"?4:3,reps:isolation?"15–20":"12–15",scale:.80};
+ if(p.style==="strength")return {sets:p.difficulty==="easy"?3:4,reps:isolation?"8–12":"6–8",scale:.98};
+ return {sets:p.difficulty==="hard"||p.difficulty==="very hard"?4:3,reps:isolation?"12–15":"8–12",scale:.90};
+}
+function gymRecentFamilyStress(family,dateISO){let score=0;historyRowsBefore(dateISO,3).forEach(x=>{const fam=strengthFamilyForRow(x);if(!fam)return;const rel=gymRelationWeight(family,fam),q=gymRowQuality(x),r=numberRpe(x.rpe);if(rel>0)score+=rel*((q.bad||r>=9)?2:(r>=8?1:.5))});return score}
+function buildGymWorkoutFromRequest(text,dateISO){
+ const p=gymRequestProfile(text),available=gymExerciseLibrary.filter(g=>gymAvailable(g.name)&&(!p.equipment.length||p.equipment.some(e=>g.equipment.includes(e))));
+ if(!available.length)return {name:"No available exercises",request:p.text,profile:p,rows:[]};
+ let count=Math.max(3,Math.min(9,Math.round(p.duration/10)));if(p.difficulty==="easy")count=Math.max(3,count-1);if(p.difficulty==="very hard")count=Math.min(9,count+1);
+ const candidates=available.map(g=>{let score=(p.families.includes(g.family)?50:0)+Math.max(...p.families.map(f=>gymRelationWeight(f,g.family)),0)*25-gymRecentFamilyStress(g.family,dateISO)*7+(g.equipment==="Machine"?2:0)+tinyTie(dateISO+"|"+g.name)*2;return {g,score}}).sort((a,b)=>b.score-a.score);
+ const selected=[],familyCounts={};for(const c of candidates){if(selected.length>=count)break;const fam=c.g.family,fc=familyCounts[fam]||0;if(fc>=2&&selected.length<count-1)continue;if(c.score<=0&&selected.length>=Math.max(3,p.families.length))continue;selected.push(c.g);familyCounts[fam]=fc+1}
+ const rows=selected.map(g=>{const scheme=gymRepScheme(g,p),a=adaptiveGymTarget(g.name,dateISO,"");let target=a.lb;if(g.load!=="assist")target=gymClampLoad(g,target*scheme.scale);if(p.difficulty==="easy"&&g.load!=="assist")target=gymClampLoad(g,target-gymIncrementFor(g));return {exercise:g.name,sets:scheme.sets,reps:scheme.reps,manualLb:target?String(target):""}});
+ const names=p.families.map(x=>x.replaceAll("_"," ")).join(" + ");return {name:(names?names.replace(/\b\w/g,c=>c.toUpperCase()):"Accessory")+" • "+p.style+" • "+p.duration+" min",request:p.text,profile:p,rows};
+}
+function addGymBuilderRow(row={exercise:"Dumbbell Curl",sets:3,reps:"10–12",manualLb:""}){
+ const d=document.createElement("div");d.className="gym-builder-row";
+ d.innerHTML='<div class="field exercise-field"><label>Exercise</label><select class="gym-row-ex">'+gymExerciseLibrary.map(x=>'<option value="'+x.name.replaceAll('"','&quot;')+'"'+(x.name===row.exercise?' selected':'')+'>'+x.name+'</option>').join("")+'<option value="__custom__">Custom exercise…</option></select><input class="gym-row-custom hidden" placeholder="Custom exercise"></div>'+
+ '<div class="field"><label>Sets</label><input class="gym-row-sets" value="'+(row.sets??"")+'"></div><div class="field"><label>Reps / Time</label><input class="gym-row-reps" value="'+(row.reps??"")+'"></div>'+
+ '<div class="field"><label>Manual lb</label><input class="gym-row-lb" type="number" min="0" step="2.5" value="'+(row.manualLb||"")+'" placeholder="Adaptive"></div><div class="remove-field"><button class="btn danger gym-remove-row" type="button">Remove</button></div>';
+ const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus()};sel.addEventListener("change",sync);sync();d.querySelector(".gym-remove-row").addEventListener("click",()=>d.remove());gymBuilderRows.appendChild(d);
+}
+function loadGymBuilder(){
+ const date=gymBuilderDate.value||selectedDateISO||localISO(new Date());gymBuilderDate.value=date;const saved=genericGymWorkoutFor(date);gymWorkoutName.value=saved.name||"Generic Gym";gymRequestText.value=saved.request||"";gymBuilderRows.innerHTML="";if(saved.rows&&saved.rows.length)saved.rows.forEach(addGymBuilderRow);renderGymLibrary();syncGymEquipmentInputs();
+}
+function saveGymBuilder(){
+ const date=gymBuilderDate.value||selectedDateISO||localISO(new Date()),rows=[...gymBuilderRows.querySelectorAll(".gym-builder-row")].map(d=>{const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom");return {exercise:sel.value==="__custom__"?custom.value.trim():sel.value,sets:d.querySelector(".gym-row-sets").value,reps:d.querySelector(".gym-row-reps").value,manualLb:d.querySelector(".gym-row-lb").value}}).filter(x=>x.exercise);
+ if(!rows.length){alert("Add at least one exercise.");return}state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.genericGymWorkouts[date]={name:gymWorkoutName.value.trim()||"Generic Gym",request:gymRequestText.value.trim(),rows};setGenericGymDay(date);selectedDateISO=date;const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;save();render();gymAdaptiveStatus.innerHTML="<strong>Saved.</strong> This workout is now on "+date+".";
+}
+function clearGymBuilder(){const date=gymBuilderDate.value||selectedDateISO;if((state.settings.genericGymWorkouts||{})[date])delete state.settings.genericGymWorkouts[date];if((state.settings.dayOverrides||{})[date]==="Generic Gym")delete state.settings.dayOverrides[date];save();render();loadGymBuilder()}
+function generateGymFromPrompt(){
+ const date=gymBuilderDate.value||selectedDateISO||localISO(new Date()),request=gymRequestText.value.trim(),w=buildGymWorkoutFromRequest(request||"balanced accessory workout, medium difficulty, moderate reps, 60 minutes",date);
+ gymWorkoutName.value=w.name;gymBuilderRows.innerHTML="";w.rows.forEach(addGymBuilderRow);
+ gymAdaptiveStatus.innerHTML=w.rows.length?("<strong>Generated:</strong> "+w.rows.length+" exercises for about "+w.profile.duration+" minutes • "+w.profile.difficulty+" • "+w.profile.style+". Review/edit sets, reps, or weights before saving."):"<strong>No available exercises matched.</strong> Check your Gym Exercise Library availability or remove an equipment restriction from the request.";
+}
+function renderGymLibrary(){
+ const q=gymLibrarySearch.value.trim().toLowerCase(),availability=state.settings.gymAvailability||{};
+ gymLibraryGrid.innerHTML=gymExerciseLibrary.filter(x=>!q||x.name.toLowerCase().includes(q)||x.family.toLowerCase().includes(q)||x.equipment.toLowerCase().includes(q)).map(x=>{const checked=availability[x.name]!==false;return '<label class="gym-lib-card"><div class="toggle-line"><input class="gym-availability" type="checkbox" data-name="'+x.name.replaceAll('"','&quot;')+'"'+(checked?' checked':'')+'><span class="name">'+x.name+'</span></div><div class="meta">'+x.equipment+' • '+x.family.replaceAll("_"," ")+'</div><div class="desc">'+x.note+'</div></label>'}).join("");
+ gymLibraryGrid.querySelectorAll(".gym-availability").forEach(cb=>cb.addEventListener("change",()=>{state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.gymAvailability[cb.dataset.name]=cb.checked;save()}));
+}
+function syncGymEquipmentInputs(){gymDbMin.value=state.settings.gymDbMin??5;gymDbMax.value=state.settings.gymDbMax??100;gymDbIncrement.value=state.settings.gymDbIncrement??5}
+function saveGymEquipmentProfile(){state.settings.gymDbMin=Math.max(0,Number(gymDbMin.value)||0);state.settings.gymDbMax=Math.max(state.settings.gymDbMin,Number(gymDbMax.value)||100);state.settings.gymDbIncrement=Math.max(1,Number(gymDbIncrement.value)||5);save();renderGymLibrary();gymAdaptiveStatus.innerHTML="<strong>Equipment profile saved.</strong> Future dumbbell targets will use this range and increment."}
+function setAllGymAvailability(value){state.settings.gymAvailability=state.settings.gymAvailability||{};gymExerciseLibrary.forEach(x=>state.settings.gymAvailability[x.name]=value);save();renderGymLibrary()}
+
+function applyClassOverride(name){
+ const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);if(gw<1){classStatus.textContent="Select a date inside the training calendar first.";return}
+ state.settings.classOverrides=state.settings.classOverrides||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};
+ delete state.settings.genericGymWorkouts[selectedDateISO];state.settings.classOverrides[selectedDateISO]=name;state.settings.dayOverrides[selectedDateISO]="Class / Activity";state.settings.noRestDates[selectedDateISO]=true;save();render();
+ classStatus.textContent=name+" is now scheduled for "+d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})+".";
+}
+function clearClassOverride(dateISO){if((state.settings.classOverrides||{})[dateISO])delete state.settings.classOverrides[dateISO];if((state.settings.dayOverrides||{})[dateISO]==="Class / Activity")delete state.settings.dayOverrides[dateISO];save();render();renderClassLibrary()}
+function renderClassLibrary(){
+ const cat=classCategory.value,q=classSearch.value.trim().toLowerCase(),rows=classActivityLibrary.filter(x=>(cat==="all"||x.category===cat)&&(!q||x.name.toLowerCase().includes(q)||x.note.toLowerCase().includes(q)));
+ classLibraryGrid.innerHTML=rows.map(x=>'<div class="conditioning-card"><div class="name">'+x.name+'</div><div class="meta">'+x.category+'</div><div class="desc">'+x.note+'</div><div class="actions"><button class="btn use-class" type="button" data-name="'+x.name.replaceAll('"','&quot;')+'">Use for selected day</button></div></div>').join("");
+ classLibraryGrid.querySelectorAll(".use-class").forEach(btn=>btn.addEventListener("click",()=>applyClassOverride(btn.dataset.name)));
+}
+
 function renderConditioningLibrary(){
  const cat=conditioningCategory.value,q=conditioningSearch.value.trim().toLowerCase();
  const all=[...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary];
@@ -1727,14 +2127,10 @@ function saveManualTbMaxes(){
 }
 function syncSettings(){currentWeek.value=state.settings.currentWeek;squatTm.value=state.settings.squatTm;rowTm.value=state.settings.rowTm;chestTm.value=state.settings.chestTm;inclineTm.value=state.settings.inclineTm;deadliftTm.value=state.settings.deadliftTm||325;squatInc.value=state.settings.squatInc;otherInc.value=state.settings.otherInc}
 function showView(id){
- document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
- document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===id));
- document.getElementById(id).classList.add("active");
- if(id==="kbworkouts"){
-   if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;
-   if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";
-   loadKbBuilder();
- }
+ document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===id));document.getElementById(id).classList.add("active");
+ if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}
+ if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder()}
+ if(id==="classes")renderClassLibrary();
 }
 function setLogDefaults(){
  const d=new Date();logDate.value=localISO(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;
@@ -1772,7 +2168,7 @@ installApp.addEventListener("click",async()=>{
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
 if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
-  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
 }
 if(navigator.storage&&navigator.storage.persist){
   navigator.storage.persist().catch(()=>{});
@@ -1811,6 +2207,11 @@ addKbExercise.addEventListener("click",()=>addKbBuilderRow());
 saveKbWorkout.addEventListener("click",saveKbBuilder);
 resetKbWorkout.addEventListener("click",resetKbBuilder);
 copyKbNextBlock.addEventListener("click",copyKbWorkoutNext);
+gymBuilderDate.addEventListener("change",loadGymBuilder);gymLibrarySearch.addEventListener("input",renderGymLibrary);addGymExercise.addEventListener("click",()=>addGymBuilderRow());
+saveGymWorkout.addEventListener("click",saveGymBuilder);clearGymWorkout.addEventListener("click",clearGymBuilder);generateGymWorkout.addEventListener("click",generateGymFromPrompt);
+surpriseGymWorkout.addEventListener("click",()=>{gymRequestText.value="balanced accessory workout, medium difficulty, moderate reps, 60 minutes";generateGymFromPrompt()});
+saveGymEquipment.addEventListener("click",saveGymEquipmentProfile);gymAllAvailable.addEventListener("click",()=>setAllGymAvailability(true));gymNoneAvailable.addEventListener("click",()=>setAllGymAvailability(false));
+classCategory.addEventListener("change",renderClassLibrary);classSearch.addEventListener("input",renderClassLibrary);addLogExercise.addEventListener("click",appendAdditionalLogExercise);
 recalcConditioning.addEventListener("click",()=>{renderWeek();renderSelectedWorkout();conditioningOverrideStatus.innerHTML="<strong>Recalculated.</strong> Recommendations now reflect all logs saved through today.";});
 logRestDay.addEventListener("click",()=>{const d=parseLocalISO(logDate.value);if(isNaN(d))return;markRestDay(logDate.value);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value="Recovery / Rest";loadPlannedSession();sessionNotes.value=sessionNotes.value||"Rest day";});
 
@@ -1844,8 +2245,12 @@ saveSession.addEventListener("click",()=>{
        activities:valueOf(c,".le-activities"),circuitRest:valueOf(c,".le-circuitrest"),
        lowRung:valueOf(c,".le-lowrung"),sprintDistance:valueOf(c,".le-sprintdistance"),
        bestRep:valueOf(c,".le-bestrep"),avgRep:valueOf(c,".le-avgrep"),lastRep:valueOf(c,".le-lastrep"),
-       sprint100:valueOf(c,".le-sprint100"),secondWork:valueOf(c,".le-secondwork"),clusterType:valueOf(c,".le-clustertype")
+       sprint100:valueOf(c,".le-sprint100"),secondWork:valueOf(c,".le-secondwork"),clusterType:valueOf(c,".le-clustertype"),
+       temperature:valueOf(c,".le-temperature"),avgWatts:valueOf(c,".le-avgwatts"),maxWatts:valueOf(c,".le-maxwatts"),
+       cadence:valueOf(c,".le-cadence"),strokeRate:valueOf(c,".le-strokerate"),floors:valueOf(c,".le-floors"),
+       runDistance:valueOf(c,".le-rundistance"),rowDistance:valueOf(c,".le-rowdistance")
      };
+     const ckind=conditioningKind(exercise);if(!base.metrics.distanceUnit){if(ckind==="rowingclass")base.metrics.distanceUnit="m";else if(ckind==="cyclingclass"||ckind==="runclass")base.metrics.distanceUnit="mi"}
    }else{
      base.sets=valueOf(c,".le-sets");base.reps=valueOf(c,".le-reps");base.weight=valueOf(c,".le-weight");
      base.technique=valueOf(c,".le-tech");base.metrics={};
@@ -1853,37 +2258,42 @@ saveSession.addEventListener("click",()=>{
    return base;
  }).filter(x=>x.exercise);
  if(!rows.length)return;
- state.logs.push(...rows);if(logSession.value==="Recovery / Rest"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.dayOverrides[logDate.value]="Recovery / Rest"}save();render();
+ state.logs.push(...rows);
+ if(logSession.value==="Recovery / Rest"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.dayOverrides[logDate.value]="Recovery / Rest"}
+ if(logSession.value==="Class / Activity"&&rows[0]){state.settings.classOverrides=state.settings.classOverrides||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides[logDate.value]=rows[0].exercise;state.settings.dayOverrides[logDate.value]="Class / Activity";state.settings.noRestDates[logDate.value]=true}
+ if(logSession.value==="Generic Gym"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Generic Gym";state.settings.noRestDates[logDate.value]=true}
+ save();render();
  saveMsg.classList.remove("hidden");saveMsg.textContent="Session saved with "+rows.length+" exercise entries.";
  setTimeout(()=>saveMsg.classList.add("hidden"),2500);
 });
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];save();render()}});
-saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{};state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
+saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:5,exportedAt:new Date().toISOString(),settings:state.settings,
- pullupBaseProgression:pullups,kettlebellLegacyTargets:state.kb,kbExerciseLibrary:kbExerciseLibrary,
+ exportVersion:6,exportedAt:new Date().toISOString(),settings:state.settings,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
-   conditioning:{type:"adaptive-infinite",version:2,rules:["day-type slot","exact-session recency","category balance","7-day mileage and conditioning-time vs 4-week baseline","relative average/max HR trend","objective time/pace trend","recent RPE/feel/technique","logged/marked rest days","schedule-interference penalty","manual date overrides"]},
-   tbMaxes:{type:"adaptive-by-6-week-block",version:1,rules:["logged completion","RPE","feel","technique","missed/partial work","manual TM override wins"]},
-   kettlebell:{type:"adaptive-per-exposure",version:1,rules:["same-exercise performance","2 kg progression steps","movement-family transfer when an exercise has been absent","manual kg in workout row wins"]}
+  conditioning:{type:"adaptive-infinite",version:3,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
+  tbMaxes:{type:"adaptive-by-6-week-block",version:1,rules:["completion","RPE","feel","technique","manual override wins"]},
+  kettlebell:{type:"adaptive-per-exposure",version:1,rules:["direct performance","movement-family transfer","manual kg wins"]},
+  genericGym:{type:"adaptive-per-exposure",version:1,rules:["direct performance","TB/KB/gym family transfer","exercise availability","dumbbell range/increment","request-based workout builder","manual edits win"]}
  },
- tbEnduranceLibrary:tbEnduranceLibrary,tbHICLibrary:tbHICLibrary,tbPowerLibrary:tbPowerLibrary,tbAccessoryLibrary:tbAccessoryLibrary,tbSEClusters:tbSEClusters,tbSEGuidance:tbSEGuidance,
- logs:state.logs
+ tbEnduranceLibrary,tbHICLibrary,tbPowerLibrary,tbAccessoryLibrary,tbSEClusters,tbSEGuidance,logs:state.logs
 },null,2),"application/json"));
 exportCsv.addEventListener("click",()=>{
- const keys=["date","week","session","exercise","sets","reps","weight","distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
+ const keys=["date","week","session","exercise","sets","reps","weight","distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","temperature","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
  const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
  const row=x=>keys.map(k=>{
-   if(["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork"].includes(k)) return esc((x.metrics||{})[k]);
+   if(["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","temperature","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance"].includes(k)) return esc((x.metrics||{})[k]);
    return esc(x[k]);
  }).join(",");
  const csv=[keys.join(","),...state.logs.map(row)].join("\n");
  download("hybrid-training-log.csv",csv,"text/csv")
 });
 importJson.addEventListener("click",()=>importFile.click());
-importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.logs=o.logs;state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
-render();renderKbLibrary();setLogDefaults();
+importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.logs=o.logs;state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
+render();renderKbLibrary();renderGymLibrary();renderClassLibrary();setLogDefaults();
 })();
+
 </script>
 </body>
 </html>
