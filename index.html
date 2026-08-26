@@ -382,6 +382,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
   #maxes td{grid-template-columns:88px minmax(0,1fr)}
 }
 
+
+/* v8.2 MOBILE DASHBOARD COMPACTION */
+@media(max-width:720px){
+  .hero{display:none !important}
+}
 </style>
 </head>
 <body>
@@ -739,7 +744,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
       <div class="gym-step">
         <div class="gym-step-title">1. Equipment</div>
         <label class="toggle-line"><input id="calHasPullupBar" type="checkbox"> <strong>I have access to a pull-up bar</strong></label>
-        <div class="gym-step-sub" style="margin-top:7px">If this is off, the builder excludes pull-ups, chin-ups, hangs, hanging core work, and other bar-dependent movements.</div>
+        <label class="toggle-line" style="margin-top:10px"><input id="calHasBands" type="checkbox"> <strong>I have access to exercise / resistance bands</strong></label>
+        <div class="gym-step-sub" style="margin-top:7px">Pull-up-bar access controls pull-ups, chin-ups, hangs, and hanging core work. Band access controls resistance-band presses, rows, curls, shoulder work, leg work, and related band movements.</div>
       </div>
 
       <div class="gym-step">
@@ -896,7 +902,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v8.1</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v8.2</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -975,8 +981,156 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
 <script>
 
 (function(){
+/* EXPLICIT DOM BINDINGS v8.2 */
+const adaptiveTbToggle=document.getElementById("adaptiveTbToggle");
+const addCalExercise=document.getElementById("addCalExercise");
+const addGymExercise=document.getElementById("addGymExercise");
+const addKbExercise=document.getElementById("addKbExercise");
+const addLogExercise=document.getElementById("addLogExercise");
+const blockModeSelect=document.getElementById("blockModeSelect");
+const blockReviewLater=document.getElementById("blockReviewLater");
+const blockReviewModal=document.getElementById("blockReviewModal");
+const blockReviewSub=document.getElementById("blockReviewSub");
+const blockReviewSummary=document.getElementById("blockReviewSummary");
+const blockReviewTitle=document.getElementById("blockReviewTitle");
+const calAdaptiveStatus=document.getElementById("calAdaptiveStatus");
+const calBuilderDate=document.getElementById("calBuilderDate");
+const calBuilderRows=document.getElementById("calBuilderRows");
+const calClearFocus=document.getElementById("calClearFocus");
+const calDifficulty=document.getElementById("calDifficulty");
+const calDuration=document.getElementById("calDuration");
+const calDurationRange=document.getElementById("calDurationRange");
+const calHasBands=document.getElementById("calHasBands");
+const calHasPullupBar=document.getElementById("calHasPullupBar");
+const calLibraryGrid=document.getElementById("calLibraryGrid");
+const calLibrarySearch=document.getElementById("calLibrarySearch");
+const calSelectFullBody=document.getElementById("calSelectFullBody");
+const calSelectLowerCore=document.getElementById("calSelectLowerCore");
+const calSelectUpper=document.getElementById("calSelectUpper");
+const calWorkoutName=document.getElementById("calWorkoutName");
+const chestTm=document.getElementById("chestTm");
+const classCategory=document.getElementById("classCategory");
+const classLibraryGrid=document.getElementById("classLibraryGrid");
+const classSearch=document.getElementById("classSearch");
+const classStatus=document.getElementById("classStatus");
+const clearCalWorkout=document.getElementById("clearCalWorkout");
+const clearGymWorkout=document.getElementById("clearGymWorkout");
+const clearLog=document.getElementById("clearLog");
+const condBody=document.getElementById("condBody");
+const conditioningCategory=document.getElementById("conditioningCategory");
+const conditioningLibraryGrid=document.getElementById("conditioningLibraryGrid");
+const conditioningOverrideStatus=document.getElementById("conditioningOverrideStatus");
+const conditioningSearch=document.getElementById("conditioningSearch");
+const confirmBlockReview=document.getElementById("confirmBlockReview");
+const copyKbNextBlock=document.getElementById("copyKbNextBlock");
+const currentWeek=document.getElementById("currentWeek");
+const deadliftTm=document.getElementById("deadliftTm");
+const exportCsv=document.getElementById("exportCsv");
+const exportJson=document.getElementById("exportJson");
+const generateCalWorkout=document.getElementById("generateCalWorkout");
+const generateGymWorkout=document.getElementById("generateGymWorkout");
+const gymAdaptiveStatus=document.getElementById("gymAdaptiveStatus");
+const gymAllAvailable=document.getElementById("gymAllAvailable");
+const gymBuilderDate=document.getElementById("gymBuilderDate");
+const gymBuilderRows=document.getElementById("gymBuilderRows");
+const gymClearFocus=document.getElementById("gymClearFocus");
+const gymDbIncrement=document.getElementById("gymDbIncrement");
+const gymDbMax=document.getElementById("gymDbMax");
+const gymDbMin=document.getElementById("gymDbMin");
+const gymDifficulty=document.getElementById("gymDifficulty");
+const gymDuration=document.getElementById("gymDuration");
+const gymDurationRange=document.getElementById("gymDurationRange");
+const gymLibraryGrid=document.getElementById("gymLibraryGrid");
+const gymLibrarySearch=document.getElementById("gymLibrarySearch");
+const gymNoneAvailable=document.getElementById("gymNoneAvailable");
+const gymRepStyle=document.getElementById("gymRepStyle");
+const gymSelectFull=document.getElementById("gymSelectFull");
+const gymSelectLower=document.getElementById("gymSelectLower");
+const gymSelectUpper=document.getElementById("gymSelectUpper");
+const gymWorkoutName=document.getElementById("gymWorkoutName");
+const heroCurrent=document.getElementById("heroCurrent");
+const heroNext=document.getElementById("heroNext");
+const historyBody=document.getElementById("historyBody");
+const importFile=document.getElementById("importFile");
+const importJson=document.getElementById("importJson");
+const inclineTm=document.getElementById("inclineTm");
+const installApp=document.getElementById("installApp");
+const jumpToday=document.getElementById("jumpToday");
+const kbAdaptiveStatus=document.getElementById("kbAdaptiveStatus");
+const kbBody=document.getElementById("kbBody");
+const kbBuilderBlock=document.getElementById("kbBuilderBlock");
+const kbBuilderRows=document.getElementById("kbBuilderRows");
+const kbBuilderSlot=document.getElementById("kbBuilderSlot");
+const kbLibraryGrid=document.getElementById("kbLibraryGrid");
+const kbLibrarySearch=document.getElementById("kbLibrarySearch");
+const kbWorkoutName=document.getElementById("kbWorkoutName");
+const loadPlan=document.getElementById("loadPlan");
+const logDate=document.getElementById("logDate");
+const logRestDay=document.getElementById("logRestDay");
+const logSession=document.getElementById("logSession");
+const logWeek=document.getElementById("logWeek");
+const nextWeek=document.getElementById("nextWeek");
+const otherInc=document.getElementById("otherInc");
+const plannedExercises=document.getElementById("plannedExercises");
+const plateLegend=document.getElementById("plateLegend");
+const prevWeek=document.getElementById("prevWeek");
+const pullBody=document.getElementById("pullBody");
+const quickLog=document.getElementById("quickLog");
+const recalcConditioning=document.getElementById("recalcConditioning");
+const resetKbWorkout=document.getElementById("resetKbWorkout");
+const resetTbMaxes=document.getElementById("resetTbMaxes");
+const reviewBlockBtn=document.getElementById("reviewBlockBtn");
+const rowTm=document.getElementById("rowTm");
+const saveCalWorkout=document.getElementById("saveCalWorkout");
+const saveGymEquipment=document.getElementById("saveGymEquipment");
+const saveGymWorkout=document.getElementById("saveGymWorkout");
+const saveKbWorkout=document.getElementById("saveKbWorkout");
+const saveMsg=document.getElementById("saveMsg");
+const saveSession=document.getElementById("saveSession");
+const saveSettings=document.getElementById("saveSettings");
+const saveTbMaxes=document.getElementById("saveTbMaxes");
+const selectedDateBadge=document.getElementById("selectedDateBadge");
+const sessionFeel=document.getElementById("sessionFeel");
+const sessionNotes=document.getElementById("sessionNotes");
+const squatInc=document.getElementById("squatInc");
+const squatTm=document.getElementById("squatTm");
+const statBlock=document.getElementById("statBlock");
+const statEntries=document.getElementById("statEntries");
+const statPull=document.getElementById("statPull");
+const statSessions=document.getElementById("statSessions");
+const statTB=document.getElementById("statTB");
+const statWeek=document.getElementById("statWeek");
+const storageStatus=document.getElementById("storageStatus");
+const tbAccessoryLibraryBody=document.getElementById("tbAccessoryLibraryBody");
+const tbBlockCurrent=document.getElementById("tbBlockCurrent");
+const tbBlockGo=document.getElementById("tbBlockGo");
+const tbBlockJump=document.getElementById("tbBlockJump");
+const tbBlocksNext=document.getElementById("tbBlocksNext");
+const tbBlocksPrev=document.getElementById("tbBlocksPrev");
+const tbELibraryBody=document.getElementById("tbELibraryBody");
+const tbHICLibraryBody=document.getElementById("tbHICLibraryBody");
+const tbList=document.getElementById("tbList");
+const tbMaxBody=document.getElementById("tbMaxBody");
+const tbMaxShowing=document.getElementById("tbMaxShowing");
+const tbMaxStatus=document.getElementById("tbMaxStatus");
+const tbPowerLibraryBody=document.getElementById("tbPowerLibraryBody");
+const tbSELibraryBody=document.getElementById("tbSELibraryBody");
+const tbSub=document.getElementById("tbSub");
+const toggleTools=document.getElementById("toggleTools");
+const toolsChevron=document.getElementById("toolsChevron");
+const toolsPanel=document.getElementById("toolsPanel");
+const transitionKbPlan=document.getElementById("transitionKbPlan");
+const transitionKbStep=document.getElementById("transitionKbStep");
+const transitionLiftRows=document.getElementById("transitionLiftRows");
+const transitionMode=document.getElementById("transitionMode");
+const transitionPullups=document.getElementById("transitionPullups");
+const transitionTiming=document.getElementById("transitionTiming");
+const weekNavLabel=document.getElementById("weekNavLabel");
+const weekStrip=document.getElementById("weekStrip");
+const workoutTitle=document.getElementById("workoutTitle");
+
 const defaults={
- settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},classOverrides:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5,blockReviews:{},recoveryWeekStarts:{},calisthenicsWorkouts:{},calHasPullupBar:true},
+ settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},classOverrides:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5,blockReviews:{},recoveryWeekStarts:{},calisthenicsWorkouts:{},calHasPullupBar:true,calHasBands:false},
  logs:[],
  kb:[
   ["KB Heavy","Double Clean & Press",5,"3","16 kg / bell"],["KB Heavy","Double Front Squat",5,"5","20 kg / bell"],
@@ -1214,6 +1368,38 @@ const classActivityLibrary=[
 
 
 const calisthenicsExerciseLibrary=[
+ {name:"Band Chest Press",focus:"push",family:"chest_press",secondary:["triceps"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:12,note:"Loop the band behind the upper back and press the hands forward like a chest press."},
+ {name:"Band-Resisted Push-Up",focus:"push",family:"chest_press",secondary:["triceps","core"],requiresBar:false,requiresBands:true,level:3,baseSets:3,baseReps:8,note:"Run the band across the upper back and secure it under the hands to add resistance to a push-up."},
+ {name:"Band Chest Fly",focus:"push",family:"chest_isolation",secondary:["chest_press"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Use a long band behind the back and sweep the arms inward with a soft elbow bend."},
+ {name:"Band Overhead Press",focus:"push",family:"shoulder_press",secondary:["triceps","core"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:12,note:"Stand on the band and press the handles or ends overhead while keeping the trunk stacked."},
+ {name:"Band Lateral Raise",focus:"push",family:"delts",secondary:["shoulder_press"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Stand on the band and raise the arms out to the sides to target the side delts."},
+ {name:"Band Front Raise",focus:"push",family:"delts",secondary:["shoulder_press"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Stand on the band and raise the arms forward under control to shoulder height."},
+ {name:"Band Triceps Overhead Extension",focus:"push",family:"triceps",secondary:["shoulder_press"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Anchor the band under a foot or behind the body and extend the elbows overhead."},
+ {name:"Band Triceps Kickback",focus:"push",family:"triceps",secondary:[],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Hinge forward, stabilize the upper arm, and extend the elbow against band tension."},
+
+ {name:"Band Bent-Over Row",focus:"pull",family:"horizontal_pull",secondary:["biceps","rear_delts"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:12,note:"Stand on the band, hinge forward, and row the hands toward the ribs."},
+ {name:"Band Seated Row",focus:"pull",family:"horizontal_pull",secondary:["biceps","rear_delts"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Sit with the band looped around the feet and row the elbows behind the torso."},
+ {name:"Band Pull-Apart",focus:"pull",family:"rear_delts",secondary:["horizontal_pull","traps"],requiresBar:false,requiresBands:true,level:1,baseSets:3,baseReps:20,note:"Hold the band at chest height and pull it apart using the rear delts and shoulder blades."},
+ {name:"Band Face Pull",focus:"pull",family:"rear_delts",secondary:["horizontal_pull","traps"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Use a securely anchored band and pull toward the face with elbows high and shoulders controlled."},
+ {name:"Band Lat Pulldown",focus:"pull",family:"vertical_pull",secondary:["biceps"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Use a securely fixed high anchor and pull the elbows down toward the ribs."},
+ {name:"Band Straight-Arm Pulldown",focus:"pull",family:"vertical_pull",secondary:["core"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"With a high secure anchor, keep the elbows nearly straight and pull the hands toward the thighs."},
+ {name:"Band Biceps Curl",focus:"pull",family:"biceps",secondary:["vertical_pull"],requiresBar:false,requiresBands:true,level:1,baseSets:3,baseReps:15,note:"Stand on the band and curl the hands toward the shoulders while keeping the upper arms quiet."},
+ {name:"Band Hammer Curl",focus:"pull",family:"biceps",secondary:["vertical_pull"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Stand on the band using a neutral hand position and curl without swinging."},
+
+ {name:"Band Squat",focus:"legs",family:"squat",secondary:["quads","core"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Stand on the band with the ends held at the shoulders and squat through a controlled range."},
+ {name:"Band Romanian Deadlift",focus:"legs",family:"hinge",secondary:["hamstrings"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:12,note:"Stand on the band and perform a hip hinge while keeping the band close to the legs."},
+ {name:"Band Good Morning",focus:"legs",family:"hinge",secondary:["hamstrings","core"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Stand on the band with it supported across the upper back/shoulders and hinge at the hips."},
+ {name:"Band Reverse Lunge",focus:"legs",family:"lunge",secondary:["squat"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:10,note:"Stand on the band and hold it at shoulder height while stepping backward into alternating lunges."},
+ {name:"Band Lateral Walk",focus:"legs",family:"hip_accessory",secondary:["lunge"],requiresBar:false,requiresBands:true,level:1,baseSets:3,baseReps:12,note:"Place a loop band above the knees or around the ankles and take controlled side steps."},
+ {name:"Band Monster Walk",focus:"legs",family:"hip_accessory",secondary:["squat"],requiresBar:false,requiresBands:true,level:1,baseSets:3,baseReps:12,note:"Use a loop band and walk diagonally while maintaining steady knee and hip tension."},
+ {name:"Band Glute Bridge",focus:"legs",family:"hinge",secondary:["hip_accessory"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:15,note:"Place a loop band above the knees and perform glute bridges while maintaining outward knee tension."},
+ {name:"Band Clamshell",focus:"legs",family:"hip_accessory",secondary:["lunge"],requiresBar:false,requiresBands:true,level:1,baseSets:3,baseReps:15,note:"Lie on the side with a loop band above the knees and rotate the top knee open without rolling the pelvis."},
+
+ {name:"Band Dead Bug Pulldown",focus:"core",family:"core",secondary:["vertical_pull"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:8,note:"Hold band tension with the arms while alternating dead-bug leg extensions and keeping the low back controlled."},
+ {name:"Band Pallof Press",focus:"core",family:"core",secondary:["shoulder_press"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:10,note:"Use a secure side anchor and press the band away from the chest while resisting rotation."},
+ {name:"Band Wood Chop",focus:"core",family:"core",secondary:["hip_accessory"],requiresBar:false,requiresBands:true,level:2,baseSets:3,baseReps:10,note:"Use a securely anchored band and rotate through a controlled diagonal path."},
+ {name:"Band-Resisted Bear Crawl",focus:"fullbody",family:"core",secondary:["shoulder_press","squat"],requiresBar:false,requiresBands:true,level:3,baseSets:3,baseSeconds:25,note:"Use a loop band around the legs or a safely secured setup while performing a controlled bear crawl."},
+
  {name:"Incline Push-Up",focus:"push",family:"chest_press",secondary:["triceps"],requiresBar:false,level:1,baseSets:3,baseReps:12,note:"Hands elevated on a stable bench or surface; easiest push-up progression."},
  {name:"Knee Push-Up",focus:"push",family:"chest_press",secondary:["triceps"],requiresBar:false,level:1,baseSets:3,baseReps:10,note:"Push-up from knees while keeping a straight line from knees through shoulders."},
  {name:"Push-Up",focus:"push",family:"chest_press",secondary:["triceps","core"],requiresBar:false,level:2,baseSets:3,baseReps:12,note:"Standard floor push-up with rigid trunk and full controlled range."},
@@ -1460,7 +1646,8 @@ function movementVisualSvg(name){
  else if(kind==="legextension"||kind==="legcurl"||kind==="calf"||kind==="hipaccessory"||kind==="core"||kind==="shrug"){a=stand(55);b=stand(165)}
  else{a=stand(55);b=stand(165)}
  const eq=gymExercise(name)?.equipment==="Barbell"?bar(32,43,78):"";
- return '<svg class="movement-svg" viewBox="0 0 220 120" role="img" aria-label="'+name+' start and finish positions"><text x="55" y="114" text-anchor="middle" fill="'+muted+'" font-size="9">START</text><text x="165" y="114" text-anchor="middle" fill="'+muted+'" font-size="9">FINISH</text><path d="M100 60 H120" stroke="'+accent+'" stroke-width="2.5" marker-end="url(#arr)"/><defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="'+accent+'"/></marker></defs>'+a+b+eq+'</svg>';
+ const bandMark=calisthenicsExercise(name)?.requiresBands?'<text x="110" y="10" text-anchor="middle" fill="'+accent+'" font-size="8" font-weight="700">BAND RESISTANCE</text><path d="M22 105 Q55 97 88 105 M132 105 Q165 97 198 105" fill="none" stroke="'+accent+'" stroke-width="2" stroke-dasharray="4 3"/>':"";
+ return '<svg class="movement-svg" viewBox="0 0 220 120" role="img" aria-label="'+name+' start and finish positions"><text x="55" y="114" text-anchor="middle" fill="'+muted+'" font-size="9">START</text><text x="165" y="114" text-anchor="middle" fill="'+muted+'" font-size="9">FINISH</text><path d="M100 60 H120" stroke="'+accent+'" stroke-width="2.5" marker-end="url(#arr)"/><defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="'+accent+'"/></marker></defs>'+a+b+eq+bandMark+'</svg>';
 }
 function movementGuideHtml(name,open=false){
  if(!gymExercise(name)&&!kbExercise(name)&&!calisthenicsExercise(name))return "";
@@ -1671,7 +1858,7 @@ const dayExerciseOptions={
 let state;
 try{state=JSON.parse(localStorage.getItem("hybridTrainingDashboardV3")||"null")||JSON.parse(JSON.stringify(defaults))}
 catch(e){state=JSON.parse(JSON.stringify(defaults))}
-state.settings=Object.assign({},defaults.settings,state.settings||{});state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
+state.settings=Object.assign({},defaults.settings,state.settings||{});state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
 function save(){try{localStorage.setItem("hybridTrainingDashboardV3",JSON.stringify(state))}catch(e){}}
 function clamp(n,a,b){n=Number(n);return Number.isFinite(n)?Math.max(a,Math.min(b,n)):a}
 function localISO(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day}
@@ -3136,18 +3323,29 @@ function calFocusLevel(focus,dateISO,difficulty){
  return proven?Math.min(5,Math.max(base,proven+.35)):base;
 }
 function calProfileFromControls(){
- let focus=[...document.querySelectorAll(".cal-focus:checked")].map(x=>x.value);if(focus.includes("fullbody"))focus=["push","pull","legs","core","fullbody"];if(!focus.length)focus=["push","pull","legs","core"];
- return {focus:[...new Set(focus)],difficulty:calDifficulty.value||"medium",duration:Math.max(20,Math.min(90,Number(calDuration.value)||45)),hasPullupBar:!!calHasPullupBar.checked};
+ let focus=[...document.querySelectorAll(".cal-focus:checked")].map(x=>x.value);
+ if(focus.includes("fullbody"))focus=["push","pull","legs","core","fullbody"];
+ if(!focus.length)focus=["push","pull","legs","core"];
+ return {focus:[...new Set(focus)],difficulty:calDifficulty.value||"medium",duration:Math.max(20,Math.min(90,Number(calDuration.value)||45)),hasPullupBar:!!calHasPullupBar.checked,hasBands:!!calHasBands.checked};
 }
 function applyCalProfileToControls(profile={}){
- const focus=new Set(profile.focus||[]);document.querySelectorAll(".cal-focus").forEach(x=>x.checked=focus.has(x.value));calDifficulty.value=profile.difficulty||"medium";
- const d=Math.max(20,Math.min(90,Number(profile.duration)||45));calDuration.value=d;calDurationRange.value=d;calHasPullupBar.checked=profile.hasPullupBar!==undefined?!!profile.hasPullupBar:state.settings.calHasPullupBar!==false;
+ const focus=new Set(profile.focus||[]);
+ document.querySelectorAll(".cal-focus").forEach(x=>x.checked=focus.has(x.value));
+ calDifficulty.value=profile.difficulty||"medium";
+ const d=Math.max(20,Math.min(90,Number(profile.duration)||45));
+ calDuration.value=d;calDurationRange.value=d;
+ calHasPullupBar.checked=profile.hasPullupBar!==undefined?!!profile.hasPullupBar:state.settings.calHasPullupBar!==false;
+ calHasBands.checked=profile.hasBands!==undefined?!!profile.hasBands:!!state.settings.calHasBands;
 }
 function setCalFocus(values){const set=new Set(values);document.querySelectorAll(".cal-focus").forEach(x=>x.checked=set.has(x.value))}
-function resetCalSelections(){applyCalProfileToControls({focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false});calWorkoutName.value="Calisthenics";calAdaptiveStatus.innerHTML="<strong>Selections reset.</strong> Choose focus, difficulty, time, and pull-up-bar access."}
+function resetCalSelections(){
+ applyCalProfileToControls({focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands});
+ calWorkoutName.value="Calisthenics";
+ calAdaptiveStatus.innerHTML="<strong>Selections reset.</strong> Choose focus, difficulty, time, pull-up-bar access, and band access.";
+}
 function buildCalisthenicsWorkout(profile,dateISO){
  const focus=profile.focus.includes("fullbody")?["push","pull","legs","core","fullbody"]:profile.focus;
- let candidates=calisthenicsExerciseLibrary.filter(x=>(x.auto!==false)&&focus.includes(x.focus)&&(!x.requiresBar||profile.hasPullupBar));if(!candidates.length)return {name:"No matching exercises",profile,rows:[]};
+ let candidates=calisthenicsExerciseLibrary.filter(x=>(x.auto!==false)&&focus.includes(x.focus)&&(!x.requiresBar||profile.hasPullupBar)&&(!x.requiresBands||profile.hasBands));if(!candidates.length)return {name:"No matching exercises",profile,rows:[]};
  let count=Math.max(3,Math.min(9,Math.round(profile.duration/8)));if(profile.difficulty==="easy")count=Math.max(3,count-1);if(profile.difficulty==="very hard")count=Math.min(9,count+1);
  const scored=candidates.map(ex=>{
    const targetLevel=calFocusLevel(ex.focus,dateISO,profile.difficulty),levelPenalty=Math.abs(ex.level-targetLevel)*18,hist=calDirectHistory(ex.name,dateISO),last=hist.length?hist[hist.length-1]:null,age=last?daysBetweenISO(last.date,dateISO):999,recencyPenalty=age<=7?24:(age<=14?12:0),stress=calRecentRelationshipStress(ex.name,dateISO)*7,mastery=calExerciseMastery(ex.name,dateISO),neighbors=calProgressionNeighbors(ex.name),nextMastered=neighbors.prev&&calExerciseMastery(neighbors.prev,dateISO)?12:0;
@@ -3160,16 +3358,37 @@ function buildCalisthenicsWorkout(profile,dateISO){
  const focusName=profile.focus.includes("fullbody")?"Full Body":profile.focus.map(x=>calFocusLabels[x]||x).join(" + ");return {name:focusName+" • "+profile.difficulty+" • "+profile.duration+" min",profile,rows};
 }
 function calWorkoutForDate(dateISO){
- const saved=(state.settings.calisthenicsWorkouts||{})[dateISO];return saved?JSON.parse(JSON.stringify(saved)):{name:"Calisthenics",profile:{focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false},rows:[]};
+ const saved=(state.settings.calisthenicsWorkouts||{})[dateISO];
+ return saved?JSON.parse(JSON.stringify(saved)):{name:"Calisthenics",profile:{focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},rows:[]};
 }
 function getCalisthenicsPlan(dateISO){
- const w=calWorkoutForDate(dateISO);return (w.rows||[]).map(r=>{const ex=calisthenicsExercise(r.exercise),a=adaptiveCalisthenicsTarget(r.exercise,dateISO,w.profile?.difficulty||"medium");return {exercise:r.exercise,sets:r.sets||a.sets,reps:r.reps||a.reps,weight:"Bodyweight",meta:"CALISTHENICS • "+(ex?.focus||"bodyweight"),note:a.why,conditioning:false}});
+ const w=calWorkoutForDate(dateISO);
+ return (w.rows||[]).map(r=>{
+   const ex=calisthenicsExercise(r.exercise),a=adaptiveCalisthenicsTarget(r.exercise,dateISO,w.profile?.difficulty||"medium");
+   return {exercise:r.exercise,sets:r.sets||a.sets,reps:r.reps||a.reps,weight:r.resistance||(ex?.requiresBands?"Exercise band":"Bodyweight"),meta:"CALISTHENICS • "+(ex?.focus||"bodyweight"),note:a.why,conditioning:false};
+ });
 }
-function calExerciseOptions(selected=""){return calisthenicsExerciseLibrary.map(x=>'<option value="'+x.name.replaceAll('"','&quot;')+'"'+(x.name===selected?' selected':'')+'>'+x.name+(x.requiresBar?' • bar':'')+'</option>').join("")}
-function addCalBuilderRow(row={exercise:"Push-Up",sets:3,reps:"10"}){
- const d=document.createElement("div");d.className="cal-builder-row";d.innerHTML='<div class="field exercise-field"><label>Exercise</label><select class="cal-row-ex">'+calExerciseOptions(row.exercise)+'</select></div><div class="field"><label>Sets</label><input class="cal-row-sets" value="'+(row.sets??"")+'"></div><div class="field"><label>Reps / Hold</label><input class="cal-row-reps" value="'+(row.reps??"")+'"><div class="muted cal-auto-hint" style="font-size:.68rem;margin-top:4px"></div></div><div class="remove-field"><button class="btn danger cal-remove-row" type="button">Remove</button></div><div class="builder-guide cal-row-guide">'+movementGuideHtml(row.exercise)+'</div>';
- const sel=d.querySelector(".cal-row-ex"),hint=d.querySelector(".cal-auto-hint"),guide=d.querySelector(".cal-row-guide"),update=()=>{const ex=sel.value,a=adaptiveCalisthenicsTarget(ex,calBuilderDate.value||selectedDateISO||localISO(new Date()),calDifficulty.value||"medium");hint.textContent="Adaptive baseline: "+a.sets+" × "+a.reps;guide.innerHTML=movementGuideHtml(ex)};
- sel.addEventListener("change",update);update();d.querySelector(".cal-remove-row").addEventListener("click",()=>d.remove());calBuilderRows.appendChild(d);
+function calExerciseOptions(selected=""){
+ return calisthenicsExerciseLibrary.map(x=>'<option value="'+x.name.replaceAll('"','&quot;')+'"'+(x.name===selected?' selected':'')+'>'+x.name+(x.requiresBar?' • pull-up bar':'')+(x.requiresBands?' • band':'')+'</option>').join("");
+}
+function addCalBuilderRow(row={exercise:"Push-Up",sets:3,reps:"10",resistance:""}){
+ const d=document.createElement("div");d.className="cal-builder-row";
+ d.innerHTML='<div class="field exercise-field"><label>Exercise</label><select class="cal-row-ex">'+calExerciseOptions(row.exercise)+'</select></div>'+
+ '<div class="field"><label>Sets</label><input class="cal-row-sets" value="'+(row.sets??"")+'"></div>'+
+ '<div class="field"><label>Reps / Hold</label><input class="cal-row-reps" value="'+(row.reps??"")+'"><div class="muted cal-auto-hint" style="font-size:.68rem;margin-top:4px"></div></div>'+
+ '<div class="field cal-resistance-field"><label>Band / Resistance</label><input class="cal-row-resistance" value="'+(row.resistance||"")+'" placeholder="e.g. medium / 20 lb"></div>'+
+ '<div class="remove-field"><button class="btn danger cal-remove-row" type="button">Remove</button></div>'+
+ '<div class="builder-guide cal-row-guide">'+movementGuideHtml(row.exercise)+'</div>';
+ const sel=d.querySelector(".cal-row-ex"),hint=d.querySelector(".cal-auto-hint"),guide=d.querySelector(".cal-row-guide"),resField=d.querySelector(".cal-resistance-field");
+ const update=()=>{
+   const exName=sel.value,ex=calisthenicsExercise(exName),a=adaptiveCalisthenicsTarget(exName,calBuilderDate.value||selectedDateISO||localISO(new Date()),calDifficulty.value||"medium");
+   hint.textContent="Adaptive baseline: "+a.sets+" × "+a.reps;
+   guide.innerHTML=movementGuideHtml(exName);
+   resField.classList.toggle("hidden",!ex?.requiresBands);
+ };
+ sel.addEventListener("change",update);update();
+ d.querySelector(".cal-remove-row").addEventListener("click",()=>d.remove());
+ calBuilderRows.appendChild(d);
 }
 function loadCalBuilder(){
  const date=calBuilderDate.value||selectedDateISO||localISO(new Date());calBuilderDate.value=date;const saved=calWorkoutForDate(date);calWorkoutName.value=saved.name||"Calisthenics";applyCalProfileToControls(saved.profile||{difficulty:"medium",duration:45,focus:[],hasPullupBar:state.settings.calHasPullupBar!==false});
@@ -3177,16 +3396,33 @@ function loadCalBuilder(){
 }
 function generateCalFromSelections(){
  const date=calBuilderDate.value||selectedDateISO||localISO(new Date()),profile=calProfileFromControls(),w=buildCalisthenicsWorkout(profile,date);calWorkoutName.value=w.name;calBuilderRows.innerHTML="";w.rows.forEach(addCalBuilderRow);
- calAdaptiveStatus.innerHTML=w.rows.length?("<strong>Built:</strong> "+w.rows.length+" exercises • "+profile.duration+" min • "+profile.difficulty+(profile.hasPullupBar?" • pull-up bar available":" • no pull-up bar")+". Selection considers direct bodyweight history plus recent related TB, KB, gym, class, and conditioning load. Edit anything before saving."):"<strong>No matching exercises.</strong> Change focus or equipment.";
+ calAdaptiveStatus.innerHTML=w.rows.length?("<strong>Built:</strong> "+w.rows.length+" exercises • "+profile.duration+" min • "+profile.difficulty+(profile.hasPullupBar?" • pull-up bar":" • no pull-up bar")+(profile.hasBands?" • bands":" • no bands")+". Selection considers direct bodyweight/band history plus recent related TB, KB, gym, class, and conditioning load. Edit anything before saving."):"<strong>No matching exercises.</strong> Change focus or equipment.";
 }
 function saveCalBuilder(){
- const date=calBuilderDate.value||selectedDateISO||localISO(new Date()),profile=calProfileFromControls(),rows=[...calBuilderRows.querySelectorAll(".cal-builder-row")].map(d=>({exercise:d.querySelector(".cal-row-ex").value,sets:d.querySelector(".cal-row-sets").value,reps:d.querySelector(".cal-row-reps").value})).filter(x=>x.exercise);
- if(!rows.length){alert("Build or add at least one calisthenics exercise.");return}state.settings.calHasPullupBar=profile.hasPullupBar;state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};state.settings.calisthenicsWorkouts[date]={name:calWorkoutName.value.trim()||"Calisthenics",profile,rows};setCalisthenicsDay(date);selectedDateISO=date;const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;save();render();calAdaptiveStatus.innerHTML="<strong>Saved.</strong> This calisthenics workout is now on "+date+".";
+ const date=calBuilderDate.value||selectedDateISO||localISO(new Date()),profile=calProfileFromControls();
+ const rows=[...calBuilderRows.querySelectorAll(".cal-builder-row")].map(d=>({
+   exercise:d.querySelector(".cal-row-ex").value,
+   sets:d.querySelector(".cal-row-sets").value,
+   reps:d.querySelector(".cal-row-reps").value,
+   resistance:d.querySelector(".cal-row-resistance")?.value||""
+ })).filter(x=>x.exercise);
+ if(!rows.length){alert("Build or add at least one calisthenics exercise.");return}
+ state.settings.calHasPullupBar=profile.hasPullupBar;state.settings.calHasBands=profile.hasBands;
+ state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};
+ state.settings.calisthenicsWorkouts[date]={name:calWorkoutName.value.trim()||"Calisthenics",profile,rows};
+ setCalisthenicsDay(date);selectedDateISO=date;
+ const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;
+ save();render();
+ calAdaptiveStatus.innerHTML="<strong>Saved.</strong> This calisthenics workout is now on "+date+".";
 }
 function clearCalBuilder(){const date=calBuilderDate.value||selectedDateISO;if((state.settings.calisthenicsWorkouts||{})[date])delete state.settings.calisthenicsWorkouts[date];if((state.settings.dayOverrides||{})[date]==="Calisthenics")delete state.settings.dayOverrides[date];save();render();loadCalBuilder()}
 function renderCalLibrary(){
- const q=calLibrarySearch.value.trim().toLowerCase(),hasBar=!!calHasPullupBar.checked;
- calLibraryGrid.innerHTML=calisthenicsExerciseLibrary.filter(x=>!q||x.name.toLowerCase().includes(q)||x.focus.toLowerCase().includes(q)||x.family.toLowerCase().includes(q)).map(x=>'<div class="gym-lib-card"><div class="name">'+x.name+'</div><div class="meta">'+x.focus+' • level '+x.level+(x.requiresBar?' • pull-up bar':' • no bar needed')+'</div><div class="desc">'+x.note+(x.requiresBar&&!hasBar?'<br><strong style="color:#ffb86b">Excluded from auto-building while pull-up bar is off.</strong>':'')+'</div>'+movementGuideHtml(x.name)+'</div>').join("");
+ const q=calLibrarySearch.value.trim().toLowerCase(),hasBar=!!calHasPullupBar.checked,hasBands=!!calHasBands.checked;
+ calLibraryGrid.innerHTML=calisthenicsExerciseLibrary.filter(x=>!q||x.name.toLowerCase().includes(q)||x.focus.toLowerCase().includes(q)||x.family.toLowerCase().includes(q)).map(x=>{
+   const req=(x.requiresBar?" • pull-up bar":"")+(x.requiresBands?" • exercise band":"");
+   const blocked=(x.requiresBar&&!hasBar)||(x.requiresBands&&!hasBands);
+   return '<div class="gym-lib-card"><div class="name">'+x.name+'</div><div class="meta">'+x.focus+' • level '+x.level+(req||" • no special equipment")+'</div><div class="desc">'+x.note+(blocked?'<br><strong style="color:#ffb86b">Excluded from auto-building with your current equipment settings.</strong>':'')+'</div>'+movementGuideHtml(x.name)+'</div>';
+ }).join("");
 }
 
 function applyClassOverride(name){
@@ -3394,6 +3630,7 @@ if(navigator.storage&&navigator.storage.persist){
 updateStorageStatus();
 
 populateSessionOptions();
+quickLog.addEventListener("click",()=>{showView("log");setLogDefaults();window.scrollTo({top:0,behavior:"smooth"})});
 prevWeek.addEventListener("click",()=>{const d=addDays(parseLocalISO(selectedDateISO),-7);selectedDateISO=localISO(d);browseWeek=Math.max(1,trainingWeekForDate(d));renderWeek();renderSelectedWorkout()});
 nextWeek.addEventListener("click",()=>{const d=addDays(parseLocalISO(selectedDateISO),7);selectedDateISO=localISO(d);browseWeek=Math.max(1,trainingWeekForDate(d));renderWeek();renderSelectedWorkout()});
 jumpToday.addEventListener("click",()=>{
@@ -3428,6 +3665,7 @@ gymSelectFull.addEventListener("click",()=>setGymFocusPreset(["chest","back","sh
 saveGymEquipment.addEventListener("click",saveGymEquipmentProfile);gymAllAvailable.addEventListener("click",()=>setAllGymAvailability(true));gymNoneAvailable.addEventListener("click",()=>setAllGymAvailability(false));
 calBuilderDate.addEventListener("change",loadCalBuilder);calLibrarySearch.addEventListener("input",renderCalLibrary);
 calHasPullupBar.addEventListener("change",()=>{state.settings.calHasPullupBar=calHasPullupBar.checked;save();renderCalLibrary()});
+calHasBands.addEventListener("change",()=>{state.settings.calHasBands=calHasBands.checked;save();renderCalLibrary()});
 calDurationRange.addEventListener("input",()=>calDuration.value=calDurationRange.value);calDuration.addEventListener("input",()=>calDurationRange.value=Math.max(20,Math.min(90,Number(calDuration.value)||45)));
 calSelectFullBody.addEventListener("click",()=>setCalFocus(["push","pull","legs","core","fullbody"]));calSelectUpper.addEventListener("click",()=>setCalFocus(["push","pull"]));calSelectLowerCore.addEventListener("click",()=>setCalFocus(["legs","core"]));calClearFocus.addEventListener("click",()=>setCalFocus([]));
 generateCalWorkout.addEventListener("click",generateCalFromSelections);resetCalSelections.addEventListener("click",resetCalSelections);addCalExercise.addEventListener("click",()=>addCalBuilderRow());saveCalWorkout.addEventListener("click",saveCalBuilder);clearCalWorkout.addEventListener("click",clearCalBuilder);
@@ -3448,7 +3686,7 @@ reviewBlockBtn.addEventListener("click",()=>openBlockReview(manualReviewTargetBl
 transitionMode.addEventListener("change",updateTransitionKbVisibility);
 blockReviewLater.addEventListener("click",()=>{blockReviewDismissedThisSession=true;closeBlockReview()});
 confirmBlockReview.addEventListener("click",confirmTransitionReview);
-quickLog.addEventListener("click",()=>{showView("log");setLogDefaults()});
+
 loadPlan.addEventListener("click",loadPlannedSession);
 logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!isNaN(d)){const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession()}});
 logSession.addEventListener("change",loadPlannedSession);
@@ -3496,16 +3734,16 @@ saveSession.addEventListener("click",()=>{
  setTimeout(()=>saveMsg.classList.add("hidden"),2500);
 });
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];save();render()}});
-saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
+saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:8,exportedAt:new Date().toISOString(),settings:state.settings,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:8.2,exportedAt:new Date().toISOString(),settings:state.settings,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:3,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:2,rules:["direct TB completion/RPE/feel/technique","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
   kettlebell:{type:"adaptive-per-exposure",version:2,rules:["direct performance strongest","detailed KB/gym/TB/calisthenics movement relationships","conservative family transfer","recovery gating","manual kg wins"]},
   genericGym:{type:"adaptive-per-exposure",version:3,rules:["major and sub-muscle selection","difficulty/rep-style/duration/equipment builder","strict primary-muscle workout selection","related work still contributes to fatigue/progression","dumbbell range/increment","barbell plate loading","manual edits win"]},
-  calisthenics:{type:"adaptive-bodyweight",version:1,rules:["pull-up-bar availability","push/pull/legs/core/full-body builder","direct reps/holds and RPE strongest","progression-chain difficulty selection","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","manual exercise/sets/reps edits win"]},
+  calisthenics:{type:"adaptive-bodyweight",version:1,rules:["pull-up-bar and exercise-band availability","push/pull/legs/core/full-body builder","direct reps/holds and RPE strongest","progression-chain difficulty selection","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","manual exercise/sets/reps edits win"]},
   blockTransition:{type:"six-week-review",version:1,rules:["first app open in an unreviewed new block","review schedule mode","review each TB TM","review pull-up progression","review KB plan","optional recovery/open pause week that does not consume a program week"]}
  },
  relationshipModel:{type:"directional-strength-family",version:2,note:"Exact exercise performance is strongest. Related TB, KB, gym, calisthenics, and class work contributes weighted progression/recovery evidence; unlike absolute loads are never directly converted."},
@@ -3522,8 +3760,8 @@ exportCsv.addEventListener("click",()=>{
  download("hybrid-training-log.csv",csv,"text/csv")
 });
 importJson.addEventListener("click",()=>importFile.click());
-importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;state.logs=o.logs;state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
-calHasPullupBar.checked=state.settings.calHasPullupBar!==false;render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();setLogDefaults();
+importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;state.logs=o.logs;state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
+calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();setLogDefaults();
 })();
 
 </script>
