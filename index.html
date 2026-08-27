@@ -443,7 +443,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
  .history-session-actions .btn,.completed-session-line .btn{width:100%}
 }
 
-/* v16 COMPLETE WORKOUT FLOW */
+/* v17 COMPLETE WORKOUT FLOW + EARLY PRIMARY ACTION BINDING */
 #plannedExercises:empty::before{
  content:"Ready for the next workout. Choose a Session above to load a plan, or tap + Add Exercise to build it manually.";
  display:block;border:1px dashed #36506b;border-radius:12px;padding:14px;margin:8px 0 10px;
@@ -1061,7 +1061,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v16</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v17</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -1248,6 +1248,8 @@ const recoveryReadiness=document.getElementById("recoveryReadiness");
 const recoveryRhr=document.getElementById("recoveryRhr");
 const recoverySleep=document.getElementById("recoverySleep");
 const recoverySnapshotSub=document.getElementById("recoverySnapshotSub");
+const resetGymSelectionsBtn=document.getElementById("resetGymSelections");
+const resetCalSelectionsBtn=document.getElementById("resetCalSelections");
 const resetKbWorkout=document.getElementById("resetKbWorkout");
 const resetTbMaxes=document.getElementById("resetTbMaxes");
 const reviewBlockBtn=document.getElementById("reviewBlockBtn");
@@ -1331,6 +1333,11 @@ function storedOrHashedView(){
  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===id));
  const view=document.getElementById(id);if(view)view.classList.add("active");
 })();
+
+
+// Critical primary action is bound before the rest of app initialization.
+// A later optional-control error cannot disable Complete Workout.
+saveSession.addEventListener("click",completeWorkout);
 
 
 const defaults={
@@ -3641,7 +3648,7 @@ function applyGymProfileToControls(profile={}){
 function setGymFocusPreset(values){
  const set=new Set(values);document.querySelectorAll(".gym-focus").forEach(x=>x.checked=set.has(x.value));
 }
-function resetGymSelections(){
+function resetGymSelectionsAction(){
  applyGymProfileToControls({focus:[],subfocus:[],difficulty:"medium",style:"moderate",duration:60,equipment:[]});
  gymWorkoutName.value="Generic Gym";
  gymAdaptiveStatus.innerHTML="<strong>Selections reset.</strong> Choose the muscle groups and session style you want.";
@@ -3845,7 +3852,7 @@ function applyCalProfileToControls(profile={}){
  calHasBands.checked=profile.hasBands!==undefined?!!profile.hasBands:!!state.settings.calHasBands;
 }
 function setCalFocus(values){const set=new Set(values);document.querySelectorAll(".cal-focus").forEach(x=>x.checked=set.has(x.value))}
-function resetCalSelections(){
+function resetCalSelectionsAction(){
  applyCalProfileToControls({focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands});
  calWorkoutName.value="Calisthenics";
  calAdaptiveStatus.innerHTML="<strong>Selections reset.</strong> Choose focus, difficulty, time, pull-up-bar access, and band access.";
@@ -4597,7 +4604,7 @@ resetKbWorkout.addEventListener("click",resetKbBuilder);
 copyKbNextBlock.addEventListener("click",copyKbWorkoutNext);
 gymBuilderDate.addEventListener("change",loadGymBuilder);gymLibrarySearch.addEventListener("input",renderGymLibrary);addGymExercise.addEventListener("click",()=>addGymBuilderRow());
 saveGymWorkout.addEventListener("click",saveGymBuilder);clearGymWorkout.addEventListener("click",clearGymBuilder);generateGymWorkout.addEventListener("click",generateGymFromSelections);
-resetGymSelections.addEventListener("click",resetGymSelections);
+resetGymSelectionsBtn.addEventListener("click",resetGymSelectionsAction);
 gymDurationRange.addEventListener("input",()=>gymDuration.value=gymDurationRange.value);gymDuration.addEventListener("input",()=>gymDurationRange.value=Math.max(20,Math.min(120,Number(gymDuration.value)||60)));
 gymSelectUpper.addEventListener("click",()=>setGymFocusPreset(["chest","back","shoulders","biceps","triceps"]));gymSelectLower.addEventListener("click",()=>setGymFocusPreset(["quads","posterior","calves","core"]));
 gymSelectFull.addEventListener("click",()=>setGymFocusPreset(["chest","back","shoulders","biceps","triceps","quads","posterior","calves","core"]));gymClearFocus.addEventListener("click",()=>setGymFocusPreset([]));
@@ -4607,7 +4614,7 @@ calHasPullupBar.addEventListener("change",()=>{state.settings.calHasPullupBar=ca
 calHasBands.addEventListener("change",()=>{state.settings.calHasBands=calHasBands.checked;save();renderCalLibrary()});
 calDurationRange.addEventListener("input",()=>calDuration.value=calDurationRange.value);calDuration.addEventListener("input",()=>calDurationRange.value=Math.max(20,Math.min(90,Number(calDuration.value)||45)));
 calSelectFullBody.addEventListener("click",()=>setCalFocus(["push","pull","legs","core","fullbody"]));calSelectUpper.addEventListener("click",()=>setCalFocus(["push","pull"]));calSelectLowerCore.addEventListener("click",()=>setCalFocus(["legs","core"]));calClearFocus.addEventListener("click",()=>setCalFocus([]));
-generateCalWorkout.addEventListener("click",generateCalFromSelections);resetCalSelections.addEventListener("click",resetCalSelections);addCalExercise.addEventListener("click",()=>addCalBuilderRow());saveCalWorkout.addEventListener("click",saveCalBuilder);clearCalWorkout.addEventListener("click",clearCalBuilder);
+generateCalWorkout.addEventListener("click",generateCalFromSelections);resetCalSelectionsBtn.addEventListener("click",resetCalSelectionsAction);addCalExercise.addEventListener("click",()=>addCalBuilderRow());saveCalWorkout.addEventListener("click",saveCalBuilder);clearCalWorkout.addEventListener("click",clearCalBuilder);
 classCategory.addEventListener("change",renderClassLibrary);classSearch.addEventListener("input",renderClassLibrary);addLogExercise.addEventListener("click",appendAdditionalLogExercise);
 recalcConditioning.addEventListener("click",()=>{renderWeek();renderSelectedWorkout();conditioningOverrideStatus.innerHTML="<strong>Recalculated.</strong> Recommendations now reflect all logs saved through today.";});
 logRestDay.addEventListener("click",()=>{const d=parseLocalISO(logDate.value);if(isNaN(d))return;markRestDay(logDate.value);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value="Recovery / Rest";loadPlannedSession();sessionNotes.value=sessionNotes.value||"Rest day";});
@@ -4634,7 +4641,7 @@ confirmBlockReview.addEventListener("click",confirmTransitionReview);
 loadPlan.addEventListener("click",()=>{loadPlannedSession();writeLogWorkspace()});
 logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!isNaN(d)){const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession();writeLogWorkspace()}});
 logSession.addEventListener("change",()=>{loadPlannedSession();writeLogWorkspace()});
-saveSession.addEventListener("click",()=>{
+function completeWorkout(){
  if(saveSession.disabled)return;
  const isEditing=!!editingSessionId,sessionId=isEditing?editingSessionId:Date.now().toString();
  saveSession.disabled=true;saveSession.textContent=isEditing?"Saving Changes…":"Saving…";
@@ -4717,11 +4724,11 @@ saveSession.addEventListener("click",()=>{
  }else{
    resetLogForNextWorkout(finishedDate);
  }
-});
+}
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:16,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:17,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
@@ -4770,6 +4777,12 @@ else{
  if(activeNow==="log")restorePersistentLogWorkspace();
  if(activeNow==="recovery"){if(!restorePersistentRecoveryDraft())loadRecoveryForm()}
 }
+// Last-view storage/hash is authoritative after all initialization. This final
+// pass prevents an early visibility/autosave event from overwriting the UI draft
+// with Dashboard during refresh before the remembered screen is restored.
+const authoritativeStartupView=storedOrHashedView();
+if(document.querySelector(".view.active")?.id!==authoritativeStartupView)showView(authoritativeStartupView);
+else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
 })();
 
 </script>
