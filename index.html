@@ -1005,7 +1005,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v10.1</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v10.2</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -1244,6 +1244,23 @@ const wearableSessionHistoryBody=document.getElementById("wearableSessionHistory
 const weekNavLabel=document.getElementById("weekNavLabel");
 const weekStrip=document.getElementById("weekStrip");
 const workoutTitle=document.getElementById("workoutTitle");
+
+
+const LAST_VIEW_KEY="hybridTrainingLastViewV2";
+function storedOrHashedView(){
+ let saved="";
+ try{saved=localStorage.getItem(LAST_VIEW_KEY)||localStorage.getItem("hybridTrainingLastViewV1")||""}catch(e){}
+ const hashed=decodeURIComponent((location.hash||"").replace(/^#/,""));
+ if(hashed&&document.getElementById(hashed))return hashed;
+ if(saved&&document.getElementById(saved))return saved;
+ return "dashboard";
+}
+(function bootstrapLastView(){
+ const id=storedOrHashedView();
+ document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+ document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===id));
+ const view=document.getElementById(id);if(view)view.classList.add("active");
+})();
 
 
 const defaults={
@@ -3752,7 +3769,7 @@ function confirmTransitionReview(){
 function syncSettings(){currentWeek.value=state.settings.currentWeek;squatTm.value=state.settings.squatTm;rowTm.value=state.settings.rowTm;chestTm.value=state.settings.chestTm;inclineTm.value=state.settings.inclineTm;deadliftTm.value=state.settings.deadliftTm||325;squatInc.value=state.settings.squatInc;otherInc.value=state.settings.otherInc}
 
 const UI_DRAFT_KEY="hybridTrainingUiDraftV2";
-const LAST_VIEW_KEY="hybridTrainingLastViewV1";
+
 let uiDraftRestoreInProgress=false,uiDraftTimer=null;
 let uiDraftDirty={log:false,gym:false,cal:false,kb:false,recovery:false};
 
@@ -3937,21 +3954,34 @@ function restoreUiDraft(){
  uiDraftRestoreInProgress=true;
  try{
    uiDraftDirty=Object.assign({log:false,gym:false,cal:false,kb:false,recovery:false},d.dirty||{});
-   if(d.selectedDateISO){
-     selectedDateISO=d.selectedDateISO;
-     browseWeek=Math.max(1,Number(d.browseWeek)||trainingWeekForDate(parseLocalISO(selectedDateISO))||1);
-     renderWeek();renderSelectedWorkout();
+
+   // Navigation is restored before any heavier draft reconstruction.
+   const view=storedOrHashedView()!=="dashboard"
+     ? storedOrHashedView()
+     : (document.getElementById(d.activeView)?d.activeView:"dashboard");
+   try{showView(view)}catch(e){
+     // showView applies the active CSS class before view-specific loading;
+     // keep the remembered view visible even if a builder has malformed old draft data.
+     document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+     document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===view));
+     document.getElementById(view)?.classList.add("active");
    }
-   let remembered="";
-   try{remembered=localStorage.getItem(LAST_VIEW_KEY)||""}catch(e){}
-   const view=document.getElementById(remembered)?remembered:(document.getElementById(d.activeView)?d.activeView:"dashboard");
-   showView(view);
-   if(uiDraftDirty.log&&d.log)restoreLogDraft(d.log);
-   if(uiDraftDirty.gym&&d.gym)restoreGymDraft(d.gym);
-   if(uiDraftDirty.cal&&d.cal)restoreCalDraft(d.cal);
-   if(uiDraftDirty.kb&&d.kb)restoreKbDraft(d.kb);
-   if(uiDraftDirty.recovery&&d.recovery)restoreRecoveryDraft(d.recovery);
-   setTimeout(()=>window.scrollTo({top:Number(d.scrollY)||0,behavior:"auto"}),0);
+
+   try{
+     if(d.selectedDateISO){
+       selectedDateISO=d.selectedDateISO;
+       browseWeek=Math.max(1,Number(d.browseWeek)||trainingWeekForDate(parseLocalISO(selectedDateISO))||1);
+       renderWeek();renderSelectedWorkout();
+     }
+   }catch(e){}
+
+   if(uiDraftDirty.log&&d.log){try{restoreLogDraft(d.log)}catch(e){}}
+   if(uiDraftDirty.gym&&d.gym){try{restoreGymDraft(d.gym)}catch(e){}}
+   if(uiDraftDirty.cal&&d.cal){try{restoreCalDraft(d.cal)}catch(e){}}
+   if(uiDraftDirty.kb&&d.kb){try{restoreKbDraft(d.kb)}catch(e){}}
+   if(uiDraftDirty.recovery&&d.recovery){try{restoreRecoveryDraft(d.recovery)}catch(e){}}
+
+   setTimeout(()=>{try{window.scrollTo({top:Number(d.scrollY)||0,behavior:"auto"})}catch(e){}},0);
    return true;
  }finally{uiDraftRestoreInProgress=false}
 }
@@ -3959,11 +3989,13 @@ function restoreUiDraft(){
 function rememberLastView(id){
  if(!id||!document.getElementById(id))return;
  try{localStorage.setItem(LAST_VIEW_KEY,id)}catch(e){}
+ try{
+   const hash="#"+encodeURIComponent(id);
+   if(location.hash!==hash)history.replaceState(history.state,"",location.pathname+location.search+hash);
+ }catch(e){}
 }
 function restoreLastView(){
- let id="";
- try{id=localStorage.getItem(LAST_VIEW_KEY)||""}catch(e){}
- if(!id||!document.getElementById(id))id="dashboard";
+ const id=storedOrHashedView();
  showView(id);
  return id;
 }
@@ -4049,6 +4081,7 @@ blockModeSelect.addEventListener("change",()=>{
 });
 
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
+window.addEventListener("hashchange",()=>{const id=decodeURIComponent((location.hash||"").replace(/^#/,""));if(id&&document.getElementById(id)&&document.querySelector(".view.active")?.id!==id)showView(id)});
 document.addEventListener("input",e=>{const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)});
 document.addEventListener("change",e=>{const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)});
 document.addEventListener("click",e=>{
@@ -4157,7 +4190,7 @@ saveSession.addEventListener("click",()=>{
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:10.1,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:10.2,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
@@ -4182,7 +4215,14 @@ exportCsv.addEventListener("click",()=>{
 });
 importJson.addEventListener("click",()=>importFile.click());
 importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;state.logs=o.logs;state.dailyRecovery=o.dailyRecovery||{};state.wearableSessions=o.wearableSessions||{};state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
-calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;recoveryDate.value=localISO(new Date());render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();setLogDefaults();if(!restoreUiDraft())restoreLastView();
+calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;recoveryDate.value=localISO(new Date());render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();
+const hadRestoredDraft=restoreUiDraft();
+if(!hadRestoredDraft){
+ restoreLastView();
+ if(document.querySelector(".view.active")?.id==="log")setLogDefaults();
+}else if(document.querySelector(".view.active")?.id==="log"&&!uiDraftDirty.log){
+ setLogDefaults();
+}
 })();
 
 </script>
