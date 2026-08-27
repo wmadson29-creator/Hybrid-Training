@@ -400,6 +400,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
   display:block;margin:9px 0 0;padding:8px 10px;border:1px dashed #3a4a5c;border-radius:10px;
   color:var(--muted);font-size:.72rem;line-height:1.35
 }
+
+/* v9 HELIO RECOVERY */
+.recovery-mini-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+.recovery-mini-grid>div{border:1px solid #26384b;border-radius:11px;background:#0d151e;padding:9px}
+.recovery-mini-grid span{display:block;font-size:.67rem;color:var(--muted);text-transform:uppercase;font-weight:900;letter-spacing:.04em}
+.recovery-mini-grid strong{display:block;margin-top:4px;font-size:.92rem}
+.recovery-readiness-good{color:var(--accent)}.recovery-readiness-watch{color:#ffcf70}.recovery-readiness-guard{color:#ff8c8c}
+.recovery-rule-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.wearable-session-panel{margin-top:12px}
+@media(max-width:720px){.recovery-mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.recovery-mini-grid>div:first-child{grid-column:1/-1}.recovery-rule-grid{grid-template-columns:1fr}.recovery-form{grid-template-columns:1fr !important}}
 </style>
 </head>
 <body>
@@ -418,6 +427,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
       <button class="tab active" data-view="dashboard">Dashboard</button>
       <button class="tab" data-view="log">Log Workout</button>
       <button class="tab" data-view="history">History</button>
+      <button class="tab" data-view="recovery">Recovery</button>
       <button class="tab" data-view="progress">Progression</button>
       <button class="tab" data-view="conditioninglib">Conditioning</button>
       <button class="tab" data-view="kbworkouts">KB Workouts</button>
@@ -448,6 +458,23 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
       <div class="card"><div class="label">TB Prescription</div><div class="value" id="statTB">3×5 @ 85%</div><div class="hint">Maintenance</div></div>
       <div class="card"><div class="label">Current Pull-up</div><div class="value" id="statPull">Neutral +30</div><div class="hint">3×5</div></div>
       <div class="card"><div class="label">Logged Sessions</div><div class="value" id="statSessions">0</div><div class="hint" id="statEntries">0 entries</div></div>
+    </div>
+
+    <div class="panel recovery-snapshot" id="recoverySnapshot">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Helio Recovery</div>
+          <div class="panel-sub" id="recoverySnapshotSub">No recovery data logged for today.</div>
+        </div>
+        <button class="btn" id="openRecovery" type="button">Update</button>
+      </div>
+      <div class="recovery-mini-grid">
+        <div><span>Readiness</span><strong id="recoveryReadiness">No data</strong></div>
+        <div><span>Sleep</span><strong id="recoverySleep">—</strong></div>
+        <div><span>HRV</span><strong id="recoveryHrv">—</strong></div>
+        <div><span>Resting HR</span><strong id="recoveryRhr">—</strong></div>
+        <div><span>Wake BioCharge</span><strong id="recoveryBio">—</strong></div>
+      </div>
     </div>
 
     <div class="panel">
@@ -506,8 +533,71 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         </div>
         <div class="field"><label>Overall notes</label><textarea id="sessionNotes" placeholder="Energy, soreness, pain, sleep, what felt strong or weak, etc."></textarea></div>
       </div>
+      <div class="gym-step wearable-session-panel">
+        <div class="gym-step-title">Helio Workout Metrics <span class="muted">(optional)</span></div>
+        <div class="gym-step-sub">Use the workout summary from Zepp. These values are stored once for the whole session, not once per exercise.</div>
+        <div class="form-grid">
+          <div class="field"><label>Workout duration (min)</label><input id="wearDuration" type="number" min="0" step=".1"></div>
+          <div class="field"><label>Average HR</label><input id="wearAvgHr" type="number" min="0" step="1"></div>
+          <div class="field"><label>Max HR</label><input id="wearMaxHr" type="number" min="0" step="1"></div>
+          <div class="field"><label>Training Load</label><input id="wearTrainingLoad" type="number" min="0" step="1"></div>
+          <div class="field"><label>Aerobic Training Effect</label><input id="wearAerobicTe" type="number" min="0" max="5" step=".1"></div>
+          <div class="field"><label>Anaerobic Training Effect</label><input id="wearAnaerobicTe" type="number" min="0" max="5" step=".1"></div>
+          <div class="field"><label>3-min HR Recovery (bpm)</label><input id="wearHrRecovery" type="number" min="0" step="1"></div>
+          <div class="field"><label>Recommended recovery time (hours)</label><input id="wearRecoveryHours" type="number" min="0" step=".5"></div>
+          <div class="field"><label>Calories</label><input id="wearCalories" type="number" min="0" step="1"></div>
+          <div class="field"><label>Workout VO₂ max</label><input id="wearWorkoutVo2" type="number" min="0" step=".1"></div>
+        </div>
+      </div>
       <button class="btn primary" id="saveSession" type="button">Save Entire Session</button>
       <div id="saveMsg" class="notice hidden"></div>
+    </div>
+  </section>
+
+  <section id="recovery" class="view">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Amazfit Helio Recovery</div>
+          <div class="panel-sub">Log the daily values shown in Zepp. The adaptive engine compares them with your own rolling baseline; wearable data can apply a recovery brake, but it does not automatically increase prescribed strength loads.</div>
+        </div>
+      </div>
+      <div class="form-grid recovery-form">
+        <div class="field"><label>Date</label><input id="recoveryDate" type="date"></div>
+        <div class="field"><label>Sleep duration (hours)</label><input id="recSleepHours" type="number" min="0" max="16" step=".1" placeholder="e.g. 7.4"></div>
+        <div class="field"><label>Sleep score</label><input id="recSleepScore" type="number" min="0" max="100" step="1"></div>
+        <div class="field"><label>Sleep HRV (ms)</label><input id="recHrv" type="number" min="0" step="1"></div>
+        <div class="field"><label>Resting / sleep HR (bpm)</label><input id="recRestingHr" type="number" min="20" max="180" step="1"></div>
+        <div class="field"><label>Wake BioCharge</label><input id="recWakeBio" type="number" min="0" max="100" step="1"></div>
+        <div class="field"><label>Current BioCharge</label><input id="recCurrentBio" type="number" min="0" max="100" step="1"></div>
+        <div class="field"><label>Stress</label><input id="recStress" type="number" min="0" max="100" step="1"></div>
+        <div class="field"><label>SpO₂ (%)</label><input id="recSpo2" type="number" min="50" max="100" step=".1"></div>
+        <div class="field"><label>Steps / daily activity</label><input id="recSteps" type="number" min="0" step="1"></div>
+        <div class="field"><label>VO₂ max</label><input id="recVo2" type="number" min="0" step=".1"></div>
+        <div class="field notes"><label>Notes</label><input id="recNotes" placeholder="Travel, unusually late bedtime, illness, soreness, etc."></div>
+      </div>
+      <div class="notice" id="recoveryAnalysis"><strong>Baseline:</strong> Add several days of data and the app will compare today's HRV, resting HR, sleep, BioCharge, stress, and prior-day activity with your own normal range.</div>
+      <div class="inline-actions" style="margin-top:10px">
+        <button class="btn primary" id="saveRecovery" type="button">Save Daily Recovery</button>
+        <button class="btn" id="clearRecoveryDate" type="button">Clear This Date</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">How Helio Influences Training</div><div class="panel-sub">Actual workout performance stays the strongest signal.</div></div></div>
+      <div class="recovery-rule-grid">
+        <div class="card"><div class="label">Direct performance</div><div class="value">Highest priority</div><div class="hint">Completion, RPE, feel, and technique determine actual progression.</div></div>
+        <div class="card"><div class="label">Recovery metrics</div><div class="value">Recovery brake</div><div class="hint">Suppressed HRV, elevated resting HR, poor sleep, low BioCharge, or unusually high recent activity can hold optional progression or reduce session stress.</div></div>
+        <div class="card"><div class="label">Good wearable day</div><div class="value">Normal plan</div><div class="hint">A great wearable score removes the brake; it does not create an aggressive bonus progression.</div></div>
+        <div class="card"><div class="label">SpO₂ / VO₂ max</div><div class="value">Context / trend</div><div class="hint">Stored for trend context rather than used as a single-day training trigger.</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Recent Daily Recovery</div><div class="panel-sub">Most recent 21 Helio entries.</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Sleep</th><th>HRV</th><th>Rest HR</th><th>BioCharge</th><th>Stress</th><th>Steps</th><th>Readiness</th></tr></thead><tbody id="recoveryHistoryBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Recent Helio Workout Metrics</div><div class="panel-sub">Optional session-level data entered while logging workouts.</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Session</th><th>Duration</th><th>Avg / Max HR</th><th>Training Load</th><th>Aerobic / Anaerobic TE</th><th>HR Recovery</th><th>Recovery Time</th></tr></thead><tbody id="wearableSessionHistoryBody"></tbody></table></div>
     </div>
   </section>
 
@@ -915,7 +1005,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v8.3</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v9</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -994,7 +1084,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
 <script>
 
 (function(){
-/* EXPLICIT DOM BINDINGS v8.2 */
+/* EXPLICIT DOM BINDINGS v9 */
 const adaptiveTbToggle=document.getElementById("adaptiveTbToggle");
 const addCalExercise=document.getElementById("addCalExercise");
 const addGymExercise=document.getElementById("addGymExercise");
@@ -1029,6 +1119,7 @@ const classStatus=document.getElementById("classStatus");
 const clearCalWorkout=document.getElementById("clearCalWorkout");
 const clearGymWorkout=document.getElementById("clearGymWorkout");
 const clearLog=document.getElementById("clearLog");
+const clearRecoveryDate=document.getElementById("clearRecoveryDate");
 const condBody=document.getElementById("condBody");
 const conditioningCategory=document.getElementById("conditioningCategory");
 const conditioningLibraryGrid=document.getElementById("conditioningLibraryGrid");
@@ -1083,6 +1174,7 @@ const logRestDay=document.getElementById("logRestDay");
 const logSession=document.getElementById("logSession");
 const logWeek=document.getElementById("logWeek");
 const nextWeek=document.getElementById("nextWeek");
+const openRecovery=document.getElementById("openRecovery");
 const otherInc=document.getElementById("otherInc");
 const plannedExercises=document.getElementById("plannedExercises");
 const plateLegend=document.getElementById("plateLegend");
@@ -1090,6 +1182,15 @@ const prevWeek=document.getElementById("prevWeek");
 const pullBody=document.getElementById("pullBody");
 const quickLog=document.getElementById("quickLog");
 const recalcConditioning=document.getElementById("recalcConditioning");
+const recoveryAnalysis=document.getElementById("recoveryAnalysis");
+const recoveryBio=document.getElementById("recoveryBio");
+const recoveryDate=document.getElementById("recoveryDate");
+const recoveryHistoryBody=document.getElementById("recoveryHistoryBody");
+const recoveryHrv=document.getElementById("recoveryHrv");
+const recoveryReadiness=document.getElementById("recoveryReadiness");
+const recoveryRhr=document.getElementById("recoveryRhr");
+const recoverySleep=document.getElementById("recoverySleep");
+const recoverySnapshotSub=document.getElementById("recoverySnapshotSub");
 const resetKbWorkout=document.getElementById("resetKbWorkout");
 const resetTbMaxes=document.getElementById("resetTbMaxes");
 const reviewBlockBtn=document.getElementById("reviewBlockBtn");
@@ -1099,6 +1200,7 @@ const saveGymEquipment=document.getElementById("saveGymEquipment");
 const saveGymWorkout=document.getElementById("saveGymWorkout");
 const saveKbWorkout=document.getElementById("saveKbWorkout");
 const saveMsg=document.getElementById("saveMsg");
+const saveRecovery=document.getElementById("saveRecovery");
 const saveSession=document.getElementById("saveSession");
 const saveSettings=document.getElementById("saveSettings");
 const saveTbMaxes=document.getElementById("saveTbMaxes");
@@ -1138,13 +1240,17 @@ const transitionLiftRows=document.getElementById("transitionLiftRows");
 const transitionMode=document.getElementById("transitionMode");
 const transitionPullups=document.getElementById("transitionPullups");
 const transitionTiming=document.getElementById("transitionTiming");
+const wearableSessionHistoryBody=document.getElementById("wearableSessionHistoryBody");
 const weekNavLabel=document.getElementById("weekNavLabel");
 const weekStrip=document.getElementById("weekStrip");
 const workoutTitle=document.getElementById("workoutTitle");
 
+
 const defaults={
  settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},classOverrides:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5,blockReviews:{},recoveryWeekStarts:{},calisthenicsWorkouts:{},calHasPullupBar:true,calHasBands:false},
  logs:[],
+ dailyRecovery:{},
+ wearableSessions:{},
  kb:[
   ["KB Heavy","Double Clean & Press",5,"3","16 kg / bell"],["KB Heavy","Double Front Squat",5,"5","20 kg / bell"],
   ["KB Heavy","Gorilla Row",4,"6/side","20 kg / bell"],["KB Heavy","Double Farmer Carry",3,"40 sec","24 kg / bell"],
@@ -1871,7 +1977,7 @@ const dayExerciseOptions={
 let state;
 try{state=JSON.parse(localStorage.getItem("hybridTrainingDashboardV3")||"null")||JSON.parse(JSON.stringify(defaults))}
 catch(e){state=JSON.parse(JSON.stringify(defaults))}
-state.settings=Object.assign({},defaults.settings,state.settings||{});state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
+state.settings=Object.assign({},defaults.settings,state.settings||{});state.dailyRecovery=state.dailyRecovery||{};state.wearableSessions=state.wearableSessions||{};state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
 function save(){try{localStorage.setItem("hybridTrainingDashboardV3",JSON.stringify(state))}catch(e){}}
 function clamp(n,a,b){n=Number(n);return Number.isFinite(n)?Math.max(a,Math.min(b,n)):a}
 function localISO(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day}
@@ -2100,19 +2206,38 @@ function recentMarkedRestDays(dateISO,days=3){
  Object.entries(state.settings.dayOverrides||{}).forEach(([d,v])=>{if(v==="Recovery / Rest"&&d<dateISO&&daysBetweenISO(d,dateISO)<=days)dates.add(d)});
  return dates.size;
 }
+
+function numericOrNull(v){const n=Number(v);return Number.isFinite(n)&&String(v).trim()!==""?n:null}
+function median(vals){const a=vals.filter(x=>Number.isFinite(x)).sort((x,y)=>x-y);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
+function dailyRecoveryEntriesBefore(dateISO,days=28){return Object.entries(state.dailyRecovery||{}).filter(([d])=>d<dateISO&&daysBetweenISO(d,dateISO)<=days).map(([date,row])=>({date,...row})).sort((a,b)=>a.date.localeCompare(b.date))}
+function dailyRecoveryFor(dateISO){return (state.dailyRecovery||{})[dateISO]||null}
+function recoveryMetricBaseline(dateISO,key,days=28){const vals=dailyRecoveryEntriesBefore(dateISO,days).map(x=>numericOrNull(x[key])).filter(x=>x!==null);return {value:vals.length>=5?median(vals):null,count:vals.length}}
+function wearableSessionEntriesBefore(dateISO,days=35){return Object.values(state.wearableSessions||{}).filter(x=>x&&x.date&&x.date<dateISO&&daysBetweenISO(x.date,dateISO)<=days).sort((a,b)=>a.date.localeCompare(b.date))}
+function wearableSessionLoadSignals(dateISO){const rows=wearableSessionEntriesBefore(dateISO,35),recent=rows.filter(x=>daysBetweenISO(x.date,dateISO)<=7),base=rows.filter(x=>{const d=daysBetweenISO(x.date,dateISO);return d>=8&&d<=35}),sum=(a,k)=>a.reduce((t,x)=>t+(Number(x[k])||0),0),recentLoad=sum(recent,"trainingLoad"),baseWeekly=sum(base,"trainingLoad")/4,latest=rows.length?rows[rows.length-1]:null;return {recentLoad,baseWeekly,loadSpike:baseWeekly>=50&&recentLoad>baseWeekly*1.4&&recentLoad>baseWeekly+25,recoveryFlag:!!(latest&&daysBetweenISO(latest.date,dateISO)<=1&&Number(latest.recoveryHours)>=24),latest}}
+function wearableRecoverySignals(dateISO){
+ const current=dailyRecoveryFor(dateISO),keys=["sleepHours","sleepScore","hrv","restingHr","wakeBio","stress","steps"],baselines={};keys.forEach(k=>baselines[k]=recoveryMetricBaseline(dateISO,k));
+ const yesterday=localISO(addDays(parseLocalISO(dateISO),-1)),prior=dailyRecoveryFor(yesterday);let score=0,reasons=[],available=0;const b=k=>baselines[k].value,cur=k=>current?numericOrNull(current[k]):null,add=(pts,text)=>{score+=pts;reasons.push(text)};
+ if(current){
+  const sleep=cur("sleepHours");if(sleep!==null){available++;const base=b("sleepHours");if(sleep<5||(base&&sleep<base*.70))add(1.5,"sleep was substantially below your normal");else if(sleep<6||(base&&sleep<base*.82))add(1,"sleep was below your normal")}
+  const ss=cur("sleepScore");if(ss!==null){available++;if(ss<60)add(1,"sleep score was very low");else if(ss<72)add(.5,"sleep score was below target")}
+  const hrv=cur("hrv");if(hrv!==null){available++;const base=b("hrv");if(base){const pct=(hrv-base)/base;if(pct<=-.25)add(1.5,"HRV was at least 25% below baseline");else if(pct<=-.15)add(1,"HRV was at least 15% below baseline")}}
+  const rhr=cur("restingHr");if(rhr!==null){available++;const base=b("restingHr");if(base){const delta=rhr-base;if(delta>=8)add(1.5,"resting HR was at least 8 bpm above baseline");else if(delta>=5)add(1,"resting HR was at least 5 bpm above baseline")}}
+  const wb=cur("wakeBio");if(wb!==null){available++;if(wb<30)add(1.25,"wake BioCharge was very low");else if(wb<50)add(.75,"wake BioCharge was low")}
+  const cb=cur("currentBio");if(cb!==null){available++;if(cb<25)add(.75,"current BioCharge was very low");else if(cb<40)add(.35,"current BioCharge was low")}
+  const stress=cur("stress");if(stress!==null){available++;if(stress>=80)add(.75,"stress was very high");else if(stress>=70)add(.4,"stress was elevated")}
+ }
+ if(prior){const steps=numericOrNull(prior.steps),base=b("steps");if(steps!==null&&base){available++;if(steps>base*1.35&&steps>base+3000)add(.5,"prior-day steps/activity were unusually high")}}
+ const sess=wearableSessionLoadSignals(dateISO);if(sess.loadSpike)add(.75,"Helio training load spiked above your recent weekly baseline");if(sess.recoveryFlag)add(.5,"the latest Helio workout still carried a long recovery-time recommendation");
+ score=Math.max(0,score);return {current,baselines,score,level:score>=2?"guard":score>=1?"watch":"normal",reasons,available,sessionLoad:sess};
+}
+function recoveryReadinessLabel(sig){if(!sig||!sig.current)return "No data";if(sig.level==="guard")return "Recovery constrained";if(sig.level==="watch")return "Watch recovery";return "Normal"}
+function recoveryAnalysisText(dateISO){const s=wearableRecoverySignals(dateISO),c=s.current;if(!c)return "<strong>No Helio entry for this date.</strong> Add today's recovery values to let the adaptive engine compare them with your rolling baseline.";const parts=[],metric=(label,key,unit="")=>{const v=numericOrNull(c[key]),base=s.baselines[key]?.value;if(v!==null)parts.push("<strong>"+label+":</strong> "+v+unit+(base!==null&&base!==undefined?" (baseline "+Math.round(base*10)/10+unit+")":""))};metric("Sleep","sleepHours"," h");metric("HRV","hrv"," ms");metric("Resting HR","restingHr"," bpm");metric("Wake BioCharge","wakeBio","");let text="<strong>"+recoveryReadinessLabel(s)+"</strong> • wearable fatigue score "+(Math.round(s.score*100)/100)+". "+parts.join(" • ");if(s.reasons.length)text+="<br><strong>Recovery flags:</strong> "+s.reasons.join("; ")+".";else text+="<br>No meaningful wearable recovery flags are active. Good wearable data removes the recovery brake but does not create bonus progression.";return text}
+
 function adaptiveReadiness(dateISO){
- const s3=sessionSummariesBefore(dateISO,3),s7=sessionSummariesBefore(dateISO,7),load=conditioningLoadSignals(dateISO);
- const rough=s3.some(x=>x.rough),missed=s3.some(x=>x.missed),high=s3.filter(x=>x.maxRpe>=9).length,lower=s3.some(x=>x.lowerHard),rests=recentMarkedRestDays(dateISO,3);
- const avg=s7.length?s7.reduce((a,x)=>a+x.maxRpe,0)/s7.length:0;
- let fatigue=(rough?1.5:0)+(missed?1:0)+Math.min(2,high)*.75+(lower?.75:0)+(load.timeSpike?1:0)+(load.mileageSpike?1.25:0)+(load.hrElevated?.75:0)-Math.min(2,rests)*.75;
- return {
-   recoveryGuard:fatigue>=2,
-   lowerFatigue:lower,
-   recentAvgRpe:avg,recentSessions:s7.length,highCount:high,restDays:rests,fatigueScore:fatigue,
-   timeSpike:load.timeSpike,mileageSpike:load.mileageSpike,hrElevated:load.hrElevated,
-   recentMinutes:load.recentMin,baselineWeeklyMinutes:load.baseWeeklyMin,recentMiles:load.recentMiles,baselineWeeklyMiles:load.baseWeeklyMiles,
-   recentHr:load.recentHr,baselineHr:load.baseHr
- };
+ const s3=sessionSummariesBefore(dateISO,3),s7=sessionSummariesBefore(dateISO,7),load=conditioningLoadSignals(dateISO),wear=wearableRecoverySignals(dateISO);
+ const rough=s3.some(x=>x.rough),missed=s3.some(x=>x.missed),high=s3.filter(x=>x.maxRpe>=9).length,lower=s3.some(x=>x.lowerHard),rests=recentMarkedRestDays(dateISO,3),avg=s7.length?s7.reduce((a,x)=>a+x.maxRpe,0)/s7.length:0;
+ let fatigue=(rough?1.5:0)+(missed?1:0)+Math.min(2,high)*.75+(lower?.75:0)+(load.timeSpike?1:0)+(load.mileageSpike?1.25:0)+(load.hrElevated?.75:0)+wear.score-Math.min(2,rests)*.75;
+ return {recoveryGuard:fatigue>=2,lowerFatigue:lower,recentAvgRpe:avg,recentSessions:s7.length,highCount:high,restDays:rests,fatigueScore:fatigue,timeSpike:load.timeSpike,mileageSpike:load.mileageSpike,hrElevated:load.hrElevated,recentMinutes:load.recentMin,baselineWeeklyMinutes:load.baseWeeklyMin,recentMiles:load.recentMiles,baselineWeeklyMiles:load.baseWeeklyMiles,recentHr:load.recentHr,baselineHr:load.baseHr,wearable:wear,wearableScore:wear.score,wearableLevel:wear.level};
 }
 function allConditioningEntries(){return [...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary]}
 function entryForName(name){return allConditioningEntries().find(x=>x.name===name)}
@@ -2821,13 +2946,23 @@ function planFor(session,gw){
  if(session==="Conditioning"){const day=dayNameFromDate(logDate.value),c=conditioningFor(day,gw,logDate.value);return [{exercise:c.activity,plannedTarget:c.target,meta:c.detail+" • target RPE "+c.rpe,conditioning:true}]}
  return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"",conditioning:false}];
 }
+
+const recoveryFieldMap={sleepHours:"recSleepHours",sleepScore:"recSleepScore",hrv:"recHrv",restingHr:"recRestingHr",wakeBio:"recWakeBio",currentBio:"recCurrentBio",stress:"recStress",spo2:"recSpo2",steps:"recSteps",vo2:"recVo2",notes:"recNotes"};
+function loadRecoveryForm(){const date=recoveryDate.value||localISO(new Date());recoveryDate.value=date;const row=dailyRecoveryFor(date)||{};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const el=document.getElementById(id);el.value=row[key]??""});recoveryAnalysis.innerHTML=recoveryAnalysisText(date)}
+function saveRecoveryForm(){const date=recoveryDate.value||localISO(new Date()),row={};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const v=document.getElementById(id).value;if(key==="notes")row[key]=v.trim();else if(v!=="")row[key]=Number(v)});state.dailyRecovery=state.dailyRecovery||{};state.dailyRecovery[date]=row;save();render();loadRecoveryForm()}
+function clearRecoveryFormDate(){const date=recoveryDate.value;if(date&&(state.dailyRecovery||{})[date])delete state.dailyRecovery[date];save();render();loadRecoveryForm()}
+function renderRecoverySnapshot(){const date=localISO(new Date()),sig=wearableRecoverySignals(date),c=sig.current,label=recoveryReadinessLabel(sig);recoveryReadiness.textContent=label;recoveryReadiness.className=sig.level==="guard"?"recovery-readiness-guard":sig.level==="watch"?"recovery-readiness-watch":"recovery-readiness-good";recoverySleep.textContent=c&&numericOrNull(c.sleepHours)!==null?Number(c.sleepHours).toFixed(1)+" h":"—";recoveryHrv.textContent=c&&numericOrNull(c.hrv)!==null?Math.round(Number(c.hrv))+" ms":"—";recoveryRhr.textContent=c&&numericOrNull(c.restingHr)!==null?Math.round(Number(c.restingHr))+" bpm":"—";recoveryBio.textContent=c&&numericOrNull(c.wakeBio)!==null?Math.round(Number(c.wakeBio)):"—";if(!c)recoverySnapshotSub.textContent="No Helio recovery data logged for today.";else if(sig.reasons.length)recoverySnapshotSub.textContent=sig.reasons.slice(0,2).join(" • ");else recoverySnapshotSub.textContent="Today's wearable data is within your established range."}
+function renderRecoveryHistory(){const rows=Object.entries(state.dailyRecovery||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,21);recoveryHistoryBody.innerHTML=rows.length?rows.map(([date,x])=>{const s=wearableRecoverySignals(date),lbl=recoveryReadinessLabel(s);return "<tr><td>"+date+"</td><td>"+(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+(x.hrv??"")+"</td><td>"+(x.restingHr??"")+"</td><td>"+(x.wakeBio??"")+"</td><td>"+(x.stress??"")+"</td><td>"+(x.steps??"")+"</td><td>"+lbl+"</td></tr>"}).join(""):'<tr><td colspan="8"><div class="empty">No daily Helio recovery entries yet.</div></td></tr>';const sessions=Object.values(state.wearableSessions||{}).filter(Boolean).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,20);wearableSessionHistoryBody.innerHTML=sessions.length?sessions.map(x=>"<tr><td>"+(x.date||"")+"</td><td>"+(x.session||"")+"</td><td>"+(x.duration||"")+(x.duration?" min":"")+"</td><td>"+(x.avgHr||"")+" / "+(x.maxHr||"")+"</td><td>"+(x.trainingLoad||"")+"</td><td>"+(x.aerobicTe||"")+" / "+(x.anaerobicTe||"")+"</td><td>"+(x.hrRecovery||"")+(x.hrRecovery?" bpm":"")+"</td><td>"+(x.recoveryHours||"")+(x.recoveryHours?" h":"")+"</td></tr>").join(""):'<tr><td colspan="8"><div class="empty">No Helio workout summaries logged yet.</div></td></tr>'}
+function wearableSessionFormData(){const map={duration:wearDuration,avgHr:wearAvgHr,maxHr:wearMaxHr,trainingLoad:wearTrainingLoad,aerobicTe:wearAerobicTe,anaerobicTe:wearAnaerobicTe,hrRecovery:wearHrRecovery,recoveryHours:wearRecoveryHours,calories:wearCalories,vo2:wearWorkoutVo2},out={};Object.entries(map).forEach(([k,el])=>{if(el.value!=="")out[k]=Number(el.value)});return out}
+function clearWearableSessionForm(){[wearDuration,wearAvgHr,wearMaxHr,wearTrainingLoad,wearAerobicTe,wearAnaerobicTe,wearHrRecovery,wearRecoveryHours,wearCalories,wearWorkoutVo2].forEach(x=>x.value="")}
+
 function render(){
  const gw=currentTrainingWeek();if(state.settings.currentWeek!==gw){state.settings.currentWeek=gw;save()}const b=blockInfo(gw),w=wave[b.wib-1],pu=pullupForWeek(gw),nx=pullupForWeek(gw+1),paused=isRecoveryPauseDate(new Date());
  heroCurrent.textContent=pu[3]+" +"+pu[6]+" lb • "+pu[4]+"×"+pu[5];heroNext.textContent="Next: "+nx[3]+" +"+nx[6]+" lb • "+nx[4]+"×"+nx[5];
  if(paused){statWeek.textContent="PAUSE";statBlock.textContent="Before Block "+(b.block+1)}else{statWeek.textContent="Week "+gw;statBlock.textContent="Block "+b.block+" • W"+b.wib}
  statTB.textContent=w[1]+"×"+w[2]+" @ "+Math.round(w[0]*100)+"%";statPull.textContent=pu[3].replace("Side / ","")+" +"+pu[6];
  statSessions.textContent=new Set(state.logs.map(x=>x.sessionId)).size;statEntries.textContent=state.logs.length+" entries";
- renderWeek();renderSelectedWorkout();renderHistory();renderProgress();renderConditioningLibrary();renderTbMaxes();renderToolsVisibility();syncSettings();
+ renderWeek();renderSelectedWorkout();renderHistory();renderProgress();renderConditioningLibrary();renderTbMaxes();renderRecoverySnapshot();renderRecoveryHistory();renderToolsVisibility();syncSettings();
  setTimeout(maybeShowBlockReview,0);
 }
 function renderWeek(){
@@ -2984,7 +3119,7 @@ function renderHistory(){
    tr.innerHTML='<td>'+x.date+'</td><td>'+x.session+'</td><td>'+x.exercise+'</td><td>'+actual+'</td><td>'+(x.rpe||"")+'</td><td>'+(x.feel||"")+'</td><td>'+(x.technique||"")+'</td><td>'+(x.notes||"")+'</td><td><button class="btn danger del" data-i="'+idx+'">Delete</button></td>';
    historyBody.appendChild(tr)
  });
- historyBody.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{state.logs.splice(+b.dataset.i,1);save();render()}));
+ historyBody.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{const row=state.logs[+b.dataset.i],sid=row&&row.sessionId;state.logs.splice(+b.dataset.i,1);if(sid&&!state.logs.some(x=>x.sessionId===sid)&&state.wearableSessions)delete state.wearableSessions[sid];save();render()}));
 }
 function renderProgress(){
  const start=Math.max(1,Math.floor(Number(state.settings.currentWeek)||1));
@@ -3620,11 +3755,12 @@ function showView(id){
  if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}
  if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}
  if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}
+ if(id==="recovery"){if(!recoveryDate.value)recoveryDate.value=localISO(new Date());loadRecoveryForm();renderRecoveryHistory()}
  if(id==="classes")renderClassLibrary();
 }
 function setLogDefaults(){
  const d=new Date();logDate.value=localISO(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;
- const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=tw>=1?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw,logDate.value);loadPlannedSession();
+ const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=tw>=1?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw,logDate.value);clearWearableSessionForm();loadPlannedSession();
 }
 function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500)}
 
@@ -3684,6 +3820,10 @@ blockModeSelect.addEventListener("change",()=>{
 });
 
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
+openRecovery.addEventListener("click",()=>{recoveryDate.value=localISO(new Date());showView("recovery")});
+recoveryDate.addEventListener("change",loadRecoveryForm);
+saveRecovery.addEventListener("click",saveRecoveryForm);
+clearRecoveryDate.addEventListener("click",clearRecoveryFormDate);
 document.addEventListener("click",e=>{const btn=e.target.closest&&e.target.closest(".movement-toggle");if(btn){e.preventDefault();toggleMovementGuide(btn)}});
 kbBuilderBlock.addEventListener("change",loadKbBuilder);
 kbBuilderSlot.addEventListener("change",loadKbBuilder);
@@ -3728,6 +3868,7 @@ logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!
 logSession.addEventListener("change",loadPlannedSession);
 saveSession.addEventListener("click",()=>{
  const sessionId=Date.now().toString(),cards=[...plannedExercises.querySelectorAll(".log-exercise")];
+ const wearableData=wearableSessionFormData();
  const rows=cards.map(c=>{
    const sel=c.querySelector(".le-ex");
    const exercise=(sel.value==="__custom__"?valueOf(c,".le-custom"):sel.value.trim());
@@ -3761,21 +3902,22 @@ saveSession.addEventListener("click",()=>{
  }).filter(x=>x.exercise);
  if(!rows.length)return;
  state.logs.push(...rows);
+ if(Object.keys(wearableData).length){state.wearableSessions=state.wearableSessions||{};state.wearableSessions[sessionId]={sessionId,date:logDate.value,week:+logWeek.value,session:logSession.value,...wearableData}}
  if(logSession.value==="Recovery / Rest"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.dayOverrides[logDate.value]="Recovery / Rest"}
  if(logSession.value==="Class / Activity"&&rows[0]){state.settings.classOverrides=state.settings.classOverrides||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides[logDate.value]=rows[0].exercise;state.settings.dayOverrides[logDate.value]="Class / Activity";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Generic Gym"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Generic Gym";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Calisthenics"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Calisthenics";state.settings.noRestDates[logDate.value]=true}
  save();render();
- saveMsg.classList.remove("hidden");saveMsg.textContent="Session saved with "+rows.length+" exercise entries.";
+ saveMsg.classList.remove("hidden");saveMsg.textContent="Session saved with "+rows.length+" exercise entries.";clearWearableSessionForm();
  setTimeout(()=>saveMsg.classList.add("hidden"),2500);
 });
-clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];save();render()}});
+clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:8.3,exportedAt:new Date().toISOString(),settings:state.settings,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:9,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
-  conditioning:{type:"adaptive-infinite",version:3,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
+  conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:2,rules:["direct TB completion/RPE/feel/technique","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
   kettlebell:{type:"adaptive-per-exposure",version:2,rules:["direct performance strongest","detailed KB/gym/TB/calisthenics movement relationships","conservative family transfer","recovery gating","manual kg wins"]},
   genericGym:{type:"adaptive-per-exposure",version:3,rules:["major and sub-muscle selection","difficulty/rep-style/duration/equipment builder","strict primary-muscle workout selection","related work still contributes to fatigue/progression","dumbbell range/increment","barbell plate loading","manual edits win"]},
@@ -3796,8 +3938,8 @@ exportCsv.addEventListener("click",()=>{
  download("hybrid-training-log.csv",csv,"text/csv")
 });
 importJson.addEventListener("click",()=>importFile.click());
-importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;state.logs=o.logs;state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
-calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();setLogDefaults();
+importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;state.logs=o.logs;state.dailyRecovery=o.dailyRecovery||{};state.wearableSessions=o.wearableSessions||{};state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
+calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;recoveryDate.value=localISO(new Date());render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();setLogDefaults();
 })();
 
 </script>
