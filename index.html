@@ -1061,7 +1061,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v17</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v18</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -2381,13 +2381,27 @@ function sessionSummariesBefore(dateISO,days=14){
  const groups={};
  historyRowsBefore(dateISO,days).forEach(x=>{
    const k=x.sessionId||x.date+"|"+x.session;
-   if(!groups[k])groups[k]={date:x.date,session:x.session,maxRpe:0,rough:false,missed:false,lowerHard:false,rest:false};
-   const g=groups[k],r=numberRpe(x.rpe),feel=String(x.feel||"").toLowerCase(),sf=String(x.sessionFeel||"").toLowerCase(),tech=String(x.technique||"").toLowerCase();
+   if(!groups[k])groups[k]={
+     date:x.date,session:x.session,maxRpe:0,rough:false,sessionRough:false,veryRough:false,
+     qualityIssue:false,missed:false,lowerModerate:false,lowerHard:false,rest:false
+   };
+   const g=groups[k],r=numberRpe(x.rpe),feel=String(x.feel||"").toLowerCase(),sf=String(x.sessionFeel||"").toLowerCase(),tech=String(x.technique||"").toLowerCase(),
+     status=String(x.status||"").toLowerCase(),lower=/squat|deadlift|lunge|swing|snatch|clean|run|sprint|hill|lagree|cycling|spin|stair|bootcamp|hiit|bodypump/i.test(String(x.exercise||""));
    g.maxRpe=Math.max(g.maxRpe,r);
    if(x.session==="Recovery / Rest"||/rest day|recovery \/ rest/i.test(String(x.exercise||"")))g.rest=true;
-   if(sf.includes("rough")||feel==="bad"||feel==="grindy"||tech==="sloppy")g.rough=true;
-   if(String(x.status||"").toLowerCase()==="missed")g.missed=true;
-   if(/squat|deadlift|lunge|swing|snatch|clean|run|sprint|hill|lagree|cycling|spin|stair|bootcamp|hiit|bodypump/i.test(String(x.exercise||""))&&(r>=8.5||feel==="bad"||feel==="grindy"||tech==="sloppy"))g.lowerHard=true;
+
+   // "Rough" is allowed to mean a difficult but completed training day.
+   // "Very Rough", missed work, Bad/Grindy feel, or Sloppy technique are stronger warning signals.
+   if(sf==="rough")g.sessionRough=true;
+   if(sf==="very rough")g.veryRough=true;
+   if(feel==="bad"||feel==="grindy"||tech==="sloppy")g.qualityIssue=true;
+   if(status==="missed")g.missed=true;
+
+   if(lower&&(r>=8.5||feel==="hard but good"))g.lowerModerate=true;
+   if(lower&&(r>=9.5||feel==="bad"||feel==="grindy"||tech==="sloppy"||status==="missed"))g.lowerHard=true;
+
+   // Backward-compatible aggregate for anything that is meaningfully concerning.
+   g.rough=g.veryRough||g.qualityIssue;
  });
  return Object.values(groups);
 }
@@ -2458,9 +2472,54 @@ function recoveryAnalysisText(dateISO){const s=wearableRecoverySignals(dateISO),
 
 function adaptiveReadiness(dateISO){
  const s3=sessionSummariesBefore(dateISO,3),s7=sessionSummariesBefore(dateISO,7),load=conditioningLoadSignals(dateISO),wear=wearableRecoverySignals(dateISO);
- const rough=s3.some(x=>x.rough),missed=s3.some(x=>x.missed),high=s3.filter(x=>x.maxRpe>=9).length,lower=s3.some(x=>x.lowerHard),rests=recentMarkedRestDays(dateISO,3),avg=s7.length?s7.reduce((a,x)=>a+x.maxRpe,0)/s7.length:0;
- let fatigue=(rough?1.5:0)+(missed?1:0)+Math.min(2,high)*.75+(lower?.75:0)+(load.timeSpike?1:0)+(load.mileageSpike?1.25:0)+(load.hrElevated?.75:0)+wear.score-Math.min(2,rests)*.75;
- return {recoveryGuard:fatigue>=2,lowerFatigue:lower,recentAvgRpe:avg,recentSessions:s7.length,highCount:high,restDays:rests,fatigueScore:fatigue,timeSpike:load.timeSpike,mileageSpike:load.mileageSpike,hrElevated:load.hrElevated,recentMinutes:load.recentMin,baselineWeeklyMinutes:load.baseWeeklyMin,recentMiles:load.recentMiles,baselineWeeklyMiles:load.baseWeeklyMiles,recentHr:load.recentHr,baselineHr:load.baseHr,wearable:wear,wearableScore:wear.score,wearableLevel:wear.level};
+ const roughCount=s3.filter(x=>x.sessionRough).length,
+   veryRoughCount=s3.filter(x=>x.veryRough).length,
+   qualityCount=s3.filter(x=>x.qualityIssue).length,
+   missedCount=s3.filter(x=>x.missed).length,
+   highCount=s3.filter(x=>x.maxRpe>=9&&x.maxRpe<9.5).length,
+   veryHighCount=s3.filter(x=>x.maxRpe>=9.5).length,
+   lowerCaution=s3.some(x=>x.lowerModerate),
+   lowerSevere=s3.some(x=>x.lowerHard),
+   rests=recentMarkedRestDays(dateISO,3),
+   avg=s7.length?s7.reduce((a,x)=>a+x.maxRpe,0)/s7.length:0;
+
+ // Three-level model:
+ // NORMAL: normal training stress.
+ // CAUTION: hard work is acknowledged and exercise selection may be nudged,
+ //          but scheduled hard conditioning is NOT automatically removed.
+ // GUARD: requires a stronger accumulation of warning signals.
+ //
+ // A single completed "Rough" TB day with RPE around 9 is intentionally
+ // about 1.5 points: Caution, not Guard. It can nudge selection without cancelling training.
+ let fatigue=
+   Math.min(2,roughCount)*.75+
+   Math.min(2,veryRoughCount)*1.25+
+   Math.min(2,qualityCount)*.60+
+   Math.min(2,missedCount)*1.25+
+   Math.min(2,highCount)*.25+
+   Math.min(2,veryHighCount)*.75+
+   (lowerCaution?.50:0)+(lowerSevere?.65:0)+
+   (load.timeSpike?.75:0)+(load.mileageSpike?1:0)+(load.hrElevated?.50:0)+
+   wear.score*.65-
+   Math.min(2,rests)*.75;
+
+ fatigue=Math.max(0,Math.round(fatigue*100)/100);
+ const recoveryGuard=fatigue>=3.0;
+ const caution=!recoveryGuard&&fatigue>=1.5;
+ const level=recoveryGuard?"guard":caution?"caution":"normal";
+ return {
+   level,caution,recoveryGuard,
+   lowerFatigue:lowerSevere,lowerCaution,
+   recentAvgRpe:avg,recentSessions:s7.length,highCount,veryHighCount,
+   roughCount,veryRoughCount,qualityCount,missedCount,
+   restDays:rests,fatigueScore:fatigue,
+   cautionThreshold:1.5,guardThreshold:3.0,
+   timeSpike:load.timeSpike,mileageSpike:load.mileageSpike,hrElevated:load.hrElevated,
+   recentMinutes:load.recentMin,baselineWeeklyMinutes:load.baseWeeklyMin,
+   recentMiles:load.recentMiles,baselineWeeklyMiles:load.baseWeeklyMiles,
+   recentHr:load.recentHr,baselineHr:load.baseHr,
+   wearable:wear,wearableScore:wear.score,wearableLevel:wear.level
+ };
 }
 function allConditioningEntries(){return [...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary]}
 function entryForName(name){return allConditioningEntries().find(x=>x.name===name)}
@@ -2515,32 +2574,49 @@ function easyAdaptivePick(day,gw,dateISO,readiness,longer=false,reasonPrefix="")
    const e=entryForName(name),t=conditioningTraits(name),days=daysSinceConditioning(name,dateISO);
    let score=(days>=9999?48:Math.min(days,60));
    if(days<10)score-=55;
-   if(readiness.recoveryGuard||readiness.lowerFatigue||readiness.mileageSpike||readiness.timeSpike){
+
+   // Strong downgrade only for Guard or objective conditioning-volume spikes.
+   if(readiness.recoveryGuard||readiness.mileageSpike||readiness.timeSpike){
      if(t.lowImpact)score+=30;
-     if(name==="LSS Run"||name==="Ruck Up"||name==="Triples")score-=18;if(name==="LSS Walk")score+=10;
+     if(name==="LSS Run"||name==="Ruck Up"||name==="Triples")score-=18;
+     if(name==="LSS Walk")score+=10;
+   }else if(readiness.lowerFatigue){
+     // Severe recent lower-body difficulty: meaningful but not automatic walk-only behavior.
+     if(t.lowImpact)score+=10;
+     if(name==="LSS Run"||name==="Ruck Up")score-=6;
+     if(name==="Triples")score-=8;
+   }else if(readiness.lowerCaution){
+     // A merely hard lower-body day is a small tie-breaker, not a shutdown.
+     if(t.lowImpact)score+=3;
+     if(name==="Triples")score-=3;
    }
+
    if(mode==="hybrid"&&day==="Wednesday"&&t.lowImpact)score+=9;
    if(mode==="tb"&&day==="Tuesday"&&t.lowImpact)score+=7;
    if(longer&&!readiness.recoveryGuard&&(name==="LSS Run"||name==="Ruck Up"||name==="Triples"))score+=9;
    score+=tinyTie(dateISO+"|"+name)*2;
    return {e,score,days};
  }).sort((a,b)=>b.score-a.score);
- const pick=scored[0],name=pick.e.name;
- const recovery=readiness.recoveryGuard;
+
+ const pick=scored[0],name=pick.e.name,recovery=readiness.recoveryGuard;
  let target="45–60 min",rpe=recovery?"3–4":"4–5";
  if(name==="Triples")target=recovery?"1 easy circuit":"1–2 easy circuits";
  if(name==="Ruck Up")target=recovery?"30–45 min light":"45–60 min";
  if(recovery&&/^LSS/.test(name))target="30–45 min";
+
  const recency=pick.days>=9999?"not logged yet":"last done "+pick.days+" days ago";
  let why=(reasonPrefix?reasonPrefix+" ":"")+recency+". ";
- if(readiness.recoveryGuard)why+="Recent logs triggered the recovery safeguard, so low-impact/easier work was favored.";
- else if(readiness.lowerFatigue)why+="Recent lower-body work looked demanding, so the score favored lower-impact aerobic work.";
+ if(readiness.recoveryGuard)why+="Recovery Guard is active (fatigue "+readiness.fatigueScore+" / 3.0), so lower-impact/easier work was favored.";
+ else if(readiness.caution)why+="Recovery Caution is active (fatigue "+readiness.fatigueScore+" / 3.0 Guard threshold), so fatigue only nudged the modality instead of replacing training.";
+ else if(readiness.lowerFatigue)why+="A severe recent lower-body signal modestly favored lower-impact aerobic work.";
+ else if(readiness.lowerCaution)why+="Recent lower-body work was hard but successful, so it was used only as a small tie-breaker.";
  else why+="The engine favored an E modality that has been used less recently while keeping the day easy.";
+
  if(readiness.mileageSpike)why+=" Recent running mileage is "+readiness.recentMiles.toFixed(1)+" mi versus a "+readiness.baselineWeeklyMiles.toFixed(1)+" mi weekly baseline.";
  if(readiness.timeSpike)why+=" Recent conditioning time is "+Math.round(readiness.recentMinutes)+" min versus a "+Math.round(readiness.baselineWeeklyMinutes)+" min weekly baseline.";
  if(readiness.hrElevated)why+=" Heart-rate response is elevated versus your recent conditioning baseline.";
  if(readiness.restDays)why+=" "+readiness.restDays+" recent logged/marked rest day"+(readiness.restDays===1?" was":"s were")+" credited in the fatigue score.";
- return {activity:name,target,rpe,detail:"Adaptive Endurance",why,adaptive:true,score:pick.score};
+ return {activity:name,target,rpe,detail:"Adaptive Endurance • "+(readiness.recoveryGuard?"Guard":readiness.caution?"Caution":"Normal"),why,adaptive:true,score:pick.score};
 }
 function parseClockSeconds(v){
  const s=String(v||"").trim();if(!s)return 0;
@@ -2568,8 +2644,10 @@ function conditioningPerformanceTrend(name,dateISO){
 }
 function hardAdaptivePick(day,gw,dateISO,readiness){
  if(readiness.recoveryGuard){
-   return easyAdaptivePick(day,gw,dateISO,readiness,false,"A hard session was scheduled, but");
+   return easyAdaptivePick(day,gw,dateISO,readiness,false,"A hard session was scheduled, but Recovery Guard is active.");
  }
+ // Recovery Caution does not replace a scheduled hard session. It only changes
+ // which hard session is preferred.
  const mode=blockModeForWeek(gw);
  const priorConditioning=historyRowsBefore(dateISO,9999).filter(x=>x.session==="Conditioning");
  const accessibleLogged=new Set(priorConditioning.map(x=>x.exercise));
@@ -2582,6 +2660,8 @@ function hardAdaptivePick(day,gw,dateISO,readiness){
    if(adjacentHinge&&traits.hinge)score-=38;
    if(mode==="hybrid"&&traits.hinge)score-=16;
    if(mode==="tb"&&traits.requiresKb)score-=90;
+   if(readiness.lowerCaution&&traits.sprint)score-=10;
+   if(readiness.lowerCaution&&traits.hinge)score-=12;
    if(readiness.lowerFatigue&&traits.sprint)score-=28;
    if(readiness.mileageSpike&&traits.run)score-=42;
    if(readiness.hrElevated&&traits.sprint)score-=18;
@@ -2603,10 +2683,13 @@ function hardAdaptivePick(day,gw,dateISO,readiness){
  let why=exact+"; "+category+". ";
  const adjacentHinge=(mode==="hybrid"&&day==="Saturday")||(mode==="tb"&&day==="Thursday");
  if(adjacentHinge)why+="Hinge-heavy choices were penalized because this slot sits next to strength/KB lower-body work. ";
- if(readiness.lowerFatigue)why+="Recent lower-body difficulty also reduced the score of sprint/hinge-heavy sessions. ";
+ if(readiness.recoveryGuard)why+="Recovery Guard is active. ";
+ else if(readiness.caution)why+="Recovery Caution is active at "+readiness.fatigueScore+" points, but hard conditioning is still retained because Guard begins at 3.0. ";
+ if(readiness.lowerFatigue)why+="Severe recent lower-body difficulty reduced sprint/hinge-heavy choices. ";
+ else if(readiness.lowerCaution)why+="Recent lower-body work was hard but successful, so sprint/hinge-heavy choices received only a mild penalty. ";
  if(pick.trend&&pick.trend.text)why+=pick.trend.text+" ";why+="Exact repeats inside roughly four weeks are strongly penalized.";
  let rpe=pick.e.name==="Fast 5 Tempo Run"?"7–8":(pick.cat==="GC"?"8":"8–9");
- return {activity:pick.e.name,target:"Standard",rpe,detail:"Adaptive "+catLabel,why,adaptive:true,score:pick.score};
+ return {activity:pick.e.name,target:"Standard",rpe,detail:"Adaptive "+catLabel+" • "+(readiness.caution?"Caution":"Normal"),why,adaptive:true,score:pick.score};
 }
 function conditioningSlot(day,gw){
  const mode=blockModeForWeek(gw);
@@ -3482,7 +3565,7 @@ function renderProgress(){
   ["Mileage / duration","Seven-day running mileage and total conditioning minutes are compared with the prior four-week weekly baseline. Large spikes push recommendations toward recovery-friendly work."],
   ["Heart rate","Recent average and max heart-rate trends are compared with your own prior conditioning baseline; unusually elevated response increases the fatigue score."],
   ["Rest days","A logged or manually marked rest day is credited in the fatigue model and can reduce the need for an additional recovery downgrade."],
-  ["Recovery safeguard","If recent logs show rough recovery, repeated RPE 9+ work, or a missed session, a scheduled hard day can automatically become easier aerobic work."],
+  ["Recovery safeguard","Three levels: Normal < 1.5 fatigue points; Caution 1.5–2.99; Guard ≥ 3.0. Caution keeps scheduled hard conditioning and only nudges exercise selection. Only Guard automatically replaces a hard session with easier aerobic work. A single completed Rough / RPE 8.5–9 TB day is intentionally not enough by itself to trigger Guard."],
   ["Schedule interference","Hinge-heavy HIC is penalized next to deadlift/KB-heavy days. Sprint-heavy work is also penalized when recent lower-body work went poorly."],
   ["Benchmarks","Benchmark-style sessions can reappear after enough history, but they are deliberately uncommon."],
   ["Manual override","A Conditioning-tab override always wins for that date. Clear the override to return to adaptive recommendations."],
@@ -4728,10 +4811,10 @@ function completeWorkout(){
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:17,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:18,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
-  conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
+  conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","graduated Normal/Caution/Guard recovery model","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:2,rules:["direct TB completion/RPE/feel/technique","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
   kettlebell:{type:"adaptive-per-exposure",version:2,rules:["direct performance strongest","detailed KB/gym/TB/calisthenics movement relationships","conservative family transfer","recovery gating","manual kg wins"]},
   genericGym:{type:"adaptive-per-exposure",version:3,rules:["major and sub-muscle selection","difficulty/rep-style/duration/equipment builder","strict primary-muscle workout selection","related work still contributes to fatigue/progression","dumbbell range/increment","barbell plate loading","manual edits win"]},
