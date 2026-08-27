@@ -409,6 +409,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
 .recovery-readiness-good{color:var(--accent)}.recovery-readiness-watch{color:#ffcf70}.recovery-readiness-guard{color:#ff8c8c}
 .recovery-rule-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.wearable-session-panel{margin-top:12px}
 @media(max-width:720px){.recovery-mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.recovery-mini-grid>div:first-child{grid-column:1/-1}.recovery-rule-grid{grid-template-columns:1fr}.recovery-form{grid-template-columns:1fr !important}}
+
+/* v12 NATIVE DATA TOOLS */
+summary.tools-toggle{list-style:none;cursor:pointer}
+summary.tools-toggle::-webkit-details-marker{display:none}
+#toolsDetails>.tools-panel{margin-top:7px}
+#toolsDetails:not([open])>.tools-panel{display:none}
 </style>
 </head>
 <body>
@@ -440,16 +446,19 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
     <div class="actions">
       <button class="btn primary" id="quickLog">+ Log Today's Workout</button>
     </div>
-    <div class="tools-wrap">
-      <button class="btn tools-toggle" id="toggleTools" type="button"><span>App / Data Tools</span><span id="toolsChevron">Show</span></button>
-      <div class="tools-panel hidden" id="toolsPanel">
+    <details class="tools-wrap" id="toolsDetails">
+      <summary class="btn tools-toggle" id="toggleTools"><span>App / Data Tools</span><span id="toolsChevron">Show</span></summary>
+      <div class="tools-panel" id="toolsPanel">
         <button class="btn" id="installApp" type="button">Install App</button>
         <button class="btn" id="exportJson">Export Data</button>
         <button class="btn" id="importJson">Import Data</button>
         <input id="importFile" type="file" accept=".json,application/json" class="hidden">
         <button class="btn" id="exportCsv">Export CSV</button>
+        <button class="btn" type="button" onclick="hybridEmergencyExport()">Emergency Raw Backup</button>
+        <button class="btn" type="button" onclick="hybridRecoverLocalData()">Recover Local Saved Data</button>
+        <div class="muted" style="font-size:.72rem;line-height:1.4;margin-top:6px">Emergency Raw Backup and Recover Local Saved Data work independently of the main app controls.</div>
       </div>
-    </div>
+    </details>
   </div>
 
   <section id="dashboard" class="view active">
@@ -1005,7 +1014,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v10.3</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v12</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -1991,11 +2000,100 @@ const dayExerciseOptions={
   Sunday:["Double Clean & Press","Double Front Squat","Single-Arm Row","Single-Arm Snatch","Suitcase Carry"]
 };
 
-let state;
-try{state=JSON.parse(localStorage.getItem("hybridTrainingDashboardV3")||"null")||JSON.parse(JSON.stringify(defaults))}
-catch(e){state=JSON.parse(JSON.stringify(defaults))}
-state.settings=Object.assign({},defaults.settings,state.settings||{});state.dailyRecovery=state.dailyRecovery||{};state.wearableSessions=state.wearableSessions||{};state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
-function save(){try{localStorage.setItem("hybridTrainingDashboardV3",JSON.stringify(state))}catch(e){}}
+const STATE_KEY="hybridTrainingDashboardV4";
+const STATE_BACKUP_KEY="hybridTrainingDashboardV4Backup";
+const LEGACY_STATE_KEY="hybridTrainingDashboardV3";
+const RECOVERY_JOURNAL_KEY="hybridTrainingRecoveryJournalV1";
+
+function safeStoredJson(key){
+ try{const raw=localStorage.getItem(key);if(!raw)return null;const o=JSON.parse(raw);return o&&typeof o==="object"?o:null}catch(e){return null}
+}
+function validStoredState(o){
+ return !!(o&&typeof o==="object"&&o.settings&&typeof o.settings==="object"&&Array.isArray(o.logs));
+}
+function persistedUserDataScore(o){
+ if(!validStoredState(o))return -1;
+ let score=(o.logs||[]).length*1000+Object.keys(o.dailyRecovery||{}).length*500+Object.keys(o.wearableSessions||{}).length*100;
+ const s=o.settings||{},keys=["tbOverrides","pullupBlockPlan","kbCustomWorkouts","dayOverrides","noRestDates","genericGymWorkouts","classOverrides","blockReviews","recoveryWeekStarts","calisthenicsWorkouts"];
+ keys.forEach(k=>score+=Object.keys(s[k]||{}).length*20);
+ return score;
+}
+function loadPersistentState(){
+ const primary=safeStoredJson(STATE_KEY),backup=safeStoredJson(STATE_BACKUP_KEY),legacy=safeStoredJson(LEGACY_STATE_KEY);
+ const valid=[primary,backup,legacy].filter(validStoredState);
+ if(!valid.length)return JSON.parse(JSON.stringify(defaults));
+ if(validStoredState(primary)){
+   const primaryScore=persistedUserDataScore(primary),best=valid.slice().sort((a,b)=>persistedUserDataScore(b)-persistedUserDataScore(a))[0],bestScore=persistedUserDataScore(best);
+   // Only auto-fallback when the current primary is effectively empty and an
+   // older record clearly contains user data. Normal intentional deletions are
+   // not undone once the primary contains real records.
+   if(primaryScore===0&&bestScore>0)return best;
+   return primary;
+ }
+ return valid.slice().sort((a,b)=>persistedUserDataScore(b)-persistedUserDataScore(a))[0];
+}
+function readRecoveryJournal(){
+ const o=safeStoredJson(RECOVERY_JOURNAL_KEY);return o&&typeof o==="object"&&!Array.isArray(o)?o:{};
+}
+function writeRecoveryJournalEntry(date,row){
+ try{
+   const journal=readRecoveryJournal();journal[date]=JSON.parse(JSON.stringify(row));
+   localStorage.setItem(RECOVERY_JOURNAL_KEY,JSON.stringify(journal));
+   return !!safeStoredJson(RECOVERY_JOURNAL_KEY)?.[date];
+ }catch(e){return false}
+}
+function replaceRecoveryJournal(rows){
+ try{localStorage.setItem(RECOVERY_JOURNAL_KEY,JSON.stringify(rows||{}));return true}catch(e){return false}
+}
+function deleteRecoveryJournalEntry(date){
+ try{const journal=readRecoveryJournal();delete journal[date];localStorage.setItem(RECOVERY_JOURNAL_KEY,JSON.stringify(journal));return true}catch(e){return false}
+}
+
+let state=loadPersistentState();
+state.settings=Object.assign({},defaults.settings,state.settings||{});
+state.logs=Array.isArray(state.logs)?state.logs:[];
+state.kb=Array.isArray(state.kb)?state.kb:JSON.parse(JSON.stringify(defaults.kb));
+state.dailyRecovery=state.dailyRecovery&&typeof state.dailyRecovery==="object"?state.dailyRecovery:{};
+state.wearableSessions=state.wearableSessions&&typeof state.wearableSessions==="object"?state.wearableSessions:{};
+state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
+
+// Recovery is also journaled independently. The journal wins on startup so a
+// generic app-state write cannot erase an explicitly saved Recovery entry.
+function recoveryRowScore(row){
+ if(!row||typeof row!=="object")return -1;
+ const populated=Object.entries(row).filter(([k,v])=>k!=="_savedAt"&&v!==""&&v!==null&&v!==undefined).length;
+ return populated;
+}
+function mergeRecoverySources(){
+ const primary=safeStoredJson(STATE_KEY),backup=safeStoredJson(STATE_BACKUP_KEY),legacy=safeStoredJson(LEGACY_STATE_KEY);
+ const sources=[legacy?.dailyRecovery||{},backup?.dailyRecovery||{},primary?.dailyRecovery||{},state.dailyRecovery||{},readRecoveryJournal()];
+ const merged={};
+ sources.forEach(src=>Object.entries(src||{}).forEach(([date,row])=>{
+   if(!row||typeof row!=="object")return;
+   const existing=merged[date],a=Number(existing?._savedAt)||0,b=Number(row._savedAt)||0;
+   if(!existing||(b&&b>=a)||(!a&&!b&&recoveryRowScore(row)>recoveryRowScore(existing)))merged[date]=JSON.parse(JSON.stringify(row));
+ }));
+ return merged;
+}
+state.dailyRecovery=mergeRecoverySources();
+if(Object.keys(state.dailyRecovery).length)replaceRecoveryJournal(state.dailyRecovery);
+
+function save(reason="general"){
+ try{
+   state._persistedAt=Date.now();state._persistReason=reason;
+   const payload=JSON.stringify(state);
+   const previous=localStorage.getItem(STATE_KEY)||localStorage.getItem(LEGACY_STATE_KEY);
+   if(previous&&previous!==payload)localStorage.setItem(STATE_BACKUP_KEY,previous);
+   localStorage.setItem(STATE_KEY,payload);
+   localStorage.setItem(LEGACY_STATE_KEY,payload);
+   const verify=localStorage.getItem(STATE_KEY);
+   if(verify!==payload)throw new Error("State verification failed");
+   return true;
+ }catch(e){
+   try{if(typeof storageStatus!=="undefined"&&storageStatus)storageStatus.textContent="Storage write failed — keep this app open and export data."}catch(_){}
+   return false;
+ }
+}
 function clamp(n,a,b){n=Number(n);return Number.isFinite(n)?Math.max(a,Math.min(b,n)):a}
 function localISO(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day}
 function parseLocalISO(s){const p=String(s||"").split("-").map(Number);return p.length===3?new Date(p[0],p[1]-1,p[2],12,0,0):new Date(NaN)}
@@ -2966,8 +3064,15 @@ function planFor(session,gw){
 
 const recoveryFieldMap={sleepHours:"recSleepHours",sleepScore:"recSleepScore",hrv:"recHrv",restingHr:"recRestingHr",wakeBio:"recWakeBio",currentBio:"recCurrentBio",stress:"recStress",spo2:"recSpo2",steps:"recSteps",vo2:"recVo2",notes:"recNotes"};
 function loadRecoveryForm(){const date=recoveryDate.value||localISO(new Date());recoveryDate.value=date;const row=dailyRecoveryFor(date)||{};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const el=document.getElementById(id);el.value=row[key]??""});recoveryAnalysis.innerHTML=recoveryAnalysisText(date)}
-function saveRecoveryForm(){const date=recoveryDate.value||localISO(new Date()),row={};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const v=document.getElementById(id).value;if(key==="notes")row[key]=v.trim();else if(v!=="")row[key]=Number(v)});state.dailyRecovery=state.dailyRecovery||{};state.dailyRecovery[date]=row;save();render();loadRecoveryForm();markUiDraftClean("recovery")}
-function clearRecoveryFormDate(){const date=recoveryDate.value;if(date&&(state.dailyRecovery||{})[date])delete state.dailyRecovery[date];save();render();loadRecoveryForm()}
+function saveRecoveryForm(){
+ const date=recoveryDate.value||localISO(new Date()),row={_savedAt:Date.now()};
+ Object.entries(recoveryFieldMap).forEach(([key,id])=>{const v=document.getElementById(id).value;if(key==="notes")row[key]=v.trim();else if(v!=="")row[key]=Number(v)});
+ state.dailyRecovery=state.dailyRecovery||{};state.dailyRecovery[date]=row;
+ const journalOK=writeRecoveryJournalEntry(date,row),stateOK=save("recovery");
+ if(!journalOK||!stateOK){alert("Recovery could not be verified in local storage. Keep the app open and export your data before refreshing.");return}
+ clearRecoveryDraft();render();loadRecoveryForm();markUiDraftClean("recovery");
+}
+function clearRecoveryFormDate(){const date=recoveryDate.value;if(date&&(state.dailyRecovery||{})[date])delete state.dailyRecovery[date];deleteRecoveryJournalEntry(date);clearRecoveryDraft();save("recovery-delete");render();loadRecoveryForm()}
 function renderRecoverySnapshot(){const date=localISO(new Date()),sig=wearableRecoverySignals(date),c=sig.current,label=recoveryReadinessLabel(sig);recoveryReadiness.textContent=label;recoveryReadiness.className=sig.level==="guard"?"recovery-readiness-guard":sig.level==="watch"?"recovery-readiness-watch":"recovery-readiness-good";recoverySleep.textContent=c&&numericOrNull(c.sleepHours)!==null?Number(c.sleepHours).toFixed(1)+" h":"—";recoveryHrv.textContent=c&&numericOrNull(c.hrv)!==null?Math.round(Number(c.hrv))+" ms":"—";recoveryRhr.textContent=c&&numericOrNull(c.restingHr)!==null?Math.round(Number(c.restingHr))+" bpm":"—";recoveryBio.textContent=c&&numericOrNull(c.wakeBio)!==null?Math.round(Number(c.wakeBio)):"—";if(!c)recoverySnapshotSub.textContent="No Helio recovery data logged for today.";else if(sig.reasons.length)recoverySnapshotSub.textContent=sig.reasons.slice(0,2).join(" • ");else recoverySnapshotSub.textContent="Today's wearable data is within your established range."}
 function renderRecoveryHistory(){const rows=Object.entries(state.dailyRecovery||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,21);recoveryHistoryBody.innerHTML=rows.length?rows.map(([date,x])=>{const s=wearableRecoverySignals(date),lbl=recoveryReadinessLabel(s);return "<tr><td>"+date+"</td><td>"+(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+(x.hrv??"")+"</td><td>"+(x.restingHr??"")+"</td><td>"+(x.wakeBio??"")+"</td><td>"+(x.stress??"")+"</td><td>"+(x.steps??"")+"</td><td>"+lbl+"</td></tr>"}).join(""):'<tr><td colspan="8"><div class="empty">No daily Helio recovery entries yet.</div></td></tr>';const sessions=Object.values(state.wearableSessions||{}).filter(Boolean).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,20);wearableSessionHistoryBody.innerHTML=sessions.length?sessions.map(x=>"<tr><td>"+(x.date||"")+"</td><td>"+(x.session||"")+"</td><td>"+(x.duration||"")+(x.duration?" min":"")+"</td><td>"+(x.avgHr||"")+" / "+(x.maxHr||"")+"</td><td>"+(x.trainingLoad||"")+"</td><td>"+(x.aerobicTe||"")+" / "+(x.anaerobicTe||"")+"</td><td>"+(x.hrRecovery||"")+(x.hrRecovery?" bpm":"")+"</td><td>"+(x.recoveryHours||"")+(x.recoveryHours?" h":"")+"</td></tr>").join(""):'<tr><td colspan="8"><div class="empty">No Helio workout summaries logged yet.</div></td></tr>'}
 function wearableSessionFormData(){const map={duration:wearDuration,avgHr:wearAvgHr,maxHr:wearMaxHr,trainingLoad:wearTrainingLoad,aerobicTe:wearAerobicTe,anaerobicTe:wearAnaerobicTe,hrRecovery:wearHrRecovery,recoveryHours:wearRecoveryHours,calories:wearCalories,vo2:wearWorkoutVo2},out={};Object.entries(map).forEach(([k,el])=>{if(el.value!=="")out[k]=Number(el.value)});return out}
@@ -3648,8 +3753,10 @@ function clearConditioningOverrideForSelected(){
  if((state.settings.conditioningOverrides||{})[selectedDateISO]){delete state.settings.conditioningOverrides[selectedDateISO];save();renderWeek();renderSelectedWorkout();renderConditioningLibrary()}
 }
 function renderToolsVisibility(){
- const hidden=state.settings.toolsHidden!==false;
- toolsPanel.classList.toggle("hidden",hidden);toolsChevron.textContent=hidden?"Show":"Hide";
+ const hidden=state.settings.toolsHidden!==false,details=document.getElementById("toolsDetails");
+ toolsPanel.classList.remove("hidden");
+ if(details)details.open=!hidden;
+ toolsChevron.textContent=hidden?"Show":"Hide";
 }
 function renderTbMaxes(){
  const lifts=[["squat","Squat TM"],["row","Row TM"],["chest","Chest TM"],["incline","Incline TM"],["deadlift","Deadlift TM"]],
@@ -3769,6 +3876,8 @@ function confirmTransitionReview(){
 function syncSettings(){currentWeek.value=state.settings.currentWeek;squatTm.value=state.settings.squatTm;rowTm.value=state.settings.rowTm;chestTm.value=state.settings.chestTm;inclineTm.value=state.settings.inclineTm;deadliftTm.value=state.settings.deadliftTm||325;squatInc.value=state.settings.squatInc;otherInc.value=state.settings.otherInc}
 
 const UI_DRAFT_KEY="hybridTrainingUiDraftV2";
+const LOG_WORKSPACE_KEY="hybridTrainingLogWorkspaceV1";
+const RECOVERY_DRAFT_KEY="hybridTrainingRecoveryDraftV1";
 
 let uiDraftRestoreInProgress=false,uiDraftTimer=null;
 let uiDraftDirty={log:false,gym:false,cal:false,kb:false,recovery:false};
@@ -3855,11 +3964,9 @@ function persistUiDraft(){
    version:2,updatedAt:new Date().toISOString(),activeView:active,selectedDateISO,browseWeek,
    scrollY:Math.max(0,window.scrollY||0),dirty:{...uiDraftDirty}
  };
- if(uiDraftDirty.log)draft.log=captureLogDraft();
  if(uiDraftDirty.gym)draft.gym=captureGymDraft();
  if(uiDraftDirty.cal)draft.cal=captureCalDraft();
  if(uiDraftDirty.kb)draft.kb=captureKbDraft();
- if(uiDraftDirty.recovery)draft.recovery=captureRecoveryDraft();
  try{localStorage.setItem(UI_DRAFT_KEY,JSON.stringify(draft))}catch(e){}
 }
 function queueUiDraftSave(){
@@ -3906,6 +4013,60 @@ function restoreLogDraft(d){
  };
  Object.entries(wm).forEach(([k,el])=>el.value=w[k]??"");
 }
+
+function validLogWorkspace(d){
+ return !!(d&&/^\d{4}-\d{2}-\d{2}$/.test(String(d.date||""))&&Number(d.week)>0&&String(d.session||"").trim());
+}
+function readLogWorkspace(){
+ try{const d=JSON.parse(localStorage.getItem(LOG_WORKSPACE_KEY)||"null");return validLogWorkspace(d)?d:null}catch(e){return null}
+}
+function writeLogWorkspace(){
+ if(document.querySelector(".view.active")?.id!=="log")return false;
+ try{
+   const d=captureLogDraft();if(!validLogWorkspace(d))return false;
+   d._draftSavedAt=Date.now();localStorage.setItem(LOG_WORKSPACE_KEY,JSON.stringify(d));
+   return !!readLogWorkspace();
+ }catch(e){return false}
+}
+function clearLogWorkspace(){
+ try{localStorage.removeItem(LOG_WORKSPACE_KEY)}catch(e){}
+}
+function restorePersistentLogWorkspace(){
+ const d=readLogWorkspace();
+ if(d){
+   try{
+     restoreLogDraft(d);
+     if(!plannedExercises.children.length)loadPlannedSession();
+     writeLogWorkspace();
+     return true;
+   }catch(e){}
+ }
+ setLogDefaults();
+ writeLogWorkspace();
+ return false;
+}
+function validRecoveryDraft(d){
+ return !!(d&&/^\d{4}-\d{2}-\d{2}$/.test(String(d.date||""))&&d.fields&&typeof d.fields==="object");
+}
+function readRecoveryDraft(){
+ try{const d=JSON.parse(localStorage.getItem(RECOVERY_DRAFT_KEY)||"null");return validRecoveryDraft(d)?d:null}catch(e){return null}
+}
+function writeRecoveryDraft(){
+ if(document.querySelector(".view.active")?.id!=="recovery")return false;
+ try{
+   const d=captureRecoveryDraft();if(!validRecoveryDraft(d))return false;
+   d._draftSavedAt=Date.now();localStorage.setItem(RECOVERY_DRAFT_KEY,JSON.stringify(d));return true;
+ }catch(e){return false}
+}
+function clearRecoveryDraft(){
+ try{localStorage.removeItem(RECOVERY_DRAFT_KEY)}catch(e){}
+}
+function restorePersistentRecoveryDraft(){
+ const d=readRecoveryDraft();
+ if(!d)return false;
+ try{restoreRecoveryDraft(d);return true}catch(e){return false}
+}
+
 function restoreGymDraft(d){
  if(!d)return;
  if(d.date)gymBuilderDate.value=d.date;
@@ -3975,11 +4136,9 @@ function restoreUiDraft(){
      }
    }catch(e){}
 
-   if(uiDraftDirty.log&&d.log){try{restoreLogDraft(d.log)}catch(e){}}
    if(uiDraftDirty.gym&&d.gym){try{restoreGymDraft(d.gym)}catch(e){}}
    if(uiDraftDirty.cal&&d.cal){try{restoreCalDraft(d.cal)}catch(e){}}
    if(uiDraftDirty.kb&&d.kb){try{restoreKbDraft(d.kb)}catch(e){}}
-   if(uiDraftDirty.recovery&&d.recovery){try{restoreRecoveryDraft(d.recovery)}catch(e){}}
 
    setTimeout(()=>{try{window.scrollTo({top:Number(d.scrollY)||0,behavior:"auto"})}catch(e){}},0);
    return true;
@@ -3993,17 +4152,6 @@ function rememberLastView(id){
    const hash="#"+encodeURIComponent(id);
    if(location.hash!==hash)history.replaceState(history.state,"",location.pathname+location.search+hash);
  }catch(e){}
-}
-function ensureLogDraftReady(){
- if(document.querySelector(".view.active")?.id!=="log")return;
- const saved=readUiDraft(),hasSavedLog=!!(saved?.dirty?.log&&saved.log);
- if(!hasSavedLog){
-   // A fresh Log screen should still reconstruct exactly after refresh.
-   // Initialize the plan if startup left any of its core fields empty.
-   if(!logDate.value||!logWeek.value||!plannedExercises.children.length)setLogDefaults();
- }
- uiDraftDirty.log=true;
- persistUiDraft();
 }
 
 function restoreLastView(){
@@ -4019,12 +4167,14 @@ function showView(id){
  if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}
  if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}
  if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}
- if(id==="recovery"){if(!recoveryDate.value)recoveryDate.value=localISO(new Date());loadRecoveryForm();renderRecoveryHistory()}
- if(id==="classes")renderClassLibrary();
- if(!uiDraftRestoreInProgress){
-   if(id==="log")setTimeout(ensureLogDraftReady,0);
-   queueUiDraftSave();
+ if(id==="log")restorePersistentLogWorkspace();
+ if(id==="recovery"){
+   if(!recoveryDate.value)recoveryDate.value=localISO(new Date());
+   if(!restorePersistentRecoveryDraft())loadRecoveryForm();
+   renderRecoveryHistory();
  }
+ if(id==="classes")renderClassLibrary();
+ if(!uiDraftRestoreInProgress)queueUiDraftSave();
 }
 function setLogDefaults(){
  const d=new Date();logDate.value=localISO(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;
@@ -4071,13 +4221,8 @@ updateStorageStatus();
 
 populateSessionOptions();
 quickLog.addEventListener("click",()=>{
- const d=readUiDraft();
  showView("log");
- if(d?.dirty?.log&&d.log){
-   uiDraftRestoreInProgress=true;
-   try{restoreLogDraft(d.log);uiDraftDirty.log=true}finally{uiDraftRestoreInProgress=false}
- }else setLogDefaults();
- uiDraftDirty.log=true;persistUiDraft();
+ writeLogWorkspace();
  window.scrollTo({top:0,behavior:"smooth"});
 });
 prevWeek.addEventListener("click",()=>{const d=addDays(parseLocalISO(selectedDateISO),-7);selectedDateISO=localISO(d);browseWeek=Math.max(1,trainingWeekForDate(d));renderWeek();renderSelectedWorkout()});
@@ -4098,8 +4243,16 @@ blockModeSelect.addEventListener("change",()=>{
 
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
 window.addEventListener("hashchange",()=>{const id=decodeURIComponent((location.hash||"").replace(/^#/,""));if(id&&document.getElementById(id)&&document.querySelector(".view.active")?.id!==id)showView(id)});
-document.addEventListener("input",e=>{const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)});
-document.addEventListener("change",e=>{const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)});
+document.addEventListener("input",e=>{
+ if(e.target.closest&&e.target.closest("#log")){writeLogWorkspace();return}
+ if(e.target.closest&&e.target.closest("#recovery")){writeRecoveryDraft();return}
+ const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)
+});
+document.addEventListener("change",e=>{
+ if(e.target.closest&&e.target.closest("#log")){writeLogWorkspace();return}
+ if(e.target.closest&&e.target.closest("#recovery")){writeRecoveryDraft();return}
+ const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)
+});
 document.addEventListener("click",e=>{
  const s=draftSectionForElement(e.target);
  if(s&&e.target.closest("button")&&!e.target.closest("#saveSession,#saveGymWorkout,#saveCalWorkout,#saveKbWorkout,#saveRecovery")){
@@ -4108,9 +4261,9 @@ document.addEventListener("click",e=>{
  }
  queueUiDraftSave();
 });
-window.addEventListener("pagehide",persistUiDraft);
-window.addEventListener("beforeunload",persistUiDraft);
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")persistUiDraft()});
+window.addEventListener("pagehide",()=>{writeLogWorkspace();writeRecoveryDraft();persistUiDraft()});
+window.addEventListener("beforeunload",()=>{writeLogWorkspace();writeRecoveryDraft();persistUiDraft()});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){writeLogWorkspace();writeRecoveryDraft();persistUiDraft()}});
 
 openRecovery.addEventListener("click",()=>{recoveryDate.value=localISO(new Date());showView("recovery")});
 recoveryDate.addEventListener("change",loadRecoveryForm);
@@ -4141,7 +4294,12 @@ classCategory.addEventListener("change",renderClassLibrary);classSearch.addEvent
 recalcConditioning.addEventListener("click",()=>{renderWeek();renderSelectedWorkout();conditioningOverrideStatus.innerHTML="<strong>Recalculated.</strong> Recommendations now reflect all logs saved through today.";});
 logRestDay.addEventListener("click",()=>{const d=parseLocalISO(logDate.value);if(isNaN(d))return;markRestDay(logDate.value);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value="Recovery / Rest";loadPlannedSession();sessionNotes.value=sessionNotes.value||"Rest day";});
 
-toggleTools.addEventListener("click",()=>{state.settings.toolsHidden=!(state.settings.toolsHidden!==false);save();renderToolsVisibility();});
+toggleTools.addEventListener("click",()=>{setTimeout(()=>{
+ const details=document.getElementById("toolsDetails");
+ state.settings.toolsHidden=details?!details.open:false;
+ toolsChevron.textContent=details&&details.open?"Hide":"Show";
+ save("tools-toggle");
+},0)});
 conditioningCategory.addEventListener("change",renderConditioningLibrary);
 conditioningSearch.addEventListener("input",renderConditioningLibrary);
 saveTbMaxes.addEventListener("click",saveManualTbMaxes);
@@ -4155,9 +4313,9 @@ transitionMode.addEventListener("change",updateTransitionKbVisibility);
 blockReviewLater.addEventListener("click",()=>{blockReviewDismissedThisSession=true;closeBlockReview()});
 confirmBlockReview.addEventListener("click",confirmTransitionReview);
 
-loadPlan.addEventListener("click",()=>{loadPlannedSession();uiDraftDirty.log=true;persistUiDraft()});
-logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!isNaN(d)){const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession();uiDraftDirty.log=true;persistUiDraft()}});
-logSession.addEventListener("change",()=>{loadPlannedSession();uiDraftDirty.log=true;persistUiDraft()});
+loadPlan.addEventListener("click",()=>{loadPlannedSession();writeLogWorkspace()});
+logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!isNaN(d)){const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession();writeLogWorkspace()}});
+logSession.addEventListener("change",()=>{loadPlannedSession();writeLogWorkspace()});
 saveSession.addEventListener("click",()=>{
  const sessionId=Date.now().toString(),cards=[...plannedExercises.querySelectorAll(".log-exercise")];
  const wearableData=wearableSessionFormData();
@@ -4199,14 +4357,16 @@ saveSession.addEventListener("click",()=>{
  if(logSession.value==="Class / Activity"&&rows[0]){state.settings.classOverrides=state.settings.classOverrides||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides[logDate.value]=rows[0].exercise;state.settings.dayOverrides[logDate.value]="Class / Activity";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Generic Gym"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Generic Gym";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Calisthenics"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Calisthenics";state.settings.noRestDates[logDate.value]=true}
- save();render();
- saveMsg.classList.remove("hidden");saveMsg.textContent="Session saved with "+rows.length+" exercise entries.";clearWearableSessionForm();markUiDraftClean("log");
+ const stateOK=save("workout-session");
+ if(!stateOK){alert("This workout could not be verified in local storage. Keep the app open and export your data before refreshing.");return}
+ clearLogWorkspace();uiDraftDirty.log=false;render();
+ saveMsg.classList.remove("hidden");saveMsg.textContent="Session saved with "+rows.length+" exercise entries.";clearWearableSessionForm();
  setTimeout(()=>saveMsg.classList.add("hidden"),2500);
 });
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:10.3,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:12,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
@@ -4230,20 +4390,82 @@ exportCsv.addEventListener("click",()=>{
  download("hybrid-training-log.csv",csv,"text/csv")
 });
 importJson.addEventListener("click",()=>importFile.click());
-importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;state.logs=o.logs;state.dailyRecovery=o.dailyRecovery||{};state.wearableSessions=o.wearableSessions||{};state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
+importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;state.logs=o.logs;state.dailyRecovery=o.dailyRecovery||{};replaceRecoveryJournal(state.dailyRecovery);state.wearableSessions=o.wearableSessions||{};state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
 calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;recoveryDate.value=localISO(new Date());render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();
+
+// One-time migration of valid v10.x unsaved drafts. Blank/corrupt drafts are ignored.
+try{
+ const legacyDraft=readUiDraft();
+ if(!readLogWorkspace()&&validLogWorkspace(legacyDraft?.log))localStorage.setItem(LOG_WORKSPACE_KEY,JSON.stringify(legacyDraft.log));
+ if(!readRecoveryDraft()&&validRecoveryDraft(legacyDraft?.recovery))localStorage.setItem(RECOVERY_DRAFT_KEY,JSON.stringify(legacyDraft.recovery));
+}catch(e){}
+
 const hadRestoredDraft=restoreUiDraft();
 if(!hadRestoredDraft)restoreLastView();
-if(document.querySelector(".view.active")?.id==="log"){
- const savedLogDraft=readUiDraft();
- if(!(savedLogDraft?.dirty?.log&&savedLogDraft.log)){
-   setLogDefaults();
- }
- uiDraftDirty.log=true;
- persistUiDraft();
+else{
+ const activeNow=document.querySelector(".view.active")?.id;
+ if(activeNow==="log")restorePersistentLogWorkspace();
+ if(activeNow==="recovery"){if(!restorePersistentRecoveryDraft())loadRecoveryForm()}
 }
 })();
 
 </script>
+
+<script>
+(function(){
+  const KEYS={
+    primary:"hybridTrainingDashboardV4",
+    backup:"hybridTrainingDashboardV4Backup",
+    legacy:"hybridTrainingDashboardV3",
+    recovery:"hybridTrainingRecoveryJournalV1",
+    logDraft:"hybridTrainingLogWorkspaceV1",
+    recoveryDraft:"hybridTrainingRecoveryDraftV1",
+    uiDraft:"hybridTrainingUiDraftV2",
+    lastView:"hybridTrainingLastViewV2"
+  };
+  function parse(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+  function score(o){
+    if(!o||!o.settings||!Array.isArray(o.logs))return -1;
+    let n=o.logs.length*1000+Object.keys(o.dailyRecovery||{}).length*500+Object.keys(o.wearableSessions||{}).length*100;
+    const s=o.settings||{};
+    ["tbOverrides","pullupBlockPlan","kbCustomWorkouts","dayOverrides","noRestDates","genericGymWorkouts","classOverrides","blockReviews","recoveryWeekStarts","calisthenicsWorkouts"].forEach(k=>n+=Object.keys(s[k]||{}).length*20);
+    return n;
+  }
+  function recoveryScore(r){return r&&typeof r==="object"?Object.entries(r).filter(([k,v])=>k!=="_savedAt"&&v!==""&&v!==null&&v!==undefined).length:-1}
+  function mergedRecovery(states,journal){
+    const out={};
+    [...states.map(x=>x?.dailyRecovery||{}),journal||{}].forEach(src=>Object.entries(src||{}).forEach(([d,r])=>{
+      if(!r||typeof r!=="object")return;
+      const e=out[d],et=Number(e?._savedAt)||0,rt=Number(r._savedAt)||0;
+      if(!e||(rt&&rt>=et)||(!et&&!rt&&recoveryScore(r)>recoveryScore(e)))out[d]=JSON.parse(JSON.stringify(r));
+    }));
+    return out;
+  }
+  window.hybridEmergencyExport=function(){
+    try{
+      const all={exportedAt:new Date().toISOString(),location:location.href,storage:{}};
+      for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("hybridTraining"))all.storage[k]=localStorage.getItem(k)}
+      const blob=new Blob([JSON.stringify(all,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+      a.href=url;a.download="hybrid-training-emergency-storage-backup.json";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(e){alert("Emergency backup failed: "+e.message)}
+  };
+  window.hybridRecoverLocalData=function(){
+    try{
+      const current=parse(KEYS.primary),backup=parse(KEYS.backup),legacy=parse(KEYS.legacy);
+      const candidates=[current,backup,legacy].filter(x=>score(x)>=0);
+      if(!candidates.length){alert("No valid saved training-state record was found in local storage.");return}
+      const best=candidates.slice().sort((a,b)=>score(b)-score(a))[0],recovery=mergedRecovery(candidates,parse(KEYS.recovery));
+      best.dailyRecovery=recovery;
+      const currentRaw=localStorage.getItem(KEYS.primary)||localStorage.getItem(KEYS.legacy);
+      if(currentRaw)localStorage.setItem(KEYS.backup,currentRaw);
+      const payload=JSON.stringify(best);
+      if(!confirm("Recover the richest saved local version found on this device? A backup of the current state will be kept first."))return;
+      localStorage.setItem(KEYS.primary,payload);localStorage.setItem(KEYS.legacy,payload);localStorage.setItem(KEYS.recovery,JSON.stringify(recovery));
+      alert("Local saved data recovered. The app will reload now.");location.reload();
+    }catch(e){alert("Recovery failed: "+e.message)}
+  };
+})();
+</script>
+
 </body>
 </html>
