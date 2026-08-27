@@ -442,6 +442,13 @@ summary.tools-toggle::-webkit-details-marker{display:none}
  .history-session-head,.completed-session-line{align-items:stretch;flex-direction:column}
  .history-session-actions .btn,.completed-session-line .btn{width:100%}
 }
+
+/* v16 COMPLETE WORKOUT FLOW */
+#plannedExercises:empty::before{
+ content:"Ready for the next workout. Choose a Session above to load a plan, or tap + Add Exercise to build it manually.";
+ display:block;border:1px dashed #36506b;border-radius:12px;padding:14px;margin:8px 0 10px;
+ color:var(--muted);font-size:.78rem;line-height:1.45;background:#0d1721;
+}
 </style>
 </head>
 <body>
@@ -552,7 +559,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
   <section id="log" class="view">
     <div class="panel">
       <div class="panel-head">
-        <div><div class="panel-title">Log Workout</div><div class="panel-sub">The selected day controls the fields. Strength days ask for sets, reps, load, RPE, technique, and feel. Conditioning days ask for the metrics that actually matter—distance, time, heart rate, pace/speed, elevation, or interval details. Unsaved entries autosave locally as a draft, so a refresh or app close will reopen them where you left off.</div></div>
+        <div><div class="panel-title">Log Workout</div><div class="panel-sub">The selected day controls the fields. Strength days ask for sets, reps, load, RPE, technique, and feel. Conditioning days ask for the metrics that actually matter—distance, time, heart rate, pace/speed, elevation, or interval details. Unsaved entries autosave locally as a draft. Complete Workout saves the finished session to History, then clears this screen so it is ready for another workout the same day.</div></div>
       </div>
       <div class="log-toolbar">
         <div class="field"><label>Date</label><input type="date" id="logDate"></div>
@@ -594,7 +601,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
       </div>
       <div id="sessionEditBanner" class="notice hidden" style="margin-bottom:8px"></div>
       <div class="inline-actions session-save-actions">
-        <button class="btn primary" id="saveSession" type="button">Save Entire Session</button>
+        <button class="btn primary" id="saveSession" type="button">Complete Workout</button>
         <button class="btn hidden" id="cancelSessionEdit" type="button">Cancel Editing</button>
       </div>
       <div id="sessionSaveStatus" class="notice hidden" style="margin-top:8px"></div>
@@ -1054,7 +1061,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v15</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v16</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -3281,6 +3288,7 @@ function populateSessionOptions(){
 }
 
 function appendAdditionalLogExercise(){
+ blankNextWorkout=false;
  const d=document.createElement("div");d.className="log-exercise";d.dataset.conditioning="0";
  d.innerHTML='<div class="log-title"><div><strong>Additional Exercise</strong><div class="planned">Add any extra exercise performed in this session</div></div></div>'+
  '<div class="log-grid"><div class="field"><label>Exercise</label><select class="le-ex">'+buildExerciseSelect("",logDate.value)+'</select><input class="le-custom hidden" placeholder="Custom exercise"></div>'+
@@ -3313,6 +3321,7 @@ function wireExerciseCompletionState(card){
 }
 
 function loadPlannedSession(){
+ blankNextWorkout=false;
  const gw=Math.max(1,Math.floor(Number(logWeek.value)||1)),session=logSession.value,plan=planFor(session,gw);plannedExercises.innerHTML="";
  plan.forEach((x,i)=>{
   const d=document.createElement("div");d.className="log-exercise";d.dataset.i=i;d.dataset.conditioning=x.conditioning?"1":"0";
@@ -3366,6 +3375,29 @@ function loadPlannedSession(){
   if(d.dataset.conditioning!=="1")wireLogPlateVisual(d);
  });
 }
+function resetLogForNextWorkout(dateISO){
+ const d=parseLocalISO(dateISO),tw=!isNaN(d)?trainingWeekForDate(d):state.settings.currentWeek;
+ setSessionEditMode("");blankNextWorkout=true;
+ logDate.value=dateISO||localISO(new Date());
+ logWeek.value=tw>=1?tw:state.settings.currentWeek;
+ logSession.value="Other";
+ plannedExercises.innerHTML="";
+ sessionFeel.value="";sessionNotes.value="";clearWearableSessionForm();
+ if(sessionSaveStatus){
+   sessionSaveStatus.classList.remove("hidden");
+   sessionSaveStatus.innerHTML="<strong>Workout completed and saved to History.</strong> Ready for the next workout. Choose a session type or tap + Add Exercise.";
+ }
+ saveSession.disabled=false;saveSession.textContent="Complete Workout";
+ writeLogWorkspace();
+ window.scrollTo({top:0,behavior:"auto"});
+
+ // Update all completed-session displays without making navigation part of completion.
+ setTimeout(()=>{
+   try{renderHistory()}catch(e){}
+   try{renderWeek();renderSelectedWorkout()}catch(e){}
+ },0);
+}
+
 function finishSavedSession(sessionId,sessionName,date,rowCount,action="saved"){
  // Saving is already committed before this runs. History navigation must not
  // depend on the rest of the dashboard rendering successfully.
@@ -4060,6 +4092,7 @@ function syncSettings(){currentWeek.value=state.settings.currentWeek;squatTm.val
 const UI_DRAFT_KEY="hybridTrainingUiDraftV2";
 const LOG_WORKSPACE_KEY="hybridTrainingLogWorkspaceV1";
 let editingSessionId="";
+let blankNextWorkout=false;
 const RECOVERY_DRAFT_KEY="hybridTrainingRecoveryDraftV1";
 
 let uiDraftRestoreInProgress=false,uiDraftTimer=null;
@@ -4094,7 +4127,7 @@ function classFieldValues(root,prefix){
 }
 function captureLogDraft(){
  return {
-   date:logDate.value,week:logWeek.value,session:logSession.value,editingSessionId:editingSessionId||"",
+   date:logDate.value,week:logWeek.value,session:logSession.value,editingSessionId:editingSessionId||"",blankNext:!!blankNextWorkout,
    sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,
    wearable:Object.fromEntries(Object.entries(wearableSessionElements()).map(([k,el])=>[k,el?el.value:""])),
    cards:[...plannedExercises.querySelectorAll(".log-exercise")].map(c=>({
@@ -4164,7 +4197,7 @@ function setSelectDraftValue(sel,value,customInput){
 function setSessionEditMode(sessionId=""){
  editingSessionId=sessionId||"";
  const editing=!!editingSessionId;
- saveSession.textContent=editing?"Save Changes":"Save Entire Session";
+ saveSession.textContent=editing?"Save Changes":"Complete Workout";
  cancelSessionEdit.classList.toggle("hidden",!editing);
  sessionEditBanner.classList.toggle("hidden",!editing);
  if(editing){
@@ -4239,6 +4272,7 @@ function appendSavedExerciseCard(row){
 function openSavedSessionForEdit(sessionId){
  const rows=state.logs.filter(x=>x.sessionId===sessionId);if(!rows.length){alert("That saved session could not be found.");return}
  const first=rows[0];editingSessionId=sessionId;
+ blankNextWorkout=false;
  showView("log");
  logDate.value=first.date||localISO(new Date());logWeek.value=first.week||state.settings.currentWeek;
  if([...logSession.options].some(o=>o.value===first.session||o.text===first.session))logSession.value=first.session;
@@ -4258,9 +4292,11 @@ function restoreLogDraft(d){
  if(d.date)logDate.value=d.date;
  if(d.week)logWeek.value=d.week;
  if(d.session&&[...logSession.options].some(o=>o.value===d.session||o.text===d.session))logSession.value=d.session;
- loadPlannedSession();
+ blankNextWorkout=!!d.blankNext;
+ if(blankNextWorkout)plannedExercises.innerHTML="";
+ else loadPlannedSession();
  const stored=d.cards||[],getCards=()=>[...plannedExercises.querySelectorAll(".log-exercise")];
- while(getCards().length<stored.length)appendAdditionalLogExercise();
+ if(!blankNextWorkout)while(getCards().length<stored.length)appendAdditionalLogExercise();
  stored.forEach((src,i)=>{
    const card=getCards()[i];if(!card)return;
    const f=src.fields||{},sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");
@@ -4310,7 +4346,7 @@ function restorePersistentLogWorkspace(){
  if(d){
    try{
      restoreLogDraft(d);
-     if(!logDate.value||!logWeek.value||!logSession.value||!plannedExercises.children.length)throw new Error("Restored Log workspace was incomplete");
+     if(!logDate.value||!logWeek.value||!logSession.value||(!d.blankNext&&!plannedExercises.children.length))throw new Error("Restored Log workspace was incomplete");
      writeLogWorkspace();
      return true;
    }catch(e){window.__hybridLogRestoreError=String(e&&e.message||e)}
@@ -4457,7 +4493,7 @@ function showView(id){
  if(!uiDraftRestoreInProgress)queueUiDraftSave();
 }
 function setLogDefaults(){
- setSessionEditMode("");
+ setSessionEditMode("");blankNextWorkout=false;
  const d=new Date();logDate.value=localISO(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;
  const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=tw>=1?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw,logDate.value);clearWearableSessionForm();loadPlannedSession();
 }
@@ -4636,7 +4672,7 @@ saveSession.addEventListener("click",()=>{
    return base;
  }).filter(x=>x.exercise);
  if(!rows.length){
-   saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Save Entire Session";
+   saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Complete Workout";
    alert("There are no exercise entries to save.");return;
  }
 
@@ -4657,7 +4693,7 @@ saveSession.addEventListener("click",()=>{
  const stateOK=save(isEditing?"workout-session-edit":"workout-session");
  if(!stateOK){
    state.logs=previousLogs;state.wearableSessions=previousWearable;
-   saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Save Entire Session";
+   saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Complete Workout";
    if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>Save not verified.</strong> Your entered workout is still open.";
    alert("This workout could not be verified in local storage. Your entered workout has been kept open.");return;
  }
@@ -4666,21 +4702,26 @@ saveSession.addEventListener("click",()=>{
  const committedRows=(committed?.logs||[]).filter(x=>x.sessionId===sessionId);
  if(committedRows.length!==rows.length){
    state.logs=previousLogs;state.wearableSessions=previousWearable;save("workout-session-rollback");
-   saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Save Entire Session";
+   saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Complete Workout";
    if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>Save not verified.</strong> Your entered workout is still open.";
    alert("The workout write could not be verified. The previous saved version was restored and your editor remains open.");return;
  }
 
  const finishedSessionName=logSession.value,finishedDate=logDate.value,wasEditing=isEditing;
- clearLogWorkspace();uiDraftDirty.log=false;clearWearableSessionForm();setSessionEditMode("");
- if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>"+(wasEditing?"Changes saved and verified.":"Saved and verified.")+"</strong> Opening History…";
- saveSession.disabled=false;saveSession.textContent="Save Entire Session";
- finishSavedSession(sessionId,finishedSessionName,finishedDate,rows.length,wasEditing?"updated":"saved");
+ clearLogWorkspace();uiDraftDirty.log=false;
+ if(wasEditing){
+   clearWearableSessionForm();setSessionEditMode("");
+   if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>Changes saved and verified.</strong> Opening History…";
+   saveSession.disabled=false;saveSession.textContent="Complete Workout";
+   finishSavedSession(sessionId,finishedSessionName,finishedDate,rows.length,"updated");
+ }else{
+   resetLogForNextWorkout(finishedDate);
+ }
 });
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:15,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:16,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
