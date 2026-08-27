@@ -516,7 +516,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
   <section id="log" class="view">
     <div class="panel">
       <div class="panel-head">
-        <div><div class="panel-title">Log Workout</div><div class="panel-sub">The selected day controls the fields. Strength days ask for sets, reps, load, RPE, technique, and feel. Conditioning days ask for the metrics that actually matter—distance, time, heart rate, pace/speed, elevation, or interval details.</div></div>
+        <div><div class="panel-title">Log Workout</div><div class="panel-sub">The selected day controls the fields. Strength days ask for sets, reps, load, RPE, technique, and feel. Conditioning days ask for the metrics that actually matter—distance, time, heart rate, pace/speed, elevation, or interval details. Unsaved entries autosave locally as a draft, so a refresh or app close will reopen them where you left off.</div></div>
       </div>
       <div class="log-toolbar">
         <div class="field"><label>Date</label><input type="date" id="logDate"></div>
@@ -1005,7 +1005,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v9</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v10</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -2949,7 +2949,7 @@ function planFor(session,gw){
 
 const recoveryFieldMap={sleepHours:"recSleepHours",sleepScore:"recSleepScore",hrv:"recHrv",restingHr:"recRestingHr",wakeBio:"recWakeBio",currentBio:"recCurrentBio",stress:"recStress",spo2:"recSpo2",steps:"recSteps",vo2:"recVo2",notes:"recNotes"};
 function loadRecoveryForm(){const date=recoveryDate.value||localISO(new Date());recoveryDate.value=date;const row=dailyRecoveryFor(date)||{};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const el=document.getElementById(id);el.value=row[key]??""});recoveryAnalysis.innerHTML=recoveryAnalysisText(date)}
-function saveRecoveryForm(){const date=recoveryDate.value||localISO(new Date()),row={};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const v=document.getElementById(id).value;if(key==="notes")row[key]=v.trim();else if(v!=="")row[key]=Number(v)});state.dailyRecovery=state.dailyRecovery||{};state.dailyRecovery[date]=row;save();render();loadRecoveryForm()}
+function saveRecoveryForm(){const date=recoveryDate.value||localISO(new Date()),row={};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const v=document.getElementById(id).value;if(key==="notes")row[key]=v.trim();else if(v!=="")row[key]=Number(v)});state.dailyRecovery=state.dailyRecovery||{};state.dailyRecovery[date]=row;save();render();loadRecoveryForm();markUiDraftClean("recovery")}
 function clearRecoveryFormDate(){const date=recoveryDate.value;if(date&&(state.dailyRecovery||{})[date])delete state.dailyRecovery[date];save();render();loadRecoveryForm()}
 function renderRecoverySnapshot(){const date=localISO(new Date()),sig=wearableRecoverySignals(date),c=sig.current,label=recoveryReadinessLabel(sig);recoveryReadiness.textContent=label;recoveryReadiness.className=sig.level==="guard"?"recovery-readiness-guard":sig.level==="watch"?"recovery-readiness-watch":"recovery-readiness-good";recoverySleep.textContent=c&&numericOrNull(c.sleepHours)!==null?Number(c.sleepHours).toFixed(1)+" h":"—";recoveryHrv.textContent=c&&numericOrNull(c.hrv)!==null?Math.round(Number(c.hrv))+" ms":"—";recoveryRhr.textContent=c&&numericOrNull(c.restingHr)!==null?Math.round(Number(c.restingHr))+" bpm":"—";recoveryBio.textContent=c&&numericOrNull(c.wakeBio)!==null?Math.round(Number(c.wakeBio)):"—";if(!c)recoverySnapshotSub.textContent="No Helio recovery data logged for today.";else if(sig.reasons.length)recoverySnapshotSub.textContent=sig.reasons.slice(0,2).join(" • ");else recoverySnapshotSub.textContent="Today's wearable data is within your established range."}
 function renderRecoveryHistory(){const rows=Object.entries(state.dailyRecovery||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,21);recoveryHistoryBody.innerHTML=rows.length?rows.map(([date,x])=>{const s=wearableRecoverySignals(date),lbl=recoveryReadinessLabel(s);return "<tr><td>"+date+"</td><td>"+(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+(x.hrv??"")+"</td><td>"+(x.restingHr??"")+"</td><td>"+(x.wakeBio??"")+"</td><td>"+(x.stress??"")+"</td><td>"+(x.steps??"")+"</td><td>"+lbl+"</td></tr>"}).join(""):'<tr><td colspan="8"><div class="empty">No daily Helio recovery entries yet.</div></td></tr>';const sessions=Object.values(state.wearableSessions||{}).filter(Boolean).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,20);wearableSessionHistoryBody.innerHTML=sessions.length?sessions.map(x=>"<tr><td>"+(x.date||"")+"</td><td>"+(x.session||"")+"</td><td>"+(x.duration||"")+(x.duration?" min":"")+"</td><td>"+(x.avgHr||"")+" / "+(x.maxHr||"")+"</td><td>"+(x.trainingLoad||"")+"</td><td>"+(x.aerobicTe||"")+" / "+(x.anaerobicTe||"")+"</td><td>"+(x.hrRecovery||"")+(x.hrRecovery?" bpm":"")+"</td><td>"+(x.recoveryHours||"")+(x.recoveryHours?" h":"")+"</td></tr>").join(""):'<tr><td colspan="8"><div class="empty">No Helio workout summaries logged yet.</div></td></tr>'}
@@ -3178,7 +3178,7 @@ function saveKbBuilder(){
  if(!rows.length){alert("Add at least one exercise.");return}
  state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.kbCustomWorkouts[String(block)]=state.settings.kbCustomWorkouts[String(block)]||{};
  state.settings.kbCustomWorkouts[String(block)][slot]={name:kbWorkoutName.value.trim()||"Custom "+slot,rows};save();render();
- kbAdaptiveStatus.innerHTML="<strong>Saved.</strong> This block now uses your custom "+slot+" workout. Blank Manual kg fields remain adaptive.";
+ kbAdaptiveStatus.innerHTML="<strong>Saved.</strong> This block now uses your custom "+slot+" workout. Blank Manual kg fields remain adaptive.";markUiDraftClean("kb");
 }
 function resetKbBuilder(){
  const block=Math.max(1,Math.floor(Number(kbBuilderBlock.value)||1)),slot=kbBuilderSlot.value;
@@ -3410,7 +3410,7 @@ function saveGymBuilder(){
  const rows=[...gymBuilderRows.querySelectorAll(".gym-builder-row")].map(d=>{const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom");return {exercise:sel.value==="__custom__"?custom.value.trim():sel.value,sets:d.querySelector(".gym-row-sets").value,reps:d.querySelector(".gym-row-reps").value,manualLb:d.querySelector(".gym-row-lb").value,loadScale:Number(d.dataset.loadScale)||1}}).filter(x=>x.exercise);
  if(!rows.length){alert("Build or add at least one exercise.");return}
  state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.genericGymWorkouts[date]={name:gymWorkoutName.value.trim()||"Generic Gym",profile,rows};setGenericGymDay(date);
- selectedDateISO=date;const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;save();render();gymAdaptiveStatus.innerHTML="<strong>Saved.</strong> The workout is on "+date+". All exercise, set, rep, and weight fields remain editable.";
+ selectedDateISO=date;const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;save();render();gymAdaptiveStatus.innerHTML="<strong>Saved.</strong> The workout is on "+date+". All exercise, set, rep, and weight fields remain editable.";markUiDraftClean("gym");
 }
 function clearGymBuilder(){
  const date=gymBuilderDate.value||selectedDateISO;if((state.settings.genericGymWorkouts||{})[date])delete state.settings.genericGymWorkouts[date];
@@ -3584,7 +3584,7 @@ function saveCalBuilder(){
  setCalisthenicsDay(date);selectedDateISO=date;
  const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;
  save();render();
- calAdaptiveStatus.innerHTML="<strong>Saved.</strong> This calisthenics workout is now on "+date+".";
+ calAdaptiveStatus.innerHTML="<strong>Saved.</strong> This calisthenics workout is now on "+date+".";markUiDraftClean("cal");
 }
 function clearCalBuilder(){const date=calBuilderDate.value||selectedDateISO;if((state.settings.calisthenicsWorkouts||{})[date])delete state.settings.calisthenicsWorkouts[date];if((state.settings.dayOverrides||{})[date]==="Calisthenics")delete state.settings.dayOverrides[date];save();render();loadCalBuilder()}
 function renderCalLibrary(){
@@ -3750,6 +3750,209 @@ function confirmTransitionReview(){
 }
 
 function syncSettings(){currentWeek.value=state.settings.currentWeek;squatTm.value=state.settings.squatTm;rowTm.value=state.settings.rowTm;chestTm.value=state.settings.chestTm;inclineTm.value=state.settings.inclineTm;deadliftTm.value=state.settings.deadliftTm||325;squatInc.value=state.settings.squatInc;otherInc.value=state.settings.otherInc}
+
+const UI_DRAFT_KEY="hybridTrainingUiDraftV2";
+let uiDraftRestoreInProgress=false,uiDraftTimer=null;
+let uiDraftDirty={log:false,gym:false,cal:false,kb:false,recovery:false};
+
+function readUiDraft(){
+ try{return JSON.parse(localStorage.getItem(UI_DRAFT_KEY)||"null")}catch(e){return null}
+}
+function draftSectionForElement(el){
+ if(!el||!el.closest)return "";
+ if(el.closest("#log"))return "log";
+ if(el.closest("#gymworkouts"))return "gym";
+ if(el.closest("#calisthenics"))return "cal";
+ if(el.closest("#kbworkouts"))return "kb";
+ if(el.closest("#recovery"))return "recovery";
+ return "";
+}
+function markUiDraftDirty(section){
+ if(uiDraftRestoreInProgress||!section)return;
+ uiDraftDirty[section]=true;queueUiDraftSave();
+}
+function markUiDraftClean(section){
+ uiDraftDirty[section]=false;persistUiDraft();
+}
+function classFieldValues(root,prefix){
+ const out={};
+ root.querySelectorAll("input,select,textarea").forEach(el=>{
+   const cls=[...el.classList].find(c=>c.startsWith(prefix));
+   if(cls)out[cls]=el.value;
+ });
+ return out;
+}
+function captureLogDraft(){
+ return {
+   date:logDate.value,week:logWeek.value,session:logSession.value,
+   sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,
+   wearable:{
+     duration:wearDuration.value,avgHr:wearAvgHr.value,maxHr:wearMaxHr.value,trainingLoad:wearTrainingLoad.value,
+     aerobicTe:wearAerobicTe.value,anaerobicTe:wearAnaerobicTe.value,hrRecovery:wearHrRecovery.value,
+     recoveryHours:wearRecoveryHours.value,calories:wearCalories.value,vo2:wearWorkoutVo2.value
+   },
+   cards:[...plannedExercises.querySelectorAll(".log-exercise")].map(c=>({
+     conditioning:c.dataset.conditioning||"0",fields:classFieldValues(c,"le-")
+   }))
+ };
+}
+function captureGymDraft(){
+ return {
+   date:gymBuilderDate.value,name:gymWorkoutName.value,profile:gymProfileFromControls(),
+   rows:[...gymBuilderRows.querySelectorAll(".gym-builder-row")].map(d=>{
+     const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom");
+     return {exercise:sel.value==="__custom__"?(custom.value||""):sel.value,custom:sel.value==="__custom__",
+       sets:d.querySelector(".gym-row-sets").value,reps:d.querySelector(".gym-row-reps").value,
+       manualLb:d.querySelector(".gym-row-lb").value,loadScale:Number(d.dataset.loadScale)||1};
+   })
+ };
+}
+function captureCalDraft(){
+ return {
+   date:calBuilderDate.value,name:calWorkoutName.value,profile:calProfileFromControls(),
+   rows:[...calBuilderRows.querySelectorAll(".cal-builder-row")].map(d=>({
+     exercise:d.querySelector(".cal-row-ex").value,sets:d.querySelector(".cal-row-sets").value,
+     reps:d.querySelector(".cal-row-reps").value,resistance:d.querySelector(".cal-row-resistance")?.value||""
+   }))
+ };
+}
+function captureKbDraft(){
+ return {
+   block:kbBuilderBlock.value,slot:kbBuilderSlot.value,name:kbWorkoutName.value,
+   rows:[...kbBuilderRows.querySelectorAll(".kb-builder-row")].map(d=>({
+     exercise:d.querySelector(".kb-row-ex").value,sets:d.querySelector(".kb-row-sets").value,
+     reps:d.querySelector(".kb-row-reps").value,manualKg:d.querySelector(".kb-row-kg").value
+   }))
+ };
+}
+function captureRecoveryDraft(){
+ const fields={};
+ Object.entries(recoveryFieldMap).forEach(([key,id])=>fields[key]=document.getElementById(id).value);
+ return {date:recoveryDate.value,fields};
+}
+function persistUiDraft(){
+ if(uiDraftRestoreInProgress)return;
+ const active=document.querySelector(".view.active")?.id||"dashboard";
+ const draft={
+   version:2,updatedAt:new Date().toISOString(),activeView:active,selectedDateISO,browseWeek,
+   scrollY:Math.max(0,window.scrollY||0),dirty:{...uiDraftDirty}
+ };
+ if(uiDraftDirty.log)draft.log=captureLogDraft();
+ if(uiDraftDirty.gym)draft.gym=captureGymDraft();
+ if(uiDraftDirty.cal)draft.cal=captureCalDraft();
+ if(uiDraftDirty.kb)draft.kb=captureKbDraft();
+ if(uiDraftDirty.recovery)draft.recovery=captureRecoveryDraft();
+ try{localStorage.setItem(UI_DRAFT_KEY,JSON.stringify(draft))}catch(e){}
+}
+function queueUiDraftSave(){
+ if(uiDraftRestoreInProgress)return;
+ clearTimeout(uiDraftTimer);uiDraftTimer=setTimeout(persistUiDraft,120);
+}
+function setSelectDraftValue(sel,value,customInput){
+ if(!sel)return;
+ const has=[...sel.options].some(o=>o.value===value);
+ if(has)sel.value=value;
+ else if([...sel.options].some(o=>o.value==="__custom__")){
+   sel.value="__custom__";if(customInput)customInput.value=value||"";
+ }
+}
+function restoreLogDraft(d){
+ if(!d)return;
+ if(d.date)logDate.value=d.date;
+ if(d.week)logWeek.value=d.week;
+ if(d.session&&[...logSession.options].some(o=>o.value===d.session||o.text===d.session))logSession.value=d.session;
+ loadPlannedSession();
+ const stored=d.cards||[],getCards=()=>[...plannedExercises.querySelectorAll(".log-exercise")];
+ while(getCards().length<stored.length)appendAdditionalLogExercise();
+ stored.forEach((src,i)=>{
+   const card=getCards()[i];if(!card)return;
+   const f=src.fields||{},sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");
+   if(f["le-ex"]!==undefined){
+     setSelectDraftValue(sel,f["le-ex"],custom);
+     if(f["le-custom"]!==undefined&&custom)custom.value=f["le-custom"];
+     sel?.dispatchEvent(new Event("change",{bubbles:false}));
+   }
+   Object.entries(f).forEach(([cls,val])=>{
+     if(cls==="le-ex"||cls==="le-custom")return;
+     const el=card.querySelector("."+cls);if(el)el.value=val;
+   });
+   if(custom&&f["le-custom"]!==undefined)custom.value=f["le-custom"];
+   syncExerciseCompletionState(card);
+ });
+ sessionFeel.value=d.sessionFeel||"";
+ sessionNotes.value=d.sessionNotes||"";
+ const w=d.wearable||{},wm={
+   duration:wearDuration,avgHr:wearAvgHr,maxHr:wearMaxHr,trainingLoad:wearTrainingLoad,
+   aerobicTe:wearAerobicTe,anaerobicTe:wearAnaerobicTe,hrRecovery:wearHrRecovery,
+   recoveryHours:wearRecoveryHours,calories:wearCalories,vo2:wearWorkoutVo2
+ };
+ Object.entries(wm).forEach(([k,el])=>el.value=w[k]??"");
+}
+function restoreGymDraft(d){
+ if(!d)return;
+ if(d.date)gymBuilderDate.value=d.date;
+ gymWorkoutName.value=d.name||"Generic Gym";
+ applyGymProfileToControls(d.profile||{});
+ gymBuilderRows.innerHTML="";
+ (d.rows||[]).forEach(r=>{
+   addGymBuilderRow({exercise:r.custom?"Dumbbell Curl":r.exercise,sets:r.sets,reps:r.reps,manualLb:r.manualLb,loadScale:r.loadScale});
+   const row=gymBuilderRows.lastElementChild;
+   if(r.custom&&row){
+     const sel=row.querySelector(".gym-row-ex"),custom=row.querySelector(".gym-row-custom");
+     sel.value="__custom__";custom.value=r.exercise||"";sel.dispatchEvent(new Event("change",{bubbles:false}));
+   }
+ });
+ wireGymMuscleSpecifics();
+}
+function restoreCalDraft(d){
+ if(!d)return;
+ if(d.date)calBuilderDate.value=d.date;
+ calWorkoutName.value=d.name||"Calisthenics";
+ applyCalProfileToControls(d.profile||{});
+ calBuilderRows.innerHTML="";
+ (d.rows||[]).forEach(addCalBuilderRow);
+ renderCalLibrary();
+}
+function restoreKbDraft(d){
+ if(!d)return;
+ if(d.block)kbBuilderBlock.value=d.block;
+ if(d.slot)kbBuilderSlot.value=d.slot;
+ kbWorkoutName.value=d.name||d.slot||"KB Workout";
+ kbBuilderRows.innerHTML="";
+ (d.rows||[]).forEach(addKbBuilderRow);
+ renderKbLibrary();
+}
+function restoreRecoveryDraft(d){
+ if(!d)return;
+ if(d.date)recoveryDate.value=d.date;
+ Object.entries(d.fields||{}).forEach(([key,val])=>{
+   const id=recoveryFieldMap[key],el=id?document.getElementById(id):null;
+   if(el)el.value=val??"";
+ });
+ recoveryAnalysis.innerHTML=recoveryAnalysisText(recoveryDate.value||localISO(new Date()));
+}
+function restoreUiDraft(){
+ const d=readUiDraft();if(!d)return false;
+ uiDraftRestoreInProgress=true;
+ try{
+   uiDraftDirty=Object.assign({log:false,gym:false,cal:false,kb:false,recovery:false},d.dirty||{});
+   if(d.selectedDateISO){
+     selectedDateISO=d.selectedDateISO;
+     browseWeek=Math.max(1,Number(d.browseWeek)||trainingWeekForDate(parseLocalISO(selectedDateISO))||1);
+     renderWeek();renderSelectedWorkout();
+   }
+   const view=document.getElementById(d.activeView)?d.activeView:"dashboard";
+   showView(view);
+   if(uiDraftDirty.log&&d.log)restoreLogDraft(d.log);
+   if(uiDraftDirty.gym&&d.gym)restoreGymDraft(d.gym);
+   if(uiDraftDirty.cal&&d.cal)restoreCalDraft(d.cal);
+   if(uiDraftDirty.kb&&d.kb)restoreKbDraft(d.kb);
+   if(uiDraftDirty.recovery&&d.recovery)restoreRecoveryDraft(d.recovery);
+   setTimeout(()=>window.scrollTo({top:Number(d.scrollY)||0,behavior:"auto"}),0);
+   return true;
+ }finally{uiDraftRestoreInProgress=false}
+}
+
 function showView(id){
  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view===id));document.getElementById(id).classList.add("active");
  if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}
@@ -3757,6 +3960,7 @@ function showView(id){
  if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}
  if(id==="recovery"){if(!recoveryDate.value)recoveryDate.value=localISO(new Date());loadRecoveryForm();renderRecoveryHistory()}
  if(id==="classes")renderClassLibrary();
+ if(!uiDraftRestoreInProgress)queueUiDraftSave();
 }
 function setLogDefaults(){
  const d=new Date();logDate.value=localISO(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;
@@ -3802,7 +4006,15 @@ if(navigator.storage&&navigator.storage.persist){
 updateStorageStatus();
 
 populateSessionOptions();
-quickLog.addEventListener("click",()=>{showView("log");setLogDefaults();window.scrollTo({top:0,behavior:"smooth"})});
+quickLog.addEventListener("click",()=>{
+ const d=readUiDraft();
+ showView("log");
+ if(d?.dirty?.log&&d.log){
+   uiDraftRestoreInProgress=true;
+   try{restoreLogDraft(d.log);uiDraftDirty.log=true}finally{uiDraftRestoreInProgress=false}
+ }else setLogDefaults();
+ window.scrollTo({top:0,behavior:"smooth"});
+});
 prevWeek.addEventListener("click",()=>{const d=addDays(parseLocalISO(selectedDateISO),-7);selectedDateISO=localISO(d);browseWeek=Math.max(1,trainingWeekForDate(d));renderWeek();renderSelectedWorkout()});
 nextWeek.addEventListener("click",()=>{const d=addDays(parseLocalISO(selectedDateISO),7);selectedDateISO=localISO(d);browseWeek=Math.max(1,trainingWeekForDate(d));renderWeek();renderSelectedWorkout()});
 jumpToday.addEventListener("click",()=>{
@@ -3820,6 +4032,20 @@ blockModeSelect.addEventListener("change",()=>{
 });
 
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
+document.addEventListener("input",e=>{const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)});
+document.addEventListener("change",e=>{const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)});
+document.addEventListener("click",e=>{
+ const s=draftSectionForElement(e.target);
+ if(s&&e.target.closest("button")&&!e.target.closest("#saveSession,#saveGymWorkout,#saveCalWorkout,#saveKbWorkout,#saveRecovery")){
+   const b=e.target.closest("button");
+   if(b.matches("#addLogExercise,#generateGymWorkout,#resetGymSelections,#addGymExercise,#clearGymWorkout,#generateCalWorkout,#resetCalSelections,#addCalExercise,#clearCalWorkout,#addKbExercise,#resetKbWorkout,#copyKbNextBlock,.gym-remove-row,.cal-remove-row,.kb-remove-row"))markUiDraftDirty(s);
+ }
+ queueUiDraftSave();
+});
+window.addEventListener("pagehide",persistUiDraft);
+window.addEventListener("beforeunload",persistUiDraft);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")persistUiDraft()});
+
 openRecovery.addEventListener("click",()=>{recoveryDate.value=localISO(new Date());showView("recovery")});
 recoveryDate.addEventListener("change",loadRecoveryForm);
 saveRecovery.addEventListener("click",saveRecoveryForm);
@@ -3908,13 +4134,13 @@ saveSession.addEventListener("click",()=>{
  if(logSession.value==="Generic Gym"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Generic Gym";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Calisthenics"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Calisthenics";state.settings.noRestDates[logDate.value]=true}
  save();render();
- saveMsg.classList.remove("hidden");saveMsg.textContent="Session saved with "+rows.length+" exercise entries.";clearWearableSessionForm();
+ saveMsg.classList.remove("hidden");saveMsg.textContent="Session saved with "+rows.length+" exercise entries.";clearWearableSessionForm();markUiDraftClean("log");
  setTimeout(()=>saveMsg.classList.add("hidden"),2500);
 });
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:9,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:10,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
@@ -3939,7 +4165,7 @@ exportCsv.addEventListener("click",()=>{
 });
 importJson.addEventListener("click",()=>importFile.click());
 importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;state.logs=o.logs;state.dailyRecovery=o.dailyRecovery||{};state.wearableSessions=o.wearableSessions||{};state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
-calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;recoveryDate.value=localISO(new Date());render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();setLogDefaults();
+calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;recoveryDate.value=localISO(new Date());render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();setLogDefaults();restoreUiDraft();
 })();
 
 </script>
