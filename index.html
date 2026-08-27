@@ -737,7 +737,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
 
   <section id="gymworkouts" class="view">
     <div class="panel">
-      <div class="panel-head"><div><div class="panel-title">Generic Gym Workout Builder</div><div class="panel-sub">Use a miscellaneous gym day anywhere in the calendar. Choose muscle groups, difficulty, rep style, duration, and equipment; the app builds sets, reps, and adaptive weights, then you can edit anything.</div></div></div>
+      <div class="panel-head"><div><div class="panel-title">Generic Gym Workout Builder</div><div class="panel-sub">Use a miscellaneous gym day anywhere in the calendar. Choose muscle groups, difficulty, rep style, duration, and equipment; the app builds a duration-aware, movement-diverse workout with sets, reps, and adaptive weights, then you can edit anything.</div></div></div>
       <div class="gym-builder-grid">
         <div class="field"><label>Date</label><input id="gymBuilderDate" type="date"></div>
         <div class="field"><label>Workout Name</label><input id="gymWorkoutName" placeholder="e.g. Biceps + shoulders"></div>
@@ -1061,7 +1061,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v18</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v19</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -3753,60 +3753,201 @@ function gymRepScheme(ex,p){
 function gymRecentFamilyStress(family,dateISO){
  let score=0;historyRowsBefore(dateISO,3).forEach(x=>{const fam=strengthFamilyForRow(x);if(!fam)return;const rel=gymRelationWeight(family,fam),q=gymRowQuality(x),r=numberRpe(x.rpe);if(rel>0)score+=rel*((q.bad||r>=9)?2:(r>=8?1:.5))});return score;
 }
+
+// Exercises that are essentially the same movement with a different implement
+// share one slot. The generator strongly prefers one exercise per slot.
+function gymMovementSlot(exercise){
+ const g=typeof exercise==="string"?gymExercise(exercise):exercise,n=String(g?.name||exercise||"").toLowerCase(),f=g?.family||"";
+ if(/lateral raise/.test(n))return "lateral_raise";
+ if(/front raise/.test(n))return "front_raise";
+ if(/reverse pec deck|rear-delt.*fly/.test(n))return "rear_delt_fly";
+ if(/face pull/.test(n))return "face_pull";
+ if(/push press|shoulder press|overhead press|arnold press/.test(n))return "overhead_press";
+
+ if(/incline.*(?:bench|press)/.test(n))return "incline_chest_press";
+ if(/close-grip/.test(n))return "triceps_compound_press";
+ if(/bench press|chest press|floor press/.test(n))return "flat_chest_press";
+ if(/low-to-high.*fly/.test(n))return "upper_chest_fly";
+ if(/pec deck|cable fly/.test(n))return "chest_fly";
+
+ if(/neutral-grip lat pulldown|lat pulldown/.test(n))return "lat_pulldown";
+ if(/straight-arm pulldown|pullover/.test(n))return "straight_arm_pulldown";
+ if(/chest-supported.*row/.test(n))return "chest_supported_row";
+ if(/one-arm.*row|single-arm cable row/.test(n))return "single_arm_row";
+ if(/seated row/.test(n))return "seated_row";
+ if(/high row/.test(n))return "high_row";
+ if(/pendlay row|barbell row/.test(n))return "unsupported_barbell_row";
+
+ if(/leg press|hack squat|pendulum squat/.test(n))return "machine_squat";
+ if(/front squat|back squat|goblet squat/.test(n))return "free_squat";
+ if(/reverse lunge/.test(n))return "reverse_lunge";
+ if(/bulgarian|split squat/.test(n))return "split_squat";
+ if(/step-up/.test(n))return "step_up";
+ if(/romanian deadlift/.test(n))return "rdl";
+ if(/conventional.*deadlift/.test(n))return "deadlift";
+ if(/good morning/.test(n))return "good_morning";
+ if(/hip thrust|pull-through/.test(n))return "hip_extension";
+ if(/back extension/.test(n))return "back_extension";
+ if(/leg curl/.test(n))return "leg_curl";
+ if(/leg extension/.test(n))return "leg_extension";
+ if(/abduction/.test(n))return "hip_abduction";
+ if(/adduction/.test(n))return "hip_adduction";
+ if(/kickback/.test(n))return "hip_kickback";
+ if(/standing calf/.test(n))return "standing_calf";
+ if(/seated calf/.test(n))return "seated_calf";
+
+ if(/hammer curl|rope hammer/.test(n))return "hammer_curl";
+ if(/incline.*curl/.test(n))return "lengthened_curl";
+ if(/preacher curl|concentration curl/.test(n))return "preacher_concentration_curl";
+ if(f==="biceps"&&/curl/.test(n))return "standard_curl";
+
+ if(/pushdown/.test(n))return "triceps_pushdown";
+ if(/overhead.*triceps/.test(n))return "overhead_triceps";
+ if(/skull crusher/.test(n))return "lying_triceps_extension";
+ if(/dip machine/.test(n))return "triceps_dip";
+
+ if(/wood chop/.test(n))return "wood_chop";
+ if(/pallof/.test(n))return "pallof_press";
+ if(/ab crunch/.test(n))return "ab_crunch";
+ if(/shrug/.test(n))return "shrug";
+ return f||n;
+}
+
+function gymDurationExerciseRange(duration){
+ const d=Number(duration)||60;
+ if(d<=25)return {min:3,target:3,max:4};
+ if(d<=35)return {min:4,target:4,max:5};
+ if(d<=50)return {min:5,target:6,max:6};
+ if(d<=65)return {min:6,target:7,max:8};
+ if(d<=80)return {min:7,target:8,max:9};
+ if(d<=100)return {min:8,target:9,max:10};
+ return {min:9,target:10,max:10};
+}
+function gymTargetExerciseCount(p){
+ const r=gymDurationExerciseRange(p.duration);let target=r.target;
+ // Easy sessions use fewer sets, so a little more exercise variety fits.
+ // Very-hard sessions use more sets/rest, so one fewer exercise can still fill the time.
+ if(p.difficulty==="easy")target++;
+ if(p.difficulty==="very hard")target--;
+ return Math.max(r.min,Math.min(r.max,target));
+}
+function gymExerciseTimeEstimate(ex,p,setsOverride=null){
+ const scheme=gymRepScheme(ex,p),sets=Math.max(1,Number(setsOverride??scheme.sets)||3),
+   isolation=["biceps","triceps","delts","rear_delts","chest_isolation","calves","core","hip_accessory","quads","hamstrings"].includes(ex.family);
+ let work=.72,rest=isolation?1.05:1.65,setup=isolation?1.25:1.75;
+ if(p.style==="high-rep"){work=.88;rest=isolation?.80:1.20}
+ if(p.style==="strength"){work=.58;rest=isolation?1.40:2.25}
+ if(p.difficulty==="easy")rest*=.90;
+ if(p.difficulty==="very hard")rest*=1.08;
+ // No rest interval is counted after the final set.
+ return setup+sets*work+Math.max(0,sets-1)*rest;
+}
+function gymEstimatedWorkoutMinutes(rows,p){
+ const exerciseMinutes=rows.reduce((sum,row)=>{const ex=gymExercise(row.exercise);return sum+(ex?gymExerciseTimeEstimate(ex,p,row.sets):5)},0);
+ // General warm-up / movement setup that is not represented as an exercise row.
+ return Math.round((exerciseMinutes+Math.min(7,Math.max(3,Number(p.duration)*.08)))*10)/10;
+}
+
 function buildGymWorkoutFromProfile(p,dateISO){
- const families=gymFamiliesFromProfile(p),requestedSubs=p.subfocus||[],focus=p.focus||[],availableAll=gymExerciseLibrary.filter(g=>gymAvailable(g.name)&&(!(p.equipment||[]).length||p.equipment.some(e=>g.equipment.includes(e))));
+ const families=gymFamiliesFromProfile(p),requestedSubs=p.subfocus||[],focus=p.focus||[],
+   availableAll=gymExerciseLibrary.filter(g=>gymAvailable(g.name)&&(!(p.equipment||[]).length||p.equipment.some(e=>g.equipment.includes(e))));
  const subsByParent={};requestedSubs.forEach(s=>{const parent=gymSubfocusParentMap[s];if(parent){subsByParent[parent]=subsByParent[parent]||[];subsByParent[parent].push(s)}});
 
- // Workout SELECTION is intentionally strict: an exercise must primarily belong to one
- // of the selected muscle groups. Relationships are NOT used to sneak related compound
- // lifts into the workout. Example: selecting only Triceps will not generate a standard
- // bench press just because bench also trains triceps.
+ // Selection remains strict to the chosen major muscle groups.
  const exerciseParents=g=>{
-   const out=[];
-   Object.entries(gymFocusFamilyMap).forEach(([parent,fs])=>{if(fs.includes(g.family))out.push(parent)});
-   return out;
+   const out=[];Object.entries(gymFocusFamilyMap).forEach(([parent,fs])=>{if(fs.includes(g.family))out.push(parent)});return out;
  };
  const allowedForSelection=g=>{
-   const parents=exerciseParents(g).filter(parent=>focus.includes(parent));
-   if(!parents.length)return false;
+   const parents=exerciseParents(g).filter(parent=>focus.includes(parent));if(!parents.length)return false;
    const tags=gymSubTargets(g);
-   return parents.some(parent=>{
-     const requested=subsByParent[parent]||[];
-     return !requested.length || requested.some(s=>tags.includes(s));
-   });
+   return parents.some(parent=>{const requested=subsByParent[parent]||[];return !requested.length||requested.some(s=>tags.includes(s))});
  };
+
  let available=availableAll.filter(allowedForSelection);
+ if(!available.length)available=availableAll.filter(g=>exerciseParents(g).some(parent=>focus.includes(parent)));
+ if(!available.length)return {name:"No available exercises",profile:p,rows:[],estimatedMinutes:0,targetCount:0};
 
- // If an ultra-specific combination has no exact exercise, relax only the sub-region
- // restriction while still keeping the selected MAJOR muscle groups strict.
- if(!available.length){
-   available=availableAll.filter(g=>exerciseParents(g).some(parent=>focus.includes(parent)));
- }
- if(!available.length)return {name:"No available exercises",profile:p,rows:[]};
-
- let count=Math.max(3,Math.min(10,Math.round(p.duration/10)));
- if(p.difficulty==="easy")count=Math.max(3,count-1);if(p.difficulty==="very hard")count=Math.min(10,count+1);
-
- const candidates=available.map(g=>{
-   const exact=families.includes(g.family),tags=gymSubTargets(g),subMatches=requestedSubs.filter(s=>tags.includes(s)).length;
-   // Related-family work is used here only as a FATIGUE penalty, never as a reason to
-   // select an exercise outside the requested muscle group.
-   let score=(exact?65:45)+subMatches*60-gymRecentFamilyStress(g.family,dateISO)*8;
+ const range=gymDurationExerciseRange(p.duration),targetCount=gymTargetExerciseCount(p);
+ const exactCandidate=(g,relaxed=false)=>{
+   const tags=gymSubTargets(g),subMatches=requestedSubs.filter(s=>tags.includes(s)).length,parents=exerciseParents(g).filter(parent=>focus.includes(parent));
+   let score=(families.includes(g.family)?65:45)+subMatches*60-gymRecentFamilyStress(g.family,dateISO)*8;
    if(g.equipment==="Machine")score+=1.5;
+   if(relaxed)score-=35; // duration fill from the same major muscle group, not an unrelated muscle.
    score+=tinyTie(dateISO+"|"+g.name)*2;
-   return {g,score};
- }).sort((a,b)=>b.score-a.score);
+   return {g,score,slot:gymMovementSlot(g),parents,relaxed};
+ };
 
- const selected=[],familyCounts={};
- for(const c of candidates){
-   if(selected.length>=count)break;
-   const fam=c.g.family,fc=familyCounts[fam]||0;
-   if(fc>=2&&selected.length<count-1)continue;
-   selected.push(c.g);familyCounts[fam]=fc+1;
+ let candidates=available.map(g=>exactCandidate(g,false));
+ // If narrow subfocus choices cannot provide enough non-redundant movements for the
+ // requested duration, broaden only within the already-selected major muscle groups.
+ const relaxedPool=availableAll
+   .filter(g=>exerciseParents(g).some(parent=>focus.includes(parent)))
+   .filter(g=>!available.some(a=>a.name===g.name))
+   .map(g=>exactCandidate(g,true));
+ candidates=candidates.concat(relaxedPool);
+
+ const selected=[],selectedNames=new Set(),usedSlots=new Set(),familyCounts={},parentCounts={};
+ focus.forEach(f=>parentCounts[f]=0);
+ const familyCap=Math.max(2,Math.ceil(targetCount/Math.max(1,focus.length)));
+
+ function addCandidate(c){
+   selected.push(c);selectedNames.add(c.g.name);usedSlots.add(c.slot);
+   familyCounts[c.g.family]=(familyCounts[c.g.family]||0)+1;
+   c.parents.forEach(parent=>parentCounts[parent]=(parentCounts[parent]||0)+1);
  }
- const rows=selected.map(g=>{const scheme=gymRepScheme(g,p);return {exercise:g.name,sets:scheme.sets,reps:scheme.reps,manualLb:"",loadScale:scheme.scale}});
+ function dynamicScore(c){
+   let score=c.score-(familyCounts[c.g.family]||0)*7;
+   if(c.parents.length){
+     const counts=c.parents.map(x=>parentCounts[x]||0),minAll=Math.min(...focus.map(x=>parentCounts[x]||0));
+     if(counts.some(v=>v===minAll))score+=16; // keep multi-muscle workouts balanced
+   }
+   return score;
+ }
+
+ // First pass: one exercise per movement slot. Machine/cable/DB versions of the
+ // same movement do not consume separate workout slots.
+ while(selected.length<targetCount){
+   const options=candidates
+     .filter(c=>!selectedNames.has(c.g.name)&&!usedSlots.has(c.slot)&&(familyCounts[c.g.family]||0)<familyCap)
+     .sort((a,b)=>dynamicScore(b)-dynamicScore(a));
+   if(!options.length)break;
+   addCandidate(options[0]);
+ }
+
+ // If family caps were the only thing preventing the requested count, relax the
+ // family cap while STILL keeping movement slots unique.
+ while(selected.length<targetCount){
+   const options=candidates
+     .filter(c=>!selectedNames.has(c.g.name)&&!usedSlots.has(c.slot))
+     .sort((a,b)=>dynamicScore(b)-dynamicScore(a));
+   if(!options.length)break;
+   addCandidate(options[0]);
+ }
+
+ let rows=selected.map(c=>{const scheme=gymRepScheme(c.g,p);return {exercise:c.g.name,sets:scheme.sets,reps:scheme.reps,manualLb:"",loadScale:scheme.scale}});
+
+ // If a very narrow focus genuinely has fewer distinct movements than the requested
+ // duration, add sets to the diverse movements rather than padding the workout with
+ // redundant implement swaps.
+ let estimated=gymEstimatedWorkoutMinutes(rows,p),setPass=0;
+ while(rows.length&&estimated<p.duration*.82&&setPass<30){
+   const i=setPass%rows.length,current=Number(rows[i].sets)||3;
+   if(current<5)rows[i].sets=current+1;
+   setPass++;
+   estimated=gymEstimatedWorkoutMinutes(rows,p);
+   if(rows.every(r=>(Number(r.sets)||3)>=5))break;
+ }
+
+ const diversityLimited=rows.length<range.min;
  const focusNames=((p.subfocus||[]).length?(p.subfocus||[]).map(x=>gymSubfocusLabels[x]||x):(p.focus||[]).map(x=>gymFocusLabels[x]||x)).join(" + ")||"Accessory";
- return {name:focusNames+" • "+(p.style==="high-rep"?"High Rep":p.style==="strength"?"Strength":"Moderate")+" • "+p.duration+" min",profile:p,rows};
+ return {
+   name:focusNames+" • "+(p.style==="high-rep"?"High Rep":p.style==="strength"?"Strength":"Moderate")+" • "+p.duration+" min",
+   profile:p,rows,estimatedMinutes:estimated,targetCount,
+   diversityLimited,
+   durationNote:diversityLimited
+     ?"The selected focus has only "+rows.length+" distinct movement patterns available, so sets were increased instead of adding redundant exercise variants."
+     :"Built around "+targetCount+" distinct movement patterns for a "+p.duration+"-minute session."
+ };
 }
 function gymAutoTargetForRow(row){
  const date=gymBuilderDate.value||selectedDateISO||localISO(new Date()),ex=gymExercise(row.exercise);if(!ex)return "";
@@ -3845,7 +3986,7 @@ function clearGymBuilder(){
 function generateGymFromSelections(){
  const date=gymBuilderDate.value||selectedDateISO||localISO(new Date()),p=gymProfileFromControls(),w=buildGymWorkoutFromProfile(p,date);
  gymWorkoutName.value=w.name;gymBuilderRows.innerHTML="";w.rows.forEach(addGymBuilderRow);
- gymAdaptiveStatus.innerHTML=w.rows.length?("<strong>Built:</strong> "+w.rows.length+" exercises • "+p.duration+" min • "+p.difficulty+" • "+(p.style==="high-rep"?"high reps / lighter":p.style==="strength"?"lower reps / heavier":"moderate reps / weight")+". Adaptive targets use your history and available equipment; edit anything before saving."):"<strong>No matching available exercises.</strong> Re-enable exercises in the library or broaden the equipment preference.";
+ gymAdaptiveStatus.innerHTML=w.rows.length?("<strong>Built:</strong> "+w.rows.length+" exercises • ~"+Math.round(w.estimatedMinutes||p.duration)+" min estimated • "+p.difficulty+" • "+(p.style==="high-rep"?"high reps / lighter":p.style==="strength"?"lower reps / heavier":"moderate reps / weight")+". "+(w.durationNote||"")+" Near-identical implement swaps are treated as the same movement slot. Adaptive targets use your history and available equipment; edit anything before saving."):"<strong>No matching available exercises.</strong> Re-enable exercises in the library or broaden the equipment preference.";
 }
 function renderGymLibrary(){
  const q=gymLibrarySearch.value.trim().toLowerCase(),availability=state.settings.gymAvailability||{};
@@ -4811,13 +4952,13 @@ function completeWorkout(){
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:18,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:19,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","graduated Normal/Caution/Guard recovery model","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:2,rules:["direct TB completion/RPE/feel/technique","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
   kettlebell:{type:"adaptive-per-exposure",version:2,rules:["direct performance strongest","detailed KB/gym/TB/calisthenics movement relationships","conservative family transfer","recovery gating","manual kg wins"]},
-  genericGym:{type:"adaptive-per-exposure",version:3,rules:["major and sub-muscle selection","difficulty/rep-style/duration/equipment builder","strict primary-muscle workout selection","related work still contributes to fatigue/progression","dumbbell range/increment","barbell plate loading","manual edits win"]},
+  genericGym:{type:"adaptive-per-exposure",version:4,rules:["duration-aware exercise count and time estimate","movement-slot diversity prevents redundant implement swaps","major and sub-muscle selection","difficulty/rep-style/duration/equipment builder","strict primary-muscle workout selection","related work still contributes to fatigue/progression","dumbbell range/increment","barbell plate loading","manual edits win"]},
   calisthenics:{type:"adaptive-bodyweight",version:1,rules:["pull-up-bar and exercise-band availability","push/pull/legs/core/full-body builder","direct reps/holds and RPE strongest","progression-chain difficulty selection","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","manual exercise/sets/reps edits win"]},
   blockTransition:{type:"six-week-review",version:1,rules:["first app open in an unreviewed new block","review schedule mode","review each TB TM","review pull-up progression","review KB plan","optional recovery/open pause week that does not consume a program week"]}
  },
