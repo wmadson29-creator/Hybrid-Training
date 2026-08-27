@@ -424,6 +424,24 @@ summary.tools-toggle::-webkit-details-marker{display:none}
 /* v13 REFRESH ROOT FIX */
 .log-plate-legend{margin:2px 0 10px;padding:0 2px}
 .log-exercise .log-visual-host:empty{display:none}
+
+/* v15 COMPLETED SESSION EDITING */
+.history-session-header td{background:#101a25;border-top:2px solid #31475f;padding:10px 8px}
+.history-session-head{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.history-session-meta{font-size:.75rem;color:var(--muted);margin-top:2px}
+.history-session-actions{display:flex;gap:6px;flex-wrap:wrap}
+.history-session-actions .btn{min-height:34px;padding:6px 10px}
+.day-logged{margin-top:6px;padding-top:5px;border-top:1px solid #27384a;font-size:.68rem;font-weight:850;color:var(--accent)}
+.completed-sessions-box{border:1px solid #2d4560;background:#0e1822;border-radius:12px;padding:10px;margin-bottom:10px}
+.completed-session-line{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #213246}
+.completed-session-line:last-child{border-bottom:0}
+.completed-session-name{font-size:.8rem;font-weight:900}
+.completed-session-meta{font-size:.69rem;color:var(--muted)}
+.session-save-actions{margin-top:0}
+@media(max-width:720px){
+ .history-session-head,.completed-session-line{align-items:stretch;flex-direction:column}
+ .history-session-actions .btn,.completed-session-line .btn{width:100%}
+}
 </style>
 </head>
 <body>
@@ -574,7 +592,12 @@ summary.tools-toggle::-webkit-details-marker{display:none}
           <div class="field"><label>Workout VO₂ max</label><input id="wearWorkoutVo2" type="number" min="0" step=".1"></div>
         </div>
       </div>
-      <button class="btn primary" id="saveSession" type="button">Save Entire Session</button>
+      <div id="sessionEditBanner" class="notice hidden" style="margin-bottom:8px"></div>
+      <div class="inline-actions session-save-actions">
+        <button class="btn primary" id="saveSession" type="button">Save Entire Session</button>
+        <button class="btn hidden" id="cancelSessionEdit" type="button">Cancel Editing</button>
+      </div>
+      <div id="sessionSaveStatus" class="notice hidden" style="margin-top:8px"></div>
       <div id="saveMsg" class="notice hidden"></div>
     </div>
   </section>
@@ -627,8 +650,9 @@ summary.tools-toggle::-webkit-details-marker{display:none}
   </section>
 
   <section id="history" class="view">
+    <div class="notice hidden" id="historySaveNotice"></div>
     <div class="panel">
-      <div class="panel-head"><div><div class="panel-title">Workout History</div><div class="panel-sub">Every exercise saved from completed sessions</div></div><button class="btn danger" id="clearLog">Clear Log</button></div>
+      <div class="panel-head"><div><div class="panel-title">Workout History</div><div class="panel-sub">Completed workouts are grouped by session. Edit Session reopens the whole saved workout without creating a duplicate.</div></div><button class="btn danger" id="clearLog">Clear Log</button></div>
       <div class="tablewrap"><table><thead><tr><th>Date</th><th>Session</th><th>Exercise</th><th>Actual</th><th>RPE</th><th>Feel</th><th>Technique</th><th>Notes</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div>
     </div>
   </section>
@@ -1030,7 +1054,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v13.1</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v15</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -1180,6 +1204,7 @@ const gymWorkoutName=document.getElementById("gymWorkoutName");
 const heroCurrent=document.getElementById("heroCurrent");
 const heroNext=document.getElementById("heroNext");
 const historyBody=document.getElementById("historyBody");
+const historySaveNotice=document.getElementById("historySaveNotice");
 const importFile=document.getElementById("importFile");
 const importJson=document.getElementById("importJson");
 const inclineTm=document.getElementById("inclineTm");
@@ -1227,6 +1252,9 @@ const saveKbWorkout=document.getElementById("saveKbWorkout");
 const saveMsg=document.getElementById("saveMsg");
 const saveRecovery=document.getElementById("saveRecovery");
 const saveSession=document.getElementById("saveSession");
+const cancelSessionEdit=document.getElementById("cancelSessionEdit");
+const sessionEditBanner=document.getElementById("sessionEditBanner");
+const sessionSaveStatus=document.getElementById("sessionSaveStatus");
 const saveSettings=document.getElementById("saveSettings");
 const saveTbMaxes=document.getElementById("saveTbMaxes");
 const selectedDateBadge=document.getElementById("selectedDateBadge");
@@ -3163,6 +3191,31 @@ function render(){
  renderWeek();renderSelectedWorkout();renderHistory();renderProgress();renderConditioningLibrary();renderTbMaxes();renderRecoverySnapshot();renderRecoveryHistory();renderToolsVisibility();syncSettings();
  setTimeout(maybeShowBlockReview,0);
 }
+
+function completedSessionGroupsForDate(dateISO){
+ const map=new Map();
+ state.logs.filter(x=>x.date===dateISO).forEach((row,index)=>{
+   const key=row.sessionId||("legacy:"+row.date+":"+row.session);
+   if(!map.has(key))map.set(key,{key,sessionId:row.sessionId||"",session:row.session,date:row.date,rows:[],firstIndex:index});
+   map.get(key).rows.push(row);
+ });
+ return [...map.values()];
+}
+function appendCompletedSessionsBox(dateISO){
+ const sessions=completedSessionGroupsForDate(dateISO);if(!sessions.length)return;
+ const box=document.createElement("div");box.className="completed-sessions-box";
+ box.innerHTML='<div style="font-size:.72rem;font-weight:950;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Completed on this date • '+sessions.length+' session'+(sessions.length===1?"":"s")+'</div>';
+ sessions.forEach(s=>{
+   const line=document.createElement("div");line.className="completed-session-line";
+   line.innerHTML='<div><div class="completed-session-name">'+s.session+'</div><div class="completed-session-meta">'+s.rows.length+' exercise entr'+(s.rows.length===1?"y":"ies")+'</div></div>';
+   const actions=document.createElement("div");actions.className="history-session-actions";
+   if(s.sessionId){const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent="Edit";edit.addEventListener("click",()=>openSavedSessionForEdit(s.sessionId));actions.appendChild(edit)}
+   const hist=document.createElement("button");hist.className="btn";hist.type="button";hist.textContent="History";hist.addEventListener("click",()=>{showView("history");renderHistory()});actions.appendChild(hist);
+   line.appendChild(actions);box.appendChild(line);
+ });
+ tbList.appendChild(box);
+}
+
 function renderWeek(){
  weekStrip.innerHTML="";
  const todayISO=localISO(new Date()),selected=parseLocalISO(selectedDateISO),start=mondayOf(selected),pause=isRecoveryPauseDate(start),programWeek=Math.max(1,trainingWeekForDate(start));
@@ -3183,7 +3236,9 @@ function renderWeek(){
    else if(session==="Recovery / Rest"){focus=pause?"Recovery week • rest/easy activity":"Recovery / rest day"}
    const d=document.createElement("button");d.type="button";d.className="day-card"+(iso===todayISO?" today":"")+(iso===selectedDateISO?" selected":"");
    d.setAttribute("aria-label",day+", "+date.toLocaleDateString("en-US",{month:"long",day:"numeric"})+", "+session);
-   d.innerHTML='<div class="day-name">'+day+'</div><div class="day-date">'+date.toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</div><div class="day-session">'+session+'</div><div class="day-focus">'+focus+'</div>';
+   const completed=completedSessionGroupsForDate(iso);
+   d.innerHTML='<div class="day-name">'+day+'</div><div class="day-date">'+date.toLocaleDateString("en-US",{month:"short",day:"numeric"})+'</div><div class="day-session">'+session+'</div><div class="day-focus">'+focus+'</div>'+
+     (completed.length?'<div class="day-logged">'+completed.length+' completed session'+(completed.length===1?'':'s')+'</div>':'');
    d.addEventListener("click",()=>{selectedDateISO=iso;browseWeek=Math.max(1,trainingWeekForDate(date));renderWeek();renderSelectedWorkout()});weekStrip.appendChild(d);
  });
  const selectedCard=weekStrip.querySelector(".day-card.selected");if(selectedCard)selectedCard.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
@@ -3211,7 +3266,7 @@ function renderSelectedWorkout(){
  if(gw<1){tbList.innerHTML='<div class="empty">This date is before Training Week 1.</div>';workoutTitle.textContent="Workout Prescription";tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});selectedDateBadge.textContent="Before plan";plateLegend.classList.add("hidden");return}
  const day=d.toLocaleDateString("en-US",{weekday:"long"}),session=expectedSession(day,gw,selectedDateISO),bi=blockInfo(gw),paused=isRecoveryPauseDate(d);
  workoutTitle.textContent=session;tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})+(paused?" • Recovery / Open Week • before Block "+(bi.block+1):" • Week "+gw+" • Block "+bi.block+" W"+bi.wib);
- selectedDateBadge.textContent=selectedDateISO===localISO(new Date())?"TODAY":"SELECTED DAY";plateLegend.classList.toggle("hidden",session!=="TB Maintenance");tbList.innerHTML="";
+ selectedDateBadge.textContent=selectedDateISO===localISO(new Date())?"TODAY":"SELECTED DAY";plateLegend.classList.toggle("hidden",session!=="TB Maintenance");tbList.innerHTML="";appendCompletedSessionsBox(selectedDateISO);
  if(session==="TB Maintenance"){getTBPlan(gw).forEach(appendExerciseCard);appendDayControls(session);return}
  if(session.startsWith("KB ")){getKbPlan(session,gw,selectedDateISO).forEach(appendExerciseCard);const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent="Edit This KB Workout";edit.addEventListener("click",()=>{kbBuilderBlock.value=bi.block;kbBuilderSlot.value=session;showView("kbworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
  if(session==="Generic Gym"){const plan=getGenericGymPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Generic Gym",meta:"No exercises saved yet",note:"Open the Gym tab and choose muscle groups, difficulty, duration, and equipment."});const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Generic Gym Workout":"Build Generic Gym Workout";edit.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
@@ -3311,16 +3366,64 @@ function loadPlannedSession(){
   if(d.dataset.conditioning!=="1")wireLogPlateVisual(d);
  });
 }
+function finishSavedSession(sessionId,sessionName,date,rowCount,action="saved"){
+ // Saving is already committed before this runs. History navigation must not
+ // depend on the rest of the dashboard rendering successfully.
+ try{
+   showView("history");
+ }catch(e){
+   document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+   document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.view==="history"));
+   document.getElementById("history")?.classList.add("active");
+   rememberLastView("history");
+ }
+ try{renderHistory()}catch(e){window.__hybridHistoryRenderError=String(e&&e.message||e)}
+ historySaveNotice.classList.remove("hidden");
+ historySaveNotice.innerHTML="<strong>Workout "+action+".</strong> "+sessionName+" • "+date+" • "+rowCount+" exercise entr"+(rowCount===1?"y":"ies")+".";
+ historySaveNotice.dataset.sessionId=sessionId;
+ window.scrollTo({top:0,behavior:"auto"});
+ setTimeout(()=>historySaveNotice.classList.add("hidden"),8000);
+
+ // Refresh the rest of the app only after the user has reached History.
+ // An unrelated dashboard/rendering bug cannot block save completion anymore.
+ setTimeout(()=>{
+   try{render()}catch(e){window.__hybridPostSaveRenderError=String(e&&e.message||e)}
+   try{renderHistory()}catch(e){}
+ },0);
+}
+
+function historySessionGroups(){
+ const groups=[],map=new Map();
+ state.logs.forEach((row,index)=>{
+   const key=row.sessionId||("legacy:"+row.date+":"+row.session);
+   if(!map.has(key)){const g={key,sessionId:row.sessionId||"",date:row.date,session:row.session,week:row.week,rows:[],indices:[]};map.set(key,g);groups.push(g)}
+   const g=map.get(key);g.rows.push(row);g.indices.push(index);
+ });
+ return groups;
+}
 function renderHistory(){
  historyBody.innerHTML="";
  if(!state.logs.length){historyBody.innerHTML='<tr><td colspan="9"><div class="empty">No workouts logged yet.</div></td></tr>';return}
- [...state.logs].reverse().forEach((x,ri)=>{
-   const idx=state.logs.length-1-ri,tr=document.createElement("tr");
-   const actual=(x.session==="Conditioning"||x.session==="Class / Activity") ? conditioningSummary(x) : ((x.sets||"")+" × "+(x.reps||"")+" • "+(x.weight||""));
-   tr.innerHTML='<td>'+x.date+'</td><td>'+x.session+'</td><td>'+x.exercise+'</td><td>'+actual+'</td><td>'+(x.rpe||"")+'</td><td>'+(x.feel||"")+'</td><td>'+(x.technique||"")+'</td><td>'+(x.notes||"")+'</td><td><button class="btn danger del" data-i="'+idx+'">Delete</button></td>';
-   historyBody.appendChild(tr)
+ historySessionGroups().reverse().forEach(g=>{
+   const header=document.createElement("tr");header.className="history-session-header";
+   const wearable=(g.sessionId&&(state.wearableSessions||{})[g.sessionId])||null;
+   const wearMeta=wearable?(" • "+(wearable.duration?wearable.duration+" min":"")+(wearable.avgHr?" • Avg HR "+wearable.avgHr:"")):"";
+   header.innerHTML='<td colspan="9"><div class="history-session-head"><div><strong>'+g.date+' • '+g.session+'</strong><div class="history-session-meta">'+g.rows.length+' exercise entr'+(g.rows.length===1?'y':'ies')+wearMeta+'</div></div>'+
+     '<div class="history-session-actions">'+(g.sessionId?'<button class="btn edit-session" data-session-id="'+g.sessionId+'">Edit Session</button>':'<span class="muted">Legacy session</span>')+'</div></div></td>';
+   historyBody.appendChild(header);
+   g.rows.forEach((x,j)=>{
+     const idx=g.indices[j],tr=document.createElement("tr");
+     const actual=(x.session==="Conditioning"||x.session==="Class / Activity")?conditioningSummary(x):((x.sets||"")+" × "+(x.reps||"")+" • "+(x.weight||""));
+     tr.innerHTML='<td></td><td></td><td>'+x.exercise+'</td><td>'+actual+'</td><td>'+(x.rpe||"")+'</td><td>'+(x.feel||"")+'</td><td>'+(x.technique||"")+'</td><td>'+(x.notes||"")+'</td><td><button class="btn danger del" data-i="'+idx+'">Delete</button></td>';
+     historyBody.appendChild(tr);
+   });
  });
- historyBody.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{const row=state.logs[+b.dataset.i],sid=row&&row.sessionId;state.logs.splice(+b.dataset.i,1);if(sid&&!state.logs.some(x=>x.sessionId===sid)&&state.wearableSessions)delete state.wearableSessions[sid];save();render()}));
+ historyBody.querySelectorAll(".edit-session").forEach(b=>b.addEventListener("click",()=>openSavedSessionForEdit(b.dataset.sessionId)));
+ historyBody.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{
+   const row=state.logs[+b.dataset.i],sid=row&&row.sessionId;state.logs.splice(+b.dataset.i,1);
+   if(sid&&!state.logs.some(x=>x.sessionId===sid)&&state.wearableSessions)delete state.wearableSessions[sid];
+   save("history-row-delete");renderHistory();renderWeek();renderSelectedWorkout();
+ }));
 }
 function renderProgress(){
  const start=Math.max(1,Math.floor(Number(state.settings.currentWeek)||1));
@@ -3956,6 +4059,7 @@ function syncSettings(){currentWeek.value=state.settings.currentWeek;squatTm.val
 
 const UI_DRAFT_KEY="hybridTrainingUiDraftV2";
 const LOG_WORKSPACE_KEY="hybridTrainingLogWorkspaceV1";
+let editingSessionId="";
 const RECOVERY_DRAFT_KEY="hybridTrainingRecoveryDraftV1";
 
 let uiDraftRestoreInProgress=false,uiDraftTimer=null;
@@ -3990,7 +4094,7 @@ function classFieldValues(root,prefix){
 }
 function captureLogDraft(){
  return {
-   date:logDate.value,week:logWeek.value,session:logSession.value,
+   date:logDate.value,week:logWeek.value,session:logSession.value,editingSessionId:editingSessionId||"",
    sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,
    wearable:Object.fromEntries(Object.entries(wearableSessionElements()).map(([k,el])=>[k,el?el.value:""])),
    cards:[...plannedExercises.querySelectorAll(".log-exercise")].map(c=>({
@@ -4056,6 +4160,99 @@ function setSelectDraftValue(sel,value,customInput){
    sel.value="__custom__";if(customInput)customInput.value=value||"";
  }
 }
+
+function setSessionEditMode(sessionId=""){
+ editingSessionId=sessionId||"";
+ const editing=!!editingSessionId;
+ saveSession.textContent=editing?"Save Changes":"Save Entire Session";
+ cancelSessionEdit.classList.toggle("hidden",!editing);
+ sessionEditBanner.classList.toggle("hidden",!editing);
+ if(editing){
+   const rows=state.logs.filter(x=>x.sessionId===editingSessionId),first=rows[0];
+   sessionEditBanner.innerHTML="<strong>Editing finished workout.</strong> "+(first?first.session+" • "+first.date:"")+" — Save Changes updates this existing session instead of creating a duplicate.";
+ }else sessionEditBanner.innerHTML="";
+}
+function savedRowIsConditioning(row){
+ return row&&(row.session==="Conditioning"||row.session==="Class / Activity"||Object.keys(row.metrics||{}).length>0);
+}
+const savedMetricClassMap={
+ distance:"le-distance",distanceUnit:"le-unit",time:"le-time",avgHr:"le-avghr",maxHr:"le-maxhr",pace:"le-pace",speed:"le-speed",elevation:"le-elev",
+ intervals:"le-intervals",workInterval:"le-work",restInterval:"le-rest",ruckWeight:"le-ruckweight",vestWeight:"le-vestweight",kbWeight:"le-kbweight",
+ secondWeight:"le-secondweight",sledgeWeight:"le-sledgeweight",activities:"le-activities",circuitRest:"le-circuitrest",lowRung:"le-lowrung",
+ sprintDistance:"le-sprintdistance",bestRep:"le-bestrep",avgRep:"le-avgrep",lastRep:"le-lastrep",sprint100:"le-sprint100",secondWork:"le-secondwork",
+ clusterType:"le-clustertype",temperature:"le-temperature",avgWatts:"le-avgwatts",maxWatts:"le-maxwatts",cadence:"le-cadence",strokeRate:"le-strokerate",
+ floors:"le-floors",runDistance:"le-rundistance",rowDistance:"le-rowdistance"
+};
+function setExerciseSelectForSavedCard(card,exercise){
+ const sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");if(!sel)return;
+ const has=[...sel.options].some(o=>o.value===exercise);
+ if(has)sel.value=exercise;
+ else{sel.value="__custom__";if(custom){custom.value=exercise||"";custom.classList.remove("hidden")}}
+}
+function appendSavedExerciseCard(row){
+ const conditioning=savedRowIsConditioning(row),d=document.createElement("div");d.className="log-exercise";d.dataset.conditioning=conditioning?"1":"0";
+ if(conditioning){
+   d.innerHTML='<div class="log-title"><div><strong>'+row.exercise+'</strong><div class="planned">Saved exercise • editing completed session</div></div></div>'+
+    '<div class="log-grid"><div class="field notes"><label>Activity</label><select class="le-ex">'+buildExerciseSelect(row.exercise,row.date||logDate.value)+'</select><input class="le-custom hidden" placeholder="Custom activity"></div>'+
+    '<div class="conditioning-fields" style="display:contents">'+conditioningFieldsHTML(row.exercise)+'</div></div>';
+ }else{
+   d.innerHTML='<div class="log-title"><div><strong>'+row.exercise+'</strong><div class="planned">Saved exercise • editing completed session</div></div></div>'+
+    '<div class="log-grid"><div class="field"><label>Exercise</label><select class="le-ex">'+buildExerciseSelect(row.exercise,row.date||logDate.value)+'</select><input class="le-custom hidden" placeholder="Custom exercise"></div>'+
+    '<div class="field"><label>Sets</label><input class="le-sets" value="'+(row.sets??"")+'"></div>'+
+    '<div class="field"><label>Reps / Time</label><input class="le-reps" value="'+(row.reps??"")+'"></div>'+
+    '<div class="field"><label>Weight</label><input class="le-weight" value="'+(row.weight??"")+'"></div>'+
+    '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5" value="'+(row.rpe??"")+'"></div>'+
+    '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
+    '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
+    '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
+    '<div class="field notes"><label>Notes</label><input class="le-notes" value="'+String(row.notes||"").replaceAll('"','&quot;')+'" placeholder="Optional exercise notes"></div></div>'+
+    '<div class="log-visual-host"></div>';
+ }
+ plannedExercises.appendChild(d);
+ setExerciseSelectForSavedCard(d,row.exercise);
+
+ if(conditioning){
+   Object.entries(row.metrics||{}).forEach(([k,v])=>{const cls=savedMetricClassMap[k],el=cls?d.querySelector("."+cls):null;if(el)el.value=v??""});
+   const rpe=d.querySelector(".le-rpe"),feel=d.querySelector(".le-feel"),status=d.querySelector(".le-status"),notes=d.querySelector(".le-notes");
+   if(rpe)rpe.value=row.rpe??"";if(feel)feel.value=row.feel??"";if(status)status.value=row.status||"Complete";if(notes)notes.value=row.notes||"";
+ }else{
+   const feel=d.querySelector(".le-feel"),tech=d.querySelector(".le-tech"),status=d.querySelector(".le-status");
+   if(feel)feel.value=row.feel||"";if(tech)tech.value=row.technique||"";if(status)status.value=row.status||"Complete";
+ }
+
+ const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom");
+ const syncCustom=()=>{const isCustom=sel.value==="__custom__";custom.classList.toggle("hidden",!isCustom);if(isCustom&&document.activeElement===sel)custom.focus()};
+ const syncCond=()=>{
+   if(d.dataset.conditioning!=="1")return;
+   const old={};
+   Object.entries(savedMetricClassMap).forEach(([k,cls])=>{const el=d.querySelector("."+cls);if(el)old[k]=el.value});
+   const oldRpe=d.querySelector(".le-rpe")?.value||"",oldFeel=d.querySelector(".le-feel")?.value||"",oldStatus=d.querySelector(".le-status")?.value||"Complete",oldNotes=d.querySelector(".le-notes")?.value||"";
+   const activity=sel.value==="__custom__"?(custom.value||"Other"):sel.value,holder=d.querySelector(".conditioning-fields");holder.innerHTML=conditioningFieldsHTML(activity);
+   Object.entries(old).forEach(([k,v])=>{const el=d.querySelector("."+savedMetricClassMap[k]);if(el)el.value=v});
+   if(d.querySelector(".le-rpe"))d.querySelector(".le-rpe").value=oldRpe;if(d.querySelector(".le-feel"))d.querySelector(".le-feel").value=oldFeel;
+   if(d.querySelector(".le-status"))d.querySelector(".le-status").value=oldStatus;if(d.querySelector(".le-notes"))d.querySelector(".le-notes").value=oldNotes;
+   wireExerciseCompletionState(d);
+ };
+ sel.addEventListener("change",()=>{syncCustom();syncCond();if(!conditioning)updateLogPlateVisual(d)});
+ custom.addEventListener("change",syncCond);syncCustom();wireExerciseCompletionState(d);if(!conditioning)wireLogPlateVisual(d);
+}
+function openSavedSessionForEdit(sessionId){
+ const rows=state.logs.filter(x=>x.sessionId===sessionId);if(!rows.length){alert("That saved session could not be found.");return}
+ const first=rows[0];editingSessionId=sessionId;
+ showView("log");
+ logDate.value=first.date||localISO(new Date());logWeek.value=first.week||state.settings.currentWeek;
+ if([...logSession.options].some(o=>o.value===first.session||o.text===first.session))logSession.value=first.session;
+ plannedExercises.innerHTML="";rows.forEach(appendSavedExerciseCard);
+ sessionFeel.value=first.sessionFeel||"";sessionNotes.value=first.sessionNotes||"";
+ clearWearableSessionForm();
+ const wear=(state.wearableSessions||{})[sessionId]||{},els=wearableSessionElements();
+ Object.entries(els).forEach(([k,el])=>{if(el)el.value=wear[k]??""});
+ setSessionEditMode(sessionId);writeLogWorkspace();window.scrollTo({top:0,behavior:"auto"});
+}
+function cancelSavedSessionEdit(){
+ clearLogWorkspace();setSessionEditMode("");sessionSaveStatus.classList.add("hidden");showView("history");renderHistory();window.scrollTo({top:0,behavior:"auto"});
+}
+
 function restoreLogDraft(d){
  if(!d)return;
  if(d.date)logDate.value=d.date;
@@ -4083,6 +4280,7 @@ function restoreLogDraft(d){
  sessionNotes.value=d.sessionNotes||"";
  const w=d.wearable||{},wm=wearableSessionElements();
  Object.entries(wm).forEach(([k,el])=>{if(el)el.value=w[k]??""});
+ setSessionEditMode(d.editingSessionId&&state.logs.some(x=>x.sessionId===d.editingSessionId)?d.editingSessionId:"");
 }
 
 function validLogWorkspace(d){
@@ -4249,7 +4447,7 @@ function showView(id){
  if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}
  if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}
  if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}
- if(id==="log")restorePersistentLogWorkspace();
+ if(id==="log"&&!editingSessionId)restorePersistentLogWorkspace();
  if(id==="recovery"){
    if(!recoveryDate.value)recoveryDate.value=localISO(new Date());
    if(!restorePersistentRecoveryDraft())loadRecoveryForm();
@@ -4259,6 +4457,7 @@ function showView(id){
  if(!uiDraftRestoreInProgress)queueUiDraftSave();
 }
 function setLogDefaults(){
+ setSessionEditMode("");
  const d=new Date();logDate.value=localISO(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;
  const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=tw>=1?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw,logDate.value);clearWearableSessionForm();loadPlannedSession();
 }
@@ -4302,6 +4501,7 @@ if(navigator.storage&&navigator.storage.persist){
 updateStorageStatus();
 
 populateSessionOptions();
+cancelSessionEdit.addEventListener("click",cancelSavedSessionEdit);
 quickLog.addEventListener("click",()=>{
  showView("log");
  writeLogWorkspace();
@@ -4399,31 +4599,34 @@ loadPlan.addEventListener("click",()=>{loadPlannedSession();writeLogWorkspace()}
 logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!isNaN(d)){const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession();writeLogWorkspace()}});
 logSession.addEventListener("change",()=>{loadPlannedSession();writeLogWorkspace()});
 saveSession.addEventListener("click",()=>{
- const sessionId=Date.now().toString(),cards=[...plannedExercises.querySelectorAll(".log-exercise")];
- const wearableData=wearableSessionFormData();
+ if(saveSession.disabled)return;
+ const isEditing=!!editingSessionId,sessionId=isEditing?editingSessionId:Date.now().toString();
+ saveSession.disabled=true;saveSession.textContent=isEditing?"Saving Changes…":"Saving…";
+ if(sessionSaveStatus){sessionSaveStatus.classList.remove("hidden");sessionSaveStatus.innerHTML="<strong>"+(isEditing?"Updating workout…":"Saving workout…")+"</strong> Verifying local storage before finishing.";}
+ const cards=[...plannedExercises.querySelectorAll(".log-exercise")],wearableData=wearableSessionFormData();
+ const recentDuplicate=!isEditing&&state.logs.some(x=>x.date===logDate.value&&x.session===logSession.value&&x.sessionId&&Date.now()-Number(x.sessionId)<5000);
+ if(recentDuplicate){
+   saveSession.disabled=false;setSessionEditMode("");
+   alert("This session was just saved. Opening History instead of saving it twice.");
+   showView("history");renderHistory();return;
+ }
  const rows=cards.map(c=>{
-   const sel=c.querySelector(".le-ex");
-   const exercise=(sel.value==="__custom__"?valueOf(c,".le-custom"):sel.value.trim());
+   const sel=c.querySelector(".le-ex"),exercise=(sel.value==="__custom__"?valueOf(c,".le-custom"):sel.value.trim());
    const status=valueOf(c,".le-status"),notDone=["missed","skipped"].includes(String(status||"").toLowerCase());
-   const base={sessionId,date:logDate.value,week:+logWeek.value,session:logSession.value,exercise:exercise,
-     rpe:notDone?"":valueOf(c,".le-rpe"),feel:notDone?"":valueOf(c,".le-feel"),status:status,notes:valueOf(c,".le-notes"),
+   const base={sessionId,date:logDate.value,week:+logWeek.value,session:logSession.value,exercise,
+     rpe:notDone?"":valueOf(c,".le-rpe"),feel:notDone?"":valueOf(c,".le-feel"),status,notes:valueOf(c,".le-notes"),
      sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value.trim()};
    if(c.dataset.conditioning==="1"){
      base.technique="";base.sets="";base.reps="";base.weight="";
      base.metrics=notDone?{}:{
-       distance:valueOf(c,".le-distance"),distanceUnit:valueOf(c,".le-unit"),
-       time:valueOf(c,".le-time"),avgHr:valueOf(c,".le-avghr"),maxHr:valueOf(c,".le-maxhr"),
-       pace:valueOf(c,".le-pace"),speed:valueOf(c,".le-speed"),elevation:valueOf(c,".le-elev"),
-       intervals:valueOf(c,".le-intervals"),workInterval:valueOf(c,".le-work"),restInterval:valueOf(c,".le-rest"),
-       ruckWeight:valueOf(c,".le-ruckweight"),vestWeight:valueOf(c,".le-vestweight"),kbWeight:valueOf(c,".le-kbweight"),
-       secondWeight:valueOf(c,".le-secondweight"),sledgeWeight:valueOf(c,".le-sledgeweight"),
-       activities:valueOf(c,".le-activities"),circuitRest:valueOf(c,".le-circuitrest"),
-       lowRung:valueOf(c,".le-lowrung"),sprintDistance:valueOf(c,".le-sprintdistance"),
-       bestRep:valueOf(c,".le-bestrep"),avgRep:valueOf(c,".le-avgrep"),lastRep:valueOf(c,".le-lastrep"),
-       sprint100:valueOf(c,".le-sprint100"),secondWork:valueOf(c,".le-secondwork"),clusterType:valueOf(c,".le-clustertype"),
-       temperature:valueOf(c,".le-temperature"),avgWatts:valueOf(c,".le-avgwatts"),maxWatts:valueOf(c,".le-maxwatts"),
-       cadence:valueOf(c,".le-cadence"),strokeRate:valueOf(c,".le-strokerate"),floors:valueOf(c,".le-floors"),
-       runDistance:valueOf(c,".le-rundistance"),rowDistance:valueOf(c,".le-rowdistance")
+       distance:valueOf(c,".le-distance"),distanceUnit:valueOf(c,".le-unit"),time:valueOf(c,".le-time"),avgHr:valueOf(c,".le-avghr"),maxHr:valueOf(c,".le-maxhr"),
+       pace:valueOf(c,".le-pace"),speed:valueOf(c,".le-speed"),elevation:valueOf(c,".le-elev"),intervals:valueOf(c,".le-intervals"),workInterval:valueOf(c,".le-work"),
+       restInterval:valueOf(c,".le-rest"),ruckWeight:valueOf(c,".le-ruckweight"),vestWeight:valueOf(c,".le-vestweight"),kbWeight:valueOf(c,".le-kbweight"),
+       secondWeight:valueOf(c,".le-secondweight"),sledgeWeight:valueOf(c,".le-sledgeweight"),activities:valueOf(c,".le-activities"),circuitRest:valueOf(c,".le-circuitrest"),
+       lowRung:valueOf(c,".le-lowrung"),sprintDistance:valueOf(c,".le-sprintdistance"),bestRep:valueOf(c,".le-bestrep"),avgRep:valueOf(c,".le-avgrep"),
+       lastRep:valueOf(c,".le-lastrep"),sprint100:valueOf(c,".le-sprint100"),secondWork:valueOf(c,".le-secondwork"),clusterType:valueOf(c,".le-clustertype"),
+       temperature:valueOf(c,".le-temperature"),avgWatts:valueOf(c,".le-avgwatts"),maxWatts:valueOf(c,".le-maxwatts"),cadence:valueOf(c,".le-cadence"),
+       strokeRate:valueOf(c,".le-strokerate"),floors:valueOf(c,".le-floors"),runDistance:valueOf(c,".le-rundistance"),rowDistance:valueOf(c,".le-rowdistance")
      };
      if(!notDone){const ckind=conditioningKind(exercise);if(!base.metrics.distanceUnit){if(ckind==="rowingclass")base.metrics.distanceUnit="m";else if(ckind==="cyclingclass"||ckind==="runclass")base.metrics.distanceUnit="mi"}}
    }else{
@@ -4432,23 +4635,52 @@ saveSession.addEventListener("click",()=>{
    }
    return base;
  }).filter(x=>x.exercise);
- if(!rows.length)return;
+ if(!rows.length){
+   saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Save Entire Session";
+   alert("There are no exercise entries to save.");return;
+ }
+
+ // Keep an in-memory rollback copy until the edited/new session has been verified.
+ const previousLogs=JSON.parse(JSON.stringify(state.logs)),previousWearable=JSON.parse(JSON.stringify(state.wearableSessions||{}));
+ if(isEditing)state.logs=state.logs.filter(x=>x.sessionId!==sessionId);
  state.logs.push(...rows);
- if(Object.keys(wearableData).length){state.wearableSessions=state.wearableSessions||{};state.wearableSessions[sessionId]={sessionId,date:logDate.value,week:+logWeek.value,session:logSession.value,...wearableData}}
+
+ state.wearableSessions=state.wearableSessions||{};
+ if(Object.keys(wearableData).length)state.wearableSessions[sessionId]={sessionId,date:logDate.value,week:+logWeek.value,session:logSession.value,...wearableData};
+ else if(isEditing)delete state.wearableSessions[sessionId];
+
  if(logSession.value==="Recovery / Rest"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.dayOverrides[logDate.value]="Recovery / Rest"}
  if(logSession.value==="Class / Activity"&&rows[0]){state.settings.classOverrides=state.settings.classOverrides||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides[logDate.value]=rows[0].exercise;state.settings.dayOverrides[logDate.value]="Class / Activity";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Generic Gym"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Generic Gym";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Calisthenics"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Calisthenics";state.settings.noRestDates[logDate.value]=true}
- const stateOK=save("workout-session");
- if(!stateOK){alert("This workout could not be verified in local storage. Keep the app open and export your data before refreshing.");return}
- clearLogWorkspace();uiDraftDirty.log=false;render();
- saveMsg.classList.remove("hidden");saveMsg.textContent="Session saved with "+rows.length+" exercise entries.";clearWearableSessionForm();
- setTimeout(()=>saveMsg.classList.add("hidden"),2500);
+
+ const stateOK=save(isEditing?"workout-session-edit":"workout-session");
+ if(!stateOK){
+   state.logs=previousLogs;state.wearableSessions=previousWearable;
+   saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Save Entire Session";
+   if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>Save not verified.</strong> Your entered workout is still open.";
+   alert("This workout could not be verified in local storage. Your entered workout has been kept open.");return;
+ }
+
+ const committed=safeStoredJson(STATE_KEY)||safeStoredJson(LEGACY_STATE_KEY);
+ const committedRows=(committed?.logs||[]).filter(x=>x.sessionId===sessionId);
+ if(committedRows.length!==rows.length){
+   state.logs=previousLogs;state.wearableSessions=previousWearable;save("workout-session-rollback");
+   saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Save Entire Session";
+   if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>Save not verified.</strong> Your entered workout is still open.";
+   alert("The workout write could not be verified. The previous saved version was restored and your editor remains open.");return;
+ }
+
+ const finishedSessionName=logSession.value,finishedDate=logDate.value,wasEditing=isEditing;
+ clearLogWorkspace();uiDraftDirty.log=false;clearWearableSessionForm();setSessionEditMode("");
+ if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>"+(wasEditing?"Changes saved and verified.":"Saved and verified.")+"</strong> Opening History…";
+ saveSession.disabled=false;saveSession.textContent="Save Entire Session";
+ finishSavedSession(sessionId,finishedSessionName,finishedDate,rows.length,wasEditing?"updated":"saved");
 });
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:13.1,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:15,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
