@@ -415,6 +415,15 @@ summary.tools-toggle{list-style:none;cursor:pointer}
 summary.tools-toggle::-webkit-details-marker{display:none}
 #toolsDetails>.tools-panel{margin-top:7px}
 #toolsDetails:not([open])>.tools-panel{display:none}
+
+/* v12.1 log plate visuals */
+.log-visual{margin-top:10px}
+.log-exercise .load-helper{margin-top:2px}
+.log-exercise .load-caption{margin-bottom:6px}
+
+/* v13 REFRESH ROOT FIX */
+.log-plate-legend{margin:2px 0 10px;padding:0 2px}
+.log-exercise .log-visual-host:empty{display:none}
 </style>
 </head>
 <body>
@@ -536,6 +545,13 @@ summary.tools-toggle::-webkit-details-marker{display:none}
       </div>
       <div id="plannedExercises"></div>
       <div class="inline-actions" style="margin:10px 0"><button class="btn" id="addLogExercise" type="button">+ Add Exercise</button></div>
+      <div class="legend log-plate-legend" aria-label="Plate colors">
+        <span><i class="dot" style="background:var(--p45)"></i>45</span>
+        <span><i class="dot" style="background:var(--p25)"></i>25</span>
+        <span><i class="dot" style="background:var(--p10)"></i>10</span>
+        <span><i class="dot" style="background:var(--p5)"></i>5</span>
+        <span><i class="dot" style="background:var(--p2)"></i>2.5</span>
+      </div>
       <div class="session-feel">
         <div class="field"><label>Overall session feel</label>
           <select id="sessionFeel"><option value=""></option><option>Great</option><option>Good</option><option>Average</option><option>Rough</option><option>Very Rough</option></select>
@@ -1014,7 +1030,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v12</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v13.1</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -1250,6 +1266,16 @@ const transitionMode=document.getElementById("transitionMode");
 const transitionPullups=document.getElementById("transitionPullups");
 const transitionTiming=document.getElementById("transitionTiming");
 const wearableSessionHistoryBody=document.getElementById("wearableSessionHistoryBody");
+const wearDuration=document.getElementById("wearDuration");
+const wearAvgHr=document.getElementById("wearAvgHr");
+const wearMaxHr=document.getElementById("wearMaxHr");
+const wearTrainingLoad=document.getElementById("wearTrainingLoad");
+const wearAerobicTe=document.getElementById("wearAerobicTe");
+const wearAnaerobicTe=document.getElementById("wearAnaerobicTe");
+const wearHrRecovery=document.getElementById("wearHrRecovery");
+const wearRecoveryHours=document.getElementById("wearRecoveryHours");
+const wearCalories=document.getElementById("wearCalories");
+const wearWorkoutVo2=document.getElementById("wearWorkoutVo2");
 const weekNavLabel=document.getElementById("weekNavLabel");
 const weekStrip=document.getElementById("weekStrip");
 const workoutTitle=document.getElementById("workoutTitle");
@@ -2155,6 +2181,46 @@ function visualLoad(total,bar){
  const side=(total-(bar?45:0))/2,c=plates(side),cap='<div class="load-caption"><strong>'+side+' lb / side</strong><span>'+plateText(c)+'</span></div>';
  if(bar)return '<div class="load-helper">'+cap+'<div class="barbell"><div class="bar-side left">'+plateSpans(c,true)+'</div><div class="bar"></div><div class="bar-side right">'+plateSpans(c,false)+'</div></div></div>';
  return '<div class="load-helper">'+cap+'<div class="machine"><div class="machine-side">'+plateSpans(c,true)+'</div><div class="no-bar">NO<br>BAR</div><div class="machine-side">'+plateSpans(c,false)+'</div></div></div>';
+}
+function strengthVisualInfo(exercise,weightText,plannedNumeric=null,plannedBar=null){
+ const name=String(exercise||"").trim();
+ const plannedNum=Number(plannedNumeric);
+ if(Number.isFinite(plannedNum)&&plannedNum>0){
+   return {numeric:plannedNum,bar:plannedBar!==false};
+ }
+ const total=parseLb(weightText);
+ if(!(Number.isFinite(total)&&total>0))return null;
+ if(name==="Squat"||name==="Deadlift"||name==="Barbell Row")return {numeric:total,bar:true};
+ if(name==="Chest Machine"||name==="Incline Chest Machine")return {numeric:total,bar:false};
+ const gx=typeof gymExercise==="function" ? gymExercise(name) : null;
+ if(gx){
+   if(gx.equipment==="Barbell")return {numeric:total,bar:true};
+   if(gx.equipment==="Machine")return {numeric:total,bar:false};
+ }
+ return null;
+}
+function logPlateVisualHtml(exercise,weightText,plannedNumeric=null,plannedBar=null){
+ const info=strengthVisualInfo(exercise,weightText,plannedNumeric,plannedBar);
+ return info ? '<div class="log-visual">'+visualLoad(info.numeric,info.bar)+'</div>' : "";
+}
+function updateLogPlateVisual(card){
+ if(!card)return;
+ const holder=card.querySelector(".log-visual-host");
+ if(!holder)return;
+ const exSel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom"),weight=card.querySelector(".le-weight");
+ const exercise=exSel ? (exSel.value==="__custom__" ? (custom ? custom.value.trim() : "") : exSel.value) : "";
+ const weightText=weight ? weight.value.trim() : "";
+ const plannedNumeric=card.dataset.plannedNumeric||"";
+ const plannedBar=card.dataset.plannedBar==="1";
+ holder.innerHTML=logPlateVisualHtml(exercise,weightText,plannedNumeric,plannedNumeric!=="" ? plannedBar : null);
+}
+function wireLogPlateVisual(card){
+ if(!card)return;
+ const exSel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom"),weight=card.querySelector(".le-weight");
+ if(exSel)exSel.addEventListener("change",()=>updateLogPlateVisual(card));
+ if(custom){custom.addEventListener("input",()=>updateLogPlateVisual(card));custom.addEventListener("change",()=>updateLogPlateVisual(card));}
+ if(weight){weight.addEventListener("input",()=>updateLogPlateVisual(card));weight.addEventListener("change",()=>updateLogPlateVisual(card));}
+ updateLogPlateVisual(card);
 }
 function tbBaseTM(lift){
  const s=state.settings;
@@ -3075,8 +3141,18 @@ function saveRecoveryForm(){
 function clearRecoveryFormDate(){const date=recoveryDate.value;if(date&&(state.dailyRecovery||{})[date])delete state.dailyRecovery[date];deleteRecoveryJournalEntry(date);clearRecoveryDraft();save("recovery-delete");render();loadRecoveryForm()}
 function renderRecoverySnapshot(){const date=localISO(new Date()),sig=wearableRecoverySignals(date),c=sig.current,label=recoveryReadinessLabel(sig);recoveryReadiness.textContent=label;recoveryReadiness.className=sig.level==="guard"?"recovery-readiness-guard":sig.level==="watch"?"recovery-readiness-watch":"recovery-readiness-good";recoverySleep.textContent=c&&numericOrNull(c.sleepHours)!==null?Number(c.sleepHours).toFixed(1)+" h":"—";recoveryHrv.textContent=c&&numericOrNull(c.hrv)!==null?Math.round(Number(c.hrv))+" ms":"—";recoveryRhr.textContent=c&&numericOrNull(c.restingHr)!==null?Math.round(Number(c.restingHr))+" bpm":"—";recoveryBio.textContent=c&&numericOrNull(c.wakeBio)!==null?Math.round(Number(c.wakeBio)):"—";if(!c)recoverySnapshotSub.textContent="No Helio recovery data logged for today.";else if(sig.reasons.length)recoverySnapshotSub.textContent=sig.reasons.slice(0,2).join(" • ");else recoverySnapshotSub.textContent="Today's wearable data is within your established range."}
 function renderRecoveryHistory(){const rows=Object.entries(state.dailyRecovery||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,21);recoveryHistoryBody.innerHTML=rows.length?rows.map(([date,x])=>{const s=wearableRecoverySignals(date),lbl=recoveryReadinessLabel(s);return "<tr><td>"+date+"</td><td>"+(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+(x.hrv??"")+"</td><td>"+(x.restingHr??"")+"</td><td>"+(x.wakeBio??"")+"</td><td>"+(x.stress??"")+"</td><td>"+(x.steps??"")+"</td><td>"+lbl+"</td></tr>"}).join(""):'<tr><td colspan="8"><div class="empty">No daily Helio recovery entries yet.</div></td></tr>';const sessions=Object.values(state.wearableSessions||{}).filter(Boolean).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,20);wearableSessionHistoryBody.innerHTML=sessions.length?sessions.map(x=>"<tr><td>"+(x.date||"")+"</td><td>"+(x.session||"")+"</td><td>"+(x.duration||"")+(x.duration?" min":"")+"</td><td>"+(x.avgHr||"")+" / "+(x.maxHr||"")+"</td><td>"+(x.trainingLoad||"")+"</td><td>"+(x.aerobicTe||"")+" / "+(x.anaerobicTe||"")+"</td><td>"+(x.hrRecovery||"")+(x.hrRecovery?" bpm":"")+"</td><td>"+(x.recoveryHours||"")+(x.recoveryHours?" h":"")+"</td></tr>").join(""):'<tr><td colspan="8"><div class="empty">No Helio workout summaries logged yet.</div></td></tr>'}
-function wearableSessionFormData(){const map={duration:wearDuration,avgHr:wearAvgHr,maxHr:wearMaxHr,trainingLoad:wearTrainingLoad,aerobicTe:wearAerobicTe,anaerobicTe:wearAnaerobicTe,hrRecovery:wearHrRecovery,recoveryHours:wearRecoveryHours,calories:wearCalories,vo2:wearWorkoutVo2},out={};Object.entries(map).forEach(([k,el])=>{if(el.value!=="")out[k]=Number(el.value)});return out}
-function clearWearableSessionForm(){[wearDuration,wearAvgHr,wearMaxHr,wearTrainingLoad,wearAerobicTe,wearAnaerobicTe,wearHrRecovery,wearRecoveryHours,wearCalories,wearWorkoutVo2].forEach(x=>x.value="")}
+function wearableSessionElements(){
+ return {
+  duration:document.getElementById("wearDuration"),avgHr:document.getElementById("wearAvgHr"),maxHr:document.getElementById("wearMaxHr"),
+  trainingLoad:document.getElementById("wearTrainingLoad"),aerobicTe:document.getElementById("wearAerobicTe"),anaerobicTe:document.getElementById("wearAnaerobicTe"),
+  hrRecovery:document.getElementById("wearHrRecovery"),recoveryHours:document.getElementById("wearRecoveryHours"),calories:document.getElementById("wearCalories"),
+  vo2:document.getElementById("wearWorkoutVo2")
+ };
+}
+function wearableSessionFormData(){
+ const out={};Object.entries(wearableSessionElements()).forEach(([k,el])=>{if(el&&el.value!=="")out[k]=Number(el.value)});return out
+}
+function clearWearableSessionForm(){Object.values(wearableSessionElements()).forEach(x=>{if(x)x.value=""})}
 
 function render(){
  const gw=currentTrainingWeek();if(state.settings.currentWeek!==gw){state.settings.currentWeek=gw;save()}const b=blockInfo(gw),w=wave[b.wib-1],pu=pullupForWeek(gw),nx=pullupForWeek(gw+1),paused=isRecoveryPauseDate(new Date());
@@ -3158,8 +3234,8 @@ function appendAdditionalLogExercise(){
  '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
  '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
  '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
- '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Optional exercise notes"></div></div>';
- plannedExercises.appendChild(d);const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus()};sel.addEventListener("change",sync);sync();wireExerciseCompletionState(d);
+ '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Optional exercise notes"></div></div><div class="log-visual-host"></div>';
+ plannedExercises.appendChild(d);const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus();updateLogPlateVisual(d)};sel.addEventListener("change",sync);sync();wireExerciseCompletionState(d);wireLogPlateVisual(d);
 }
 
 function syncExerciseCompletionState(card){
@@ -3196,6 +3272,8 @@ function loadPlannedSession(){
       '<div class="conditioning-fields" style="display:contents">'+conditioningFieldsHTML(x.exercise)+'</div>'+
       '</div>';
   }else{
+    d.dataset.plannedNumeric=(x.numeric!==undefined&&x.numeric!==null&&x.numeric!=="")?String(x.numeric):"";
+    d.dataset.plannedBar=x.bar?"1":"0";
     d.innerHTML='<div class="log-title"><div><strong>'+x.exercise+'</strong>'+planLine+'</div></div>'+
       '<div class="log-grid">'+
       '<div class="field"><label>Exercise</label><select class="le-ex">'+buildExerciseSelect(x.exercise,logDate.value)+'</select><input class="le-custom hidden" placeholder="Custom exercise"></div>'+
@@ -3207,7 +3285,7 @@ function loadPlannedSession(){
       '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
       '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
       '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Optional exercise notes"></div>'+
-      '</div>';
+      '</div><div class="log-visual-host">'+logPlateVisualHtml(x.exercise,x.weight,x.numeric,x.bar)+'</div>';
   }
 
   plannedExercises.appendChild(d);
@@ -3230,6 +3308,7 @@ function loadPlannedSession(){
   custom.addEventListener("change",syncConditioningFields);
   syncCustom();
   wireExerciseCompletionState(d);
+  if(d.dataset.conditioning!=="1")wireLogPlateVisual(d);
  });
 }
 function renderHistory(){
@@ -3913,11 +3992,7 @@ function captureLogDraft(){
  return {
    date:logDate.value,week:logWeek.value,session:logSession.value,
    sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,
-   wearable:{
-     duration:wearDuration.value,avgHr:wearAvgHr.value,maxHr:wearMaxHr.value,trainingLoad:wearTrainingLoad.value,
-     aerobicTe:wearAerobicTe.value,anaerobicTe:wearAnaerobicTe.value,hrRecovery:wearHrRecovery.value,
-     recoveryHours:wearRecoveryHours.value,calories:wearCalories.value,vo2:wearWorkoutVo2.value
-   },
+   wearable:Object.fromEntries(Object.entries(wearableSessionElements()).map(([k,el])=>[k,el?el.value:""])),
    cards:[...plannedExercises.querySelectorAll(".log-exercise")].map(c=>({
      conditioning:c.dataset.conditioning||"0",fields:classFieldValues(c,"le-")
    }))
@@ -4006,12 +4081,8 @@ function restoreLogDraft(d){
  });
  sessionFeel.value=d.sessionFeel||"";
  sessionNotes.value=d.sessionNotes||"";
- const w=d.wearable||{},wm={
-   duration:wearDuration,avgHr:wearAvgHr,maxHr:wearMaxHr,trainingLoad:wearTrainingLoad,
-   aerobicTe:wearAerobicTe,anaerobicTe:wearAnaerobicTe,hrRecovery:wearHrRecovery,
-   recoveryHours:wearRecoveryHours,calories:wearCalories,vo2:wearWorkoutVo2
- };
- Object.entries(wm).forEach(([k,el])=>el.value=w[k]??"");
+ const w=d.wearable||{},wm=wearableSessionElements();
+ Object.entries(wm).forEach(([k,el])=>{if(el)el.value=w[k]??""});
 }
 
 function validLogWorkspace(d){
@@ -4025,8 +4096,13 @@ function writeLogWorkspace(){
  try{
    const d=captureLogDraft();if(!validLogWorkspace(d))return false;
    d._draftSavedAt=Date.now();localStorage.setItem(LOG_WORKSPACE_KEY,JSON.stringify(d));
-   return !!readLogWorkspace();
- }catch(e){return false}
+   const verified=readLogWorkspace();
+   if(!verified)throw new Error("Log workspace verification failed");
+   return true;
+ }catch(e){
+   window.__hybridLogWorkspaceError=String(e&&e.message||e);
+   return false;
+ }
 }
 function clearLogWorkspace(){
  try{localStorage.removeItem(LOG_WORKSPACE_KEY)}catch(e){}
@@ -4036,13 +4112,19 @@ function restorePersistentLogWorkspace(){
  if(d){
    try{
      restoreLogDraft(d);
-     if(!plannedExercises.children.length)loadPlannedSession();
+     if(!logDate.value||!logWeek.value||!logSession.value||!plannedExercises.children.length)throw new Error("Restored Log workspace was incomplete");
      writeLogWorkspace();
      return true;
-   }catch(e){}
+   }catch(e){window.__hybridLogRestoreError=String(e&&e.message||e)}
  }
- setLogDefaults();
- writeLogWorkspace();
+ // A missing/invalid workspace must always produce a complete scheduled form.
+ try{
+   setLogDefaults();
+   if(!logDate.value||!logWeek.value||!logSession.value||!plannedExercises.children.length)throw new Error("Default Log plan did not initialize");
+   writeLogWorkspace();
+ }catch(e){
+   window.__hybridLogRestoreError=String(e&&e.message||e);
+ }
  return false;
 }
 function validRecoveryDraft(d){
@@ -4366,7 +4448,7 @@ saveSession.addEventListener("click",()=>{
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:12,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:13.1,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
@@ -4392,6 +4474,14 @@ exportCsv.addEventListener("click",()=>{
 importJson.addEventListener("click",()=>importFile.click());
 importFile.addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o.settings||!Array.isArray(o.logs))throw Error();state.settings=Object.assign({},defaults.settings,o.settings);state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;state.logs=o.logs;state.dailyRecovery=o.dailyRecovery||{};replaceRecoveryJournal(state.dailyRecovery);state.wearableSessions=o.wearableSessions||{};state.kb=Array.isArray(o.kettlebellTargets)?o.kettlebellTargets:defaults.kb;if(!state.settings.week1Monday){const thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(Math.max(1,Math.floor(Number(state.settings.currentWeek)||1))-1));state.settings.week1Monday=localISO(week1)}browseWeek=Math.max(1,trainingWeekForDate(new Date()));selectedDateISO=localISO(new Date());save();kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;kbBuilderSlot.value="KB Heavy";loadKbBuilder();render();setLogDefaults();alert("Training data imported.")}catch(err){alert("Could not import that file.")}e.target.value=""});
 calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;recoveryDate.value=localISO(new Date());render();renderKbLibrary();renderGymLibrary();renderCalLibrary();renderClassLibrary();wireGymMuscleSpecifics();
+
+function validateCriticalDomBindings(){
+ const ids=["logDate","logWeek","logSession","plannedExercises","wearDuration","wearAvgHr","wearMaxHr","wearTrainingLoad","wearAerobicTe","wearAnaerobicTe","wearHrRecovery","wearRecoveryHours","wearCalories","wearWorkoutVo2"];
+ const missing=ids.filter(id=>!document.getElementById(id));
+ window.__hybridMissingCriticalElements=missing;
+ return missing.length===0;
+}
+validateCriticalDomBindings();
 
 // One-time migration of valid v10.x unsaved drafts. Blank/corrupt drafts are ignored.
 try{
