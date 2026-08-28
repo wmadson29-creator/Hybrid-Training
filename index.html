@@ -1201,7 +1201,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v31</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v32</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -6097,6 +6097,7 @@ const UI_DRAFT_KEY="hybridTrainingUiDraftV2";
 const LOG_WORKSPACE_KEY="hybridTrainingLogWorkspaceV1";
 let editingSessionId="";
 let blankNextWorkout=false;
+let logWorkspaceUserTouched=false;
 const RECOVERY_DRAFT_KEY="hybridTrainingRecoveryDraftV1";
 
 let uiDraftRestoreInProgress=false,uiDraftTimer=null;
@@ -6131,7 +6132,7 @@ function classFieldValues(root,prefix){
 }
 function captureLogDraft(){
  return {
-   date:logDate.value,time:logTime.value,week:logWeek.value,session:logSession.value,editingSessionId:editingSessionId||"",blankNext:!!blankNextWorkout,
+   date:logDate.value,time:logTime.value,week:logWeek.value,session:logSession.value,editingSessionId:editingSessionId||"",blankNext:!!blankNextWorkout,_userTouched:!!logWorkspaceUserTouched,
    sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,
    wearable:Object.fromEntries(Object.entries(wearableSessionElements()).map(([k,el])=>[k,el?el.value:""])),
    cards:[...plannedExercises.querySelectorAll(".log-exercise")].map(c=>({
@@ -6298,6 +6299,7 @@ function cancelSavedSessionEdit(){
 
 function restoreLogDraft(d){
  if(!d)return;
+ logWorkspaceUserTouched=!!d._userTouched||legacyLogWorkspaceHasUserWork(d);
  if(d.date)logDate.value=d.date;
  if(d.time&&/^\d{2}:\d{2}$/.test(d.time))logTime.value=d.time;else if(!logTime.value)logTime.value=currentClockHHMM();
  if(d.week)logWeek.value=d.week;
@@ -6336,6 +6338,38 @@ function validLogWorkspace(d){
 function readLogWorkspace(){
  try{const d=JSON.parse(localStorage.getItem(LOG_WORKSPACE_KEY)||"null");return validLogWorkspace(d)?d:null}catch(e){return null}
 }
+function legacyLogWorkspaceHasUserWork(d){
+ if(!d)return false;
+ if(d.blankNext||d.editingSessionId||String(d.sessionFeel||"").trim()||String(d.sessionNotes||"").trim())return true;
+ if(Object.values(d.wearable||{}).some(v=>String(v??"").trim()!==""))return true;
+ const performanceKeys=new Set(["le-rpe","le-feel","le-tech","le-notes"]);
+ for(const card of (d.cards||[])){
+   if((card.setDetails||[]).some(sd=>Object.values(sd||{}).some(v=>String(v??"").trim()!=="")))return true;
+   const f=card.fields||{};
+   if(String(f["le-status"]||"Complete").toLowerCase()!=="complete")return true;
+   for(const [k,v] of Object.entries(f)){
+     const s=String(v??"").trim();if(!s)continue;
+     if(performanceKeys.has(k))return true;
+     if(/^le-(distance|unit|time|avghr|maxhr|pace|speed|elev|intervals|work|rest|ruckweight|vestweight|kbweight|secondweight|sledgeweight|activities|circuitrest|lowrung|sprintdistance|bestrep|avgrep|lastrep|sprint100|secondwork|clustertype|temperature|avgwatts|maxwatts|cadence|strokerate|floors|rundistance|rowdistance)$/.test(k))return true;
+     if(k==="le-custom"&&s)return true;
+   }
+ }
+ return false;
+}
+function logWorkspaceHasUserWork(d){
+ return !!(d&&(d._userTouched===true||legacyLogWorkspaceHasUserWork(d)));
+}
+function scheduledLogStateForDate(dateISO){
+ const parsed=parseLocalISO(dateISO),tw=!isNaN(parsed)?trainingWeekForDate(parsed):state.settings.currentWeek,
+   week=tw>=1?tw:Math.max(1,Math.floor(Number(state.settings.currentWeek)||1)),
+   day=!isNaN(parsed)?parsed.toLocaleDateString("en-US",{weekday:"long"}):dayNameFromDate(dateISO);
+ return {date:dateISO,week,day,session:expectedSession(day,week,dateISO)};
+}
+function logWorkspaceMatchesScheduledState(d,dateISO=localISO(new Date())){
+ if(!validLogWorkspace(d)||d.date!==dateISO)return false;
+ const expected=scheduledLogStateForDate(dateISO);
+ return Number(d.week)===Number(expected.week)&&String(d.session)===String(expected.session);
+}
 function writeLogWorkspace(){
  if(document.querySelector(".view.active")?.id!=="log")return false;
  try{
@@ -6350,19 +6384,38 @@ function writeLogWorkspace(){
  }
 }
 function clearLogWorkspace(){
+ logWorkspaceUserTouched=false;
  try{localStorage.removeItem(LOG_WORKSPACE_KEY)}catch(e){}
 }
+function loadScheduledLogDate(dateISO=localISO(new Date())){
+ const target=scheduledLogStateForDate(dateISO);
+ setSessionEditMode("");blankNextWorkout=false;logWorkspaceUserTouched=false;
+ logDate.value=target.date;logTime.value=target.date===localISO(new Date())?currentClockHHMM():"12:00";
+ logWeek.value=target.week;logSession.value=target.session;
+ sessionFeel.value="";sessionNotes.value="";clearWearableSessionForm();
+ loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();
+ return target;
+}
 function restorePersistentLogWorkspace(){
- const d=readLogWorkspace();
+ const d=readLogWorkspace(),today=localISO(new Date());
  if(d){
-   try{
-     restoreLogDraft(d);
-     if(!logDate.value||!logWeek.value||!logSession.value||(!d.blankNext&&!plannedExercises.children.length))throw new Error("Restored Log workspace was incomplete");
-     writeLogWorkspace();
-     return true;
-   }catch(e){window.__hybridLogRestoreError=String(e&&e.message||e)}
+   const meaningful=logWorkspaceHasUserWork(d),matchesToday=logWorkspaceMatchesScheduledState(d,today);
+   // Untouched workspaces are navigation state, not user data. If they belong to
+   // another date or no longer match today's schedule, rebuild from today's
+   // authoritative calendar. Meaningful unsaved work is never discarded.
+   if(!meaningful&&!matchesToday){
+     clearLogWorkspace();
+   }else{
+     try{
+       restoreLogDraft(d);
+       if(!logDate.value||!logWeek.value||!logSession.value||(!d.blankNext&&!plannedExercises.children.length))throw new Error("Restored Log workspace was incomplete");
+       writeLogWorkspace();
+       return true;
+     }catch(e){window.__hybridLogRestoreError=String(e&&e.message||e)}
+   }
  }
- // A missing/invalid workspace must always produce a complete scheduled form.
+ // A missing/invalid/stale untouched workspace must always produce today's
+ // complete scheduled form.
  try{
    setLogDefaults();
    if(!logDate.value||!logWeek.value||!logSession.value||!plannedExercises.children.length)throw new Error("Default Log plan did not initialize");
@@ -6507,7 +6560,7 @@ function showView(id){
  if(!uiDraftRestoreInProgress)queueUiDraftSave();
 }
 function setLogDefaults(){
- setSessionEditMode("");blankNextWorkout=false;
+ setSessionEditMode("");blankNextWorkout=false;logWorkspaceUserTouched=false;
  const d=new Date();logDate.value=localISO(d);logTime.value=currentClockHHMM(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;
  const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=tw>=1?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw,logDate.value);clearWearableSessionForm();loadPlannedSession();renderWorkoutIntentUi();
 }
@@ -6553,7 +6606,12 @@ updateStorageStatus();
 populateSessionOptions();
 cancelSessionEdit.addEventListener("click",cancelSavedSessionEdit);
 quickLog.addEventListener("click",()=>{
+ const target=selectedDateISO||localISO(new Date()),before=readLogWorkspace(),preserve=before&&logWorkspaceHasUserWork(before)&&before.date!==target;
  showView("log");
+ if(!preserve){
+   const current=readLogWorkspace();
+   if(!current||!logWorkspaceHasUserWork(current)||current.date!==target)loadScheduledLogDate(target);
+ }
  writeLogWorkspace();
  window.scrollTo({top:0,behavior:"smooth"});
 });
@@ -6576,14 +6634,20 @@ blockModeSelect.addEventListener("change",()=>{
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
 window.addEventListener("hashchange",()=>{const id=decodeURIComponent((location.hash||"").replace(/^#/,""));if(id&&document.getElementById(id)&&document.querySelector(".view.active")?.id!==id)showView(id)});
 document.addEventListener("input",e=>{
- if(e.target.closest&&e.target.closest("#log")){writeLogWorkspace();return}
+ if(e.target.closest&&e.target.closest("#log")){if(e.isTrusted)logWorkspaceUserTouched=true;writeLogWorkspace();return}
  if(e.target.closest&&e.target.closest("#recovery")){writeRecoveryDraft();return}
  const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)
 });
 document.addEventListener("change",e=>{
- if(e.target.closest&&e.target.closest("#log")){writeLogWorkspace();return}
+ if(e.target.closest&&e.target.closest("#log")){if(e.isTrusted)logWorkspaceUserTouched=true;writeLogWorkspace();return}
  if(e.target.closest&&e.target.closest("#recovery")){writeRecoveryDraft();return}
  const s=draftSectionForElement(e.target);if(s)markUiDraftDirty(s)
+});
+document.addEventListener("click",e=>{
+ if(e.isTrusted&&e.target.closest&&e.target.closest("#log")&&e.target.closest("button")){
+   logWorkspaceUserTouched=true;
+   setTimeout(()=>writeLogWorkspace(),0);
+ }
 });
 document.addEventListener("click",e=>{
  const s=draftSectionForElement(e.target);
@@ -6819,7 +6883,7 @@ saveSettings.addEventListener("click",()=>{
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:31,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:32,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:6,rules:["E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
@@ -6972,7 +7036,7 @@ function normalizeImportedState(raw){
  if(raw.exportVersion!==undefined){
    const v=Number(raw.exportVersion);
    if(!Number.isFinite(v)||v<1)throw new Error("Import has an invalid version.");
-   if(v>31)throw new Error("This backup was created by a newer app version.");
+   if(v>32)throw new Error("This backup was created by a newer app version.");
  }
  if(!isPlainRecord(raw.settings)||!Array.isArray(raw.logs))throw new Error("Import is missing settings or workout logs.");
  if(raw.logs.length>IMPORT_MAX_LOGS)throw new Error("Import has too many workout log rows.");
