@@ -1061,7 +1061,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v19</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v20</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a JSON snapshot. Upload that file to ChatGPT and I can analyze progression, RPE, session feel, technique notes, missed work, and next weights.</div>
@@ -2523,6 +2523,156 @@ function adaptiveReadiness(dateISO){
 }
 function allConditioningEntries(){return [...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary]}
 function entryForName(name){return allConditioningEntries().find(x=>x.name===name)}
+
+// ---------- Conditioning Log Helper / One-Day Swap Engine ----------
+function conditioningPrescription(activity){
+ const e=entryForName(activity);
+ return e?.prescription||"Use the planned session target shown above.";
+}
+function conditioningEquipmentNeeds(activity){
+ const e=entryForName(activity),s=((e?.name||activity||"")+" "+(e?.prescription||"")).toLowerCase(),out=[];
+ const add=(key,label)=>{if(!out.some(x=>x.key===key))out.push({key,label})};
+ if(/\bdips?\b/.test(s))add("dipbars","Dip bars");
+ if(/pull-ups?|muscle-ups?|knees-to-elbows|hanging/.test(s))add("pullupbar","Pull-up bar");
+ if(/back extensions?/.test(s))add("backextension","Back-extension station");
+ if(/heavy bag/.test(s))add("heavybag","Heavy bag");
+ if(/sledge|tire strikes?/.test(s))add("sledge","Sledge / tire");
+ if(/box jumps?/.test(s))add("box","Plyo box");
+ if(/\bkb\b|kettlebell/.test(s))add("kettlebell","Kettlebell");
+ if(/\bdb\b|dumbbell/.test(s))add("dumbbell","Dumbbell");
+ if(/barbell|push-press/.test(s))add("barbell","Barbell");
+ if(/handstand/.test(s))add("wall","Wall / handstand space");
+ return out;
+}
+function conditioningFocusProfile(activity){
+ const e=entryForName(activity),s=((e?.name||activity||"")+" "+(e?.prescription||"")).toLowerCase(),tags=new Set(["conditioning"]);
+ if(/burpee|push-up|pushup|\bdip\b|dips|push-press|heavy bag|strike/.test(s))tags.add("push");
+ if(/pull-up|pullup|muscle-up|row|rope climb/.test(s))tags.add("pull");
+ if(/squat|lunge|jump|box jump|run|sprint|hill|ruck|bear crawl/.test(s))tags.add("legs");
+ if(/back extension|swing|snatch|deadlift|hinge/.test(s))tags.add("posterior");
+ if(/core|plank|knees-to-elbows|sit-up|situp/.test(s))tags.add("core");
+ if(/run|sprint|hill|ruck|400 m|600 m|800 m|1\.5 mi|km|mile/.test(s))tags.add("locomotion");
+ if(/jump|plyo|sprint|snatch|sledge|strike|power/.test(s))tags.add("power");
+ return [...tags];
+}
+function conditioningFocusLabel(activity){
+ const map={conditioning:"general conditioning",push:"push / triceps",pull:"pull / back",legs:"legs",posterior:"posterior chain",core:"core",locomotion:"running / locomotion",power:"power"};
+ return conditioningFocusProfile(activity).filter(x=>x!=="conditioning").map(x=>map[x]||x).join(" • ")||"general conditioning";
+}
+function conditioningDifficultyRating(activity){
+ const e=entryForName(activity);if(!e)return 5;
+ if(!e.num){
+   if(e.name==="Warrior Run")return 8;
+   if(/Fun-Run/i.test(e.name))return 6.5;
+   if(/Strength-Endurance/i.test(e.name))return 6.5;
+   return 4.5;
+ }
+ const gc={25:8,26:8,27:8,28:9.25,29:8.5,30:7.5,31:9,32:9.25,33:8.5,34:7.5,35:9,36:9};
+ if(gc[e.num])return gc[e.num];
+ if(e.num>=37)return 8;
+ let score=e.num<=10?8.2:8.7;
+ const s=String(e.prescription||"").toLowerCase();
+ if(/maximum effort|max effort|for time/.test(s))score+=.25;
+ if(/rest 3|rest 4|rest 5/.test(s))score-=.15;
+ return Math.max(1,Math.min(10,Math.round(score*4)/4));
+}
+function conditioningTargetRpe(activity){
+ const d=conditioningDifficultyRating(activity);
+ if(d>=9)return "9";
+ if(d>=8.25)return "8–9";
+ if(d>=7)return "7–8";
+ if(d>=5.5)return "6–7";
+ return "4–5";
+}
+function conditioningRequirementKeys(activity){return conditioningEquipmentNeeds(activity).map(x=>x.key)}
+function conditioningFocusSimilarity(a,b){
+ const A=new Set(conditioningFocusProfile(a)),B=new Set(conditioningFocusProfile(b));
+ let inter=0;A.forEach(x=>{if(B.has(x))inter++});
+ const union=new Set([...A,...B]).size;
+ return union?inter/union:0;
+}
+function conditioningEquivalentRecommendation(currentName,dateISO,mode="similar",unavailable=[]){
+ const current=entryForName(currentName);if(!current)return null;
+ const category=categoryForEntry(current),curDiff=conditioningDifficultyRating(currentName),blocked=new Set(unavailable||[]);
+ let pool=allConditioningEntries().filter(e=>e.name!==currentName&&categoryForEntry(e)===category);
+ if(blocked.size)pool=pool.filter(e=>!conditioningRequirementKeys(e.name).some(k=>blocked.has(k)));
+ if(!pool.length)return null;
+
+ // Easier/harder stay inside the SAME conditioning category and prefer a modest,
+ // not extreme, difficulty step. Similar aims at the same difficulty.
+ let directional=pool;
+ if(mode==="easier"){
+   const lower=pool.filter(e=>conditioningDifficultyRating(e.name)<=curDiff-.25);
+   if(lower.length)directional=lower;
+ }else if(mode==="harder"){
+   const higher=pool.filter(e=>conditioningDifficultyRating(e.name)>=curDiff+.25);
+   if(higher.length)directional=higher;
+ }
+ const target=mode==="easier"?Math.max(1,curDiff-.75):mode==="harder"?Math.min(10,curDiff+.75):curDiff;
+ const scored=directional.map(e=>{
+   const diff=conditioningDifficultyRating(e.name),focus=conditioningFocusSimilarity(currentName,e.name),
+     days=daysSinceConditioning(e.name,dateISO),needs=conditioningEquipmentNeeds(e.name).length;
+   let score=focus*60-Math.abs(diff-target)*20-needs*1.5;
+   if(days<14)score-=45;else if(days<28)score-=20;else if(days>=9999)score+=5;
+   // Preserve the broad modality characteristics when possible.
+   const a=conditioningTraits(currentName),b=conditioningTraits(e.name);
+   if(a.run===b.run)score+=8;if(a.sprint===b.sprint)score+=5;if(a.hinge===b.hinge)score+=4;
+   score+=tinyTie(dateISO+"|swap|"+mode+"|"+e.name)*2;
+   return {entry:e,score,difficulty:diff,focus};
+ }).sort((a,b)=>b.score-a.score);
+ return scored[0]||null;
+}
+function conditioningLogHelperHTML(activity){
+ const e=entryForName(activity);if(!e)return '<div class="planned">Workout instructions: use the planned target above.</div>';
+ const needs=conditioningEquipmentNeeds(activity),difficulty=conditioningDifficultyRating(activity);
+ return '<div class="planned"><strong>What to do:</strong> '+e.prescription+'</div>'+
+   '<div class="planned"><strong>Effort:</strong> '+difficulty.toFixed(1)+'/10 • target RPE '+conditioningTargetRpe(activity)+' • <strong>Emphasis:</strong> '+conditioningFocusLabel(activity)+'</div>'+
+   '<div class="planned"><strong>Equipment:</strong> '+(needs.length?needs.map(x=>x.label).join(" • "):"No specialty equipment identified")+'</div>'+
+   '<div class="actions conditioning-swap-actions">'+
+    '<button class="btn conditioning-swap-btn" type="button" data-swap="similar">Swap Similar</button>'+
+    '<button class="btn conditioning-swap-btn" type="button" data-swap="easier">Slightly Easier</button>'+
+    '<button class="btn conditioning-swap-btn" type="button" data-swap="harder">Slightly Harder</button>'+
+   '</div>'+
+   (needs.length?'<div class="field" style="margin-top:8px"><label>Equipment unavailable today</label><select class="conditioning-missing-equipment"><option value="">Choose equipment…</option>'+needs.map(x=>'<option value="'+x.key+'">'+x.label+'</option>').join("")+'</select></div><div class="actions"><button class="btn conditioning-equipment-swap" type="button">Find Equivalent Without It</button></div>':'')+
+   '<div class="muted conditioning-swap-note" style="font-size:.72rem;margin-top:7px">Swaps apply to this date only. They do not change the rest of the conditioning schedule.</div>';
+}
+function applyConditioningLogSwap(card,mode,unavailable=[]){
+ const sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom"),
+   current=sel?.value==="__custom__"?(custom?.value||""):sel?.value,dateISO=logDate.value;
+ const rec=conditioningEquivalentRecommendation(current,dateISO,mode,unavailable);
+ if(!rec){alert("No suitable same-category conditioning alternative was found with those constraints.");return}
+ state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};
+ state.settings.conditioningSwapMeta=state.settings.conditioningSwapMeta||{};
+ state.settings.conditioningOverrides[dateISO]=rec.entry.name;
+ state.settings.conditioningSwapMeta[dateISO]={from:current,to:rec.entry.name,mode,unavailable:[...(unavailable||[])],at:Date.now()};
+ save();
+ // Reload this one-day conditioning prescription into Log Workout. The underlying
+ // weekday / training-week schedule is untouched.
+ loadPlannedSession();writeLogWorkspace();
+ try{renderWeek();renderSelectedWorkout()}catch(e){}
+ if(sessionSaveStatus){
+   sessionSaveStatus.classList.remove("hidden");
+   const modeLabel=mode==="easier"?"slightly easier":mode==="harder"?"slightly harder":"similar";
+   sessionSaveStatus.innerHTML="<strong>One-day conditioning swap:</strong> "+current+" → "+rec.entry.name+" ("+modeLabel+", "+rec.difficulty.toFixed(1)+"/10). Future conditioning days are unchanged.";
+ }
+}
+function wireConditioningLogHelper(card){
+ if(card.dataset.conditioning!=="1")return;
+ const helper=card.querySelector(".conditioning-log-helper"),sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");
+ if(!helper||!sel)return;
+ const activity=()=>sel.value==="__custom__"?(custom.value||"Other"):sel.value;
+ const refresh=()=>{
+   helper.innerHTML=conditioningLogHelperHTML(activity());
+   helper.querySelectorAll(".conditioning-swap-btn").forEach(btn=>btn.addEventListener("click",()=>applyConditioningLogSwap(card,btn.dataset.swap,[])));
+   const eqBtn=helper.querySelector(".conditioning-equipment-swap"),eqSel=helper.querySelector(".conditioning-missing-equipment");
+   if(eqBtn&&eqSel)eqBtn.addEventListener("click",()=>{
+     if(!eqSel.value){alert("Choose the equipment you do not have today.");return}
+     applyConditioningLogSwap(card,"similar",[eqSel.value]);
+   });
+ };
+ card._refreshConditioningHelper=refresh;refresh();
+}
+
 function categoryForEntry(x){
  if(!x)return "Other";
  if(!x.num)return x.name==="Warrior Run"?"Benchmark":"E";
@@ -2705,8 +2855,8 @@ function conditioningSlot(day,gw){
 function conditioningFor(day,gw,dateISO=""){
  const override=(state.settings.conditioningOverrides||{})[dateISO];
  if(override){
-   const lib=entryForName(override);
-   return {activity:override,detail:"Manual conditioning override",target:"Manual",rpe:"—",override:true,why:"You manually selected this session for this date."};
+   const lib=entryForName(override),swap=(state.settings.conditioningSwapMeta||{})[dateISO];
+   return {activity:override,detail:(swap?"One-day equivalent conditioning swap":"Manual conditioning override"),target:lib?.prescription||"Manual",rpe:conditioningTargetRpe(override),override:true,why:swap?("Swapped from "+swap.from+" for this date only; the future schedule is unchanged."):"You manually selected this session for this date."};
  }
  const readiness=adaptiveReadiness(dateISO||localISO(new Date()));
  const slot=conditioningSlot(day,gw);
@@ -3421,6 +3571,7 @@ function loadPlannedSession(){
 
   if(x.conditioning){
     d.innerHTML='<div class="log-title"><div><strong>'+x.exercise+'</strong>'+planLine+'</div></div>'+
+      '<div class="conditioning-log-helper"></div>'+
       '<div class="log-grid">'+
       '<div class="field notes"><label>Activity</label><select class="le-ex">'+buildExerciseSelect(x.exercise,logDate.value)+'</select><input class="le-custom hidden" placeholder="Custom activity"></div>'+
       '<div class="conditioning-fields" style="display:contents">'+conditioningFieldsHTML(x.exercise)+'</div>'+
@@ -3458,11 +3609,12 @@ function loadPlannedSession(){
     if(status)status.value=priorStatus;if(notes)notes.value=priorNotes;
     wireExerciseCompletionState(d);
   }
-  sel.addEventListener("change",()=>{syncCustom();syncConditioningFields()});
-  custom.addEventListener("change",syncConditioningFields);
+  sel.addEventListener("change",()=>{syncCustom();syncConditioningFields();if(d._refreshConditioningHelper)d._refreshConditioningHelper()});
+  custom.addEventListener("change",()=>{syncConditioningFields();if(d._refreshConditioningHelper)d._refreshConditioningHelper()});
   syncCustom();
   wireExerciseCompletionState(d);
-  if(d.dataset.conditioning!=="1")wireLogPlateVisual(d);
+  if(d.dataset.conditioning==="1")wireConditioningLogHelper(d);
+  else wireLogPlateVisual(d);
  });
 }
 function resetLogForNextWorkout(dateISO){
@@ -4190,12 +4342,19 @@ function applyConditioningOverride(name){
  const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d),day=d.toLocaleDateString("en-US",{weekday:"long"});
  if(gw<1||expectedSession(day,gw,selectedDateISO)!=="Conditioning"){conditioningOverrideStatus.textContent="Select a conditioning day on the Dashboard first.";return}
  state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};
- state.settings.conditioningOverrides[selectedDateISO]=name;save();
+ state.settings.conditioningOverrides[selectedDateISO]=name;
+ state.settings.conditioningSwapMeta=state.settings.conditioningSwapMeta||{};
+ delete state.settings.conditioningSwapMeta[selectedDateISO];
+ save();
  conditioningOverrideStatus.textContent=name+" is now the override for "+d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})+".";
  renderWeek();renderSelectedWorkout();
 }
 function clearConditioningOverrideForSelected(){
- if((state.settings.conditioningOverrides||{})[selectedDateISO]){delete state.settings.conditioningOverrides[selectedDateISO];save();renderWeek();renderSelectedWorkout();renderConditioningLibrary()}
+ if((state.settings.conditioningOverrides||{})[selectedDateISO]){
+   delete state.settings.conditioningOverrides[selectedDateISO];
+   if((state.settings.conditioningSwapMeta||{})[selectedDateISO])delete state.settings.conditioningSwapMeta[selectedDateISO];
+   save();renderWeek();renderSelectedWorkout();renderConditioningLibrary()
+ }
 }
 function renderToolsVisibility(){
  const hidden=state.settings.toolsHidden!==false,details=document.getElementById("toolsDetails");
@@ -4952,7 +5111,7 @@ function completeWorkout(){
 clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?")){state.logs=[];state.wearableSessions={};save();render()}});
 saveSettings.addEventListener("click",()=>{const newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),thisMonday=mondayOf(new Date()),week1=addDays(thisMonday,-7*(newWeek-1)),overrides=state.settings.tbOverrides||{},modes=state.settings.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides=state.settings.conditioningOverrides||{},toolsHidden=state.settings.toolsHidden!==false,adaptiveTbMaxes=state.settings.adaptiveTbMaxes!==false,pullupBlockPlan=state.settings.pullupBlockPlan||{},kbCustomWorkouts=state.settings.kbCustomWorkouts||{},dayOverrides=state.settings.dayOverrides||{},noRestDates=state.settings.noRestDates||{},genericGymWorkouts=state.settings.genericGymWorkouts||{},classOverrides=state.settings.classOverrides||{},gymAvailability=state.settings.gymAvailability||{},gymDbMin=state.settings.gymDbMin??5,gymDbMax=state.settings.gymDbMax??100,gymDbIncrement=state.settings.gymDbIncrement??5,blockReviews=state.settings.blockReviews||{},recoveryWeekStarts=state.settings.recoveryWeekStarts||{},calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{},calHasPullupBar=state.settings.calHasPullupBar!==false,calHasBands=!!state.settings.calHasBands;state.settings={currentWeek:newWeek,squatTm:+squatTm.value||275,rowTm:+rowTm.value||215,chestTm:+chestTm.value||175,inclineTm:+inclineTm.value||150,deadliftTm:+deadliftTm.value||325,squatInc:+squatInc.value||10,otherInc:+otherInc.value||5,week1Monday:localISO(week1),tbOverrides:overrides,blockModes:modes,conditioningOverrides,toolsHidden,adaptiveConditioning:true,adaptiveTbMaxes,pullupBlockPlan,kbCustomWorkouts,dayOverrides,noRestDates,genericGymWorkouts,classOverrides,gymAvailability,gymDbMin,gymDbMax,gymDbIncrement,blockReviews,recoveryWeekStarts,calisthenicsWorkouts,calHasPullupBar,calHasBands};browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession()});
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:19,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:20,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","graduated Normal/Caution/Guard recovery model","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
