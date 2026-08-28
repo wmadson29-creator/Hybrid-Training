@@ -472,6 +472,34 @@ summary.tools-toggle::-webkit-details-marker{display:none}
 .history-rest-badge{display:inline-block;padding:2px 7px;border-radius:999px;border:1px solid #35516e;margin-left:6px;font-size:.64rem;font-weight:900}
 @media(max-width:720px){.trend-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.trend-grid{grid-template-columns:1fr}}
 
+
+/* v28 WORKOUT INTENT / CUSTOM WORKOUT */
+.workout-intent-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding:10px;border:1px solid #294158;background:#0d1721;border-radius:12px}
+.workout-intent-summary{font-size:.72rem;color:var(--muted);line-height:1.4;flex:1;min-width:180px}
+.workout-intent-panel{border:1px solid #294158;background:#0b141d;border-radius:12px;padding:12px;margin-bottom:12px}
+.intent-choice-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.intent-choice{min-height:54px;text-align:left;white-space:normal}
+.intent-choice strong{display:block;font-size:.76rem}
+.intent-choice span{display:block;color:var(--muted);font-size:.64rem;line-height:1.3;margin-top:2px}
+.intent-mode-row{margin-top:10px;padding-top:10px;border-top:1px solid #24384b}
+.intent-mode-title{font-size:.75rem;font-weight:900;margin-bottom:7px}
+.manual-workout-panel{border:1px solid #294158;background:#0d1721;border-radius:12px;padding:12px;margin:0 0 12px}
+.manual-workout-grid{display:grid;grid-template-columns:2fr 1fr 2fr;gap:8px}
+.quick-exercise-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:7px;max-height:260px;overflow:auto}
+.quick-exercise-result{text-align:left;white-space:normal;font-size:.7rem}
+.log-card-controls{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
+.log-card-controls .btn{padding:5px 8px;font-size:.64rem}
+.custom-exercise-editor{margin-top:10px;padding:10px;border:1px solid #294158;border-radius:10px;background:#0a121a}
+.custom-tag-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 9px;margin-top:6px}
+.custom-tag-grid label{font-size:.67rem;color:var(--muted);display:flex;align-items:center;gap:5px}
+.intent-badge{display:inline-block;border:1px solid #36536e;border-radius:999px;padding:2px 7px;font-size:.62rem;font-weight:900;margin-right:5px}
+@media(max-width:720px){
+ .intent-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .manual-workout-grid{grid-template-columns:1fr}
+ .quick-exercise-results{grid-template-columns:1fr}
+ .custom-tag-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
 </style>
 </head>
 <body>
@@ -585,6 +613,60 @@ summary.tools-toggle::-webkit-details-marker{display:none}
       <div class="panel-head">
         <div><div class="panel-title">Log Workout</div><div class="panel-sub">The selected day controls the fields. Strength days ask for sets, reps, load, RPE, technique, and feel. Conditioning days ask for the metrics that actually matter—distance, time, heart rate, pace/speed, elevation, or interval details. Unsaved entries autosave locally as a draft. Complete Workout saves the finished session to History, then clears this screen so it is ready for another workout the same day.</div></div>
       </div>
+      <div class="workout-intent-bar">
+        <button class="btn primary" type="button" id="changeWorkoutIntent">Change Today's Workout</button>
+        <div class="workout-intent-summary" id="workoutIntentSummary">Use the scheduled workout, switch modalities, build one yourself, or make this a planned rest day.</div>
+      </div>
+      <div class="workout-intent-panel hidden" id="workoutIntentPanel">
+        <div class="intent-choice-grid">
+          <button class="btn intent-choice" type="button" data-intent="plan"><strong>Use Today's Plan</strong><span>Restore the programmed session for this date.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="calisthenics"><strong>Calisthenics</strong><span>Adaptive bodyweight workout or build it yourself.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="gym"><strong>Generic Gym</strong><span>Adaptive full-body session or manual build.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="kb"><strong>Kettlebell</strong><span>Heavy, Power, Volume, or manual KB work.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="conditioning"><strong>Conditioning</strong><span>Use the adaptive recommendation or build your own.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="class"><strong>Class / Activity</strong><span>Open the class/activity picker for this date.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="custom"><strong>Custom Workout</strong><span>Start blank and mix any recognized or custom exercises.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="rest"><strong>Rest Day</strong><span>Plan rest now; it becomes confirmed only after the day passes or you log rest.</span></button>
+        </div>
+        <div id="workoutIntentModes" class="intent-mode-row hidden"></div>
+      </div>
+
+      <div class="manual-workout-panel hidden" id="manualWorkoutPanel">
+        <div class="panel-head" style="margin-bottom:8px">
+          <div><div class="panel-title">Manual / Custom Workout Builder</div><div class="panel-sub">Build directly inside Log Workout. Save it only for this date or keep it as a reusable template.</div></div>
+        </div>
+        <div class="manual-workout-grid">
+          <div class="field"><label>Workout name</label><input id="manualWorkoutName" placeholder="e.g. Hotel Bodyweight, Extra Upper, Whatever I Feel Like"></div>
+          <div class="field"><label>Type</label><select id="manualWorkoutType"><option value="strength">Strength</option><option value="conditioning">Conditioning</option><option value="mixed">Mixed</option><option value="mobility">Mobility</option></select></div>
+          <div class="field"><label>Reusable template</label><select id="manualWorkoutTemplate"><option value="">— Select saved template —</option></select></div>
+        </div>
+        <div class="inline-actions" style="margin-top:8px">
+          <button class="btn" type="button" id="saveManualWorkoutToday">Save for Today</button>
+          <button class="btn" type="button" id="saveManualWorkoutTemplate">Save as Reusable</button>
+          <button class="btn" type="button" id="loadManualWorkoutTemplate">Load Template</button>
+        </div>
+        <div class="field" style="margin-top:10px"><label>Quick-add exercise</label><input id="quickExerciseSearch" placeholder="Search pull-up, row, squat, swim, curl, custom exercise…"></div>
+        <div id="quickExerciseResults" class="quick-exercise-results"></div>
+        <div class="inline-actions" style="margin-top:8px"><button class="btn" type="button" id="toggleCustomExerciseEditor">+ Define Custom Exercise</button></div>
+        <div class="custom-exercise-editor hidden" id="customExerciseEditor">
+          <div class="form-grid">
+            <div class="field"><label>Exercise name</label><input id="customExerciseName" placeholder="e.g. Towel Door Row"></div>
+            <div class="field"><label>Primary muscle</label><select id="customExercisePrimary"></select></div>
+            <div class="field"><label>Movement pattern</label><select id="customExerciseMove"></select></div>
+            <div class="field"><label>Strength demand</label><select id="customExerciseStrength"><option value=".25">Low</option><option value=".45" selected>Moderate</option><option value=".65">High</option><option value=".85">Very high</option></select></div>
+          </div>
+          <div class="muted" style="font-size:.68rem;margin-top:8px">Secondary muscles</div>
+          <div class="custom-tag-grid" id="customExerciseSecondary"></div>
+          <div class="muted" style="font-size:.68rem;margin-top:8px">Stress / fatigue tags</div>
+          <div class="custom-tag-grid" id="customExerciseFatigue"></div>
+          <div class="inline-actions" style="margin-top:8px">
+            <button class="btn primary" type="button" id="saveCustomExerciseDefinition">Save Exercise Definition</button>
+            <button class="btn" type="button" id="cancelCustomExerciseDefinition">Cancel</button>
+          </div>
+          <div class="muted" id="customExerciseStatus" style="font-size:.68rem;margin-top:6px"></div>
+        </div>
+      </div>
+
       <div class="log-toolbar">
         <div class="field"><label>Date</label><input type="date" id="logDate"></div>
         <div class="field"><label>Training Week</label><input type="number" min="1" id="logWeek"></div>
@@ -1085,7 +1167,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v27</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v28</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -1394,7 +1476,7 @@ saveSession.addEventListener("click",completeWorkout);
 
 
 const defaults={
- settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},conditioningSwapMeta:{},noRestAutoSuggestions:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},classOverrides:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5,blockReviews:{},recoveryWeekStarts:{},calisthenicsWorkouts:{},calHasPullupBar:true,calHasBands:false},
+ settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},conditioningSwapMeta:{},noRestAutoSuggestions:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},classOverrides:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5,blockReviews:{},recoveryWeekStarts:{},calisthenicsWorkouts:{},calHasPullupBar:true,calHasBands:false,workoutIntent:{},customDayWorkouts:{},customWorkoutTemplates:{},customExerciseDefinitions:{}},
  logs:[],
  dailyRecovery:{},
  wearableSessions:{},
@@ -1735,6 +1817,7 @@ const calisthenicsExerciseLibrary=[
 function calisthenicsExercise(name){return calisthenicsExerciseLibrary.find(x=>x.name===name)}
 
 function exerciseStrengthFamilies(name){
+ const custom=customExerciseDefinition(name);if(custom){const f=customExerciseFamily(name);if(f.length)return f}
  const g=gymExercise(name);if(g)return [g.family];
  const c=calisthenicsExercise(name);if(c)return [c.family,...(c.secondary||[])];
  const k=kbExercise(name);if(k){
@@ -1810,7 +1893,10 @@ function utmFamilyFingerprint(family){
  return p;
 }
 function utmFingerprint(name){
- const n=String(name||"").toLowerCase(),p=utmBlank(),g=gymExercise(name),k=kbExercise(name),c=calisthenicsExercise(name),cls=classActivity(name);
+ const n=String(name||"").toLowerCase(),p=utmBlank(),custom=customExerciseDefinition(name),g=gymExercise(name),k=kbExercise(name),c=calisthenicsExercise(name),cls=classActivity(name);
+ if(custom){
+  p.type="custom";utmPut(p.muscles,custom.primary,1);(custom.secondary||[]).forEach(x=>utmPut(p.muscles,x,.55));utmPut(p.moves,custom.move,1);(custom.fatigue||[]).forEach(x=>utmPut(p.fatigue,x,.65));p.strengthDemand=Math.max(.1,Math.min(1,Number(custom.strengthDemand)||.45));return p;
+ }
  if(g){utmMerge(p,utmFamilyFingerprint(g.family));p.type="gym";if(g.load==="barbell")utmPut(p.fatigue,"axial",Math.max(p.fatigue.axial||0,.35))}
  if(k){
   const fam={press:"shoulder_press",squat:"squat",lunge:"lunge",hinge:"hinge",clean:"hinge",ballistic:"hinge",pull:"horizontal_pull",carry:"core",stability:"core"}[k.family];
@@ -2285,7 +2371,7 @@ function validStoredState(o){
 function persistedUserDataScore(o){
  if(!validStoredState(o))return -1;
  let score=(o.logs||[]).length*1000+Object.keys(o.dailyRecovery||{}).length*500+Object.keys(o.wearableSessions||{}).length*100+Object.keys(o.restDays||{}).length*80;
- const s=o.settings||{},keys=["tbOverrides","pullupBlockPlan","kbCustomWorkouts","dayOverrides","noRestDates","genericGymWorkouts","classOverrides","blockReviews","recoveryWeekStarts","calisthenicsWorkouts"];
+ const s=o.settings||{},keys=["tbOverrides","pullupBlockPlan","kbCustomWorkouts","dayOverrides","noRestDates","genericGymWorkouts","classOverrides","blockReviews","recoveryWeekStarts","calisthenicsWorkouts","workoutIntent","customDayWorkouts","customWorkoutTemplates","customExerciseDefinitions"];
  keys.forEach(k=>score+=Object.keys(s[k]||{}).length*20);
  return score;
 }
@@ -2327,7 +2413,7 @@ state.kb=Array.isArray(state.kb)?state.kb:JSON.parse(JSON.stringify(defaults.kb)
 state.dailyRecovery=state.dailyRecovery&&typeof state.dailyRecovery==="object"?state.dailyRecovery:{};
 state.wearableSessions=state.wearableSessions&&typeof state.wearableSessions==="object"?state.wearableSessions:{};
 state.restDays=state.restDays&&typeof state.restDays==="object"&&!Array.isArray(state.restDays)?state.restDays:{};
-state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.conditioningSwapMeta=state.settings.conditioningSwapMeta||{};state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
+state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.conditioningSwapMeta=state.settings.conditioningSwapMeta||{};state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};state.settings.workoutIntent=state.settings.workoutIntent||{};state.settings.customDayWorkouts=state.settings.customDayWorkouts||{};state.settings.customWorkoutTemplates=state.settings.customWorkoutTemplates||{};state.settings.customExerciseDefinitions=state.settings.customExerciseDefinitions||{};if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
 
 // Recovery is also journaled independently. The journal wins on startup so a
 // generic app-state write cannot erase an explicitly saved Recovery entry.
@@ -2561,6 +2647,162 @@ function baseExpectedSession(day,gw){
  const row=scheduleForWeek(gw).find(x=>x[0]===day);
  return row ? row[1] : "Other";
 }
+
+function customExerciseDefinition(name){return (state.settings.customExerciseDefinitions||{})[String(name||"")]||null}
+function customExerciseNames(){return Object.keys(state.settings.customExerciseDefinitions||{}).sort((a,b)=>a.localeCompare(b))}
+function customExerciseFamily(name){
+ const d=customExerciseDefinition(name);if(!d)return [];
+ const map={hPush:["chest_press"],vPush:["shoulder_press"],hPull:["horizontal_pull"],vPull:["vertical_pull"],squat:["squat"],hinge:["hinge"],lunge:["lunge"],carry:["core"],core:["core"],locomotion:["calves"],power:["hinge"]};
+ return map[d.move]||[];
+}
+function ensureWorkoutIntentStores(){
+ state.settings.workoutIntent=state.settings.workoutIntent||{};
+ state.settings.customDayWorkouts=state.settings.customDayWorkouts||{};
+ state.settings.customWorkoutTemplates=state.settings.customWorkoutTemplates||{};
+ state.settings.customExerciseDefinitions=state.settings.customExerciseDefinitions||{};
+}
+function originalScheduledSessionForDate(dateISO){
+ const d=parseLocalISO(dateISO),tw=trainingWeekForDate(d),gw=tw>=1?tw:Math.max(1,Number(state.settings.currentWeek)||1),day=dayNameFromDate(dateISO);
+ return baseExpectedSession(day,gw);
+}
+function workoutIntentForDate(dateISO){ensureWorkoutIntentStores();return state.settings.workoutIntent[dateISO]||null}
+function recordWorkoutIntent(dateISO,selectedSession,mode="adaptive",label="",source="log"){
+ ensureWorkoutIntentStores();const existing=state.settings.workoutIntent[dateISO]||{};
+ state.settings.workoutIntent[dateISO]={originalSession:existing.originalSession||originalScheduledSessionForDate(dateISO),selectedSession,mode,label:safePlainText(label,240),source,changedAt:Date.now()};
+ return state.settings.workoutIntent[dateISO];
+}
+function clearDateProgrammingForIntent(dateISO,keep=""){
+ ensureWorkoutIntentStores();
+ state.settings.classOverrides=state.settings.classOverrides||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};
+ state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};
+ clearAutoNoRestSuggestion(dateISO);
+ if(keep!=="class")delete state.settings.classOverrides[dateISO];
+ if(keep!=="gym")delete state.settings.genericGymWorkouts[dateISO];
+ if(keep!=="calisthenics")delete state.settings.calisthenicsWorkouts[dateISO];
+ if(keep!=="conditioning")delete state.settings.conditioningOverrides[dateISO];
+ if(keep!=="manual")delete state.settings.customDayWorkouts[dateISO];
+}
+function setIntentDaySession(dateISO,session,mode="adaptive",options={}){
+ ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,options.keep||"");
+ clearRestRecord(dateISO);state.settings.noRestDates[dateISO]=true;state.settings.dayOverrides[dateISO]=session;
+ recordWorkoutIntent(dateISO,session,mode,options.label||session,options.source||"log");
+ if(logDate.value!==dateISO)logDate.value=dateISO;
+ logSession.value=session;blankNextWorkout=false;
+ save("workout-intent");loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();
+ try{renderWeek();renderSelectedWorkout()}catch(e){}
+}
+function restoreProgrammedWorkoutIntent(dateISO){
+ ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"");delete state.settings.workoutIntent[dateISO];delete state.settings.dayOverrides[dateISO];delete state.settings.noRestDates[dateISO];clearRestRecord(dateISO);
+ syncScheduledRestHistory();const d=parseLocalISO(dateISO),tw=trainingWeekForDate(d),gw=tw>=1?tw:state.settings.currentWeek,session=expectedSession(dayNameFromDate(dateISO),gw,dateISO);
+ logSession.value=session;blankNextWorkout=false;save("workout-intent-restore");loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();
+ try{renderWeek();renderSelectedWorkout()}catch(e){}
+}
+function quickAdaptiveCalisthenics(dateISO){
+ ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"");
+ const profile={focus:["push","pull","legs","core"],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},w=buildCalisthenicsWorkout(profile,dateISO);
+ state.settings.calisthenicsWorkouts[dateISO]={name:w.name||"Adaptive Calisthenics • 45 min",profile,rows:w.rows||[]};
+ setIntentDaySession(dateISO,"Calisthenics","adaptive",{keep:"calisthenics",label:w.name||"Adaptive Calisthenics"});
+}
+function quickAdaptiveGym(dateISO){
+ ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"");
+ const profile={focus:["chest","back","shoulders","quads","hamstrings","core"],subfocus:[],difficulty:"medium",style:"moderate",duration:60,equipment:[]},w=buildGymWorkoutFromProfile(profile,dateISO);
+ state.settings.genericGymWorkouts[dateISO]={name:w.name||"Adaptive Full Body • 60 min",profile,rows:w.rows||[]};
+ setIntentDaySession(dateISO,"Generic Gym","adaptive",{keep:"gym",label:w.name||"Adaptive Full Body"});
+}
+function beginManualWorkout(session="Custom Workout",type="mixed"){
+ const dateISO=logDate.value||localISO(new Date());ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"manual");
+ clearRestRecord(dateISO);state.settings.noRestDates[dateISO]=true;state.settings.dayOverrides[dateISO]=session;
+ const name=session==="Custom Workout"?"Custom Workout":"Manual "+session;
+ state.settings.customDayWorkouts[dateISO]={name,type,session,rows:[]};recordWorkoutIntent(dateISO,session,"manual",name,"log");
+ logSession.value=session;blankNextWorkout=false;plannedExercises.innerHTML="";
+ if(session==="Conditioning")appendAdditionalConditioningLogExercise("Other");
+ else appendAdditionalLogExercise();
+ document.getElementById("manualWorkoutName").value=name;document.getElementById("manualWorkoutType").value=type;
+ save("manual-workout-start");renderWorkoutIntentUi();writeLogWorkspace();try{renderWeek();renderSelectedWorkout()}catch(e){}
+}
+function currentLogPlanRows(){
+ return [...plannedExercises.querySelectorAll(".log-exercise")].map(card=>{
+  const sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom"),exercise=sel?(sel.value==="__custom__"?(custom?.value||"Other"):sel.value):"Other";
+  if(card.dataset.conditioning==="1")return {exercise,plannedTarget:"Custom / manual conditioning",meta:"MANUAL",conditioning:true};
+  return {exercise,sets:valueOf(card,".le-sets"),reps:valueOf(card,".le-reps"),weight:valueOf(card,".le-weight"),conditioning:false};
+ }).filter(x=>x.exercise);
+}
+function saveManualWorkoutForToday(showMessage=true){
+ const dateISO=logDate.value||localISO(new Date()),rows=currentLogPlanRows();if(!rows.length){if(showMessage)alert("Add at least one exercise first.");return null}
+ ensureWorkoutIntentStores();const name=document.getElementById("manualWorkoutName").value.trim()||logSession.value||"Custom Workout",type=document.getElementById("manualWorkoutType").value||"mixed";
+ const plan={name,type,session:logSession.value,rows,updatedAt:Date.now()};state.settings.customDayWorkouts[dateISO]=plan;recordWorkoutIntent(dateISO,logSession.value,"manual",name,"log");
+ save("manual-workout-today");renderWorkoutIntentUi();if(showMessage)document.getElementById("workoutIntentSummary").innerHTML='<span class="intent-badge">SAVED TODAY</span>'+htmlSafe(name)+" • "+htmlSafe(logSession.value);return plan;
+}
+function safeTemplateId(name){const base=String(name||"workout").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"workout";return base+"-"+Date.now().toString(36)}
+function saveManualWorkoutAsTemplate(){
+ const plan=saveManualWorkoutForToday(false);if(!plan)return;
+ ensureWorkoutIntentStores();const id=safeTemplateId(plan.name);state.settings.customWorkoutTemplates[id]={...JSON.parse(JSON.stringify(plan)),id,savedAt:Date.now()};
+ save("manual-workout-template");renderManualWorkoutTemplates();document.getElementById("manualWorkoutTemplate").value=id;document.getElementById("workoutIntentSummary").innerHTML='<span class="intent-badge">REUSABLE</span>'+htmlSafe(plan.name)+" saved as a template.";
+}
+function renderManualWorkoutTemplates(){
+ const sel=document.getElementById("manualWorkoutTemplate");if(!sel)return;ensureWorkoutIntentStores();const current=sel.value;
+ sel.innerHTML='<option value="">— Select saved template —</option>'+Object.entries(state.settings.customWorkoutTemplates).sort((a,b)=>(b[1].savedAt||0)-(a[1].savedAt||0)).map(([id,p])=>'<option value="'+attrSafe(id)+'">'+htmlSafe(p.name||"Custom Workout")+'</option>').join("");
+ if([...sel.options].some(o=>o.value===current))sel.value=current;
+}
+function loadSelectedWorkoutTemplate(){
+ ensureWorkoutIntentStores();const id=document.getElementById("manualWorkoutTemplate").value,p=state.settings.customWorkoutTemplates[id];if(!p){alert("Choose a saved template first.");return}
+ const dateISO=logDate.value||localISO(new Date());clearDateProgrammingForIntent(dateISO,"manual");clearRestRecord(dateISO);state.settings.noRestDates[dateISO]=true;state.settings.dayOverrides[dateISO]="Custom Workout";
+ state.settings.customDayWorkouts[dateISO]={...JSON.parse(JSON.stringify(p)),session:"Custom Workout",updatedAt:Date.now()};recordWorkoutIntent(dateISO,"Custom Workout","template",p.name||"Custom Workout","template");
+ logSession.value="Custom Workout";document.getElementById("manualWorkoutName").value=p.name||"Custom Workout";document.getElementById("manualWorkoutType").value=p.type||"mixed";save("manual-workout-template-load");loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();
+}
+function manualToolsShouldShow(){
+ const intent=workoutIntentForDate(logDate.value||"");return logSession.value==="Custom Workout"||!!(intent&&["manual","template"].includes(intent.mode)&&intent.selectedSession===logSession.value);
+}
+function renderWorkoutIntentSummary(){
+ const el=document.getElementById("workoutIntentSummary");if(!el)return;const dateISO=logDate.value||localISO(new Date()),intent=workoutIntentForDate(dateISO),rest=restRecord(dateISO);
+ if(intent){
+  const changed=intent.originalSession&&intent.originalSession!==intent.selectedSession?htmlSafe(intent.originalSession)+" → ":"";
+  el.innerHTML='<span class="intent-badge">'+htmlSafe(String(intent.mode||"intent").toUpperCase())+'</span>'+changed+htmlSafe(intent.label||intent.selectedSession);
+ }else if(rest){
+  const label=rest.status==="planned"?"Planned Rest":rest.status==="confirmed"?"Confirmed Rest":"Scheduled Rest";el.innerHTML='<span class="intent-badge">'+htmlSafe(label.toUpperCase())+'</span>'+htmlSafe(dateISO);
+ }else{
+  const d=parseLocalISO(dateISO),tw=trainingWeekForDate(d),gw=tw>=1?tw:state.settings.currentWeek;el.textContent="Scheduled: "+expectedSession(dayNameFromDate(dateISO),gw,dateISO)+". Change it here without leaving Log Workout.";
+ }
+}
+function renderWorkoutIntentUi(){
+ renderWorkoutIntentSummary();renderManualWorkoutTemplates();const panel=document.getElementById("manualWorkoutPanel");if(panel)panel.classList.toggle("hidden",!manualToolsShouldShow());
+ const plan=(state.settings.customDayWorkouts||{})[logDate.value||""];if(plan&&manualToolsShouldShow()){document.getElementById("manualWorkoutName").value=plan.name||logSession.value;document.getElementById("manualWorkoutType").value=plan.type||"mixed"}
+ renderQuickExerciseResults();
+}
+function showIntentModes(kind){
+ const holder=document.getElementById("workoutIntentModes");holder.classList.remove("hidden");
+ const button=(action,label,desc)=>'<button class="btn intent-mode-action" type="button" data-action="'+action+'"><strong>'+label+'</strong><span style="display:block;font-size:.63rem;color:var(--muted)">'+desc+'</span></button>';
+ let title="",buttons=[];
+ if(kind==="calisthenics"){title="Calisthenics — how do you want to build it?";buttons=[button("cal-adaptive","Adaptive Workout","45-minute full-body recommendation using today’s fatigue/progression state."),button("cal-manual","Build It Myself","Start blank inside Log Workout."),button("cal-builder","Open Full Builder","Choose focus, difficulty, duration, bar and band access.")] }
+ if(kind==="gym"){title="Generic Gym — how do you want to build it?";buttons=[button("gym-adaptive","Adaptive Full Body","60-minute full-body recommendation using v28 builder context."),button("gym-manual","Build It Myself","Start blank inside Log Workout."),button("gym-builder","Open Full Builder","Choose muscles, sub-muscles, equipment and duration.")] }
+ if(kind==="kb"){title="Kettlebell — choose the session or build manually.";buttons=[button("kb-heavy","KB Heavy","Load the adaptive Heavy slot."),button("kb-power","KB Power","Load the adaptive Power slot."),button("kb-volume","KB Volume","Load the adaptive Volume slot."),button("kb-manual","Build It Myself","Start a manual kettlebell workout.")] }
+ if(kind==="conditioning"){title="Conditioning — use the engine or take over.";buttons=[button("cond-adaptive","Adaptive Recommendation","Use today’s conditioning recommendation with recovery/fatigue context."),button("cond-manual","Build It Myself","Start a manual conditioning entry with full metrics."),button("cond-library","Open Full Library","Browse Endurance, HIC/GC and Power sessions.")] }
+ holder.innerHTML='<div class="intent-mode-title">'+htmlSafe(title)+'</div><div class="inline-actions">'+buttons.join("")+'</div>';
+}
+function renderQuickExerciseResults(){
+ const holder=document.getElementById("quickExerciseResults"),search=document.getElementById("quickExerciseSearch");if(!holder||!search||document.getElementById("manualWorkoutPanel").classList.contains("hidden"))return;
+ const q=search.value.trim().toLowerCase(),all=[...new Set([...exerciseChoicesForDate(logDate.value||localISO(new Date())),...customExerciseNames()])],rows=all.filter(x=>!q||x.toLowerCase().includes(q)).slice(0,24);
+ holder.innerHTML=rows.map(name=>'<button class="btn quick-exercise-result" type="button" data-exercise="'+attrSafe(name)+'">'+htmlSafe(name)+(customExerciseDefinition(name)?' <span class="muted">• custom model</span>':'')+'</button>').join("")||'<div class="empty">No matching exercises.</div>';
+}
+function isV28ConditioningExercise(name){return !!(entryForName(name)||classActivity(name)||/^(LSS |Ruck Up|Triples|Fast 5|Warrior Run)/i.test(String(name||"")))}
+function appendSpecificLogExercise(name){
+ if(isV28ConditioningExercise(name))appendAdditionalConditioningLogExercise(name);else{appendAdditionalLogExercise();const card=plannedExercises.lastElementChild,sel=card?.querySelector(".le-ex");if(sel){if([...sel.options].some(o=>o.value===name))sel.value=name;else{sel.value="__custom__";const custom=card.querySelector(".le-custom");custom.value=name;custom.classList.remove("hidden")}sel.dispatchEvent(new Event("change"))}}
+ addLogCardControls(plannedExercises.lastElementChild);writeLogWorkspace();
+}
+function initCustomExerciseEditor(){
+ const primary=document.getElementById("customExercisePrimary"),move=document.getElementById("customExerciseMove"),secondary=document.getElementById("customExerciseSecondary"),fatigue=document.getElementById("customExerciseFatigue");if(primary.options.length)return;
+ const pretty=s=>s.replace(/([A-Z])/g," $1").replace(/^./,x=>x.toUpperCase());
+ primary.innerHTML=UTM_MUSCLES.map(x=>'<option value="'+x+'">'+pretty(x)+'</option>').join("");move.innerHTML=UTM_MOVES.map(x=>'<option value="'+x+'">'+pretty(x)+'</option>').join("");
+ secondary.innerHTML=UTM_MUSCLES.map(x=>'<label><input type="checkbox" class="custom-ex-secondary" value="'+x+'">'+pretty(x)+'</label>').join("");
+ fatigue.innerHTML=UTM_FATIGUE.map(x=>'<label><input type="checkbox" class="custom-ex-fatigue" value="'+x+'">'+pretty(x)+'</label>').join("");
+}
+function saveCustomExerciseDefinitionFromUi(){
+ initCustomExerciseEditor();const name=document.getElementById("customExerciseName").value.trim();if(!name){document.getElementById("customExerciseStatus").textContent="Enter an exercise name.";return}
+ if(gymExercise(name)||kbExercise(name)||calisthenicsExercise(name)||classActivity(name)||entryForName(name)){document.getElementById("customExerciseStatus").textContent="That name already belongs to a built-in exercise/activity.";return}
+ const primary=document.getElementById("customExercisePrimary").value,secondary=[...document.querySelectorAll(".custom-ex-secondary:checked")].map(x=>x.value).filter(x=>x!==primary),move=document.getElementById("customExerciseMove").value,fatigue=[...document.querySelectorAll(".custom-ex-fatigue:checked")].map(x=>x.value),strengthDemand=Number(document.getElementById("customExerciseStrength").value)||.45;
+ state.settings.customExerciseDefinitions[name]={name,primary,secondary,move,fatigue,strengthDemand,createdAt:Date.now()};save("custom-exercise-definition");document.getElementById("customExerciseStatus").textContent=name+" saved. It now participates in fatigue, volume and exercise relationships.";renderQuickExerciseResults();
+}
+
 function expectedSession(day,gw,dateISO=""){
  const override=(state.settings.dayOverrides||{})[dateISO];
  if(override==="Recovery / Rest"&&!((state.settings.noRestDates||{})[dateISO]))return "Recovery / Rest";
@@ -2593,22 +2835,31 @@ function syncScheduledRestHistory(){
  if(restHistorySyncing)return false;restHistorySyncing=true;let changed=false;
  try{
   state.restDays=state.restDays||{};const anchor=parseLocalISO(state.settings.week1Monday||"");if(isNaN(anchor))return false;
-  const today=parseLocalISO(localISO(new Date())),maxDays=Math.min(3650,Math.max(0,Math.round((today-anchor)/86400000)));
+  const todayISO=localISO(new Date()),today=parseLocalISO(todayISO),maxDays=Math.min(3650,Math.max(0,Math.round((today-anchor)/86400000)));
   for(let i=0;i<=maxDays;i++){
    const d=addDays(anchor,i),iso=localISO(d);if(isRecoveryPauseDate(d))continue;const gw=trainingWeekForDate(d);if(gw<1)continue;
-   const session=expectedSession(dayNameFromDate(iso),gw,iso),existing=restRecord(iso),nonRest=hasNonRestWorkout(iso);
-   if(nonRest||((state.settings.noRestDates||{})[iso])){if(existing&&existing.status==="scheduled"){delete state.restDays[iso];changed=true}continue}
-   if(session==="Recovery / Rest"&&!existing){state.restDays[iso]={status:"scheduled",source:"program",at:0};changed=true}
-   else if(session!=="Recovery / Rest"&&existing&&existing.status==="scheduled"){delete state.restDays[iso];changed=true}
+   const session=expectedSession(dayNameFromDate(iso),gw,iso),existing=restRecord(iso),nonRest=hasNonRestWorkout(iso),protectedTrain=!!((state.settings.noRestDates||{})[iso]);
+   if(nonRest||protectedTrain){if(existing){delete state.restDays[iso];changed=true}continue}
+   const past=iso<todayISO,current=iso===todayISO;
+   if(session==="Recovery / Rest"){
+     if(existing){
+       if(past&&existing.status!=="confirmed"){state.restDays[iso]={...existing,status:"confirmed",at:existing.at||Date.now()};changed=true}
+     }else{
+       state.restDays[iso]={status:past?"confirmed":"scheduled",source:"program",at:past?Date.now():0};changed=true;
+     }
+   }else if(existing&&(existing.status==="scheduled"||existing.source==="program")){delete state.restDays[iso];changed=true}
   }
  }finally{restHistorySyncing=false}
  return changed;
 }
-function effectiveRestDate(dateISO){const r=restRecord(dateISO);return !!(r&&!hasNonRestWorkout(dateISO)&&!((state.settings.noRestDates||{})[dateISO]))}
+function effectiveRestDate(dateISO){
+ const r=restRecord(dateISO);return !!(r&&r.status==="confirmed"&&!hasNonRestWorkout(dateISO)&&!((state.settings.noRestDates||{})[dateISO]));
+}
 
 function markRestDay(dateISO){
  state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};
- clearAutoNoRestSuggestion(dateISO);delete state.settings.noRestDates[dateISO];state.settings.dayOverrides[dateISO]="Recovery / Rest";setRestRecord(dateISO,"confirmed","manual");save("rest-day-confirmed");render();
+ clearAutoNoRestSuggestion(dateISO);delete state.settings.noRestDates[dateISO];state.settings.dayOverrides[dateISO]="Recovery / Rest";
+ const status=dateISO<localISO(new Date())?"confirmed":"planned";setRestRecord(dateISO,status,"manual");save(status==="confirmed"?"rest-day-confirmed":"rest-day-planned");render();
 }
 function markNoRestDay(dateISO){
  state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};
@@ -3153,15 +3404,15 @@ function dayNameFromDate(value){
   return isNaN(d) ? "Monday" : d.toLocaleDateString("en-US",{weekday:"long"});
 }
 function exerciseChoicesForDate(value){
- const day=dayNameFromDate(value),d=parseLocalISO(value),tw=trainingWeekForDate(d),gw=tw>=1?tw:state.settings.currentWeek,session=expectedSession(day,gw,value),gym=gymExerciseLibrary.map(x=>x.name),cal=calisthenicsExerciseLibrary.map(x=>x.name),kb=kbExerciseLibrary.map(x=>x.name);
- if(session==="TB Maintenance")return [...new Set([...(blockModeForWeek(gw)==="tb"?["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine"]:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"]),...gym,...cal])];
- if(session.startsWith("KB "))return [...new Set([...kb,...gym,...cal])];
- if(session==="Calisthenics")return [...new Set([...cal,...gym])];
- if(session==="Generic Gym"||session==="Open Training")return [...new Set([...gym,...cal,...kb])];
- if(session==="Class / Activity")return [...new Set([...classActivityLibrary.map(x=>x.name),...gym,...cal])];
- if(session==="Conditioning")return [...new Set([...(dayExerciseOptions.Wednesday||[]),...(dayExerciseOptions.Saturday||[]),...gym,...cal])];
- if(session==="Recovery / Rest")return ["Rest Day","Recovery / Rest","Mobility","Easy Walk",...cal,...gym,"Other"];
- return [...new Set([...gym,...cal,...kb,"Other"])];
+ const day=dayNameFromDate(value),d=parseLocalISO(value),tw=trainingWeekForDate(d),gw=tw>=1?tw:state.settings.currentWeek,session=expectedSession(day,gw,value),gym=gymExerciseLibrary.map(x=>x.name),cal=calisthenicsExerciseLibrary.map(x=>x.name),kb=kbExerciseLibrary.map(x=>x.name),custom=customExerciseNames();
+ if(session==="TB Maintenance")return [...new Set([...(blockModeForWeek(gw)==="tb"?["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine"]:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"]),...gym,...cal,...custom])];
+ if(session.startsWith("KB "))return [...new Set([...kb,...gym,...cal,...custom])];
+ if(session==="Calisthenics")return [...new Set([...cal,...gym,...custom])];
+ if(session==="Generic Gym"||session==="Open Training"||session==="Custom Workout")return [...new Set([...gym,...cal,...kb,...custom,"Other"])];
+ if(session==="Class / Activity")return [...new Set([...classActivityLibrary.map(x=>x.name),...gym,...cal,...custom])];
+ if(session==="Conditioning")return [...new Set([...(dayExerciseOptions.Wednesday||[]),...(dayExerciseOptions.Saturday||[]),...gym,...cal,...custom])];
+ if(session==="Recovery / Rest")return ["Rest Day","Recovery / Rest","Mobility","Easy Walk",...cal,...gym,...custom,"Other"];
+ return [...new Set([...gym,...cal,...kb,...custom,"Other"])];
 }
 function buildExerciseSelect(selected,dateValue){
   const opts=exerciseChoicesForDate(dateValue);
@@ -3639,6 +3890,8 @@ function adaptiveGymTarget(exercise,dateISO,manualLb=""){
 function formatGymWeight(exercise,lb){const ex=gymExercise(exercise);if(!ex)return lb?lb+" lb":"";if(ex.load==="per_db")return lb+" lb / DB";if(ex.load==="per_side")return lb+" lb / side";if(ex.load==="assist")return lb+" lb assistance";return lb+" lb"}
 function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];return saved?JSON.parse(JSON.stringify(saved)):{name:"Generic Gym",profile:{focus:[],difficulty:"medium",style:"moderate",duration:60,equipment:[]},rows:[]}}
 function getGenericGymPlan(dateISO){
+ const manual=(state.settings.customDayWorkouts||{})[dateISO];
+ if(manual&&manual.session==="Generic Gym"&&Array.isArray(manual.rows)&&manual.rows.length)return manual.rows.filter(r=>!r.conditioning).map(r=>({exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.weight||"",meta:"MANUAL • "+(manual.name||"Generic Gym"),note:"Manual workout saved for this date.",conditioning:false}));
  const w=genericGymWorkoutFor(dateISO);return w.rows.map(r=>{
    const ex=gymExercise(r.exercise),a=adaptiveGymTarget(r.exercise,dateISO,r.manualLb),scale=(r.manualLb?1:(Number(r.loadScale)||1)),shown=ex?gymClampLoad(ex,a.lb*scale):a.lb;
    return {exercise:r.exercise,sets:r.sets,reps:r.reps,weight:formatGymWeight(r.exercise,shown),numeric:(ex&&ex.equipment==="Barbell")?shown:null,bar:!!(ex&&ex.equipment==="Barbell"),meta:(a.manual?"MANUAL":"ADAPTIVE")+" • "+(ex?.equipment||"Gym"),note:a.why,conditioning:false};
@@ -3672,6 +3925,10 @@ function conditioningSummary(x){
 
 function selectedClassForDate(dateISO){return (state.settings.classOverrides||{})[dateISO]||""}
 function planFor(session,gw){
+ const manual=(state.settings.customDayWorkouts||{})[logDate.value];
+ if(manual&&manual.session===session&&Array.isArray(manual.rows)&&manual.rows.length){
+   return manual.rows.map(r=>r.conditioning?{exercise:r.exercise,plannedTarget:r.plannedTarget||"Custom / manual",meta:r.meta||"MANUAL",conditioning:true}:{exercise:r.exercise,sets:r.sets||"",reps:r.reps||"",weight:r.weight||"",meta:"MANUAL • "+(manual.name||session),note:"Saved manual plan for this date.",conditioning:false});
+ }
  if(session==="TB Maintenance")return getTBPlan(gw);
  if(session.startsWith("KB "))return getKbPlan(session,gw,logDate.value).map(x=>Object.assign({},x,{conditioning:false}));
  if(session==="Generic Gym")return getGenericGymPlan(logDate.value);
@@ -3681,6 +3938,7 @@ function planFor(session,gw){
    return temp.rows.map(r=>({exercise:r.exercise,sets:r.sets,reps:r.reps,weight:"Bodyweight",meta:"PROVISIONAL CALISTHENICS • customize in Calisthenics tab",note:r.adaptiveWhy||"",conditioning:false}));
  }
  if(session==="Class / Activity"){const activity=selectedClassForDate(logDate.value)||"Yoga — Vinyasa";return [{exercise:activity,plannedTarget:"Log class metrics",meta:"Class / activity",conditioning:true}]}
+ if(session==="Custom Workout")return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"Custom workout — add any exercises you want",conditioning:false}];
  if(session==="Open Training")return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"Open training day — add exercises as needed",conditioning:false}];
  if(session==="Recovery / Rest")return [{exercise:"Rest Day",sets:"",reps:"",weight:"",meta:"Recovery / Rest",conditioning:false}];
  if(session==="Conditioning"){const day=dayNameFromDate(logDate.value),c=conditioningFor(day,gw,logDate.value);return [{exercise:c.activity,plannedTarget:c.target,meta:c.detail+" • target RPE "+c.rpe,conditioning:true}]}
@@ -3848,8 +4106,16 @@ function renderSelectedWorkout(){
  if(session==="Generic Gym"){const plan=getGenericGymPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Generic Gym",meta:"No exercises saved yet",note:"Open the Gym tab and choose muscle groups, difficulty, duration, and equipment."});const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Generic Gym Workout":"Build Generic Gym Workout";edit.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
  if(session==="Calisthenics"){const plan=getCalisthenicsPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Calisthenics",meta:"No exercises saved yet",note:"Open the Calisthenics tab to select focus, difficulty, duration, and pull-up-bar access. The app will build an adaptive bodyweight workout."});const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Calisthenics Workout":"Build Calisthenics Workout";edit.addEventListener("click",()=>{calBuilderDate.value=selectedDateISO;showView("calisthenics")});tbList.appendChild(edit);appendDayControls(session);return}
  if(session==="Class / Activity"){const activity=selectedClassForDate(selectedDateISO)||"Class / Activity",cls=classActivity(activity);appendExerciseCard({exercise:activity,target:"Log after class",meta:"CLASS / ACTIVITY",note:cls?cls.note:"Log duration, difficulty/RPE, HR, and relevant metrics afterward."});appendDayControls(session);return}
+ if(session==="Custom Workout"){
+   const w=(state.settings.customDayWorkouts||{})[selectedDateISO];
+   if(w&&Array.isArray(w.rows)&&w.rows.length)w.rows.forEach(r=>appendExerciseCard(r.conditioning?{exercise:r.exercise,target:r.plannedTarget||"Custom",meta:"CUSTOM • "+(w.type||"mixed"),note:"Manual/custom workout saved for this date."}:{exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.weight,meta:"CUSTOM • "+(w.type||"mixed"),note:"Manual/custom workout saved for this date."}));
+   else appendExerciseCard({exercise:"Custom Workout",meta:"No exercises saved yet",note:"Open Log Workout → Change Today's Workout → Custom Workout to build it."});
+   appendDayControls(session);return
+ }
  if(session==="Open Training"){appendExerciseCard({exercise:"Open Training Day",meta:"PROTECTED FROM REST",note:"This date is protected from rest. If it was originally a scheduled rest day, the app normally auto-fills an easy adaptive conditioning suggestion; you can still override it with gym, calisthenics, class, conditioning, or another session."});appendDayControls(session);return}
  if(session==="Conditioning"){
+   const manual=(state.settings.customDayWorkouts||{})[selectedDateISO];
+   if(manual&&manual.session==="Conditioning"&&Array.isArray(manual.rows)&&manual.rows.length){manual.rows.forEach(r=>appendExerciseCard({exercise:r.exercise,target:r.plannedTarget||"Custom / manual conditioning",meta:"MANUAL CONDITIONING",note:"Built directly in Log Workout."}));appendDayControls(session);return}
    const c=conditioningFor(day,gw,selectedDateISO),lib=[...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary].find(x=>x.name===c.activity),factors=uniqueConditioningReasons(c.whyFactors||[]);
    let note='<strong>Recommendation:</strong> '+htmlSafe(c.detail);
    if(factors.length)note+='<br><strong>Why today:</strong><ul>'+factors.slice(0,5).map(x=>'<li>'+htmlSafe(x)+'</li>').join("")+'</ul>';
@@ -3862,7 +4128,33 @@ function renderSelectedWorkout(){
  appendExerciseCard({exercise:session==="Recovery / Rest"?"Rest Day":"Other",meta:session==="Recovery / Rest"?"No formal training prescribed. Marked/logged rest is included in adaptive recovery.":"No programmed workout for this day."});appendDayControls(session);
 }
 function populateSessionOptions(){
- const opts=["TB Maintenance","KB Heavy","Conditioning","KB Power","KB Volume","Generic Gym","Calisthenics","Class / Activity","Open Training","Recovery / Rest","Other"];logSession.innerHTML=opts.map(x=>'<option>'+x+'</option>').join("");
+ const opts=["TB Maintenance","KB Heavy","Conditioning","KB Power","KB Volume","Generic Gym","Calisthenics","Class / Activity","Custom Workout","Open Training","Recovery / Rest","Other"];logSession.innerHTML=opts.map(x=>'<option>'+x+'</option>').join("");
+}
+
+
+function addLogCardControls(card){
+ if(!card||card.querySelector(".log-card-controls"))return;
+ const title=card.querySelector(".log-title");if(!title)return;
+ const box=document.createElement("div");box.className="log-card-controls";
+ box.innerHTML='<button class="btn card-up" type="button" aria-label="Move exercise up">↑</button><button class="btn card-down" type="button" aria-label="Move exercise down">↓</button><button class="btn danger card-remove" type="button">Remove</button>';
+ box.querySelector(".card-up").addEventListener("click",()=>{const prev=card.previousElementSibling;if(prev){card.parentElement.insertBefore(card,prev);writeLogWorkspace()}});
+ box.querySelector(".card-down").addEventListener("click",()=>{const next=card.nextElementSibling;if(next){card.parentElement.insertBefore(next,card);writeLogWorkspace()}});
+ box.querySelector(".card-remove").addEventListener("click",()=>{card.remove();writeLogWorkspace()});
+ title.appendChild(box);
+}
+function addControlsToAllLogCards(){plannedExercises.querySelectorAll(".log-exercise").forEach(addLogCardControls)}
+function appendAdditionalConditioningLogExercise(activity="Other"){
+ blankNextWorkout=false;const d=document.createElement("div");d.className="log-exercise";d.dataset.conditioning="1";
+ d.innerHTML='<div class="log-title"><div><strong>'+htmlSafe(activity)+'</strong><div class="planned">Manual conditioning / activity</div></div></div>'+
+ '<div class="conditioning-log-helper"></div>'+
+ '<div class="log-grid"><div class="field notes"><label>Activity</label><select class="le-ex">'+buildExerciseSelect(activity,logDate.value)+'</select><input class="le-custom hidden" placeholder="Custom activity"></div><div class="conditioning-fields" style="display:contents">'+conditioningFieldsHTML(activity)+'</div></div>';
+ d.dataset.plannedExercise=safePlainText(activity||"",240);d.dataset.plannedReps="Custom conditioning";d.dataset.expectedRpe=String(utmModelExpectedRpe("Conditioning",activity,+logWeek.value||1));
+ plannedExercises.appendChild(d);
+ const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom");
+ const syncCustom=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c&&document.activeElement===sel)custom.focus()};
+ const syncFields=()=>{const holder=d.querySelector(".conditioning-fields"),oldStatus=d.querySelector(".le-status")?.value||"Complete",oldNotes=d.querySelector(".le-notes")?.value||"",name=sel.value==="__custom__"?(custom.value||"Other"):sel.value;holder.innerHTML=conditioningFieldsHTML(name);if(d.querySelector(".le-status"))d.querySelector(".le-status").value=oldStatus;if(d.querySelector(".le-notes"))d.querySelector(".le-notes").value=oldNotes;wireExerciseCompletionState(d)};
+ sel.addEventListener("change",()=>{syncCustom();syncFields();if(d._refreshConditioningHelper)d._refreshConditioningHelper()});custom.addEventListener("change",()=>{syncFields();if(d._refreshConditioningHelper)d._refreshConditioningHelper()});
+ syncCustom();wireExerciseCompletionState(d);wireConditioningLogHelper(d);addLogCardControls(d);writeLogWorkspace();
 }
 
 function appendAdditionalLogExercise(){
@@ -3876,7 +4168,7 @@ function appendAdditionalLogExercise(){
  '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
  '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
  '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Optional exercise notes"></div></div><div class="log-visual-host"></div>';
- plannedExercises.appendChild(d);const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus();updateLogPlateVisual(d)};sel.addEventListener("change",sync);sync();wireExerciseCompletionState(d);wireLogPlateVisual(d);
+ plannedExercises.appendChild(d);addLogCardControls(d);const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus();updateLogPlateVisual(d)};sel.addEventListener("change",sync);sync();wireExerciseCompletionState(d);wireLogPlateVisual(d);writeLogWorkspace();
 }
 
 function syncExerciseCompletionState(card){
@@ -3936,7 +4228,7 @@ function loadPlannedSession(){
   d.dataset.plannedReps=safePlainText(x.reps??x.plannedTarget??"",160);
   d.dataset.plannedWeight=safePlainText(x.weight??"",120);
   d.dataset.expectedRpe=String(utmModelExpectedRpe(session,x.exercise,gw));
-  plannedExercises.appendChild(d);
+  plannedExercises.appendChild(d);addLogCardControls(d);
   const sel=d.querySelector(".le-ex"), custom=d.querySelector(".le-custom");
   function syncCustom(){
     const isCustom=sel.value==="__custom__";
@@ -3959,6 +4251,7 @@ function loadPlannedSession(){
   if(d.dataset.conditioning==="1")wireConditioningLogHelper(d);
   else wireLogPlateVisual(d);
  });
+ renderWorkoutIntentUi();
 }
 function resetLogForNextWorkout(dateISO){
  const d=parseLocalISO(dateISO),tw=!isNaN(d)?trainingWeekForDate(d):state.settings.currentWeek;
@@ -3973,7 +4266,7 @@ function resetLogForNextWorkout(dateISO){
    sessionSaveStatus.innerHTML="<strong>Workout completed and saved to History.</strong> Ready for the next workout. Choose a session type or tap + Add Exercise.";
  }
  saveSession.disabled=false;saveSession.textContent="Complete Workout";
- writeLogWorkspace();
+ renderWorkoutIntentUi();writeLogWorkspace();
  window.scrollTo({top:0,behavior:"auto"});
 
  // Update all completed-session displays without making navigation part of completion.
@@ -4035,11 +4328,11 @@ function renderHistory(){
  if(!dates.length){historyBody.innerHTML='<tr><td colspan="9"><div class="empty">No workout, recovery, or rest-day history yet.</div></td></tr>';return}
  const groups=historySessionGroups(),byDate={};groups.forEach(g=>{byDate[g.date]=byDate[g.date]||[];byDate[g.date].push(g)});
  dates.forEach(date=>{
-  const rec=recoveryHistorySummary(date),rest=restRecord(date),context=document.createElement("tr");context.className="history-context-row";const restText=rest?(rest.status==="confirmed"?"Confirmed Rest":"Scheduled Rest"):"";
+  const rec=recoveryHistorySummary(date),rest=restRecord(date),context=document.createElement("tr");context.className="history-context-row";const restText=rest?(rest.status==="confirmed"?"Confirmed Rest":rest.status==="planned"?"Planned Rest":"Scheduled Rest"):"";
   context.innerHTML='<td colspan="9"><div class="history-context-title">'+htmlSafe(date)+(restText?'<span class="history-rest-badge">'+htmlSafe(restText)+'</span>':'')+'</div><div class="history-context-meta">'+(rec?htmlSafe(rec):"No daily recovery entry.")+(rest?(" • Rest source: "+htmlSafe(rest.source||"program")):"")+'</div></td>';historyBody.appendChild(context);
   (byDate[date]||[]).slice().reverse().forEach(g=>{
-   const header=document.createElement("tr");header.className="history-session-header";const wearable=(g.sessionId&&(state.wearableSessions||{})[g.sessionId])||null,wearSummary=wearableHistorySummary(wearable),wearMeta=wearSummary?(" • "+htmlSafe(wearSummary)):"";
-   header.innerHTML='<td colspan="9"><div class="history-session-head"><div><strong>'+htmlSafe(g.session)+'</strong><div class="history-session-meta">'+g.rows.length+' exercise entr'+(g.rows.length===1?'y':'ies')+wearMeta+'</div></div><div class="history-session-actions">'+(g.sessionId?'<button class="btn edit-session" data-session-id="'+attrSafe(g.sessionId)+'">Edit Session</button>':'<span class="muted">Legacy session</span>')+'</div></div></td>';historyBody.appendChild(header);
+   const header=document.createElement("tr");header.className="history-session-header";const wearable=(g.sessionId&&(state.wearableSessions||{})[g.sessionId])||null,wearSummary=wearableHistorySummary(wearable),wearMeta=wearSummary?(" • "+htmlSafe(wearSummary)):"",firstRow=g.rows[0]||{},intentMeta=(firstRow.modelOriginalScheduledSession&&firstRow.modelOriginalScheduledSession!==g.session?(" • Planned "+htmlSafe(firstRow.modelOriginalScheduledSession)+" → actual "+htmlSafe(g.session)+(firstRow.modelWorkoutIntentSource?" ("+htmlSafe(firstRow.modelWorkoutIntentSource)+")":"")):"");
+   header.innerHTML='<td colspan="9"><div class="history-session-head"><div><strong>'+htmlSafe(g.session)+'</strong><div class="history-session-meta">'+g.rows.length+' exercise entr'+(g.rows.length===1?'y':'ies')+wearMeta+intentMeta+'</div></div><div class="history-session-actions">'+(g.sessionId?'<button class="btn edit-session" data-session-id="'+attrSafe(g.sessionId)+'">Edit Session</button>':'<span class="muted">Legacy session</span>')+'</div></div></td>';historyBody.appendChild(header);
    g.rows.forEach((x,j)=>{const idx=g.indices[j],tr=document.createElement("tr"),actual=(x.session==="Conditioning"||x.session==="Class / Activity")?conditioningSummary(x):((x.sets||"")+" × "+(x.reps||"")+" • "+(x.weight||"")),model=x.modelExpectedRpe?("Model RPE "+x.modelExpectedRpe+(x.modelPredictionError!==undefined?" • error "+(Number(x.modelPredictionError)>0?"+":"")+x.modelPredictionError:"")):"";
     tr.innerHTML='<td></td><td></td><td>'+htmlSafe(x.exercise)+'</td><td>'+htmlSafe(actual)+'</td><td>'+htmlSafe(x.rpe||"")+'</td><td>'+htmlSafe(x.feel||"")+'</td><td>'+htmlSafe(x.technique||"")+'</td><td>'+htmlSafe((x.notes||"")+(model?((x.notes?" • ":"")+model):""))+'</td><td><button class="btn danger del" data-i="'+idx+'">Delete</button></td>';historyBody.appendChild(tr)});
   });
@@ -4511,7 +4804,7 @@ function saveGymBuilder(){
  const rows=[...gymBuilderRows.querySelectorAll(".gym-builder-row")].map(d=>{const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom");return {exercise:sel.value==="__custom__"?custom.value.trim():sel.value,sets:d.querySelector(".gym-row-sets").value,reps:d.querySelector(".gym-row-reps").value,manualLb:d.querySelector(".gym-row-lb").value,loadScale:Number(d.dataset.loadScale)||1}}).filter(x=>x.exercise);
  if(!rows.length){alert("Build or add at least one exercise.");return}
  state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.genericGymWorkouts[date]={name:gymWorkoutName.value.trim()||"Generic Gym",profile,rows};setGenericGymDay(date);
- selectedDateISO=date;const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;save();render();gymAdaptiveStatus.innerHTML="<strong>Saved.</strong> The workout is on "+date+". All exercise, set, rep, and weight fields remain editable.";markUiDraftClean("gym");
+ selectedDateISO=date;const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;recordWorkoutIntent(date,"Generic Gym","builder",gymWorkoutName.value.trim()||"Generic Gym","builder");save();render();gymAdaptiveStatus.innerHTML="<strong>Saved.</strong> The workout is on "+date+". All exercise, set, rep, and weight fields remain editable.";markUiDraftClean("gym");
 }
 function clearGymBuilder(){
  const date=gymBuilderDate.value||selectedDateISO;if((state.settings.genericGymWorkouts||{})[date])delete state.settings.genericGymWorkouts[date];
@@ -4738,6 +5031,8 @@ function calWorkoutForDate(dateISO){
  return saved?JSON.parse(JSON.stringify(saved)):{name:"Calisthenics",profile:{focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},rows:[]};
 }
 function getCalisthenicsPlan(dateISO){
+ const manual=(state.settings.customDayWorkouts||{})[dateISO];
+ if(manual&&manual.session==="Calisthenics"&&Array.isArray(manual.rows)&&manual.rows.length)return manual.rows.filter(r=>!r.conditioning).map(r=>({exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.weight||"Bodyweight",meta:"MANUAL CALISTHENICS",note:"Manual workout saved for this date.",conditioning:false}));
  const w=calWorkoutForDate(dateISO);
  return (w.rows||[]).map(r=>{
    const ex=calisthenicsExercise(r.exercise),a=adaptiveCalisthenicsTarget(r.exercise,dateISO,w.profile?.difficulty||"medium");
@@ -4789,7 +5084,7 @@ function saveCalBuilder(){
  state.settings.calisthenicsWorkouts[date]={name:calWorkoutName.value.trim()||"Calisthenics",profile,rows};
  setCalisthenicsDay(date);selectedDateISO=date;
  const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;
- save();render();
+ recordWorkoutIntent(date,"Calisthenics","builder",calWorkoutName.value.trim()||"Calisthenics","builder");save();render();
  calAdaptiveStatus.innerHTML="<strong>Saved.</strong> This calisthenics workout is now on "+date+".";markUiDraftClean("cal");
 }
 function clearCalBuilder(){const date=calBuilderDate.value||selectedDateISO;if((state.settings.calisthenicsWorkouts||{})[date])delete state.settings.calisthenicsWorkouts[date];if((state.settings.dayOverrides||{})[date]==="Calisthenics")delete state.settings.dayOverrides[date];save();render();loadCalBuilder()}
@@ -4806,7 +5101,7 @@ function renderCalLibrary(){
 function applyClassOverride(name){
  const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);if(gw<1){classStatus.textContent="Select a date inside the training calendar first.";return}
  state.settings.classOverrides=state.settings.classOverrides||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};
- delete state.settings.genericGymWorkouts[selectedDateISO];delete state.settings.calisthenicsWorkouts[selectedDateISO];clearAutoNoRestSuggestion(selectedDateISO);clearRestRecord(selectedDateISO);state.settings.classOverrides[selectedDateISO]=name;state.settings.dayOverrides[selectedDateISO]="Class / Activity";state.settings.noRestDates[selectedDateISO]=true;save();render();
+ delete state.settings.genericGymWorkouts[selectedDateISO];delete state.settings.calisthenicsWorkouts[selectedDateISO];clearAutoNoRestSuggestion(selectedDateISO);clearRestRecord(selectedDateISO);state.settings.classOverrides[selectedDateISO]=name;state.settings.dayOverrides[selectedDateISO]="Class / Activity";state.settings.noRestDates[selectedDateISO]=true;recordWorkoutIntent(selectedDateISO,"Class / Activity","manual",name,"class");save();render();
  classStatus.textContent=name+" is now scheduled for "+d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})+".";
 }
 function clearClassOverride(dateISO){if((state.settings.classOverrides||{})[dateISO])delete state.settings.classOverrides[dateISO];if((state.settings.dayOverrides||{})[dateISO]==="Class / Activity")delete state.settings.dayOverrides[dateISO];save();render();renderClassLibrary()}
@@ -5217,7 +5512,7 @@ function appendSavedExerciseCard(row){
  d.dataset.plannedReps=safePlainText(row.modelPlannedReps||row.reps||"",160);
  d.dataset.plannedWeight=safePlainText(row.modelPlannedWeight||row.weight||"",120);
  d.dataset.expectedRpe=String(Number(row.modelExpectedRpe)||utmModelExpectedRpe(row.session,row.exercise,row.week));
- plannedExercises.appendChild(d);
+ plannedExercises.appendChild(d);addLogCardControls(d);
  setExerciseSelectForSavedCard(d,row.exercise);
 
  if(conditioning){
@@ -5460,6 +5755,7 @@ function showView(id){
  if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}
  if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}
  if(id==="log"&&!editingSessionId)restorePersistentLogWorkspace();
+ if(id==="log"){renderWorkoutIntentUi();addControlsToAllLogCards()}
  if(id==="history")renderHistory();
  if(id==="recovery"){
    if(!recoveryDate.value)recoveryDate.value=localISO(new Date());
@@ -5473,7 +5769,7 @@ function showView(id){
 function setLogDefaults(){
  setSessionEditMode("");blankNextWorkout=false;
  const d=new Date();logDate.value=localISO(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;
- const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=tw>=1?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw,logDate.value);clearWearableSessionForm();loadPlannedSession();
+ const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=tw>=1?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw,logDate.value);clearWearableSessionForm();loadPlannedSession();renderWorkoutIntentUi();
 }
 function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500)}
 
@@ -5586,7 +5882,42 @@ calHasBands.addEventListener("change",()=>{state.settings.calHasBands=calHasBand
 calDurationRange.addEventListener("input",()=>calDuration.value=calDurationRange.value);calDuration.addEventListener("input",()=>calDurationRange.value=Math.max(20,Math.min(90,Number(calDuration.value)||45)));
 calSelectFullBody.addEventListener("click",()=>setCalFocus(["push","pull","legs","core","fullbody"]));calSelectUpper.addEventListener("click",()=>setCalFocus(["push","pull"]));calSelectLowerCore.addEventListener("click",()=>setCalFocus(["legs","core"]));calClearFocus.addEventListener("click",()=>setCalFocus([]));
 generateCalWorkout.addEventListener("click",generateCalFromSelections);resetCalSelectionsBtn.addEventListener("click",resetCalSelectionsAction);addCalExercise.addEventListener("click",()=>addCalBuilderRow());saveCalWorkout.addEventListener("click",saveCalBuilder);clearCalWorkout.addEventListener("click",clearCalBuilder);
-classCategory.addEventListener("change",renderClassLibrary);classSearch.addEventListener("input",renderClassLibrary);addLogExercise.addEventListener("click",appendAdditionalLogExercise);
+classCategory.addEventListener("change",renderClassLibrary);classSearch.addEventListener("input",renderClassLibrary);addLogExercise.addEventListener("click",()=>{appendAdditionalLogExercise();renderWorkoutIntentUi()});
+changeWorkoutIntent.addEventListener("click",()=>{workoutIntentPanel.classList.toggle("hidden");if(!workoutIntentPanel.classList.contains("hidden"))workoutIntentModes.classList.add("hidden")});
+workoutIntentPanel.addEventListener("click",e=>{
+ const btn=e.target.closest("[data-intent]");if(!btn)return;const kind=btn.dataset.intent,date=logDate.value||localISO(new Date());
+ if(kind==="plan"){restoreProgrammedWorkoutIntent(date);workoutIntentPanel.classList.add("hidden");return}
+ if(["calisthenics","gym","kb","conditioning"].includes(kind)){showIntentModes(kind);return}
+ if(kind==="class"){selectedDateISO=date;workoutIntentPanel.classList.add("hidden");showView("classes");return}
+ if(kind==="custom"){beginManualWorkout("Custom Workout","mixed");workoutIntentPanel.classList.add("hidden");return}
+ if(kind==="rest"){recordWorkoutIntent(date,"Recovery / Rest","rest","Planned Rest","log");markRestDay(date);logSession.value="Recovery / Rest";loadPlannedSession();renderWorkoutIntentUi();workoutIntentPanel.classList.add("hidden");return}
+});
+workoutIntentModes.addEventListener("click",e=>{
+ const btn=e.target.closest("[data-action]");if(!btn)return;const a=btn.dataset.action,date=logDate.value||localISO(new Date());
+ if(a==="cal-adaptive")quickAdaptiveCalisthenics(date);
+ if(a==="cal-manual")beginManualWorkout("Calisthenics","strength");
+ if(a==="cal-builder"){selectedDateISO=date;calBuilderDate.value=date;showView("calisthenics")}
+ if(a==="gym-adaptive")quickAdaptiveGym(date);
+ if(a==="gym-manual")beginManualWorkout("Generic Gym","strength");
+ if(a==="gym-builder"){selectedDateISO=date;gymBuilderDate.value=date;showView("gymworkouts")}
+ if(a==="kb-heavy")setIntentDaySession(date,"KB Heavy","adaptive",{label:"KB Heavy"});
+ if(a==="kb-power")setIntentDaySession(date,"KB Power","adaptive",{label:"KB Power"});
+ if(a==="kb-volume")setIntentDaySession(date,"KB Volume","adaptive",{label:"KB Volume"});
+ if(a==="kb-manual"){beginManualWorkout("Custom Workout","strength");manualWorkoutName.value="Manual Kettlebell Workout";recordWorkoutIntent(date,"Custom Workout","manual","Manual Kettlebell Workout","log")}
+ if(a==="cond-adaptive")setIntentDaySession(date,"Conditioning","adaptive",{keep:"conditioning",label:"Adaptive Conditioning"});
+ if(a==="cond-manual")beginManualWorkout("Conditioning","conditioning");
+ if(a==="cond-library"){selectedDateISO=date;showView("conditioning")}
+ workoutIntentPanel.classList.add("hidden");
+});
+saveManualWorkoutToday.addEventListener("click",()=>saveManualWorkoutForToday(true));
+saveManualWorkoutTemplate.addEventListener("click",saveManualWorkoutAsTemplate);
+loadManualWorkoutTemplate.addEventListener("click",loadSelectedWorkoutTemplate);
+quickExerciseSearch.addEventListener("input",renderQuickExerciseResults);
+quickExerciseResults.addEventListener("click",e=>{const b=e.target.closest("[data-exercise]");if(b)appendSpecificLogExercise(b.dataset.exercise)});
+toggleCustomExerciseEditor.addEventListener("click",()=>{initCustomExerciseEditor();customExerciseEditor.classList.toggle("hidden")});
+cancelCustomExerciseDefinition.addEventListener("click",()=>customExerciseEditor.classList.add("hidden"));
+saveCustomExerciseDefinition.addEventListener("click",saveCustomExerciseDefinitionFromUi);
+
 recalcConditioning.addEventListener("click",()=>{renderWeek();renderSelectedWorkout();conditioningOverrideStatus.innerHTML="<strong>Recalculated.</strong> Recommendations now reflect all logs saved through today.";});
 logRestDay.addEventListener("click",()=>{const d=parseLocalISO(logDate.value);if(isNaN(d))return;markRestDay(logDate.value);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value="Recovery / Rest";loadPlannedSession();sessionNotes.value=sessionNotes.value||"Rest day";});
 
@@ -5610,14 +5941,14 @@ blockReviewLater.addEventListener("click",()=>{blockReviewDismissedThisSession=t
 confirmBlockReview.addEventListener("click",confirmTransitionReview);
 
 loadPlan.addEventListener("click",()=>{loadPlannedSession();writeLogWorkspace()});
-logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!isNaN(d)){const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession();writeLogWorkspace()}});
-logSession.addEventListener("change",()=>{loadPlannedSession();writeLogWorkspace()});
+logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!isNaN(d)){const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace()}});
+logSession.addEventListener("change",()=>{if(logSession.value==="Custom Workout"&&!workoutIntentForDate(logDate.value))beginManualWorkout("Custom Workout","mixed");else{loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace()}});
 function completeWorkout(){
  if(saveSession.disabled)return;
  const isEditing=!!editingSessionId,sessionId=isEditing?editingSessionId:Date.now().toString();
  saveSession.disabled=true;saveSession.textContent=isEditing?"Saving Changes…":"Saving…";
  if(sessionSaveStatus){sessionSaveStatus.classList.remove("hidden");sessionSaveStatus.innerHTML="<strong>"+(isEditing?"Updating workout…":"Saving workout…")+"</strong> Verifying local storage before finishing.";}
- const cards=[...plannedExercises.querySelectorAll(".log-exercise")],wearableData=wearableSessionFormData();
+ const cards=[...plannedExercises.querySelectorAll(".log-exercise")],wearableData=wearableSessionFormData(),intent=workoutIntentForDate(logDate.value),manualPlan=(state.settings.customDayWorkouts||{})[logDate.value]||null;
  const recentDuplicate=!isEditing&&state.logs.some(x=>x.date===logDate.value&&x.session===logSession.value&&x.sessionId&&Date.now()-Number(x.sessionId)<5000);
  if(recentDuplicate){
    saveSession.disabled=false;setSessionEditMode("");
@@ -5634,7 +5965,12 @@ function completeWorkout(){
      modelPlannedSets:safePlainText(c.dataset.plannedSets||"",80),
      modelPlannedReps:safePlainText(c.dataset.plannedReps||"",160),
      modelPlannedWeight:safePlainText(c.dataset.plannedWeight||"",120),
-     modelExpectedRpe:Number(c.dataset.expectedRpe)||utmModelExpectedRpe(logSession.value,exercise,+logWeek.value)};
+     modelExpectedRpe:Number(c.dataset.expectedRpe)||utmModelExpectedRpe(logSession.value,exercise,+logWeek.value),
+     modelOriginalScheduledSession:safePlainText(intent?.originalSession||originalScheduledSessionForDate(logDate.value),120),
+     modelWorkoutIntentSession:safePlainText(intent?.selectedSession||logSession.value,120),
+     modelWorkoutIntentSource:safePlainText(intent?.mode||"scheduled",80),
+     customWorkoutName:safePlainText(manualPlan?.name||"",240),
+     customWorkoutType:safePlainText(manualPlan?.type||"",80)};
    if(base.rpe&&base.modelExpectedRpe)base.modelPredictionError=Math.round((Number(base.rpe)-Number(base.modelExpectedRpe))*10)/10;
    base.modelExerciseOverride=base.modelPlannedExercise!==exercise;
    if(c.dataset.conditioning==="1"){
@@ -5662,7 +5998,7 @@ function completeWorkout(){
  }
 
  // Keep an in-memory rollback copy until the edited/new session has been verified.
- const previousLogs=JSON.parse(JSON.stringify(state.logs)),previousWearable=JSON.parse(JSON.stringify(state.wearableSessions||{})),previousRestDays=JSON.parse(JSON.stringify(state.restDays||{}));
+ const previousLogs=JSON.parse(JSON.stringify(state.logs)),previousWearable=JSON.parse(JSON.stringify(state.wearableSessions||{})),previousRestDays=JSON.parse(JSON.stringify(state.restDays||{})),previousSettings=JSON.parse(JSON.stringify(state.settings||{}));
  if(isEditing)state.logs=state.logs.filter(x=>x.sessionId!==sessionId);
  state.logs.push(...rows);
 
@@ -5672,13 +6008,18 @@ function completeWorkout(){
 
  if(logSession.value==="Recovery / Rest"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.dayOverrides[logDate.value]="Recovery / Rest";setRestRecord(logDate.value,"confirmed","logged")}
  else clearRestRecord(logDate.value);
+ if(manualToolsShouldShow()&&rows.length){
+   const prior=(state.settings.customDayWorkouts||{})[logDate.value]||{},name=document.getElementById("manualWorkoutName")?.value.trim()||prior.name||logSession.value,type=document.getElementById("manualWorkoutType")?.value||prior.type||"mixed";
+   state.settings.customDayWorkouts[logDate.value]={name,type,session:logSession.value,rows:currentLogPlanRows(),updatedAt:Date.now()};
+ }
  if(logSession.value==="Class / Activity"&&rows[0]){state.settings.classOverrides=state.settings.classOverrides||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides[logDate.value]=rows[0].exercise;state.settings.dayOverrides[logDate.value]="Class / Activity";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Generic Gym"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Generic Gym";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Calisthenics"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Calisthenics";state.settings.noRestDates[logDate.value]=true}
+ if(logSession.value==="Custom Workout"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Custom Workout";state.settings.noRestDates[logDate.value]=true}
 
  const stateOK=save(isEditing?"workout-session-edit":"workout-session");
  if(!stateOK){
-   state.logs=previousLogs;state.wearableSessions=previousWearable;state.restDays=previousRestDays;
+   state.logs=previousLogs;state.wearableSessions=previousWearable;state.restDays=previousRestDays;state.settings=previousSettings;
    saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Complete Workout";
    if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>Save not verified.</strong> Your entered workout is still open.";
    alert("This workout could not be verified in local storage. Your entered workout has been kept open.");return;
@@ -5687,7 +6028,7 @@ function completeWorkout(){
  const committed=safeStoredJson(STATE_KEY)||safeStoredJson(LEGACY_STATE_KEY);
  const committedRows=(committed?.logs||[]).filter(x=>x.sessionId===sessionId);
  if(committedRows.length!==rows.length){
-   state.logs=previousLogs;state.wearableSessions=previousWearable;state.restDays=previousRestDays;save("workout-session-rollback");
+   state.logs=previousLogs;state.wearableSessions=previousWearable;state.restDays=previousRestDays;state.settings=previousSettings;save("workout-session-rollback");
    saveSession.disabled=false;saveSession.textContent=isEditing?"Save Changes":"Complete Workout";
    if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>Save not verified.</strong> Your entered workout is still open.";
    alert("The workout write could not be verified. The previous saved version was restored and your editor remains open.");return;
@@ -5729,7 +6070,7 @@ saveSettings.addEventListener("click",()=>{
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:27,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:28,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","graduated Normal/Caution/Guard recovery model","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
@@ -5739,11 +6080,11 @@ exportJson.addEventListener("click",()=>download("hybrid-training-export.json",J
   calisthenics:{type:"adaptive-bodyweight",version:1,rules:["pull-up-bar and exercise-band availability","push/pull/legs/core/full-body builder","direct reps/holds and RPE strongest","progression-chain difficulty selection","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","manual exercise/sets/reps edits win"]},
   blockTransition:{type:"six-week-review",version:1,rules:["first app open in an unreviewed new block","review schedule mode","review each TB TM","review pull-up progression","review KB plan","optional recovery/open pause week that does not consume a program week"]}
  },
- unifiedTrainingModel:{type:"stimulus-fatigue-progression",version:1,rules:["multidimensional exercise fingerprints","directional strength transfer","technical similarity","fatigue overlap","localized 4-day fatigue","7/28-day effective muscle volume","exercise progression confidence","plateau detection","expected-vs-actual RPE prediction error","manual substitution learning","builder optimization"]},relationshipModel:{type:"directional-stimulus-graph",version:3,note:"Exact performance is strongest. Relationships distinguish strength transfer, movement/muscle overlap, technical similarity, and fatigue overlap; source-to-target transfer is directional and unlike absolute loads are never directly converted."},
+ unifiedTrainingModel:{type:"stimulus-fatigue-progression",version:1,rules:["multidimensional exercise fingerprints","directional strength transfer","technical similarity","fatigue overlap","localized 4-day fatigue","7/28-day effective muscle volume","exercise progression confidence","plateau detection","expected-vs-actual RPE prediction error","manual substitution learning","builder optimization"]},workoutIntentModel:{type:"planned-vs-actual-workout",version:1,rules:["planned rest vs confirmed rest","change workout directly from Log","adaptive or manual build mode","date-only custom plans","reusable workout templates","custom exercise stimulus definitions","planned-vs-actual session metadata"]},relationshipModel:{type:"directional-stimulus-graph",version:3,note:"Exact performance is strongest. Relationships distinguish strength transfer, movement/muscle overlap, technical similarity, and fatigue overlap; source-to-target transfer is directional and unlike absolute loads are never directly converted."},
  tbEnduranceLibrary,tbHICLibrary,tbPowerLibrary,tbAccessoryLibrary,tbSEClusters,tbSEGuidance,logs:state.logs
 },null,2),"application/json"));
 exportCsv.addEventListener("click",()=>{
- const keys=["date","week","session","exercise","sets","reps","weight","modelPlannedExercise","modelPlannedSets","modelPlannedReps","modelPlannedWeight","modelExpectedRpe","modelPredictionError","modelExerciseOverride","distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","temperature","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
+ const keys=["date","week","session","exercise","sets","reps","weight","modelPlannedExercise","modelPlannedSets","modelPlannedReps","modelPlannedWeight","modelExpectedRpe","modelPredictionError","modelExerciseOverride","modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType","distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","temperature","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
  const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
  const row=x=>keys.map(k=>{
    if(["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","temperature","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance"].includes(k)) return esc((x.metrics||{})[k]);
@@ -5817,6 +6158,7 @@ function normalizeImportedLog(row,index){
  if(row.modelExpectedRpe!==undefined&&row.modelExpectedRpe!=="")out.modelExpectedRpe=importedNumeric(row.modelExpectedRpe,1,10,false);
  if(row.modelPredictionError!==undefined&&row.modelPredictionError!=="")out.modelPredictionError=importedNumeric(row.modelPredictionError,-9,9,false);
  if(row.modelExerciseOverride!==undefined)out.modelExerciseOverride=!!row.modelExerciseOverride;
+ ["modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType"].forEach(k=>{if(row[k]!==undefined)out[k]=importedScalar(row[k],k==="customWorkoutName"?240:120)});
  if(row.rpe!==undefined&&row.rpe!==""){
    const r=Number(row.rpe);if(!Number.isFinite(r)||r<1||r>10)throw new Error("Workout log row "+(index+1)+" has an invalid RPE.");
    out.rpe=r;
@@ -5848,7 +6190,7 @@ function normalizeImportedRestDays(input){
  if(input===undefined||input===null)return {};
  if(!isPlainRecord(input))throw new Error("restDays must be an object.");
  const entries=Object.entries(input);if(entries.length>10000)throw new Error("Import has too many rest-day records.");
- const out={};entries.forEach(([date,row])=>{if(!validIsoDateValue(date)||!isPlainRecord(row))throw new Error("Import contains an invalid rest-day record.");out[date]={status:["confirmed","scheduled"].includes(row.status)?row.status:"scheduled",source:importedScalar(row.source||"import",80),at:row.at?importedNumeric(row.at,0,1e15,false):0}});return out;
+ const out={};entries.forEach(([date,row])=>{if(!validIsoDateValue(date)||!isPlainRecord(row))throw new Error("Import contains an invalid rest-day record.");out[date]={status:["confirmed","planned","scheduled"].includes(row.status)?row.status:"scheduled",source:importedScalar(row.source||"import",80),at:row.at?importedNumeric(row.at,0,1e15,false):0}});return out;
 }
 
 function normalizeImportedWearableSessions(input){
@@ -5873,7 +6215,7 @@ function normalizeImportedState(raw){
  if(raw.exportVersion!==undefined){
    const v=Number(raw.exportVersion);
    if(!Number.isFinite(v)||v<1)throw new Error("Import has an invalid version.");
-   if(v>27)throw new Error("This backup was created by a newer app version.");
+   if(v>28)throw new Error("This backup was created by a newer app version.");
  }
  if(!isPlainRecord(raw.settings)||!Array.isArray(raw.logs))throw new Error("Import is missing settings or workout logs.");
  if(raw.logs.length>IMPORT_MAX_LOGS)throw new Error("Import has too many workout log rows.");
@@ -5897,6 +6239,10 @@ function applyNormalizedImport(o){
  state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};
  state.settings.conditioningSwapMeta=state.settings.conditioningSwapMeta||{};
  state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};
+ state.settings.workoutIntent=state.settings.workoutIntent||{};
+ state.settings.customDayWorkouts=state.settings.customDayWorkouts||{};
+ state.settings.customWorkoutTemplates=state.settings.customWorkoutTemplates||{};
+ state.settings.customExerciseDefinitions=state.settings.customExerciseDefinitions||{};
  if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;
  if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;
  if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;
