@@ -1167,7 +1167,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="field"><label>Other TM Increase / 6 Weeks</label><input type="number" id="otherInc"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v28</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v29</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -2178,11 +2178,11 @@ function pullupForWeek(gw){
 }
 const wave=[[.70,3,5],[.80,3,5],[.90,3,3],[.75,3,5],[.85,3,5],[.95,3,2]];
 const preKbSchedule=[
- ["Monday","TB Maintenance","Squat + pull-up + deadlift + row + chest + incline"],
+ ["Monday","TB Maintenance","Squat + pull-up + deadlift (1 work set) + row + chest + incline"],
  ["Tuesday","Conditioning","Easy aerobic / recovery conditioning"],
- ["Wednesday","TB Maintenance","Squat + pull-up + deadlift + row + chest + incline"],
+ ["Wednesday","TB Maintenance","Squat + pull-up + row + chest + incline • no deadlift"],
  ["Thursday","Conditioning","HIC / athletic conditioning"],
- ["Friday","TB Maintenance","Squat + pull-up + deadlift + row + chest + incline"],
+ ["Friday","TB Maintenance","Squat + pull-up + deadlift (1 work set) + row + chest + incline"],
  ["Saturday","Conditioning","Longer aerobic / mixed conditioning"],
  ["Sunday","Recovery / Rest","Recovery, mobility, or complete rest"]
 ];
@@ -2200,7 +2200,7 @@ function blockModeForWeek(gw){
   return (state.settings.blockModes||{})[b]||"hybrid";
 }
 function scheduleForWeek(gw){return blockModeForWeek(gw)==="tb" ? preKbSchedule : hybridSchedule}
-function schedulePhase(gw){return blockModeForWeek(gw)==="tb" ? "TB Only • TB M/W/F" : "Hybrid • 2 TB + 3 KB"}
+function schedulePhase(gw){return blockModeForWeek(gw)==="tb" ? "TB Only • TB M/W/F • Deadlift Mon/Fri only" : "Hybrid • 2 TB + 3 KB • No TB deadlift"}
 
 const conditioningPlan = [
   {"week": 1, "wed": {"activity": "LSS Run", "detail": "45 min easy, steady, conversational pace", "target": "45 min", "rpe": "4–5"}, "sat": {"activity": "Connaught Range 10 to 1s", "detail": "HIC #1 • aerobic/anaerobic mix", "target": "10-to-1", "rpe": "8–9"}},
@@ -2624,17 +2624,17 @@ function effectiveTM(lift,block){
  const o=(state.settings.tbOverrides||{})[String(block)]||{},v=Number(o[lift]);
  return Number.isFinite(v)&&v>0 ? v : automaticTM(lift,block);
 }
-function getTBPlan(gw){
- const bi=blockInfo(gw),w=wave[bi.wib-1],p=w[0],sets=w[1],reps=w[2],pu=pullupForWeek(gw);
+function getTBPlan(gw,dateOrDay=""){
+ const bi=blockInfo(gw),w=wave[bi.wib-1],p=w[0],sets=w[1],reps=w[2],pu=pullupForWeek(gw),
+       rawDay=String(dateOrDay||""),day=/^\d{4}-\d{2}-\d{2}$/.test(rawDay)?dayNameFromDate(rawDay):(rawDay||dayNameFromDate(selectedDateISO||localISO(new Date())));
  const squat=round5(effectiveTM("squat",bi.block)*p),row=round5(effectiveTM("row",bi.block)*p),chest=round5(effectiveTM("chest",bi.block)*p),incl=round5(effectiveTM("incline",bi.block)*p);
  const plan=[
   {exercise:"Squat",sets,reps,weight:squat+" lb",numeric:squat,bar:true,meta:Math.round(p*100)+"%"},
   {exercise:"Weighted Pull-up",sets:pu[4],reps:pu[5],weight:"+"+pu[6]+" lb",numeric:null,bar:false,meta:pu[3]}
  ];
- if(blockModeForWeek(gw)==="tb"){
+ if(blockModeForWeek(gw)==="tb"&&(day==="Monday"||day==="Friday")){
    const dead=round5(effectiveTM("deadlift",bi.block)*p);
-   const dlSets=(bi.wib===1||bi.wib===4)?3:((bi.wib===2||bi.wib===5)?2:1);
-   plan.push({exercise:"Deadlift",sets:dlSets,reps,weight:dead+" lb",numeric:dead,bar:true,meta:Math.round(p*100)+"% • TB-only block"});
+   plan.push({exercise:"Deadlift",sets:1,reps,weight:dead+" lb",numeric:dead,bar:true,meta:Math.round(p*100)+"% • TB-only • "+day+" • 1 work set"});
  }
  plan.push(
   {exercise:"Barbell Row",sets,reps,weight:row+" lb",numeric:row,bar:true,meta:Math.round(p*100)+"%"},
@@ -3929,7 +3929,7 @@ function planFor(session,gw){
  if(manual&&manual.session===session&&Array.isArray(manual.rows)&&manual.rows.length){
    return manual.rows.map(r=>r.conditioning?{exercise:r.exercise,plannedTarget:r.plannedTarget||"Custom / manual",meta:r.meta||"MANUAL",conditioning:true}:{exercise:r.exercise,sets:r.sets||"",reps:r.reps||"",weight:r.weight||"",meta:"MANUAL • "+(manual.name||session),note:"Saved manual plan for this date.",conditioning:false});
  }
- if(session==="TB Maintenance")return getTBPlan(gw);
+ if(session==="TB Maintenance")return getTBPlan(gw,logDate.value);
  if(session.startsWith("KB "))return getKbPlan(session,gw,logDate.value).map(x=>Object.assign({},x,{conditioning:false}));
  if(session==="Generic Gym")return getGenericGymPlan(logDate.value);
  if(session==="Calisthenics"){
@@ -4083,7 +4083,7 @@ function appendExerciseCard(x){
  tbList.appendChild(d);
 }
 function renderTB(gw){
- tbList.innerHTML="";getTBPlan(gw).forEach(appendExerciseCard);
+ tbList.innerHTML="";getTBPlan(gw,selectedDateISO).forEach(appendExerciseCard);
 }
 function appendDayControls(session){
  const isManualRest=(state.settings.dayOverrides||{})[selectedDateISO]==="Recovery / Rest",noRest=!!((state.settings.noRestDates||{})[selectedDateISO]),wrap=document.createElement("div");wrap.className="day-control-row";
@@ -4101,7 +4101,7 @@ function renderSelectedWorkout(){
  const day=d.toLocaleDateString("en-US",{weekday:"long"}),session=expectedSession(day,gw,selectedDateISO),bi=blockInfo(gw),paused=isRecoveryPauseDate(d);
  workoutTitle.textContent=session;tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})+(paused?" • Recovery / Open Week • before Block "+(bi.block+1):" • Week "+gw+" • Block "+bi.block+" W"+bi.wib);
  selectedDateBadge.textContent=selectedDateISO===localISO(new Date())?"TODAY":"SELECTED DAY";plateLegend.classList.toggle("hidden",session!=="TB Maintenance");tbList.innerHTML="";appendCompletedSessionsBox(selectedDateISO);
- if(session==="TB Maintenance"){getTBPlan(gw).forEach(appendExerciseCard);appendDayControls(session);return}
+ if(session==="TB Maintenance"){getTBPlan(gw,selectedDateISO).forEach(appendExerciseCard);appendDayControls(session);return}
  if(session.startsWith("KB ")){getKbPlan(session,gw,selectedDateISO).forEach(appendExerciseCard);const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent="Edit This KB Workout";edit.addEventListener("click",()=>{kbBuilderBlock.value=bi.block;kbBuilderSlot.value=session;showView("kbworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
  if(session==="Generic Gym"){const plan=getGenericGymPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Generic Gym",meta:"No exercises saved yet",note:"Open the Gym tab and choose muscle groups, difficulty, duration, and equipment."});const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Generic Gym Workout":"Build Generic Gym Workout";edit.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
  if(session==="Calisthenics"){const plan=getCalisthenicsPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Calisthenics",meta:"No exercises saved yet",note:"Open the Calisthenics tab to select focus, difficulty, duration, and pull-up-bar access. The app will build an adaptive bodyweight workout."});const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Calisthenics Workout":"Build Calisthenics Workout";edit.addEventListener("click",()=>{calBuilderDate.value=selectedDateISO;showView("calisthenics")});tbList.appendChild(edit);appendDayControls(session);return}
@@ -6070,7 +6070,7 @@ saveSettings.addEventListener("click",()=>{
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:28,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
+ exportVersion:29,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:4,rules:["E/HIC slot","recency","category balance","mileage and duration vs baseline","avg/max HR trend","objective performance trend","graduated Normal/Caution/Guard recovery model","Helio daily recovery and training-load signals","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
@@ -6080,7 +6080,7 @@ exportJson.addEventListener("click",()=>download("hybrid-training-export.json",J
   calisthenics:{type:"adaptive-bodyweight",version:1,rules:["pull-up-bar and exercise-band availability","push/pull/legs/core/full-body builder","direct reps/holds and RPE strongest","progression-chain difficulty selection","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","manual exercise/sets/reps edits win"]},
   blockTransition:{type:"six-week-review",version:1,rules:["first app open in an unreviewed new block","review schedule mode","review each TB TM","review pull-up progression","review KB plan","optional recovery/open pause week that does not consume a program week"]}
  },
- unifiedTrainingModel:{type:"stimulus-fatigue-progression",version:1,rules:["multidimensional exercise fingerprints","directional strength transfer","technical similarity","fatigue overlap","localized 4-day fatigue","7/28-day effective muscle volume","exercise progression confidence","plateau detection","expected-vs-actual RPE prediction error","manual substitution learning","builder optimization"]},workoutIntentModel:{type:"planned-vs-actual-workout",version:1,rules:["planned rest vs confirmed rest","change workout directly from Log","adaptive or manual build mode","date-only custom plans","reusable workout templates","custom exercise stimulus definitions","planned-vs-actual session metadata"]},relationshipModel:{type:"directional-stimulus-graph",version:3,note:"Exact performance is strongest. Relationships distinguish strength transfer, movement/muscle overlap, technical similarity, and fatigue overlap; source-to-target transfer is directional and unlike absolute loads are never directly converted."},
+ unifiedTrainingModel:{type:"stimulus-fatigue-progression",version:1,rules:["multidimensional exercise fingerprints","directional strength transfer","technical similarity","fatigue overlap","localized 4-day fatigue","7/28-day effective muscle volume","exercise progression confidence","plateau detection","expected-vs-actual RPE prediction error","manual substitution learning","builder optimization"]},workoutIntentModel:{type:"planned-vs-actual-workout",version:1,rules:["planned rest vs confirmed rest","change workout directly from Log","adaptive or manual build mode","date-only custom plans","reusable workout templates","custom exercise stimulus definitions","planned-vs-actual session metadata"]},tbDeadliftSchedule:{version:1,mode:"tb-only",days:["Monday","Friday"],workSetsPerDay:1,workSetsPerWeek:2,hybridDeadlift:false,note:"TB-only deadlift uses the current wave percentage/reps but exactly one work set on Monday and Friday; Wednesday has no deadlift. Hybrid has no Tactical Barbell deadlift."},relationshipModel:{type:"directional-stimulus-graph",version:3,note:"Exact performance is strongest. Relationships distinguish strength transfer, movement/muscle overlap, technical similarity, and fatigue overlap; source-to-target transfer is directional and unlike absolute loads are never directly converted."},
  tbEnduranceLibrary,tbHICLibrary,tbPowerLibrary,tbAccessoryLibrary,tbSEClusters,tbSEGuidance,logs:state.logs
 },null,2),"application/json"));
 exportCsv.addEventListener("click",()=>{
@@ -6215,7 +6215,7 @@ function normalizeImportedState(raw){
  if(raw.exportVersion!==undefined){
    const v=Number(raw.exportVersion);
    if(!Number.isFinite(v)||v<1)throw new Error("Import has an invalid version.");
-   if(v>28)throw new Error("This backup was created by a newer app version.");
+   if(v>29)throw new Error("This backup was created by a newer app version.");
  }
  if(!isPlainRecord(raw.settings)||!Array.isArray(raw.logs))throw new Error("Import is missing settings or workout logs.");
  if(raw.logs.length>IMPORT_MAX_LOGS)throw new Error("Import has too many workout log rows.");
