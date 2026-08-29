@@ -1288,7 +1288,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.3</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.4</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -3452,21 +3452,32 @@ function saveCustomExerciseDefinitionFromUi(){
  state.settings.customExerciseDefinitions[name]={name,primary,secondary,move,fatigue,strengthDemand,createdAt:Date.now()};save("custom-exercise-definition");document.getElementById("customExerciseStatus").textContent=name+" saved. It now participates in fatigue, volume and exercise relationships.";renderQuickExerciseResults();
 }
 
+function activeUserLogDraftForDate(dateISO){
+ try{const d=readLogWorkspace();if(!d||d.date!==dateISO||d.editingSessionId||d.blankNext)return null;return logWorkspaceHasUserWork(d)?d:null}catch(e){return null}
+}
+function draftExerciseName(card){
+ const f=card?.fields||{},raw=f["le-ex"]||"";return raw==="__custom__"?(f["le-custom"]||"Other"):(raw||card?.plannedExercise||"");
+}
 function expectedSession(day,gw,dateISO=""){
- const override=(state.settings.dayOverrides||{})[dateISO];
- if(override==="Recovery / Rest"&&!((state.settings.noRestDates||{})[dateISO]))return "Recovery / Rest";
+ const liveDraft=dateISO?activeUserLogDraftForDate(dateISO):null;if(liveDraft?.session)return liveDraft.session;
+ const override=(state.settings.dayOverrides||{})[dateISO],noRest=!!(dateISO&&((state.settings.noRestDates||{})[dateISO])),base=baseExpectedSession(day,gw);
+ if(override==="Recovery / Rest"&&!noRest)return "Recovery / Rest";
  if(dateISO&&((state.settings.classOverrides||{})[dateISO]))return "Class / Activity";
  if(dateISO&&((state.settings.calisthenicsWorkouts||{})[dateISO]))return "Calisthenics";
  if(dateISO&&((state.settings.genericGymWorkouts||{})[dateISO]))return "Generic Gym";
  if(override==="Calisthenics")return "Calisthenics";if(override==="Generic Gym")return "Generic Gym";if(override==="Class / Activity")return "Class / Activity";
+ // A scheduled rest day that the user explicitly protects from rest must become an
+ // actual recommended training day. Legacy builds stored this as Open Training;
+ // treat that legacy placeholder as an adaptive Conditioning day instead.
+ if(noRest&&base==="Recovery / Rest"&&(!override||override==="Open Training"))return "Conditioning";
  if(override&&override!=="Recovery / Rest")return override;
- const base=baseExpectedSession(day,gw);if(base==="Recovery / Rest"&&dateISO&&((state.settings.noRestDates||{})[dateISO]))return "Open Training";return base;
+ return base;
 }
 function clearAutoNoRestSuggestion(dateISO){
  const meta=(state.settings.noRestAutoSuggestions||{})[dateISO];
  if(!meta)return;
- if((state.settings.dayOverrides||{})[dateISO]==="Conditioning")delete state.settings.dayOverrides[dateISO];
- if((state.settings.conditioningOverrides||{})[dateISO]===meta.activity)delete state.settings.conditioningOverrides[dateISO];
+ if((state.settings.dayOverrides||{})[dateISO]==="Conditioning"&&(meta.dynamic||!meta.activity||(state.settings.conditioningOverrides||{})[dateISO]===meta.activity))delete state.settings.dayOverrides[dateISO];
+ if(meta.activity&&(state.settings.conditioningOverrides||{})[dateISO]===meta.activity)delete state.settings.conditioningOverrides[dateISO];
  delete state.settings.noRestAutoSuggestions[dateISO];
 }
 function noRestSuggestionForDate(dateISO){
@@ -3512,16 +3523,26 @@ function markRestDay(dateISO){
 }
 function markNoRestDay(dateISO){
  state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};
- const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=d.toLocaleDateString("en-US",{weekday:"long"}),wasRest=expectedSession(day,gw,dateISO)==="Recovery / Rest"||baseExpectedSession(day,gw)==="Recovery / Rest"||state.settings.dayOverrides[dateISO]==="Recovery / Rest";
- state.settings.noRestDates[dateISO]=true;clearRestRecord(dateISO);if(state.settings.dayOverrides[dateISO]==="Recovery / Rest")delete state.settings.dayOverrides[dateISO];
+ const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=d.toLocaleDateString("en-US",{weekday:"long"}),baseRest=baseExpectedSession(day,gw)==="Recovery / Rest",
+   wasRest=expectedSession(day,gw,dateISO)==="Recovery / Rest"||baseRest||state.settings.dayOverrides[dateISO]==="Recovery / Rest";
+ state.settings.noRestDates[dateISO]=true;clearRestRecord(dateISO);
+ if(state.settings.dayOverrides[dateISO]==="Recovery / Rest"||state.settings.dayOverrides[dateISO]==="Open Training")delete state.settings.dayOverrides[dateISO];
  if(wasRest){
-   const suggestion=noRestSuggestionForDate(dateISO);state.settings.dayOverrides[dateISO]="Conditioning";state.settings.conditioningOverrides[dateISO]=suggestion.activity;
-   state.settings.noRestAutoSuggestions[dateISO]={activity:suggestion.activity,target:suggestion.target,rpe:suggestion.rpe,detail:suggestion.detail,why:suggestion.why,whyFactors:[...(suggestion.whyFactors||[])],at:Date.now()};
+   // Do not freeze a one-time activity here. Mark the date as an adaptive training day
+   // so the recommendation can still respond to recovery/history until the user starts
+   // or manually overrides the workout.
+   clearAutoNoRestSuggestion(dateISO);
+   state.settings.dayOverrides[dateISO]="Conditioning";
+   state.settings.noRestAutoSuggestions[dateISO]={dynamic:true,at:Date.now(),why:"Adaptive recommendation for a scheduled rest day you chose to train on."};
  }
  save();render();
 }
 function clearNoRestDay(dateISO){
+ const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=d.toLocaleDateString("en-US",{weekday:"long"}),baseRest=baseExpectedSession(day,gw)==="Recovery / Rest",
+   meta=(state.settings.noRestAutoSuggestions||{})[dateISO],override=(state.settings.dayOverrides||{})[dateISO],manualConditioning=!!((state.settings.conditioningOverrides||{})[dateISO]);
  if((state.settings.noRestDates||{})[dateISO])delete state.settings.noRestDates[dateISO];
+ if(baseRest&&override==="Open Training")delete state.settings.dayOverrides[dateISO];
+ if(baseRest&&override==="Conditioning"&&!manualConditioning&&(meta?.dynamic||!workoutIntentForDate(dateISO)))delete state.settings.dayOverrides[dateISO];
  clearAutoNoRestSuggestion(dateISO);syncScheduledRestHistory();save();render();
 }
 function clearDayOverride(dateISO){
@@ -4160,6 +4181,11 @@ function conditioningSlot(day,gw){
  return "easy";
 }
 function conditioningFor(day,gw,dateISO=""){
+ const liveDraft=dateISO?activeUserLogDraftForDate(dateISO):null;
+ if(liveDraft?.session==="Conditioning"&&Array.isArray(liveDraft.cards)&&liveDraft.cards.length){
+   const card=liveDraft.cards.find(c=>String(c?.conditioning||"")==="1")||liveDraft.cards[0],activity=draftExerciseName(card);
+   if(activity)return {activity,target:card?.plannedTarget||"Continue in-progress workout",rpe:conditioningTargetRpe(activity),detail:"In-progress Log Workout",inProgress:true,adaptive:false,why:"Log Workout already contains user-entered work or an explicit exercise/activity choice for this date, so Dashboard follows that in-progress plan instead of recalculating a different recommendation.",whyFactors:["Dashboard and Log Workout are locked to the same in-progress plan for this date."]};
+ }
  const override=(state.settings.conditioningOverrides||{})[dateISO];
  if(override){
    const lib=entryForName(override),swap=(state.settings.conditioningSwapMeta||{})[dateISO],autoRest=(state.settings.noRestAutoSuggestions||{})[dateISO];
@@ -4168,7 +4194,12 @@ function conditioningFor(day,gw,dateISO=""){
    const factors=["You manually selected this session for this date; the future conditioning schedule is unchanged."];
    return {activity:override,detail:"Manual conditioning override",target:lib?.prescription||"Manual",rpe:conditioningTargetRpe(override),override:true,why:factors.join(" "),whyFactors:factors};
  }
- const readiness=adaptiveReadiness(dateISO||localISO(new Date())),slot=conditioningSlot(day,gw);
+ const readiness=adaptiveReadiness(dateISO||localISO(new Date())),slot=conditioningSlot(day,gw),
+   addedNoRest=!!(dateISO&&((state.settings.noRestDates||{})[dateISO])&&baseExpectedSession(day,gw)==="Recovery / Rest");
+ if(addedNoRest){
+   const pick=easyAdaptivePick(day,gw,dateISO,readiness,false,"This date was originally a scheduled rest day and you chose to train instead.",{addedRestDay:true});
+   return {...pick,detail:"Adaptive fill for a no-rest day • "+(readiness.caution?"Caution":"Normal"),autoNoRest:true};
+ }
  if(slot==="hard")return hardAdaptivePick(day,gw,dateISO,readiness);
  return easyAdaptivePick(day,gw,dateISO,readiness,slot==="easy-long");
 }
@@ -4184,7 +4215,7 @@ function exerciseChoicesForDate(value){
  if(session==="Calisthenics")return [...new Set([...cal,...gym,...custom])];
  if(session==="Generic Gym"||session==="Open Training"||session==="Custom Workout")return [...new Set([...gym,...cal,...kb,...custom,"Other"])];
  if(session==="Class / Activity")return [...new Set([...classActivityLibrary.map(x=>x.name),...gym,...cal,...custom])];
- if(session==="Conditioning")return [...new Set([...(dayExerciseOptions.Wednesday||[]),...(dayExerciseOptions.Saturday||[]),...gym,...cal,...custom])];
+ if(session==="Conditioning")return [...new Set([...tbEnduranceLibrary.map(x=>x.name),...tbHICLibrary.map(x=>x.name),...tbPowerLibrary.map(x=>x.name),...(dayExerciseOptions.Wednesday||[]),...(dayExerciseOptions.Saturday||[]),...gym,...cal,...custom])];
  if(session==="Recovery / Rest")return ["Rest Day","Recovery / Rest","Mobility","Easy Walk",...cal,...gym,...custom,"Other"];
  return [...new Set([...gym,...cal,...kb,...custom,"Other"])];
 }
@@ -5178,7 +5209,7 @@ function renderSelectedWorkout(){
    if(factors.length)note+='<br><strong>Why today:</strong><ul>'+factors.slice(0,5).map(x=>'<li>'+htmlSafe(x)+'</li>').join("")+'</ul>';
    else if(c.why)note+='<br><strong>Why today:</strong> '+htmlSafe(c.why);
    if(lib){note+='<br><strong>Full prescription:</strong> '+htmlSafe(lib.prescription);if(lib.basic)note+='<br><strong>Basic:</strong> '+htmlSafe(lib.basic);if(lib.advanced)note+='<br><strong>Advanced:</strong> '+htmlSafe(lib.advanced)}
-   appendExerciseCard({exercise:c.activity,target:c.target,weight:"RPE "+c.rpe,meta:(c.autoNoRest?"ADAPTIVE NO-REST FILL • ":(c.swap?"ADAPTIVE ONE-DAY SWAP • ":(c.override?"MANUAL OVERRIDE • ":(c.adaptive?"ADAPTIVE • ":""))))+(lib&&lib.num?"HIC #"+lib.num+" • "+hicCategory(lib.num):(lib?lib.category||"Endurance":"Conditioning")),note,noteHtml:true});
+   appendExerciseCard({exercise:c.activity,target:c.target,weight:"RPE "+c.rpe,meta:(c.inProgress?"IN-PROGRESS LOG • ":(c.autoNoRest?"ADAPTIVE NO-REST FILL • ":(c.swap?"ADAPTIVE ONE-DAY SWAP • ":(c.override?"MANUAL OVERRIDE • ":(c.adaptive?"ADAPTIVE • ":"")))))+(lib&&lib.num?"HIC #"+lib.num+" • "+hicCategory(lib.num):(lib?lib.category||"Endurance":"Conditioning")),note,noteHtml:true});
    if(c.override){const clr=document.createElement("button");clr.className="btn";clr.type="button";clr.textContent="Clear Conditioning Override";clr.addEventListener("click",clearConditioningOverrideForSelected);tbList.appendChild(clr)}
    appendDayControls(session);return
  }
@@ -5305,6 +5336,7 @@ function applyLogCardSubstitution(card,name){
  const sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");if(!sel)return;
  let opt=[...sel.options].find(o=>o.value===name);
  if(!opt){opt=document.createElement("option");opt.value=name;opt.textContent=name;sel.insertBefore(opt,sel.lastElementChild||null)}
+ card.dataset.userSubstituted="1";
  sel.value=name;if(custom)custom.classList.add("hidden");sel.dispatchEvent(new Event("change",{bubbles:true}));
  const title=card.querySelector(".log-title strong");if(title)title.textContent=name;
  refreshLogSwapTrigger(card);logWorkspaceUserTouched=true;writeLogWorkspace();
@@ -5347,7 +5379,9 @@ function ensureLogSwapAction(card){
  const conditioning=card.dataset.conditioning==="1",wrap=document.createElement("div");wrap.className="log-swap-action";
  wrap.innerHTML='<button class="btn log-swap-trigger" type="button"><span class="log-swap-icon">↔</span><span class="log-swap-copy"><strong>Swap '+(conditioning?'activity':'exercise')+'</strong><span></span></span><span class="log-swap-chevron">›</span></button>';
  title.insertAdjacentElement("afterend",wrap);wrap.querySelector(".log-swap-trigger").addEventListener("click",()=>openSubstitutionSheet(card));refreshLogSwapTrigger(card);
- const sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");sel?.addEventListener("change",()=>refreshLogSwapTrigger(card));custom?.addEventListener("input",()=>refreshLogSwapTrigger(card));
+ const sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");
+ sel?.addEventListener("change",e=>{if(e.isTrusted)card.dataset.userSubstituted="1";refreshLogSwapTrigger(card)});
+ custom?.addEventListener("input",e=>{if(e.isTrusted)card.dataset.userSubstituted="1";refreshLogSwapTrigger(card)});
 }
 function addLogCardControls(card){
  if(!card)return;
@@ -5355,9 +5389,9 @@ function addLogCardControls(card){
  if(!card.querySelector(".log-card-controls")){
   const box=document.createElement("div");box.className="log-card-controls";
   box.innerHTML='<button class="btn card-up" type="button" aria-label="Move exercise up">↑</button><button class="btn card-down" type="button" aria-label="Move exercise down">↓</button><button class="btn danger card-remove" type="button" aria-label="Remove exercise">Remove</button>';
-  box.querySelector(".card-up").addEventListener("click",()=>{const prev=card.previousElementSibling;if(prev){card.parentElement.insertBefore(card,prev);writeLogWorkspace()}});
-  box.querySelector(".card-down").addEventListener("click",()=>{const next=card.nextElementSibling;if(next){card.parentElement.insertBefore(next,card);writeLogWorkspace()}});
-  box.querySelector(".card-remove").addEventListener("click",()=>{card.remove();writeLogWorkspace()});
+  box.querySelector(".card-up").addEventListener("click",()=>{const prev=card.previousElementSibling;if(prev){logWorkspacePlanEdited=true;card.parentElement.insertBefore(card,prev);writeLogWorkspace()}});
+  box.querySelector(".card-down").addEventListener("click",()=>{const next=card.nextElementSibling;if(next){logWorkspacePlanEdited=true;card.parentElement.insertBefore(next,card);writeLogWorkspace()}});
+  box.querySelector(".card-remove").addEventListener("click",()=>{logWorkspacePlanEdited=true;card.remove();writeLogWorkspace()});
   title.appendChild(box);
  }
  ensureLogSwapAction(card);
@@ -5444,6 +5478,7 @@ function loadPlannedSession(){
   }
 
   d.dataset.plannedExercise=safePlainText(x.exercise||"",240);
+  d.dataset.plannedTarget=safePlainText(x.plannedTarget??"",160);
   d.dataset.plannedSets=safePlainText(x.sets??"",80);
   d.dataset.plannedReps=safePlainText(x.reps??x.plannedTarget??"",160);
   d.dataset.plannedWeight=safePlainText(x.weight??"",120);
@@ -5457,19 +5492,19 @@ function loadPlannedSession(){
   }
   function syncConditioningFields(){
     if(d.dataset.conditioning!=="1")return;
-    const holder=d.querySelector(".conditioning-fields"),priorStatus=d.querySelector(".le-status")?.value||"Complete",priorNotes=d.querySelector(".le-notes")?.value||"",priorComponents=collectConditioningComponents(d);
-    const activity=sel.value==="__custom__" ? (custom.value||"Other") : sel.value;
+    const activity=sel.value==="__custom__" ? (custom.value||"Other") : sel.value,previousActivity=d.dataset.conditioningActivity||d.dataset.plannedExercise||"",
+      holder=d.querySelector(".conditioning-fields"),priorStatus=d.querySelector(".le-status")?.value||"Complete",priorNotes=d.querySelector(".le-notes")?.value||"",priorComponents=previousActivity===activity?collectConditioningComponents(d):[];
     holder.innerHTML=conditioningFieldsHTML(activity);
     const status=d.querySelector(".le-status"),notes=d.querySelector(".le-notes");
     if(status)status.value=priorStatus;if(notes)notes.value=priorNotes;
-    renderConditioningComponentEditor(d,activity,priorComponents);
+    renderConditioningComponentEditor(d,activity,priorComponents);d.dataset.conditioningActivity=activity;
     wireExerciseCompletionState(d);
   }
   sel.addEventListener("change",()=>{syncCustom();syncConditioningFields();if(d._refreshConditioningHelper)d._refreshConditioningHelper()});
   custom.addEventListener("change",()=>{syncConditioningFields();if(d._refreshConditioningHelper)d._refreshConditioningHelper()});
   syncCustom();
   wireExerciseCompletionState(d);
-  if(d.dataset.conditioning==="1"){renderConditioningComponentEditor(d,x.exercise);wireConditioningLogHelper(d)}
+  if(d.dataset.conditioning==="1"){renderConditioningComponentEditor(d,x.exercise);d.dataset.conditioningActivity=x.exercise;wireConditioningLogHelper(d)}
   else{wireLogPlateVisual(d);wireSetDetailLogging(d)}
  });
  renderWorkoutIntentUi();
@@ -6698,6 +6733,8 @@ const LOG_WORKSPACE_KEY="hybridTrainingLogWorkspaceV1";
 let editingSessionId="";
 let blankNextWorkout=false;
 let logWorkspaceUserTouched=false;
+let logWorkspaceSessionUserChanged=false;
+let logWorkspacePlanEdited=false;
 const RECOVERY_DRAFT_KEY="hybridTrainingRecoveryDraftV1";
 
 let uiDraftRestoreInProgress=false,uiDraftTimer=null;
@@ -6733,10 +6770,11 @@ function classFieldValues(root,prefix){
 function captureLogDraft(){
  return {
    date:logDate.value,time:logTime.value,week:logWeek.value,session:logSession.value,editingSessionId:editingSessionId||"",blankNext:!!blankNextWorkout,_userTouched:!!logWorkspaceUserTouched,
+   _sessionUserChanged:!!logWorkspaceSessionUserChanged,_planEdited:!!logWorkspacePlanEdited,
    sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,
    wearable:Object.fromEntries(Object.entries(wearableSessionElements()).map(([k,el])=>[k,el?el.value:""])),
    cards:[...plannedExercises.querySelectorAll(".log-exercise")].map(c=>({
-     conditioning:c.dataset.conditioning||"0",fields:classFieldValues(c,"le-"),setDetails:collectSetDetails(c),components:collectConditioningComponents(c)
+     conditioning:c.dataset.conditioning||"0",plannedExercise:c.dataset.plannedExercise||"",plannedTarget:c.dataset.plannedTarget||"",userSubstituted:c.dataset.userSubstituted==="1",fields:classFieldValues(c,"le-"),setDetails:collectSetDetails(c),components:collectConditioningComponents(c)
    }))
  };
 }
@@ -6858,7 +6896,7 @@ function appendSavedExerciseCard(row){
    Object.entries(row.metrics||{}).forEach(([k,v])=>{const cls=savedMetricClassMap[k],el=cls?d.querySelector("."+cls):null;if(el)el.value=v??""});
    const rpe=d.querySelector(".le-rpe"),feel=d.querySelector(".le-feel"),status=d.querySelector(".le-status"),notes=d.querySelector(".le-notes");
    if(rpe)rpe.value=row.rpe??"";if(feel)feel.value=row.feel??"";if(status)status.value=row.status||"Complete";if(notes)notes.value=row.notes||"";
-   renderConditioningComponentEditor(d,row.exercise,row.metrics?.components||[]);
+   renderConditioningComponentEditor(d,row.exercise,row.metrics?.components||[]);d.dataset.conditioningActivity=row.exercise;
  }else{
    const feel=d.querySelector(".le-feel"),tech=d.querySelector(".le-tech"),status=d.querySelector(".le-status");
    if(feel)feel.value=row.feel||"";if(tech)tech.value=row.technique||"";if(status)status.value=row.status||"Complete";
@@ -6870,10 +6908,10 @@ function appendSavedExerciseCard(row){
    if(d.dataset.conditioning!=="1")return;
    const old={};
    Object.entries(savedMetricClassMap).forEach(([k,cls])=>{const el=d.querySelector("."+cls);if(el)old[k]=el.value});
-   const oldRpe=d.querySelector(".le-rpe")?.value||"",oldFeel=d.querySelector(".le-feel")?.value||"",oldStatus=d.querySelector(".le-status")?.value||"Complete",oldNotes=d.querySelector(".le-notes")?.value||"",oldComponents=collectConditioningComponents(d);
-   const activity=sel.value==="__custom__"?(custom.value||"Other"):sel.value,holder=d.querySelector(".conditioning-fields");holder.innerHTML=conditioningFieldsHTML(activity);
+   const activity=sel.value==="__custom__"?(custom.value||"Other"):sel.value,previousActivity=d.dataset.conditioningActivity||row.exercise||"",
+     oldRpe=d.querySelector(".le-rpe")?.value||"",oldFeel=d.querySelector(".le-feel")?.value||"",oldStatus=d.querySelector(".le-status")?.value||"Complete",oldNotes=d.querySelector(".le-notes")?.value||"",oldComponents=previousActivity===activity?collectConditioningComponents(d):[],holder=d.querySelector(".conditioning-fields");holder.innerHTML=conditioningFieldsHTML(activity);
    Object.entries(old).forEach(([k,v])=>{const el=d.querySelector("."+savedMetricClassMap[k]);if(el)el.value=v});
-   renderConditioningComponentEditor(d,activity,oldComponents);
+   renderConditioningComponentEditor(d,activity,oldComponents);d.dataset.conditioningActivity=activity;
    if(d.querySelector(".le-rpe"))d.querySelector(".le-rpe").value=oldRpe;if(d.querySelector(".le-feel"))d.querySelector(".le-feel").value=oldFeel;
    if(d.querySelector(".le-status"))d.querySelector(".le-status").value=oldStatus;if(d.querySelector(".le-notes"))d.querySelector(".le-notes").value=oldNotes;
    wireExerciseCompletionState(d);
@@ -6902,6 +6940,8 @@ function cancelSavedSessionEdit(){
 function restoreLogDraft(d){
  if(!d)return;
  logWorkspaceUserTouched=!!d._userTouched||legacyLogWorkspaceHasUserWork(d);
+ logWorkspaceSessionUserChanged=!!d._sessionUserChanged;
+ logWorkspacePlanEdited=!!d._planEdited;
  if(d.date)logDate.value=d.date;
  if(d.time&&/^\d{2}:\d{2}$/.test(d.time))logTime.value=d.time;else if(!logTime.value)logTime.value=currentClockHHMM();
  if(d.week)logWeek.value=d.week;
@@ -6913,20 +6953,22 @@ function restoreLogDraft(d){
  if(!blankNextWorkout)while(getCards().length<stored.length)appendAdditionalLogExercise();
  stored.forEach((src,i)=>{
    const card=getCards()[i];if(!card)return;
+   if(src.userSubstituted){card.dataset.userSubstituted="1";if(src.plannedExercise)card.dataset.plannedExercise=safePlainText(src.plannedExercise,240);if(src.plannedTarget)card.dataset.plannedTarget=safePlainText(src.plannedTarget,160)}
    const f=src.fields||{},sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");
    if(f["le-ex"]!==undefined){
      setSelectDraftValue(sel,f["le-ex"],custom);
-     if(f["le-custom"]!==undefined&&custom)custom.value=f["le-custom"];
+     if(f["le-ex"]==="__custom__"&&f["le-custom"]!==undefined&&custom)custom.value=f["le-custom"];
      sel?.dispatchEvent(new Event("change",{bubbles:false}));
    }
    Object.entries(f).forEach(([cls,val])=>{
      if(cls==="le-ex"||cls==="le-custom")return;
      const el=card.querySelector("."+cls);if(el)el.value=val;
    });
-   if(custom&&f["le-custom"]!==undefined)custom.value=f["le-custom"];
+   if(custom&&f["le-ex"]==="__custom__"&&f["le-custom"]!==undefined)custom.value=f["le-custom"];
+   const restoredName=currentCardExercise(card),restoredTitle=card.querySelector(".log-title strong");if(restoredTitle&&restoredName)restoredTitle.textContent=restoredName;
    if(card.dataset.conditioning!=="1"){wireSetDetailLogging(card);restoreSetDetails(card,src.setDetails||[])}
-   else renderConditioningComponentEditor(card,currentCardExercise(card),src.components||[]);
-   syncExerciseCompletionState(card);
+   else{const seed=(src.userSubstituted&&src.plannedExercise&&restoredName!==src.plannedExercise)?[]:(src.components||[]);renderConditioningComponentEditor(card,restoredName,seed);card.dataset.conditioningActivity=restoredName}
+   refreshLogSwapTrigger(card);syncExerciseCompletionState(card);
  });
  sessionFeel.value=d.sessionFeel||"";
  sessionNotes.value=d.sessionNotes||"";
@@ -6963,8 +7005,13 @@ function legacyLogWorkspaceHasUserWork(d){
 function logWorkspaceHasSubstantiveWork(d){
  return !!(d&&legacyLogWorkspaceHasUserWork(d));
 }
+function logWorkspaceHasIntentionalPlanChoice(d){
+ if(!d)return false;
+ if(d._sessionUserChanged===true||d._planEdited===true)return true;
+ return (d.cards||[]).some(c=>c&&c.userSubstituted===true);
+}
 function logWorkspaceHasUserWork(d){
- return !!(d&&(d._userTouched===true||logWorkspaceHasSubstantiveWork(d)));
+ return !!(d&&(logWorkspaceHasSubstantiveWork(d)||logWorkspaceHasIntentionalPlanChoice(d)));
 }
 function scheduledLogStateForDate(dateISO){
  const parsed=parseLocalISO(dateISO),tw=!isNaN(parsed)?trainingWeekForDate(parsed):state.settings.currentWeek,
@@ -6991,12 +7038,12 @@ function writeLogWorkspace(){
  }
 }
 function clearLogWorkspace(){
- logWorkspaceUserTouched=false;
+ logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
  try{localStorage.removeItem(LOG_WORKSPACE_KEY)}catch(e){}
 }
 function loadScheduledLogDate(dateISO=localISO(new Date())){
  const target=scheduledLogStateForDate(dateISO);
- setSessionEditMode("");blankNextWorkout=false;logWorkspaceUserTouched=false;
+ setSessionEditMode("");blankNextWorkout=false;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
  logDate.value=target.date;logTime.value=target.date===localISO(new Date())?currentClockHHMM():"12:00";
  logWeek.value=target.week;logSession.value=target.session;
  sessionFeel.value="";sessionNotes.value="";clearWearableSessionForm();
@@ -7006,7 +7053,7 @@ function loadScheduledLogDate(dateISO=localISO(new Date())){
 function restorePersistentLogWorkspace(){
  const d=readLogWorkspace(),today=localISO(new Date());
  if(d){
-   const substantive=logWorkspaceHasSubstantiveWork(d),touched=!!d._userTouched,matchesToday=logWorkspaceMatchesScheduledState(d,today),sameDay=d.date===today;
+   const substantive=logWorkspaceHasSubstantiveWork(d),intentional=logWorkspaceHasIntentionalPlanChoice(d),matchesToday=logWorkspaceMatchesScheduledState(d,today),sameDay=d.date===today;
    // Today's calendar is authoritative when entering Log Workout.
    // Merely changing yesterday's date/session selector is not substantive unsaved
    // workout data and must not keep yesterday open on a new day.
@@ -7021,7 +7068,10 @@ function restorePersistentLogWorkspace(){
          return true;
        }catch(e){window.__hybridLogRestoreError=String(e&&e.message||e)}
      }
-   }else if(!matchesToday&&!substantive&&!touched){
+   }else if(!substantive&&!intentional){
+     // The current calendar/recovery model is authoritative for an untouched plan.
+     // This prevents a stale recommendation (for example yesterday's Triples choice)
+     // from surviving after Dashboard has recalculated today's conditioning.
      clearLogWorkspace();
    }else{
      try{
@@ -7177,7 +7227,7 @@ function showView(id){
  if(!uiDraftRestoreInProgress)queueUiDraftSave();
 }
 function setLogDefaults(){
- setSessionEditMode("");blankNextWorkout=false;logWorkspaceUserTouched=false;
+ setSessionEditMode("");blankNextWorkout=false;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
  const d=new Date();logDate.value=localISO(d);logTime.value=currentClockHHMM(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;
  const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=tw>=1?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw,logDate.value);clearWearableSessionForm();loadPlannedSession();renderWorkoutIntentUi();
 }
@@ -7305,7 +7355,7 @@ calHasBands.addEventListener("change",()=>{state.settings.calHasBands=calHasBand
 calDurationRange.addEventListener("input",()=>calDuration.value=calDurationRange.value);calDuration.addEventListener("input",()=>calDurationRange.value=Math.max(20,Math.min(90,Number(calDuration.value)||45)));
 calSelectFullBody.addEventListener("click",()=>setCalFocus(["push","pull","legs","core","fullbody"]));calSelectUpper.addEventListener("click",()=>setCalFocus(["push","pull"]));calSelectLowerCore.addEventListener("click",()=>setCalFocus(["legs","core"]));calClearFocus.addEventListener("click",()=>setCalFocus([]));
 generateCalWorkout.addEventListener("click",generateCalFromSelections);resetCalSelectionsBtn.addEventListener("click",resetCalSelectionsAction);addCalExercise.addEventListener("click",()=>addCalBuilderRow());saveCalWorkout.addEventListener("click",saveCalBuilder);clearCalWorkout.addEventListener("click",clearCalBuilder);
-classCategory.addEventListener("change",renderClassLibrary);classSearch.addEventListener("input",renderClassLibrary);addLogExercise.addEventListener("click",()=>{appendAdditionalLogExercise();renderWorkoutIntentUi()});
+classCategory.addEventListener("change",renderClassLibrary);classSearch.addEventListener("input",renderClassLibrary);addLogExercise.addEventListener("click",()=>{logWorkspacePlanEdited=true;appendAdditionalLogExercise();renderWorkoutIntentUi()});
 changeWorkoutIntent.addEventListener("click",()=>{workoutIntentPanel.classList.toggle("hidden");if(!workoutIntentPanel.classList.contains("hidden"))workoutIntentModes.classList.add("hidden")});
 workoutIntentPanel.addEventListener("click",e=>{
  const btn=e.target.closest("[data-intent]");if(!btn)return;const kind=btn.dataset.intent,date=logDate.value||localISO(new Date());
@@ -7336,7 +7386,7 @@ saveManualWorkoutToday.addEventListener("click",()=>saveManualWorkoutForToday(tr
 saveManualWorkoutTemplate.addEventListener("click",saveManualWorkoutAsTemplate);
 loadManualWorkoutTemplate.addEventListener("click",loadSelectedWorkoutTemplate);
 quickExerciseSearch.addEventListener("input",renderQuickExerciseResults);
-quickExerciseResults.addEventListener("click",e=>{const b=e.target.closest("[data-exercise]");if(b)appendSpecificLogExercise(b.dataset.exercise)});
+quickExerciseResults.addEventListener("click",e=>{const b=e.target.closest("[data-exercise]");if(b){logWorkspacePlanEdited=true;appendSpecificLogExercise(b.dataset.exercise)}});
 toggleCustomExerciseEditor.addEventListener("click",()=>{initCustomExerciseEditor();customExerciseEditor.classList.toggle("hidden")});
 cancelCustomExerciseDefinition.addEventListener("click",()=>customExerciseEditor.classList.add("hidden"));
 saveCustomExerciseDefinition.addEventListener("click",saveCustomExerciseDefinitionFromUi);
@@ -7365,7 +7415,7 @@ confirmBlockReview.addEventListener("click",confirmTransitionReview);
 
 loadPlan.addEventListener("click",()=>{loadPlannedSession();writeLogWorkspace()});
 logDate.addEventListener("change",()=>{const d=parseLocalISO(logDate.value);if(!isNaN(d)){if(!editingSessionId)logTime.value=logDate.value===localISO(new Date())?currentClockHHMM():"12:00";const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace()}});
-logSession.addEventListener("change",()=>{if(logSession.value==="Custom Workout"&&!workoutIntentForDate(logDate.value))beginManualWorkout("Custom Workout","mixed");else{loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace()}});
+logSession.addEventListener("change",e=>{if(e.isTrusted)logWorkspaceSessionUserChanged=true;if(logSession.value==="Custom Workout"&&!workoutIntentForDate(logDate.value))beginManualWorkout("Custom Workout","mixed");else{loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace()}});
 function completeWorkout(){
  if(saveSession.disabled)return;
  const isEditing=!!editingSessionId,sessionId=isEditing?editingSessionId:Date.now().toString();
