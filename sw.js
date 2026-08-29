@@ -1,6 +1,19 @@
-const CACHE="hybrid-training-v33";
+const CACHE="hybrid-training-v34";
 const FALLBACK="./index.html";
-self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.add(FALLBACK)).then(()=>self.skipWaiting()))});
+const PRECACHE=[
+  FALLBACK,
+  "./manifest-v34.webmanifest",
+  "./icons/hybrid-training-v34-64.png",
+  "./icons/hybrid-training-v34-180.png",
+  "./icons/hybrid-training-v34-192.png",
+  "./icons/hybrid-training-v34-512.png",
+  "./icons/hybrid-training-v34-512-maskable.png"
+];
+self.addEventListener("install",event=>{
+ event.waitUntil(caches.open(CACHE)
+   .then(cache=>Promise.all(PRECACHE.map(url=>cache.add(url).catch(()=>null))))
+   .then(()=>self.skipWaiting()));
+});
 self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",event=>{
  if(event.request.method!=="GET")return;
