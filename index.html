@@ -1201,7 +1201,7 @@ summary.tools-toggle::-webkit-details-marker{display:none}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v32</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v33</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -3274,14 +3274,17 @@ function manualToolsShouldShow(){
  const intent=workoutIntentForDate(logDate.value||"");return logSession.value==="Custom Workout"||!!(intent&&["manual","template"].includes(intent.mode)&&intent.selectedSession===logSession.value);
 }
 function renderWorkoutIntentSummary(){
- const el=document.getElementById("workoutIntentSummary");if(!el)return;const dateISO=logDate.value||localISO(new Date()),intent=workoutIntentForDate(dateISO),rest=restRecord(dateISO);
+ const el=document.getElementById("workoutIntentSummary");if(!el)return;const dateISO=logDate.value||localISO(new Date()),intent=workoutIntentForDate(dateISO),rest=restRecord(dateISO),
+   isToday=dateISO===localISO(new Date()),parsed=parseLocalISO(dateISO),dateLabel=isToday?"today":parsed.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+ const changeBtn=document.getElementById("changeWorkoutIntent");if(changeBtn)changeBtn.textContent=isToday?"Change Today's Workout":"Change "+dateLabel+"'s Workout";
  if(intent){
   const changed=intent.originalSession&&intent.originalSession!==intent.selectedSession?htmlSafe(intent.originalSession)+" → ":"";
   el.innerHTML='<span class="intent-badge">'+htmlSafe(String(intent.mode||"intent").toUpperCase())+'</span>'+changed+htmlSafe(intent.label||intent.selectedSession);
  }else if(rest){
   const label=rest.status==="planned"?"Planned Rest":rest.status==="confirmed"?"Confirmed Rest":"Scheduled Rest";el.innerHTML='<span class="intent-badge">'+htmlSafe(label.toUpperCase())+'</span>'+htmlSafe(dateISO);
  }else{
-  const d=parseLocalISO(dateISO),tw=trainingWeekForDate(d),gw=tw>=1?tw:state.settings.currentWeek;el.textContent="Scheduled: "+expectedSession(dayNameFromDate(dateISO),gw,dateISO)+". Change it here without leaving Log Workout.";
+  const tw=trainingWeekForDate(parsed),gw=tw>=1?tw:state.settings.currentWeek,scheduled=expectedSession(dayNameFromDate(dateISO),gw,dateISO);
+  el.textContent=(isToday?"Scheduled today: ":"Scheduled "+dateLabel+": ")+scheduled+". Change it here without leaving Log Workout.";
  }
 }
 function renderWorkoutIntentUi(){
@@ -6356,8 +6359,11 @@ function legacyLogWorkspaceHasUserWork(d){
  }
  return false;
 }
+function logWorkspaceHasSubstantiveWork(d){
+ return !!(d&&legacyLogWorkspaceHasUserWork(d));
+}
 function logWorkspaceHasUserWork(d){
- return !!(d&&(d._userTouched===true||legacyLogWorkspaceHasUserWork(d)));
+ return !!(d&&(d._userTouched===true||logWorkspaceHasSubstantiveWork(d)));
 }
 function scheduledLogStateForDate(dateISO){
  const parsed=parseLocalISO(dateISO),tw=!isNaN(parsed)?trainingWeekForDate(parsed):state.settings.currentWeek,
@@ -6399,11 +6405,22 @@ function loadScheduledLogDate(dateISO=localISO(new Date())){
 function restorePersistentLogWorkspace(){
  const d=readLogWorkspace(),today=localISO(new Date());
  if(d){
-   const meaningful=logWorkspaceHasUserWork(d),matchesToday=logWorkspaceMatchesScheduledState(d,today);
-   // Untouched workspaces are navigation state, not user data. If they belong to
-   // another date or no longer match today's schedule, rebuild from today's
-   // authoritative calendar. Meaningful unsaved work is never discarded.
-   if(!meaningful&&!matchesToday){
+   const substantive=logWorkspaceHasSubstantiveWork(d),touched=!!d._userTouched,matchesToday=logWorkspaceMatchesScheduledState(d,today),sameDay=d.date===today;
+   // Today's calendar is authoritative when entering Log Workout.
+   // Merely changing yesterday's date/session selector is not substantive unsaved
+   // workout data and must not keep yesterday open on a new day.
+   if(!sameDay){
+     if(!substantive){
+       clearLogWorkspace();
+     }else{
+       try{
+         restoreLogDraft(d);
+         if(!logDate.value||!logWeek.value||!logSession.value||(!d.blankNext&&!plannedExercises.children.length))throw new Error("Restored prior-day Log workspace was incomplete");
+         writeLogWorkspace();
+         return true;
+       }catch(e){window.__hybridLogRestoreError=String(e&&e.message||e)}
+     }
+   }else if(!matchesToday&&!substantive&&!touched){
      clearLogWorkspace();
    }else{
      try{
@@ -6414,8 +6431,7 @@ function restorePersistentLogWorkspace(){
      }catch(e){window.__hybridLogRestoreError=String(e&&e.message||e)}
    }
  }
- // A missing/invalid/stale untouched workspace must always produce today's
- // complete scheduled form.
+ // Missing/invalid/stale non-substantive state always opens the real current day.
  try{
    setLogDefaults();
    if(!logDate.value||!logWeek.value||!logSession.value||!plannedExercises.children.length)throw new Error("Default Log plan did not initialize");
@@ -6606,11 +6622,13 @@ updateStorageStatus();
 populateSessionOptions();
 cancelSessionEdit.addEventListener("click",cancelSavedSessionEdit);
 quickLog.addEventListener("click",()=>{
- const target=selectedDateISO||localISO(new Date()),before=readLogWorkspace(),preserve=before&&logWorkspaceHasUserWork(before)&&before.date!==target;
+ const target=selectedDateISO||localISO(new Date()),before=readLogWorkspace(),
+   preserveDifferentDate=before&&before.date!==target&&logWorkspaceHasSubstantiveWork(before);
  showView("log");
- if(!preserve){
-   const current=readLogWorkspace();
-   if(!current||!logWorkspaceHasUserWork(current)||current.date!==target)loadScheduledLogDate(target);
+ if(!preserveDifferentDate){
+   const current=readLogWorkspace(),sameTarget=current&&current.date===target,
+     preserveSameDayChoice=sameTarget&&logWorkspaceHasUserWork(current);
+   if(!preserveSameDayChoice)loadScheduledLogDate(target);
  }
  writeLogWorkspace();
  window.scrollTo({top:0,behavior:"smooth"});
@@ -6883,7 +6901,7 @@ saveSettings.addEventListener("click",()=>{
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:32,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:33,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:6,rules:["E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
@@ -7036,7 +7054,7 @@ function normalizeImportedState(raw){
  if(raw.exportVersion!==undefined){
    const v=Number(raw.exportVersion);
    if(!Number.isFinite(v)||v<1)throw new Error("Import has an invalid version.");
-   if(v>32)throw new Error("This backup was created by a newer app version.");
+   if(v>33)throw new Error("This backup was created by a newer app version.");
  }
  if(!isPlainRecord(raw.settings)||!Array.isArray(raw.logs))throw new Error("Import is missing settings or workout logs.");
  if(raw.logs.length>IMPORT_MAX_LOGS)throw new Error("Import has too many workout log rows.");
