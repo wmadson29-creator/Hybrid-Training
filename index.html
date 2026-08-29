@@ -443,6 +443,9 @@ summary.tools-toggle::-webkit-details-marker{display:none}
 @media(max-width:720px){
  .history-session-head,.completed-session-line{align-items:stretch;flex-direction:column}
  .history-session-actions .btn,.completed-session-line .btn{width:100%}
+ .history-context-wrap{align-items:stretch;flex-direction:column}
+ .history-context-actions{width:100%}
+ .history-context-actions .btn{width:100%}
 }
 
 /* v17 COMPLETE WORKOUT FLOW + EARLY PRIMARY ACTION BINDING */
@@ -469,8 +472,13 @@ summary.tools-toggle::-webkit-details-marker{display:none}
 .trend-watch{color:#ffd37b;font-weight:850}
 .trend-negative{color:#ff9b91;font-weight:850}
 .history-context-row td{background:#0d1721;border-top:2px solid #263b51;padding:9px 8px}
+.history-context-wrap{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.history-context-copy{min-width:0;flex:1}
 .history-context-title{font-size:.78rem;font-weight:950}
 .history-context-meta{font-size:.7rem;color:var(--muted);line-height:1.45;margin-top:3px}
+.history-context-actions{display:flex;gap:6px;flex-wrap:wrap}
+.history-context-actions .btn{min-height:36px;padding:7px 10px;white-space:nowrap}
+.recovery-edit-btn{border-color:#3b6e56}
 .history-rest-badge{display:inline-block;padding:2px 7px;border-radius:999px;border:1px solid #35516e;margin-left:6px;font-size:.64rem;font-weight:900}
 @media(max-width:720px){.trend-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.trend-grid{grid-template-columns:1fr}}
 
@@ -841,8 +849,8 @@ body.substitution-sheet-open{overflow:hidden}
       </div>
     </div>
     <div class="panel">
-      <div class="panel-head"><div><div class="panel-title">Recent Daily Recovery</div><div class="panel-sub">Most recent 21 Helio entries.</div></div></div>
-      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Sleep</th><th>HRV</th><th>Rest HR</th><th>BioCharge</th><th>Stress</th><th>Steps</th><th>Readiness</th></tr></thead><tbody id="recoveryHistoryBody"></tbody></table></div>
+      <div class="panel-head"><div><div class="panel-title">Recent Daily Recovery</div><div class="panel-sub">Most recent 21 Helio entries. Tap Edit to reopen any saved day.</div></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Sleep</th><th>HRV</th><th>Rest HR</th><th>BioCharge</th><th>Stress</th><th>Steps</th><th>Readiness</th><th>Action</th></tr></thead><tbody id="recoveryHistoryBody"></tbody></table></div>
     </div>
     <div class="panel">
       <div class="panel-head"><div><div class="panel-title">Recent Helio Workout Metrics</div><div class="panel-sub">Optional session-level data entered while logging workouts.</div></div></div>
@@ -4955,6 +4963,13 @@ function planFor(session,gw){
 
 const recoveryFieldMap={sleepHours:"recSleepHours",sleepScore:"recSleepScore",hrv:"recHrv",restingHr:"recRestingHr",wakeBio:"recWakeBio",currentBio:"recCurrentBio",stress:"recStress",spo2:"recSpo2",steps:"recSteps",vo2:"recVo2",notes:"recNotes"};
 function loadRecoveryForm(){const date=recoveryDate.value||localISO(new Date());recoveryDate.value=date;const row=dailyRecoveryFor(date)||{};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const el=document.getElementById(id);el.value=row[key]??""});recoveryAnalysis.innerHTML=recoveryAnalysisText(date)}
+function openRecoveryForDate(dateISO){
+ const date=validIsoDateValue(dateISO)?dateISO:localISO(new Date());
+ showView("recovery");
+ recoveryDate.value=date;
+ loadRecoveryForm();
+ setTimeout(()=>{document.getElementById("recovery")?.scrollIntoView({block:"start",behavior:"auto"});document.getElementById("recSleepHours")?.focus({preventScroll:true})},0);
+}
 function saveRecoveryForm(){
  const date=recoveryDate.value||localISO(new Date()),row={_savedAt:Date.now()};
  Object.entries(recoveryFieldMap).forEach(([key,id])=>{const v=document.getElementById(id).value;if(key==="notes")row[key]=v.trim();else if(v!=="")row[key]=Number(v)});
@@ -4977,8 +4992,9 @@ function renderRecoveryHistory(){
  const rows=Object.entries(state.dailyRecovery||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,21);
  recoveryHistoryBody.innerHTML=rows.length?rows.map(([date,x])=>{
    const s=wearableRecoverySignals(date),lbl=recoveryReadinessLabel(s);
-   return "<tr><td>"+htmlSafe(date)+"</td><td>"+htmlSafe(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+htmlSafe(x.hrv??"")+"</td><td>"+htmlSafe(x.restingHr??"")+"</td><td>"+htmlSafe(x.wakeBio??"")+"</td><td>"+htmlSafe(x.stress??"")+"</td><td>"+htmlSafe(x.steps??"")+"</td><td>"+htmlSafe(lbl)+"</td></tr>"
- }).join(""):'<tr><td colspan="8"><div class="empty">No daily Helio recovery entries yet.</div></td></tr>';
+   return "<tr><td>"+htmlSafe(date)+"</td><td>"+htmlSafe(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+htmlSafe(x.hrv??"")+"</td><td>"+htmlSafe(x.restingHr??"")+"</td><td>"+htmlSafe(x.wakeBio??"")+"</td><td>"+htmlSafe(x.stress??"")+"</td><td>"+htmlSafe(x.steps??"")+"</td><td>"+htmlSafe(lbl)+"</td><td><button class=\"btn recovery-history-edit\" data-date=\""+attrSafe(date)+"\" type=\"button\">Edit</button></td></tr>"
+ }).join(""):'<tr><td colspan="9"><div class="empty">No daily Helio recovery entries yet.</div></td></tr>';
+ recoveryHistoryBody.querySelectorAll(".recovery-history-edit").forEach(b=>b.addEventListener("click",()=>openRecoveryForDate(b.dataset.date)));
  const sessions=Object.values(state.wearableSessions||{}).filter(Boolean).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,20);
  wearableSessionHistoryBody.innerHTML=sessions.length?sessions.map(x=>"<tr><td>"+htmlSafe(x.date||"")+"</td><td>"+htmlSafe(x.session||"")+"</td><td>"+htmlSafe(x.duration||"")+(x.duration?" min":"")+"</td><td>"+htmlSafe(x.avgHr||"")+" / "+htmlSafe(x.maxHr||"")+"</td><td>"+htmlSafe(x.trainingLoad||"")+"</td><td>"+htmlSafe(x.aerobicTe||"")+" / "+htmlSafe(x.anaerobicTe||"")+"</td><td>"+htmlSafe(x.hrRecovery||"")+(x.hrRecovery?" bpm":"")+"</td><td>"+htmlSafe(x.recoveryHours||"")+(x.recoveryHours?" h":"")+"</td></tr>").join(""):'<tr><td colspan="8"><div class="empty">No Helio workout summaries logged yet.</div></td></tr>'
 }
@@ -5534,15 +5550,16 @@ function renderHistory(){
  const groups=historySessionGroups(),byDate={};groups.forEach(g=>{byDate[g.date]=byDate[g.date]||[];byDate[g.date].push(g)});
  dates.forEach(date=>{
   const rec=recoveryHistorySummary(date),rest=restRecord(date),context=document.createElement("tr");context.className="history-context-row";const restText=rest?(rest.status==="confirmed"?"Confirmed Rest":rest.status==="planned"?"Planned Rest":"Scheduled Rest"):"";
-  context.innerHTML='<td colspan="9"><div class="history-context-title">'+htmlSafe(date)+(restText?'<span class="history-rest-badge">'+htmlSafe(restText)+'</span>':'')+'</div><div class="history-context-meta">'+(rec?htmlSafe(rec):"No daily recovery entry.")+(rest?(" • Rest source: "+htmlSafe(rest.source||"program")):"")+'</div></td>';historyBody.appendChild(context);
+  context.innerHTML='<td colspan="9"><div class="history-context-wrap"><div class="history-context-copy"><div class="history-context-title">'+htmlSafe(date)+(restText?'<span class="history-rest-badge">'+htmlSafe(restText)+'</span>':'')+'</div><div class="history-context-meta">'+(rec?htmlSafe(rec):"No daily recovery entry.")+(rest?(" • Rest source: "+htmlSafe(rest.source||"program")):"")+'</div></div><div class="history-context-actions"><button class="btn '+(rec?'primary ':'')+'recovery-edit-btn" data-date="'+attrSafe(date)+'" type="button">'+(rec?'Edit Recovery':'Add Recovery')+'</button></div></div></td>';historyBody.appendChild(context);
   (byDate[date]||[]).slice().reverse().forEach(g=>{
    const header=document.createElement("tr");header.className="history-session-header";const wearable=(g.sessionId&&(state.wearableSessions||{})[g.sessionId])||null,wearSummary=wearableHistorySummary(wearable),wearMeta=wearSummary?(" • "+htmlSafe(wearSummary)):"",firstRow=g.rows[0]||{},intentMeta=(firstRow.modelOriginalScheduledSession&&firstRow.modelOriginalScheduledSession!==g.session?(" • Planned "+htmlSafe(firstRow.modelOriginalScheduledSession)+" → actual "+htmlSafe(g.session)+(firstRow.modelWorkoutIntentSource?" ("+htmlSafe(firstRow.modelWorkoutIntentSource)+")":"")):"");
    const timeMeta=firstRow.sessionTime?(" • "+htmlSafe(firstRow.sessionTime)):"";
-   header.innerHTML='<td colspan="9"><div class="history-session-head"><div><strong>'+htmlSafe(g.session)+'</strong><div class="history-session-meta">'+g.rows.length+' exercise entr'+(g.rows.length===1?'y':'ies')+timeMeta+wearMeta+intentMeta+'</div></div><div class="history-session-actions">'+(g.sessionId?'<button class="btn edit-session" data-session-id="'+attrSafe(g.sessionId)+'">Edit Session</button>':'<span class="muted">Legacy session</span>')+'</div></div></td>';historyBody.appendChild(header);
+   header.innerHTML='<td colspan="9"><div class="history-session-head"><div><strong>'+htmlSafe(g.session)+'</strong><div class="history-session-meta">'+g.rows.length+' exercise entr'+(g.rows.length===1?'y':'ies')+timeMeta+wearMeta+intentMeta+'</div></div><div class="history-session-actions">'+(g.sessionId?'<button class="btn primary edit-session" data-session-id="'+attrSafe(g.sessionId)+'" type="button">✎ Edit Workout</button>':'<span class="muted">Legacy session</span>')+'</div></div></td>';historyBody.appendChild(header);
    g.rows.forEach((x,j)=>{const idx=g.indices[j],tr=document.createElement("tr"),actual=(x.session==="Conditioning"||x.session==="Class / Activity")?conditioningSummary(x):(Array.isArray(x.setDetails)&&x.setDetails.length?x.setDetails.map((sd,i)=>"S"+(i+1)+" "+(sd.reps||x.reps||"?")+"×"+(sd.weight||x.weight||"—")+(sd.rpe?(" @"+sd.rpe):"")).join(" • "):((x.sets||"")+" × "+(x.reps||"")+" • "+(x.weight||""))),model=x.modelExpectedRpe?("Model RPE "+x.modelExpectedRpe+(x.modelPredictionError!==undefined?" • error "+(Number(x.modelPredictionError)>0?"+":"")+x.modelPredictionError:"")):"";
     tr.innerHTML='<td></td><td></td><td>'+htmlSafe(x.exercise)+'</td><td>'+htmlSafe(actual)+'</td><td>'+htmlSafe(x.rpe||"")+'</td><td>'+htmlSafe(x.feel||"")+'</td><td>'+htmlSafe(x.technique||"")+'</td><td>'+htmlSafe((x.notes||"")+(model?((x.notes?" • ":"")+model):""))+'</td><td><button class="btn danger del" data-i="'+idx+'">Delete</button></td>';historyBody.appendChild(tr)});
   });
  });
+ historyBody.querySelectorAll(".recovery-edit-btn").forEach(b=>b.addEventListener("click",()=>openRecoveryForDate(b.dataset.date)));
  historyBody.querySelectorAll(".edit-session").forEach(b=>b.addEventListener("click",()=>openSavedSessionForEdit(b.dataset.sessionId)));
  historyBody.querySelectorAll(".del").forEach(b=>b.addEventListener("click",()=>{const row=state.logs[+b.dataset.i],sid=row&&row.sessionId;state.logs.splice(+b.dataset.i,1);if(sid&&!state.logs.some(x=>x.sessionId===sid)&&state.wearableSessions)delete state.wearableSessions[sid];syncScheduledRestHistory();save("history-row-delete");renderHistory();renderWeek();renderSelectedWorkout()}));
 }
@@ -7450,7 +7467,7 @@ function sanitizeImportedTree(value,depth=0){
  if(typeof value==="string")return safePlainText(value,8000);
  if(typeof value==="boolean")return value;
  if(typeof value==="number"){
-   if(!Number.isFinite(value)||Math.abs(value)>1e9)throw new Error("Import contains an invalid number.");
+   if(!Number.isFinite(value)||Math.abs(value)>1e15)throw new Error("Import contains an invalid number.");
    return value;
  }
  if(Array.isArray(value)){
