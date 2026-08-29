@@ -1288,7 +1288,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v35</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.3</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -6208,13 +6208,83 @@ function calEstimatedWorkoutMinutes(rows,profile){
  return Math.round((work+warm)*10)/10;
 }
 function calMaxSets(ex,profile){
- const level=Number(ex?.level)||2,d=Number(profile.duration)||45;
- let max=d>=75?6:d>=45?5:4;
- if(profile.difficulty==="very hard")max=Math.min(max,5);
- if(level>=4)max=Math.max(4,max-1);
- return max;
+ const level=Number(ex?.level)||2,d=Number(profile.duration)||45,diff=profile.difficulty||"medium";
+ // Time is an explicit user constraint. Short workouts with only a few legitimate
+ // movements need permission to use more sets instead of stopping 30–40% early.
+ let max=d<=35?5:d<=50?6:d<=70?6:7;
+ if(diff==="hard")max+=1;
+ if(diff==="very hard")max+=1;
+ // Advanced leverage/plyometric movements still get a tighter ceiling.
+ if(level>=4)max=Math.min(max,d<=35?5:6);
+ if(level>=5)max=Math.min(max,5);
+ return Math.max(4,max);
 }
 function calDurationFit(rows,profile){const estimate=calEstimatedWorkoutMinutes(rows,profile),low=profile.duration*.90,high=profile.duration*1.10;return {estimate,status:estimate<low?"short":estimate>high?"long":"fit",ratio:estimate/Math.max(1,profile.duration),low,high}}
+
+function calVolumeRepCeiling(ex,row,profile){
+ const raw=String(row?.reps||""),amount=Math.max(1,parseFirstNumber(raw)||(ex?.baseSeconds?30:8)),isHold=/sec/i.test(raw)||!!ex?.baseSeconds,level=Number(ex?.level)||2;
+ if(isHold)return Math.max(amount,Math.round(Math.min(90,amount*(level>=4?1.25:1.50))/5)*5);
+ const mult=level>=4?1.22:level>=3?1.32:1.50;
+ return Math.max(amount,Math.round(amount*mult));
+}
+function calAddOneRepVolume(row,ex,profile){
+ const raw=String(row?.reps||""),amount=Math.max(1,parseFirstNumber(raw)||(ex?.baseSeconds?30:8)),isHold=/sec/i.test(raw)||!!ex?.baseSeconds,ceiling=calVolumeRepCeiling(ex,row,profile);
+ if(amount>=ceiling)return false;
+ const step=isHold?5:calisthenicsProgressionStep(ex,false),next=Math.min(ceiling,amount+Math.max(1,step));
+ row.reps=isHold?next+" sec":String(next);
+ return true;
+}
+function calExpandVolumeToDuration(rows,profile){
+ let fit=calDurationFit(rows,profile),setPass=0,repPass=0;
+ // First choice: add sets to the existing high-quality movements.
+ while(rows.length&&fit.status==="short"&&setPass++<120){
+   const options=rows.map((row,i)=>{const ex=calisthenicsExercise(row.exercise),sets=Math.max(1,Number(row.sets)||3),max=calMaxSets(ex,profile);return sets<max?{i,sets,max,level:Number(ex?.level)||2}:null})
+     .filter(Boolean).sort((a,b)=>(b.max-b.sets)-(a.max-a.sets)||a.level-b.level);
+   if(!options.length)break;
+   rows[options[0].i].sets=options[0].sets+1;
+   fit=calDurationFit(rows,profile);
+ }
+ // Second choice: modest rep/hold expansion. This is deliberately capped; the
+ // builder should add useful volume, not turn every movement into an endurance test.
+ while(rows.length&&fit.status==="short"&&repPass++<160){
+   const options=rows.map((row,i)=>{const ex=calisthenicsExercise(row.exercise);if(!ex)return null;const amount=Math.max(1,parseFirstNumber(row.reps)||(ex.baseSeconds?30:8)),ceiling=calVolumeRepCeiling(ex,row,profile);return amount<ceiling?{i,level:Number(ex.level)||2,headroom:ceiling-amount}:null})
+     .filter(Boolean).sort((a,b)=>b.headroom-a.headroom||a.level-b.level);
+   if(!options.length)break;
+   if(!calAddOneRepVolume(rows[options[0].i],calisthenicsExercise(rows[options[0].i].exercise),profile))break;
+   fit=calDurationFit(rows,profile);
+ }
+ return fit;
+}
+function calStressRatioMax(projection){return Math.max(...Object.values(projection?.ratio||{x:0}))}
+function calRespectStressBudgetAndDuration(rows,dateISO,profile){
+ const out=JSON.parse(JSON.stringify(rows||[])),readiness=adaptiveReadiness(dateISO),before=utmWorkoutStressProjection(out,dateISO,"Calisthenics");
+ let after=before,adjusted=false,pass=0;
+ const diff=profile.difficulty||"medium";
+ // The budget is a soft adaptive guard, not permission to discard a large part of
+ // an explicitly requested workout. Harder user-selected sessions get more headroom.
+ const softCap=readiness.recoveryGuard?1.12:readiness.caution?1.22:(diff==="very hard"?1.42:diff==="hard"?1.35:diff==="easy"?1.18:1.25);
+ const durationFloor=(Number(profile.duration)||45)*(readiness.recoveryGuard?.70:.90);
+ while(out.length&&calStressRatioMax(after)>softCap&&pass++<80){
+   const currentMinutes=calEstimatedWorkoutMinutes(out,profile);
+   const worst=UTM_STRESS_DIMS.slice().sort((a,b)=>(after.ratio[b]||0)-(after.ratio[a]||0))[0];
+   const choices=out.map((r,i)=>{const sets=Math.max(1,Number(r.sets)||3);if(sets<=2)return null;const trial=JSON.parse(JSON.stringify(out));trial[i].sets=sets-1;const minutes=calEstimatedWorkoutMinutes(trial,profile);if(minutes<durationFloor)return null;const row={date:dateISO,session:"Calisthenics",exercise:r.exercise,sets:"1",reps:String(r.reps||8),weight:r.weight||"",rpe:8,status:"Complete",metrics:{}},v=utmStressVectorForRow(row);return {i,sets,impact:v[worst]||0,minutes}}).filter(Boolean)
+     .sort((a,b)=>b.impact-a.impact||b.sets-a.sets);
+   if(!choices.length)break;
+   out[choices[0].i].sets=choices[0].sets-1;adjusted=true;after=utmWorkoutStressProjection(out,dateISO,"Calisthenics");
+ }
+ const maxBefore=calStressRatioMax(before),maxAfter=calStressRatioMax(after),minutes=calEstimatedWorkoutMinutes(out,profile);
+ let note;
+ if(readiness.recoveryGuard&&minutes<(Number(profile.duration)||45)*.90){
+   note="Recovery Guard intentionally shortened this session to about "+Math.round(minutes)+" minutes despite the "+profile.duration+" minute request. The duration target is normally preserved, but Guard is allowed to override it.";
+ }else if(adjusted){
+   note="Weekly stress budget reshaped discretionary volume while preserving the requested time window: peak projected budget use moved from "+Math.round(maxBefore*100)+"% to "+Math.round(maxAfter*100)+"%.";
+ }else if(maxAfter>softCap){
+   note="Requested duration was preserved even though this session projects above the soft weekly stress target ("+Math.round(maxAfter*100)+"% peak). Treat that as a workload warning rather than silently losing workout time.";
+ }else{
+   note="Projected stress remains inside the calisthenics session guard while preserving the requested duration.";
+ }
+ return {rows:out,adjusted,before,after,note,softCap,recoveryGuard:readiness.recoveryGuard};
+}
 function buildCalisthenicsWorkout(profile,dateISO){
  const focus=profile.focus.includes("fullbody")?["push","pull","legs","core","fullbody"]:profile.focus;
  let candidates=calisthenicsExerciseLibrary.filter(x=>(x.auto!==false)&&focus.includes(x.focus)&&(!x.requiresBar||profile.hasPullupBar)&&(!x.requiresBands||profile.hasBands));if(!candidates.length)return {name:"No matching exercises",profile,rows:[],estimatedMinutes:0,durationFit:"short"};
@@ -6236,31 +6306,45 @@ function buildCalisthenicsWorkout(profile,dateISO){
  const selectedCandidates=selected.map(ex=>scored.find(c=>c.ex.name===ex.name)).filter(Boolean),optimized=utmOptimizeCalSelection(selectedCandidates,scored,wanted,dateISO);
  selected.splice(0,selected.length,...optimized.map(c=>c.ex));selectedNames.clear();Object.keys(slotCounts).forEach(k=>delete slotCounts[k]);Object.keys(focusCounts).forEach(k=>delete focusCounts[k]);selected.forEach(ex=>{selectedNames.add(ex.name);const c=scored.find(x=>x.ex.name===ex.name);if(c){slotCounts[c.slot]=(slotCounts[c.slot]||0)+1;focusCounts[ex.focus]=(focusCounts[ex.focus]||0)+1}});
  let rows=selected.map(ex=>{const a=adaptiveCalisthenicsTarget(ex.name,dateISO,profile.difficulty);return {exercise:ex.name,sets:a.sets,reps:a.reps,adaptiveWhy:a.why}});
- const addDurationSets=()=>{
-   let fitNow=calDurationFit(rows,profile),setPass=0;
-   while(rows.length&&fitNow.status==="short"&&setPass<100){
-     const options=rows.map((row,i)=>{const ex=calisthenicsExercise(row.exercise),sets=Math.max(1,Number(row.sets)||3),max=calMaxSets(ex,profile);return sets<max?{i,sets,max,level:Number(ex?.level)||2}:null}).filter(Boolean).sort((a,b)=>(b.max-b.sets)-(a.max-a.sets)||a.level-b.level);
-     if(!options.length)break;rows[options[0].i].sets=options[0].sets+1;fitNow=calDurationFit(rows,profile);setPass++;
-   }
-   return fitNow;
- };
- // Fill requested time with productive sets first.
- let fit=addDurationSets();
- // If there is still time to fill, add additional legitimate exercises up to the
- // duration range maximum. A second variation in a movement family is permitted
- // only after diverse slots are already represented; very long single-focus work
- // may use a third distinct progression variation rather than pretending 50 min is 90.
+ // Fill requested time with productive volume on the selected movements first.
+ // Sets are preferred; reps/holds only rise modestly after useful set headroom is used.
+ let fit=calExpandVolumeToDuration(rows,profile);
+ // If volume alone still cannot fill the request, add another legitimate movement.
  const maxSlotCount=profile.duration>=60?3:2;
  while(fit.status==="short"&&selected.length<range.max){
    const extra=scored.find(c=>!selectedNames.has(c.ex.name)&&(slotCounts[c.slot]||0)<maxSlotCount);
-   if(!extra)break;add(extra);const a=adaptiveCalisthenicsTarget(extra.ex.name,dateISO,profile.difficulty);rows.push({exercise:extra.ex.name,sets:a.sets,reps:a.reps,adaptiveWhy:a.why});fit=addDurationSets();
+   if(!extra)break;
+   add(extra);
+   const a=adaptiveCalisthenicsTarget(extra.ex.name,dateISO,profile.difficulty);
+   rows.push({exercise:extra.ex.name,sets:a.sets,reps:a.reps,adaptiveWhy:a.why});
+   fit=calExpandVolumeToDuration(rows,profile);
  }
  // Trim a rare overshoot without dropping movements.
- let pass=0;while(rows.length&&fit.status==="long"&&pass<50){const options=rows.map((r,i)=>({i,sets:Number(r.sets)||3})).filter(x=>x.sets>2).sort((a,b)=>b.sets-a.sets);if(!options.length)break;rows[options[0].i].sets=options[0].sets-1;fit=calDurationFit(rows,profile);pass++}
- const stressAdjustment=utmRespectOptionalWorkoutStressBudget(rows,dateISO,"Calisthenics");rows=stressAdjustment.rows;if(stressAdjustment.adjusted)fit=calDurationFit(rows,profile);
+ let pass=0;
+ while(rows.length&&fit.status==="long"&&pass++<60){
+   const options=rows.map((r,i)=>({i,sets:Number(r.sets)||3})).filter(x=>x.sets>2).sort((a,b)=>b.sets-a.sets);
+   if(!options.length)break;
+   rows[options[0].i].sets=options[0].sets-1;
+   fit=calDurationFit(rows,profile);
+ }
+ // The calisthenics-specific stress guard now respects the user's explicit duration.
+ // It may intentionally shorten only when Recovery Guard is actually active.
+ const stressAdjustment=calRespectStressBudgetAndDuration(rows,dateISO,profile);
+ rows=stressAdjustment.rows;
+ fit=calDurationFit(rows,profile);
+ // If the stress reshaping leaves a small amount of normal/caution headroom, fill it.
+ if(fit.status==="short"&&!stressAdjustment.recoveryGuard){
+   fit=calExpandVolumeToDuration(rows,profile);
+ }
  const focusName=profile.focus.includes("fullbody")?"Full Body":profile.focus.map(x=>calFocusLabels[x]||x).join(" + ");
- let durationNote=fit.status==="fit"?"Estimated work is within 90–110% of the requested duration.":fit.status==="short"?"Constraint-limited: this focus/equipment combination supports about "+Math.round(fit.estimate)+" quality minutes versus "+profile.duration+" requested before extra volume would become repetitive. Broaden the focus or add equipment for a longer session.":"Estimated work is slightly longer than requested; trim a set if you need a strict cap.";
- return {name:focusName+" • "+profile.difficulty+" • "+profile.duration+" min",profile,rows,estimatedMinutes:fit.estimate,durationFit:fit.status,durationRatio:fit.ratio,durationNote:durationNote+" "+stressAdjustment.note,stressBudget:stressAdjustment,modelNote:"Selection is locally optimized as a whole workout for progression-tree readiness, learned dose response, adaptive weekly stress budget, multi-rate localized fatigue, future-schedule interference, movement redundancy, recent related work, and prior substitutions."};
+ let durationNote=fit.status==="fit"
+   ?"Estimated work is within 90–110% of the requested duration."
+   :fit.status==="short"
+     ?(stressAdjustment.recoveryGuard
+       ?"Recovery Guard is intentionally prioritizing recovery over the full requested duration."
+       :"This unusually narrow focus/equipment combination could not reach 90% of the requested time without exceeding the movement-specific volume ceilings.")
+     :"Estimated work is slightly longer than requested; trim a set if you need a strict cap.";
+ return {name:focusName+" • "+profile.difficulty+" • "+profile.duration+" min",profile,rows,estimatedMinutes:fit.estimate,durationFit:fit.status,durationRatio:fit.ratio,durationNote:durationNote+" "+stressAdjustment.note,stressBudget:stressAdjustment,modelNote:"Selection is locally optimized as a whole workout for progression-tree readiness, learned dose response, adaptive weekly stress budget, multi-rate localized fatigue, future-schedule interference, movement redundancy, recent related work, prior substitutions. Requested duration is treated as a real programming constraint: exercise breadth first, then productive sets, then modest rep/hold expansion."};
 }
 function calWorkoutForDate(dateISO){
  const saved=(state.settings.calisthenicsWorkouts||{})[dateISO];
