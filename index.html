@@ -491,6 +491,16 @@ summary.tools-toggle::-webkit-details-marker{display:none}
 .intent-choice{min-height:54px;text-align:left;white-space:normal}
 .intent-choice strong{display:block;font-size:.76rem}
 .intent-choice span{display:block;color:var(--muted);font-size:.64rem;line-height:1.3;margin-top:2px}
+.adaptive-mode-switcher{border:1px solid var(--line);border-radius:16px;padding:12px;background:linear-gradient(180deg,#121b26,#0f1720);margin:2px 0 10px}
+.adaptive-mode-switcher-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:9px}
+.adaptive-mode-switcher-title{font-weight:950;font-size:.9rem}
+.adaptive-mode-switcher-copy{color:var(--muted);font-size:.7rem;line-height:1.4;margin-top:2px}
+.adaptive-mode-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.adaptive-mode-btn{min-height:54px;padding:8px 9px;text-align:left;white-space:normal}
+.adaptive-mode-btn strong{display:block;font-size:.72rem}
+.adaptive-mode-btn span{display:block;color:var(--muted);font-size:.6rem;line-height:1.25;margin-top:2px}
+.adaptive-mode-btn.current{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+@media(max-width:640px){.adaptive-mode-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}.adaptive-mode-switcher-head{display:block}}
 .intent-mode-row{margin-top:10px;padding-top:10px;border-top:1px solid #24384b}
 .intent-mode-title{font-size:.75rem;font-weight:900;margin-bottom:7px}
 .manual-workout-panel{border:1px solid #294158;background:#0d1721;border-radius:12px;padding:12px;margin:0 0 12px}
@@ -714,9 +724,9 @@ body.substitution-sheet-open{overflow:hidden}
       </div>
       <div class="workout-intent-panel hidden" id="workoutIntentPanel">
         <div class="intent-choice-grid">
-          <button class="btn intent-choice" type="button" data-intent="plan"><strong>Use Today's Plan</strong><span>Restore the programmed session for this date.</span></button>
-          <button class="btn intent-choice" type="button" data-intent="calisthenics"><strong>Calisthenics</strong><span>Adaptive bodyweight workout or build it yourself.</span></button>
-          <button class="btn intent-choice" type="button" data-intent="gym"><strong>Generic Gym</strong><span>Adaptive full-body session or manual build.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="plan"><strong>Use Recommended</strong><span>Return to the app's recommended training type and workout for this date.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="calisthenics"><strong>Calisthenics</strong><span>Switch to today's recommended calisthenics workout or build your own.</span></button>
+          <button class="btn intent-choice" type="button" data-intent="gym"><strong>Generic Gym</strong><span>Switch to today's recommended weight-training session or build your own.</span></button>
           <button class="btn intent-choice" type="button" data-intent="kb"><strong>Kettlebell</strong><span>Heavy, Power, Volume, or manual KB work.</span></button>
           <button class="btn intent-choice" type="button" data-intent="conditioning"><strong>Conditioning</strong><span>Use the adaptive recommendation or build your own.</span></button>
           <button class="btn intent-choice" type="button" data-intent="class"><strong>Class / Activity</strong><span>Open the class/activity picker for this date.</span></button>
@@ -1174,13 +1184,21 @@ body.substitution-sheet-open{overflow:hidden}
 
 <section id="classes" class="view">
     <div class="panel">
-      <div class="panel-head"><div><div class="panel-title">Classes & Other Training</div><div class="panel-sub">Schedule a class on any selected day. Logging fields adapt to time, difficulty/RPE, heart rate, and activity-specific metrics.</div></div></div>
+      <div class="panel-head"><div><div class="panel-title">Classes & Other Training</div><div class="panel-sub">Schedule classes in advance. On TB/KB days the class becomes a second workout; on conditioning, adaptive, or rest days the class becomes that day's workout. Future adaptive training accounts for the class's muscle and fatigue profile.</div></div></div>
+      <div class="form-grid" style="margin-bottom:12px">
+        <div class="field"><label>Class date</label><input id="classScheduleDate" type="date"></div>
+        <div class="field"><label>Class time (optional)</label><input id="classScheduleTime" type="time"></div>
+      </div>
       <div class="conditioning-filter-row">
         <div class="field"><label>Category</label><select id="classCategory"><option value="all">All</option><option value="mindbody">Yoga / Pilates / Mobility</option><option value="cardio">Cardio Classes</option><option value="combat">Combat / HIIT</option><option value="strength">Strength / Mixed</option></select></div>
         <div class="field"><label>Search</label><input id="classSearch" placeholder="Search classes"></div>
       </div>
-      <div class="notice" id="classStatus">Select a day on the Dashboard, then tap <strong>Use for selected day</strong>. A class can replace a scheduled workout or a rest day.</div>
+      <div class="notice" id="classStatus">Choose a date above, then tap <strong>Schedule class</strong>. The app will decide whether it is the day's primary workout or an additional second session.</div>
       <div class="conditioning-grid" id="classLibraryGrid"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Scheduled Classes</div><div class="panel-sub">Upcoming and recent class commitments used by the adaptive engine.</div></div></div>
+      <div id="scheduledClassList"></div>
     </div>
   </section>
 
@@ -1436,6 +1454,9 @@ const classCategory=document.getElementById("classCategory");
 const classLibraryGrid=document.getElementById("classLibraryGrid");
 const classSearch=document.getElementById("classSearch");
 const classStatus=document.getElementById("classStatus");
+const classScheduleDate=document.getElementById("classScheduleDate");
+const classScheduleTime=document.getElementById("classScheduleTime");
+const scheduledClassList=document.getElementById("scheduledClassList");
 const clearCalWorkout=document.getElementById("clearCalWorkout");
 const clearGymWorkout=document.getElementById("clearGymWorkout");
 const clearLog=document.getElementById("clearLog");
@@ -1608,7 +1629,7 @@ saveSession.addEventListener("click",completeWorkout);
 
 
 const defaults={
- settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},conditioningSwapMeta:{},noRestAutoSuggestions:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},classOverrides:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5,blockReviews:{},recoveryWeekStarts:{},calisthenicsWorkouts:{},calHasPullupBar:true,calHasBands:false,workoutIntent:{},customDayWorkouts:{},customWorkoutTemplates:{},customExerciseDefinitions:{},trainingGoalProfile:"automatic",adaptiveDeloadMode:"suggest"},
+ settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},conditioningSwapMeta:{},noRestAutoSuggestions:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},classOverrides:{},classScheduleMeta:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5,blockReviews:{},recoveryWeekStarts:{},calisthenicsWorkouts:{},calHasPullupBar:true,calHasBands:false,workoutIntent:{},customDayWorkouts:{},customWorkoutTemplates:{},customExerciseDefinitions:{},trainingGoalProfile:"automatic",adaptiveDeloadMode:"suggest"},
  logs:[],
  dailyRecovery:{},
  wearableSessions:{},
@@ -2542,28 +2563,37 @@ function utmCounterfactualConditioning(dateISO=localISO(new Date())){
 }
 
 function utmPlannedRowsForDate(dateISO){
- const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)||Number(state.settings.currentWeek)||1),day=dayNameFromDate(dateISO),session=expectedSession(day,gw,dateISO),manual=(state.settings.customDayWorkouts||{})[dateISO];
- if(manual&&Array.isArray(manual.rows)&&manual.rows.length)return {session,rows:manual.rows.map(x=>({exercise:x.exercise}))};
- if(session==="TB Maintenance")return {session,rows:getTBPlan(gw,dateISO).map(x=>({exercise:x.exercise}))};
- if(session.startsWith("KB ")){const w=kbWorkoutFor(session,gw);return {session,rows:(w.rows||[]).map(x=>({exercise:x.exercise}))}}
- if(session==="Generic Gym"){const w=genericGymWorkoutFor(dateISO);return {session,rows:(w.rows||[]).map(x=>({exercise:x.exercise}))}}
- if(session==="Calisthenics"){const w=calWorkoutForDate(dateISO);return {session,rows:(w.rows&&w.rows.length?w.rows:[{exercise:"Push-Up"},{exercise:"Pull-Up"},{exercise:"Bodyweight Squat"}]).map(x=>({exercise:x.exercise}))}}
- if(session==="Class / Activity")return {session,rows:[{exercise:selectedClassForDate(dateISO)||"Yoga — Vinyasa"}]};
- if(session==="Custom Workout")return {session,rows:(manual?.rows||[]).map(x=>({exercise:x.exercise}))};
- if(session==="Conditioning"){const exact=(state.settings.conditioningOverrides||{})[dateISO];if(exact)return {session,rows:[{exercise:exact}]};const slot=conditioningSlot(day,gw);return {session,rows:[{exercise:slot==="hard"?"Short Hills":"LSS Run"}]}}
- return {session,rows:[]};
+ const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)||Number(state.settings.currentWeek)||1),day=dayNameFromDate(dateISO),session=expectedSession(day,gw,dateISO),manual=(state.settings.customDayWorkouts||{})[dateISO],scheduledClass=selectedClassForDate(dateISO);let rows=[];
+ if(manual&&Array.isArray(manual.rows)&&manual.rows.length)rows=manual.rows.map(x=>({exercise:x.exercise,source:"manual"}));
+ else if(session==="TB Maintenance")rows=getTBPlan(gw,dateISO).map(x=>({exercise:x.exercise,source:"fixed"}));
+ else if(session.startsWith("KB ")){const w=kbWorkoutFor(session,gw);rows=(w.rows||[]).map(x=>({exercise:x.exercise,source:"fixed"}))}
+ else if(session==="Generic Gym"){const w=genericGymWorkoutFor(dateISO);rows=(w.rows||[]).map(x=>({exercise:x.exercise,source:"adaptive"}))}
+ else if(session==="Calisthenics"){const w=calWorkoutForDate(dateISO);rows=(w.rows&&w.rows.length?w.rows:[{exercise:"Push-Up"},{exercise:"Pull-Up"},{exercise:"Bodyweight Squat"}]).map(x=>({exercise:x.exercise,source:"adaptive"}))}
+ else if(session==="Class / Activity")rows=[{exercise:scheduledClass||"Yoga — Vinyasa",source:"class"}];
+ else if(session==="Custom Workout")rows=(manual?.rows||[]).map(x=>({exercise:x.exercise,source:"manual"}));
+ else if(session==="Conditioning"){const exact=(state.settings.conditioningOverrides||{})[dateISO];rows=[{exercise:exact||(conditioningSlot(day,gw)==="hard"?"Short Hills":"LSS Run"),source:"adaptive"}]}
+ if(scheduledClass&&session!=="Class / Activity")rows.push({exercise:scheduledClass,source:"class"});
+ return {session,rows};
 }
 function utmFutureInterference(name,dateISO,horizon=2){
  const fp=utmFingerprint(name),reasons=[];let penalty=0,maxOverlap=0;
- for(let offset=1;offset<=horizon;offset++){
-   const futureDate=localISO(addDays(parseLocalISO(dateISO),offset)),p=utmPlannedRowsForDate(futureDate),
-     basePriority=p.session==="TB Maintenance"?1.35:p.session.startsWith("KB ")?1.18:p.session==="Conditioning"?1:p.session==="Generic Gym"||p.session==="Calisthenics"?.82:.65,
-     futureGoal=(p.rows||[]).length?Math.max(...p.rows.map(r=>utmExerciseGoalAlignment(r.exercise,futureDate))):1,
-     priority=basePriority*utmClamp(.82+futureGoal*.18,.85,1.12),timeWeight=offset===1?1:offset===2?.55:.30;
-   let best=0,bestName="";
-   (p.rows||[]).forEach(r=>{const other=utmFingerprint(r.exercise),muscle=utmDot(fp.muscles,other.muscles,UTM_MUSCLES),stress=utmDot(fp.fatigue,other.fatigue,UTM_FATIGUE),move=utmDot(fp.moves,other.moves,UTM_MOVES),overlap=muscle*.58+stress*.27+move*.15;if(overlap>best){best=overlap;bestName=r.exercise}});
+ // Normal planned-work interference stays short-horizon, but known classes remain
+ // visible for a full week because they are real calendar commitments.
+ const scan=Math.max(horizon,7);
+ for(let offset=1;offset<=scan;offset++){
+   const futureDate=localISO(addDays(parseLocalISO(dateISO),offset)),p=utmPlannedRowsForDate(futureDate),hasClass=(p.rows||[]).some(r=>r.source==="class");
+   if(offset>horizon&&!hasClass)continue;
+   const futureGoal=(p.rows||[]).length?Math.max(...p.rows.map(r=>utmExerciseGoalAlignment(r.exercise,futureDate))):1,
+     timeWeight=offset===1?1:offset===2?.55:offset===3?.34:offset===4?.22:offset===5?.14:offset===6?.09:.06;
+   let best=0,bestName="",bestSource="",bestPriority=1;
+   (p.rows||[]).forEach(r=>{
+     if(offset>horizon&&r.source!=="class")return;
+     const other=utmFingerprint(r.exercise),muscle=utmDot(fp.muscles,other.muscles,UTM_MUSCLES),stress=utmDot(fp.fatigue,other.fatigue,UTM_FATIGUE),move=utmDot(fp.moves,other.moves,UTM_MOVES),overlap=muscle*.58+stress*.27+move*.15,
+       basePriority=r.source==="class"?1.08:p.session==="TB Maintenance"?1.35:p.session.startsWith("KB ")?1.18:p.session==="Conditioning"?1:p.session==="Generic Gym"||p.session==="Calisthenics"?.82:.65;
+     if(overlap>best){best=overlap;bestName=r.exercise;bestSource=r.source;bestPriority=basePriority}
+   });
    maxOverlap=Math.max(maxOverlap,best);
-   if(best>.48){const add=(best-.42)*18*priority*timeWeight;penalty+=add;if(add>=2.5)reasons.push((offset===1?"Tomorrow":"In "+offset+" days")+" includes "+p.session+(bestName?" ("+bestName+")":"")+", so overlapping fatigue is reserved for that "+(futureGoal>1.1?"goal-priority ":"")+"work.");}
+   if(best>.42){const priority=bestPriority*utmClamp(.82+futureGoal*.18,.85,1.12),add=(best-.38)*18*priority*timeWeight;penalty+=add;if(add>=.5){const when=offset===1?"Tomorrow":"In "+offset+" days",what=bestSource==="class"?"scheduled class "+bestName:(p.session+(bestName?" ("+bestName+")":""));reasons.push(when+" includes "+what+", so overlapping fatigue is reserved for that known session.")}}
  }
  return {penalty:Math.round(penalty*10)/10,maxOverlap:Math.round(maxOverlap*100)/100,reasons:uniqueConditioningReasons(reasons)};
 }
@@ -3012,7 +3042,7 @@ function validStoredState(o){
 function persistedUserDataScore(o){
  if(!validStoredState(o))return -1;
  let score=(o.logs||[]).length*1000+Object.keys(o.dailyRecovery||{}).length*500+Object.keys(o.wearableSessions||{}).length*100+Object.keys(o.restDays||{}).length*80;
- const s=o.settings||{},keys=["tbOverrides","pullupBlockPlan","kbCustomWorkouts","dayOverrides","noRestDates","genericGymWorkouts","classOverrides","blockReviews","recoveryWeekStarts","calisthenicsWorkouts","workoutIntent","customDayWorkouts","customWorkoutTemplates","customExerciseDefinitions"];
+ const s=o.settings||{},keys=["tbOverrides","pullupBlockPlan","kbCustomWorkouts","dayOverrides","noRestDates","genericGymWorkouts","classOverrides","classScheduleMeta","blockReviews","recoveryWeekStarts","calisthenicsWorkouts","workoutIntent","customDayWorkouts","customWorkoutTemplates","customExerciseDefinitions"];
  keys.forEach(k=>score+=Object.keys(s[k]||{}).length*20);
  return score;
 }
@@ -3054,7 +3084,7 @@ state.kb=Array.isArray(state.kb)?state.kb:JSON.parse(JSON.stringify(defaults.kb)
 state.dailyRecovery=state.dailyRecovery&&typeof state.dailyRecovery==="object"?state.dailyRecovery:{};
 state.wearableSessions=state.wearableSessions&&typeof state.wearableSessions==="object"?state.wearableSessions:{};
 state.restDays=state.restDays&&typeof state.restDays==="object"&&!Array.isArray(state.restDays)?state.restDays:{};
-state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.conditioningSwapMeta=state.settings.conditioningSwapMeta||{};state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};state.settings.workoutIntent=state.settings.workoutIntent||{};state.settings.customDayWorkouts=state.settings.customDayWorkouts||{};state.settings.customWorkoutTemplates=state.settings.customWorkoutTemplates||{};state.settings.customExerciseDefinitions=state.settings.customExerciseDefinitions||{};if(!["automatic","balanced","strength","kettlebell","aerobic","running","conditioning","calisthenics"].includes(state.settings.trainingGoalProfile))state.settings.trainingGoalProfile="automatic";if(!["suggest","off"].includes(state.settings.adaptiveDeloadMode))state.settings.adaptiveDeloadMode="suggest";if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
+state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.conditioningSwapMeta=state.settings.conditioningSwapMeta||{};state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};state.settings.workoutIntent=state.settings.workoutIntent||{};state.settings.customDayWorkouts=state.settings.customDayWorkouts||{};state.settings.customWorkoutTemplates=state.settings.customWorkoutTemplates||{};state.settings.customExerciseDefinitions=state.settings.customExerciseDefinitions||{};if(!["automatic","balanced","strength","kettlebell","aerobic","running","conditioning","calisthenics"].includes(state.settings.trainingGoalProfile))state.settings.trainingGoalProfile="automatic";if(!["suggest","off"].includes(state.settings.adaptiveDeloadMode))state.settings.adaptiveDeloadMode="suggest";if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.classScheduleMeta=state.settings.classScheduleMeta||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
 
 // Recovery is also journaled independently. The journal wins on startup so a
 // generic app-state write cannot erase an explicitly saved Recovery entry.
@@ -3322,7 +3352,8 @@ function clearDateProgrammingForIntent(dateISO,keep=""){
  state.settings.classOverrides=state.settings.classOverrides||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};
  state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};
  clearAutoNoRestSuggestion(dateISO);
- if(keep!=="class")delete state.settings.classOverrides[dateISO];
+ // Scheduled classes are calendar commitments and are only removed from the Classes screen.
+ // Changing another workout on the same date can create an additional session, but it must not silently erase the class.
  if(keep!=="gym")delete state.settings.genericGymWorkouts[dateISO];
  if(keep!=="calisthenics")delete state.settings.calisthenicsWorkouts[dateISO];
  if(keep!=="conditioning")delete state.settings.conditioningOverrides[dateISO];
@@ -3344,16 +3375,16 @@ function restoreProgrammedWorkoutIntent(dateISO){
  try{renderWeek();renderSelectedWorkout()}catch(e){}
 }
 function quickAdaptiveCalisthenics(dateISO){
- ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"");
- const profile={focus:["push","pull","legs","core"],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},w=buildCalisthenicsWorkout(profile,dateISO);
- state.settings.calisthenicsWorkouts[dateISO]={name:w.name||"Adaptive Calisthenics • 45 min",profile,rows:w.rows||[]};
- setIntentDaySession(dateISO,"Calisthenics","adaptive",{keep:"calisthenics",label:w.name||"Adaptive Calisthenics"});
+ if(adaptiveModeSwitchEligible(dateISO))return switchAdaptiveTrainingMode(dateISO,"Calisthenics");
+ const rec=recommendedAdaptiveCalisthenicsForDate(dateISO);ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"");
+ state.settings.calisthenicsWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true};
+ setIntentDaySession(dateISO,"Calisthenics","adaptive",{keep:"calisthenics",label:rec.label||"Adaptive Calisthenics"});
 }
 function quickAdaptiveGym(dateISO){
- ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"");
- const profile={focus:["chest","back","shoulders","quads","hamstrings","core"],subfocus:[],difficulty:"medium",style:"moderate",duration:60,equipment:[]},w=buildGymWorkoutFromProfile(profile,dateISO);
- state.settings.genericGymWorkouts[dateISO]={name:w.name||"Adaptive Full Body • 60 min",profile,rows:w.rows||[]};
- setIntentDaySession(dateISO,"Generic Gym","adaptive",{keep:"gym",label:w.name||"Adaptive Full Body"});
+ if(adaptiveModeSwitchEligible(dateISO))return switchAdaptiveTrainingMode(dateISO,"Generic Gym");
+ const rec=recommendedAdaptiveGymForDate(dateISO);ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"");
+ state.settings.genericGymWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true};
+ setIntentDaySession(dateISO,"Generic Gym","adaptive",{keep:"gym",label:rec.label||"Adaptive Gym"});
 }
 function beginManualWorkout(session="Custom Workout",type="mixed"){
  const dateISO=logDate.value||localISO(new Date());ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"manual");
@@ -3460,31 +3491,149 @@ function draftExerciseName(card){
 }
 function expectedSession(day,gw,dateISO=""){
  const liveDraft=dateISO?activeUserLogDraftForDate(dateISO):null;if(liveDraft?.session)return liveDraft.session;
- const override=(state.settings.dayOverrides||{})[dateISO],noRest=!!(dateISO&&((state.settings.noRestDates||{})[dateISO])),base=baseExpectedSession(day,gw);
+ const override=(state.settings.dayOverrides||{})[dateISO],noRest=!!(dateISO&&((state.settings.noRestDates||{})[dateISO])),base=baseExpectedSession(day,gw),scheduledClass=dateISO?selectedClassForDate(dateISO):"",priorityBase=base==="TB Maintenance"||String(base).startsWith("KB ");
  if(override==="Recovery / Rest"&&!noRest)return "Recovery / Rest";
- if(dateISO&&((state.settings.classOverrides||{})[dateISO]))return "Class / Activity";
+ // A scheduled class is additive on fixed TB/KB days, but replaces adaptive/rest/conditioning days.
+ if(scheduledClass&&!priorityBase)return "Class / Activity";
  if(dateISO&&((state.settings.calisthenicsWorkouts||{})[dateISO]))return "Calisthenics";
  if(dateISO&&((state.settings.genericGymWorkouts||{})[dateISO]))return "Generic Gym";
  if(override==="Calisthenics")return "Calisthenics";if(override==="Generic Gym")return "Generic Gym";if(override==="Class / Activity")return "Class / Activity";
  // A scheduled rest day that the user explicitly protects from rest must become an
  // actual recommended training day. Legacy builds stored this as Open Training;
  // treat that legacy placeholder as an adaptive Conditioning day instead.
- if(noRest&&base==="Recovery / Rest"&&(!override||override==="Open Training"))return "Conditioning";
+ if(noRest&&base==="Recovery / Rest"&&(!override||override==="Open Training"||["Conditioning","Generic Gym","Calisthenics"].includes(override))){
+   return adaptiveNoRestRecommendation(dateISO).session;
+ }
  if(override&&override!=="Recovery / Rest")return override;
  return base;
 }
 function clearAutoNoRestSuggestion(dateISO){
  const meta=(state.settings.noRestAutoSuggestions||{})[dateISO];
  if(!meta)return;
- if((state.settings.dayOverrides||{})[dateISO]==="Conditioning"&&(meta.dynamic||!meta.activity||(state.settings.conditioningOverrides||{})[dateISO]===meta.activity))delete state.settings.dayOverrides[dateISO];
+ if(["Conditioning","Generic Gym","Calisthenics","Open Training"].includes((state.settings.dayOverrides||{})[dateISO])&&meta.dynamic)delete state.settings.dayOverrides[dateISO];
  if(meta.activity&&(state.settings.conditioningOverrides||{})[dateISO]===meta.activity)delete state.settings.conditioningOverrides[dateISO];
  delete state.settings.noRestAutoSuggestions[dateISO];
 }
-function noRestSuggestionForDate(dateISO){
- const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=d.toLocaleDateString("en-US",{weekday:"long"}),readiness=adaptiveReadiness(dateISO),
-   weekend=day==="Saturday"||day==="Sunday";
- return easyAdaptivePick(day,gw,dateISO,readiness,weekend,"This date was originally a rest day and you chose to train instead.",{addedRestDay:true});
+const adaptiveNoRestCache=new Map(),adaptiveNoRestResolving=new Set();
+function gymFocusForExerciseName(name){
+ const g=gymExercise(name);if(!g)return "";for(const [focus,fams] of Object.entries(gymFocusFamilyMap))if(fams.includes(g.family))return focus;return "";
 }
+function adaptiveNoRestRecommendation(dateISO){
+ const key=utmModelRevision+"|"+dateISO;if(adaptiveNoRestCache.has(key))return adaptiveNoRestCache.get(key);
+ const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=d.toLocaleDateString("en-US",{weekday:"long"}),readiness=adaptiveReadiness(dateISO);
+ if(adaptiveNoRestResolving.size){const fallback={session:"Conditioning",label:"Easy adaptive conditioning",activity:"LSS Walk",score:0,why:["Adaptive fallback while resolving nearby future schedule dependencies."]};return fallback}
+ adaptiveNoRestResolving.add(dateISO);
+ try{
+   const goal=utmGoalWeights(dateISO).weights,recent=historyRowsBefore(dateISO,7),recentSessions=new Set(recent.map(x=>x.session)),weekend=day==="Saturday"||day==="Sunday",
+     cond=easyAdaptivePick(day,gw,dateISO,readiness,weekend,"This date was originally a rest day and you chose to train instead.",{addedRestDay:true}),
+     condCtx=utmBuilderContext(cond.activity,dateISO),
+     gymRank=gymExerciseLibrary.filter(g=>gymAvailable(g.name)).map(g=>({g,ctx:utmBuilderContext(g.name,dateISO)})).sort((a,b)=>b.ctx.score-a.ctx.score).slice(0,8),
+     calRank=calisthenicsExerciseLibrary.filter(x=>x.auto!==false&&(!x.requiresBar||state.settings.calHasPullupBar!==false)&&(!x.requiresBands||!!state.settings.calHasBands)).map(ex=>({ex,ctx:utmBuilderContext(ex.name,dateISO)})).sort((a,b)=>b.ctx.score-a.ctx.score).slice(0,8);
+   const safeScore=v=>Number.isFinite(Number(v))?Number(v):0,gymBase=gymRank.slice(0,4).reduce((a,x)=>a+safeScore(x.ctx.score),0)/Math.max(1,Math.min(4,gymRank.length)),calBase=calRank.slice(0,4).reduce((a,x)=>a+safeScore(x.ctx.score),0)/Math.max(1,Math.min(4,calRank.length)),
+     condRecent=recent.filter(x=>x.session==="Conditioning").length,gymRecent=recent.filter(x=>x.session==="Generic Gym").length,calRecent=recent.filter(x=>x.session==="Calisthenics").length;
+   let options=[
+     {session:"Conditioning",score:safeScore(condCtx.score)+((goal.aerobic+goal.conditioning)/2-1)*10-condRecent*3+(readiness.caution?3:0),label:cond.activity,activity:cond.activity,why:uniqueConditioningReasons(cond.whyFactors||[cond.why||"Adaptive conditioning fit."])},
+     {session:"Generic Gym",score:gymBase+(goal.strength-1)*9-gymRecent*4-(readiness.caution?4:0),label:"Adaptive gym",why:["Best available gym movements are scored against current fatigue, weekly volume, future TB/KB work, and scheduled classes."]},
+     {session:"Calisthenics",score:calBase+(goal.calisthenics-1)*10-calRecent*4-(readiness.caution?2:0),label:"Adaptive calisthenics",why:["Bodyweight options are scored against recent movement exposure, fatigue, future TB/KB work, and scheduled classes."]}
+   ];
+   if(readiness.recoveryGuard)options=options.filter(x=>x.session==="Conditioning");
+   options.sort((a,b)=>b.score-a.score);const best=options[0];
+   if(best.session==="Generic Gym"){
+     const focuses=[];gymRank.forEach(x=>{const f=gymFocusForExerciseName(x.g.name);if(f&&!focuses.includes(f)&&focuses.length<3)focuses.push(f)});
+     const profile={focus:focuses.length?focuses:["back","shoulders","core"],subfocus:[],difficulty:readiness.caution?"easy":"medium",style:"moderate",duration:readiness.caution?30:45,equipment:[]};
+     best.plan=buildGymWorkoutFromProfile(profile,dateISO);best.label=best.plan.name||"Adaptive Gym";best.why=uniqueConditioningReasons([...(best.why||[]),...gymRank.slice(0,4).flatMap(x=>x.ctx.future?.reasons||[])]);
+   }else if(best.session==="Calisthenics"){
+     const focuses=[];calRank.forEach(x=>{const f=x.ex.focus;if(f!=="fullbody"&&!focuses.includes(f)&&focuses.length<3)focuses.push(f)});
+     const profile={focus:focuses.length?focuses:["push","pull","core"],difficulty:readiness.caution?"easy":"medium",duration:readiness.caution?30:40,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands};
+     best.plan=buildCalisthenicsWorkout(profile,dateISO);best.label=best.plan.name||"Adaptive Calisthenics";best.why=uniqueConditioningReasons([...(best.why||[]),...calRank.slice(0,4).flatMap(x=>x.ctx.future?.reasons||[])]);
+   }else best.plan=cond;
+   best.options=options.map(x=>({session:x.session,score:Math.round(x.score*10)/10,label:x.label}));best.score=Math.round(best.score*10)/10;
+   adaptiveNoRestCache.set(key,best);return best;
+ }finally{adaptiveNoRestResolving.delete(dateISO)}
+}
+function adaptiveModeSwitchBase(dateISO){
+ const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseExpectedSession(day,gw),scheduledClass=selectedClassForDate(dateISO),priorityBase=base==="TB Maintenance"||String(base).startsWith("KB ");
+ return {d,gw,day,base,scheduledClass,priorityBase,noRest:!!((state.settings.noRestDates||{})[dateISO])};
+}
+function adaptiveModeSwitchEligible(dateISO){
+ const x=adaptiveModeSwitchBase(dateISO),current=expectedSession(x.day,x.gw,dateISO),modes=["Conditioning","Generic Gym","Calisthenics"];
+ if(x.scheduledClass&&!x.priorityBase)return false;
+ if(x.priorityBase)return false;
+ return modes.includes(x.base)||modes.includes(current)||(x.base==="Recovery / Rest"&&x.noRest);
+}
+function recommendedAdaptiveSessionForDate(dateISO){
+ const x=adaptiveModeSwitchBase(dateISO);
+ if(x.scheduledClass&&!x.priorityBase)return "Class / Activity";
+ if(x.base==="Recovery / Rest"&&x.noRest)return adaptiveNoRestRecommendation(dateISO).session;
+ if(["Conditioning","Generic Gym","Calisthenics"].includes(x.base))return x.base;
+ return expectedSession(x.day,x.gw,dateISO);
+}
+function recommendedAdaptiveGymForDate(dateISO){
+ const readiness=adaptiveReadiness(dateISO),rank=gymExerciseLibrary.filter(g=>gymAvailable(g.name)).map(g=>({g,ctx:utmBuilderContext(g.name,dateISO)})).sort((a,b)=>b.ctx.score-a.ctx.score).slice(0,10),focuses=[];
+ rank.forEach(x=>{const f=gymFocusForExerciseName(x.g.name);if(f&&!focuses.includes(f)&&focuses.length<3)focuses.push(f)});
+ const profile={focus:focuses.length?focuses:["back","shoulders","core"],subfocus:[],difficulty:readiness.caution?"easy":"medium",style:"moderate",duration:readiness.caution?30:45,equipment:[]},plan=buildGymWorkoutFromProfile(profile,dateISO);
+ return {session:"Generic Gym",label:plan.name||"Adaptive Gym",plan,why:uniqueConditioningReasons(["Built from today’s highest-scoring available gym movements.",...rank.slice(0,4).flatMap(x=>x.ctx.future?.reasons||[])])};
+}
+function recommendedAdaptiveCalisthenicsForDate(dateISO){
+ const readiness=adaptiveReadiness(dateISO),rank=calisthenicsExerciseLibrary.filter(x=>x.auto!==false&&(!x.requiresBar||state.settings.calHasPullupBar!==false)&&(!x.requiresBands||!!state.settings.calHasBands)).map(ex=>({ex,ctx:utmBuilderContext(ex.name,dateISO)})).sort((a,b)=>b.ctx.score-a.ctx.score).slice(0,10),focuses=[];
+ rank.forEach(x=>{const f=x.ex.focus;if(f!=="fullbody"&&!focuses.includes(f)&&focuses.length<3)focuses.push(f)});
+ const profile={focus:focuses.length?focuses:["push","pull","core"],difficulty:readiness.caution?"easy":"medium",duration:readiness.caution?30:40,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},plan=buildCalisthenicsWorkout(profile,dateISO);
+ return {session:"Calisthenics",label:plan.name||"Adaptive Calisthenics",plan,why:uniqueConditioningReasons(["Built from today’s highest-scoring bodyweight movements.",...rank.slice(0,4).flatMap(x=>x.ctx.future?.reasons||[])])};
+}
+function recommendedAdaptiveConditioningForDate(dateISO){
+ const x=adaptiveModeSwitchBase(dateISO),c=conditioningFor(x.day,x.gw,dateISO);
+ return {session:"Conditioning",label:c.activity||"Adaptive Conditioning",plan:c,why:uniqueConditioningReasons(c.whyFactors||[c.why||"Adaptive conditioning recommendation for this date."])};
+}
+function recommendedAdaptiveModePlan(dateISO,session){
+ if(session==="Generic Gym")return recommendedAdaptiveGymForDate(dateISO);
+ if(session==="Calisthenics")return recommendedAdaptiveCalisthenicsForDate(dateISO);
+ return recommendedAdaptiveConditioningForDate(dateISO);
+}
+function confirmAdaptiveModeDraftReplacement(dateISO){
+ const d=activeUserLogDraftForDate(dateISO);if(!d)return true;
+ if(!confirm("You have unsaved workout changes for this date. Switch training type and replace that in-progress draft?"))return false;
+ clearLogWorkspace();return true;
+}
+function refreshLogAfterAdaptiveModeChange(dateISO){
+ if(logDate.value!==dateISO)return;
+ const x=adaptiveModeSwitchBase(dateISO);logSession.value=expectedSession(x.day,x.gw,dateISO);blankNextWorkout=false;loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();
+}
+function switchAdaptiveTrainingMode(dateISO,session){
+ if(!["Conditioning","Generic Gym","Calisthenics"].includes(session)||!adaptiveModeSwitchEligible(dateISO))return false;
+ if(!confirmAdaptiveModeDraftReplacement(dateISO))return false;
+ ensureWorkoutIntentStores();const x=adaptiveModeSwitchBase(dateISO);clearDateProgrammingForIntent(dateISO,"");clearRestRecord(dateISO);
+ if(x.base==="Recovery / Rest")state.settings.noRestDates[dateISO]=true;else delete state.settings.noRestDates[dateISO];
+ const rec=recommendedAdaptiveModePlan(dateISO,session);
+ if(session==="Generic Gym")state.settings.genericGymWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveModeSwitch:true};
+ if(session==="Calisthenics")state.settings.calisthenicsWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveModeSwitch:true};
+ state.settings.dayOverrides[dateISO]=session;recordWorkoutIntent(dateISO,session,"adaptive-switch",rec.label||session,"mode-switch");
+ save("adaptive-mode-switch");refreshLogAfterAdaptiveModeChange(dateISO);renderWeek();renderSelectedWorkout();return true;
+}
+function useRecommendedAdaptiveTraining(dateISO){
+ if(!adaptiveModeSwitchEligible(dateISO))return restoreProgrammedWorkoutIntent(dateISO);
+ if(!confirmAdaptiveModeDraftReplacement(dateISO))return false;
+ ensureWorkoutIntentStores();const x=adaptiveModeSwitchBase(dateISO);clearDateProgrammingForIntent(dateISO,"");delete state.settings.workoutIntent[dateISO];delete state.settings.dayOverrides[dateISO];clearRestRecord(dateISO);
+ if(x.base==="Recovery / Rest"&&x.noRest){
+   state.settings.noRestDates[dateISO]=true;const rec=adaptiveNoRestRecommendation(dateISO);state.settings.noRestAutoSuggestions[dateISO]={dynamic:true,session:rec.session,label:rec.label,at:Date.now(),why:"Adaptive recommendation for a scheduled rest day you chose to train on."};
+ }else if(x.base!=="Recovery / Rest"){
+   delete state.settings.noRestDates[dateISO];delete state.settings.noRestAutoSuggestions[dateISO];
+ }
+ save("adaptive-mode-recommended");refreshLogAfterAdaptiveModeChange(dateISO);renderWeek();renderSelectedWorkout();return true;
+}
+function appendAdaptiveModeSwitcher(dateISO,session){
+ if(!adaptiveModeSwitchEligible(dateISO))return;
+ const recommended=recommendedAdaptiveSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),box=document.createElement("div");box.className="adaptive-mode-switcher";
+ box.innerHTML='<div class="adaptive-mode-switcher-head"><div><div class="adaptive-mode-switcher-title">Switch training type</div><div class="adaptive-mode-switcher-copy">One tap loads the app’s recommended workout for that training type on this date. You can still open the full Gym or Calisthenics builder afterward.</div></div></div><div class="adaptive-mode-buttons"></div>';
+ const host=box.querySelector(".adaptive-mode-buttons"),defs=[
+   {mode:"recommended",label:"Use Recommended",desc:"Back to "+recommended},
+   {mode:"Conditioning",label:"Conditioning",desc:"Today’s adaptive conditioning"},
+   {mode:"Calisthenics",label:"Calisthenics",desc:"Recommended bodyweight session"},
+   {mode:"Generic Gym",label:"Generic Gym",desc:"Recommended weight session"}
+ ];
+ defs.forEach(def=>{const b=document.createElement("button");b.type="button";b.className="btn adaptive-mode-btn";const current=def.mode==="recommended"?(!intent||intent.mode!=="adaptive-switch"):(session===def.mode&&intent?.mode==="adaptive-switch");if(current)b.classList.add("current");b.innerHTML='<strong>'+htmlSafe(def.label)+'</strong><span>'+htmlSafe(def.desc)+'</span>';b.addEventListener("click",()=>{if(def.mode==="recommended")useRecommendedAdaptiveTraining(dateISO);else switchAdaptiveTrainingMode(dateISO,def.mode)});host.appendChild(b)});
+ tbList.appendChild(box);
+}
+function noRestSuggestionForDate(dateISO){return adaptiveNoRestRecommendation(dateISO)}
 
 function restRecord(dateISO){return (state.restDays||{})[dateISO]||null}
 function setRestRecord(dateISO,status="confirmed",source="manual"){state.restDays=state.restDays||{};state.restDays[dateISO]={status,source,at:Date.now()}}
@@ -3528,12 +3677,12 @@ function markNoRestDay(dateISO){
  state.settings.noRestDates[dateISO]=true;clearRestRecord(dateISO);
  if(state.settings.dayOverrides[dateISO]==="Recovery / Rest"||state.settings.dayOverrides[dateISO]==="Open Training")delete state.settings.dayOverrides[dateISO];
  if(wasRest){
-   // Do not freeze a one-time activity here. Mark the date as an adaptive training day
-   // so the recommendation can still respond to recovery/history until the user starts
-   // or manually overrides the workout.
+   // Keep this as a dynamic adaptive slot. The mode itself may be conditioning, gym,
+   // or calisthenics and can change with recovery/history until the user starts it.
    clearAutoNoRestSuggestion(dateISO);
-   state.settings.dayOverrides[dateISO]="Conditioning";
-   state.settings.noRestAutoSuggestions[dateISO]={dynamic:true,at:Date.now(),why:"Adaptive recommendation for a scheduled rest day you chose to train on."};
+   delete state.settings.dayOverrides[dateISO];
+   const rec=adaptiveNoRestRecommendation(dateISO);
+   state.settings.noRestAutoSuggestions[dateISO]={dynamic:true,session:rec.session,label:rec.label,at:Date.now(),why:"Adaptive recommendation for a scheduled rest day you chose to train on."};
  }
  save();render();
 }
@@ -3542,7 +3691,7 @@ function clearNoRestDay(dateISO){
    meta=(state.settings.noRestAutoSuggestions||{})[dateISO],override=(state.settings.dayOverrides||{})[dateISO],manualConditioning=!!((state.settings.conditioningOverrides||{})[dateISO]);
  if((state.settings.noRestDates||{})[dateISO])delete state.settings.noRestDates[dateISO];
  if(baseRest&&override==="Open Training")delete state.settings.dayOverrides[dateISO];
- if(baseRest&&override==="Conditioning"&&!manualConditioning&&(meta?.dynamic||!workoutIntentForDate(dateISO)))delete state.settings.dayOverrides[dateISO];
+ if(baseRest&&["Conditioning","Generic Gym","Calisthenics"].includes(override)&&!manualConditioning&&(meta?.dynamic||!workoutIntentForDate(dateISO)))delete state.settings.dayOverrides[dateISO];
  clearAutoNoRestSuggestion(dateISO);syncScheduledRestHistory();save();render();
 }
 function clearDayOverride(dateISO){
@@ -3552,11 +3701,11 @@ function clearDayOverride(dateISO){
 }
 function setGenericGymDay(dateISO){
  state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};
- delete state.settings.classOverrides[dateISO];delete state.settings.calisthenicsWorkouts[dateISO];clearAutoNoRestSuggestion(dateISO);clearRestRecord(dateISO);state.settings.dayOverrides[dateISO]="Generic Gym";state.settings.noRestDates[dateISO]=true;save();render();
+ delete state.settings.calisthenicsWorkouts[dateISO];clearAutoNoRestSuggestion(dateISO);clearRestRecord(dateISO);state.settings.dayOverrides[dateISO]="Generic Gym";state.settings.noRestDates[dateISO]=true;save();render();
 }
 function setCalisthenicsDay(dateISO){
  state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};
- delete state.settings.classOverrides[dateISO];delete state.settings.genericGymWorkouts[dateISO];clearAutoNoRestSuggestion(dateISO);clearRestRecord(dateISO);state.settings.dayOverrides[dateISO]="Calisthenics";state.settings.noRestDates[dateISO]=true;save();render();
+ delete state.settings.genericGymWorkouts[dateISO];clearAutoNoRestSuggestion(dateISO);clearRestRecord(dateISO);state.settings.dayOverrides[dateISO]="Calisthenics";state.settings.noRestDates[dateISO]=true;save();render();
 }
 function numberRpe(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function daysBetweenISO(a,b){
@@ -4197,8 +4346,9 @@ function conditioningFor(day,gw,dateISO=""){
  const readiness=adaptiveReadiness(dateISO||localISO(new Date())),slot=conditioningSlot(day,gw),
    addedNoRest=!!(dateISO&&((state.settings.noRestDates||{})[dateISO])&&baseExpectedSession(day,gw)==="Recovery / Rest");
  if(addedNoRest){
-   const pick=easyAdaptivePick(day,gw,dateISO,readiness,false,"This date was originally a scheduled rest day and you chose to train instead.",{addedRestDay:true});
-   return {...pick,detail:"Adaptive fill for a no-rest day • "+(readiness.caution?"Caution":"Normal"),autoNoRest:true};
+   const rec=adaptiveNoRestRecommendation(dateISO);
+   const pick=rec.session==="Conditioning"&&rec.plan?rec.plan:easyAdaptivePick(day,gw,dateISO,readiness,false,"This date was originally a scheduled rest day and you chose to train instead.",{addedRestDay:true});
+   return {...pick,detail:"Adaptive no-rest recommendation • "+(readiness.caution?"Caution":"Normal"),autoNoRest:true,whyFactors:uniqueConditioningReasons([...(pick.whyFactors||[]),"Conditioning ranked above optional gym/calisthenics for this open training slot."])};
  }
  if(slot==="hard")return hardAdaptivePick(day,gw,dateISO,readiness);
  return easyAdaptivePick(day,gw,dateISO,readiness,slot==="easy-long");
@@ -4929,7 +5079,7 @@ function adaptiveGymTarget(exercise,dateISO,manualLb=""){
  return {lb:gymClampLoad(ex,target),why:(last?"This exercise has been away for a while, so its last load is reused until new direct data is logged.":"No direct history yet; using the library starting target inside your equipment range.")+(model.plateau?" Plateau detected across recent exposures; consider changing rep range, set count, or a close variation if the next exposure is also flat.":"")+" Capability trend "+cap.trendPct+"%; model confidence "+confidence+"%.",starting:true};
 }
 function formatGymWeight(exercise,lb){const ex=gymExercise(exercise);if(!ex)return lb?lb+" lb":"";if(ex.load==="per_db")return lb+" lb / DB";if(ex.load==="per_side")return lb+" lb / side";if(ex.load==="assist")return lb+" lb assistance";return lb+" lb"}
-function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];return saved?JSON.parse(JSON.stringify(saved)):{name:"Generic Gym",profile:{focus:[],difficulty:"medium",style:"moderate",duration:60,equipment:[]},rows:[]}}
+function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];if(saved)return JSON.parse(JSON.stringify(saved));const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseExpectedSession(day,gw),noRest=!!((state.settings.noRestDates||{})[dateISO]);if(noRest&&base==="Recovery / Rest"){const rec=adaptiveNoRestRecommendation(dateISO);if(rec.session==="Generic Gym"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}return {name:"Generic Gym",profile:{focus:[],difficulty:"medium",style:"moderate",duration:60,equipment:[]},rows:[]}}
 function getGenericGymPlan(dateISO){
  const manual=(state.settings.customDayWorkouts||{})[dateISO];
  if(manual&&manual.session==="Generic Gym"&&Array.isArray(manual.rows)&&manual.rows.length)return manual.rows.filter(r=>!r.conditioning).map(r=>({exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.weight||"",meta:"MANUAL • "+(manual.name||"Generic Gym"),note:"Manual workout saved for this date.",conditioning:false}));
@@ -4970,7 +5120,7 @@ function conditioningSummary(x){
 }
 
 
-function selectedClassForDate(dateISO){return (state.settings.classOverrides||{})[dateISO]||""}
+function selectedClassForDate(dateISO){const v=(state.settings.classOverrides||{})[dateISO];return typeof v==="string"?v:(v&&typeof v==="object"?String(v.name||v.activity||""):"")}
 function planFor(session,gw){
  const manual=(state.settings.customDayWorkouts||{})[logDate.value];
  if(manual&&manual.session===session&&Array.isArray(manual.rows)&&manual.rows.length){
@@ -5153,7 +5303,8 @@ function renderWeek(){
    else if(session==="Generic Gym"){const g=genericGymWorkoutFor(iso);focus=(g.name||"Generic Gym")+" • "+g.rows.length+" exercises"}
    else if(session==="Calisthenics"){const c=calWorkoutForDate(iso);focus=(c.name||"Calisthenics")+" • "+c.rows.length+" exercises"}
    else if(session==="Class / Activity"){focus=selectedClassForDate(iso)||"Class / Activity"}
-   else if(session==="Open Training"){focus=pause?"Recovery / optional training":"Protected from rest • optional training"}
+   const scheduledClass=selectedClassForDate(iso);if(scheduledClass&&session!=="Class / Activity")focus+=(focus?" • ":"")+"+ "+scheduledClass+" (2nd workout)";
+   if(session==="Open Training"){focus=pause?"Recovery / optional training":"Protected from rest • optional training"}
    else if(session==="Recovery / Rest"){focus=pause?"Recovery week • rest/easy activity":"Recovery / rest day"}
    const d=document.createElement("button");d.type="button";d.className="day-card"+(iso===todayISO?" today":"")+(iso===selectedDateISO?" selected":"");
    d.setAttribute("aria-label",day+", "+date.toLocaleDateString("en-US",{month:"long",day:"numeric"})+", "+session);
@@ -5173,6 +5324,7 @@ function appendExerciseCard(x){
 function renderTB(gw){
  tbList.innerHTML="";getTBPlan(gw,selectedDateISO).forEach(appendExerciseCard);
 }
+function appendScheduledClassSidecar(dateISO){const activity=selectedClassForDate(dateISO);if(!activity)return;const meta=classScheduleMetaForDate(dateISO),cls=classActivity(activity);appendExerciseCard({exercise:activity,target:meta.time?("Scheduled "+meta.time):"Scheduled class",meta:"ADDITIONAL CLASS • SECOND WORKOUT",note:(cls?cls.note+" ":"")+"This class is additive because the primary TB/KB session is fixed. Log it as a separate Class / Activity workout when completed."})}
 function appendDayControls(session){
  const isManualRest=(state.settings.dayOverrides||{})[selectedDateISO]==="Recovery / Rest",noRest=!!((state.settings.noRestDates||{})[selectedDateISO]),wrap=document.createElement("div");wrap.className="day-control-row";
  if(isManualRest){const b=document.createElement("button");b.className="btn";b.type="button";b.textContent="Restore Scheduled Workout";b.addEventListener("click",()=>clearDayOverride(selectedDateISO));wrap.appendChild(b)}
@@ -5180,20 +5332,21 @@ function appendDayControls(session){
  const protect=document.createElement("button");protect.className="btn";protect.type="button";if(noRest){protect.textContent="Allow Rest Day Again";protect.addEventListener("click",()=>clearNoRestDay(selectedDateISO))}else{protect.textContent="Do Not Use as Rest Day";protect.addEventListener("click",()=>markNoRestDay(selectedDateISO))}wrap.appendChild(protect);
  const gym=document.createElement("button");gym.className="btn";gym.type="button";gym.textContent=session==="Generic Gym"?"Edit Generic Gym Workout":"+ Generic Gym Workout";gym.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts")});wrap.appendChild(gym);
  const cal=document.createElement("button");cal.className="btn";cal.type="button";cal.textContent=session==="Calisthenics"?"Edit Calisthenics":"+ Calisthenics";cal.addEventListener("click",()=>{calBuilderDate.value=selectedDateISO;showView("calisthenics")});wrap.appendChild(cal);
- const cls=document.createElement("button");cls.className="btn";cls.type="button";cls.textContent=session==="Class / Activity"?"Change Class":"+ Class / Activity";cls.addEventListener("click",()=>showView("classes"));wrap.appendChild(cls);
- if(session==="Class / Activity"){const clear=document.createElement("button");clear.className="btn";clear.type="button";clear.textContent="Clear Class Override";clear.addEventListener("click",()=>clearClassOverride(selectedDateISO));wrap.appendChild(clear)}tbList.appendChild(wrap);
+ const hasClass=!!selectedClassForDate(selectedDateISO),cls=document.createElement("button");cls.className="btn";cls.type="button";cls.textContent=hasClass?"Change Scheduled Class":"+ Schedule Class";cls.addEventListener("click",()=>{if(classScheduleDate)classScheduleDate.value=selectedDateISO;showView("classes")});wrap.appendChild(cls);
+ if(hasClass){const clear=document.createElement("button");clear.className="btn";clear.type="button";clear.textContent="Remove Scheduled Class";clear.addEventListener("click",()=>clearClassOverride(selectedDateISO));wrap.appendChild(clear)}tbList.appendChild(wrap);
 }
+function appendAdaptiveOpenDayNotice(dateISO,session){const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO);if(!((state.settings.noRestDates||{})[dateISO])||baseExpectedSession(day,gw)!=="Recovery / Rest")return;const rec=adaptiveNoRestRecommendation(dateISO),box=document.createElement("div");box.className="notice";const alternatives=(rec.options||[]).filter(x=>x.session!==rec.session).slice(0,2).map(x=>x.session+" ("+x.score+")").join(" • "),why=(rec.why||[]).slice(0,4);box.innerHTML='<strong>Adaptive open-day pick:</strong> '+htmlSafe(rec.session)+(rec.label?' • '+htmlSafe(rec.label):'')+(alternatives?'<br><span class="muted">Other scored modes: '+htmlSafe(alternatives)+'</span>':'')+(why.length?'<br><span class="muted">'+why.map(htmlSafe).join(" • ")+'</span>':'');tbList.appendChild(box)}
 function renderSelectedWorkout(){
  const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);
  if(gw<1){tbList.innerHTML='<div class="empty">This date is before Training Week 1.</div>';workoutTitle.textContent="Workout Prescription";tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});selectedDateBadge.textContent="Before plan";plateLegend.classList.add("hidden");return}
  const day=d.toLocaleDateString("en-US",{weekday:"long"}),session=expectedSession(day,gw,selectedDateISO),bi=blockInfo(gw),paused=isRecoveryPauseDate(d);
  workoutTitle.textContent=session;tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})+(paused?" • Recovery / Open Week • before Block "+(bi.block+1):" • Week "+gw+" • Block "+bi.block+" W"+bi.wib);
- selectedDateBadge.textContent=selectedDateISO===localISO(new Date())?"TODAY":"SELECTED DAY";plateLegend.classList.toggle("hidden",session!=="TB Maintenance");tbList.innerHTML="";appendCompletedSessionsBox(selectedDateISO);
- if(session==="TB Maintenance"){getTBPlan(gw,selectedDateISO).forEach(appendExerciseCard);appendDayControls(session);return}
- if(session.startsWith("KB ")){getKbPlan(session,gw,selectedDateISO).forEach(appendExerciseCard);const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent="Edit This KB Workout";edit.addEventListener("click",()=>{kbBuilderBlock.value=bi.block;kbBuilderSlot.value=session;showView("kbworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
+ selectedDateBadge.textContent=selectedDateISO===localISO(new Date())?"TODAY":"SELECTED DAY";plateLegend.classList.toggle("hidden",session!=="TB Maintenance");tbList.innerHTML="";appendCompletedSessionsBox(selectedDateISO);appendAdaptiveOpenDayNotice(selectedDateISO,session);appendAdaptiveModeSwitcher(selectedDateISO,session);
+ if(session==="TB Maintenance"){getTBPlan(gw,selectedDateISO).forEach(appendExerciseCard);appendScheduledClassSidecar(selectedDateISO);appendDayControls(session);return}
+ if(session.startsWith("KB ")){getKbPlan(session,gw,selectedDateISO).forEach(appendExerciseCard);appendScheduledClassSidecar(selectedDateISO);const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent="Edit This KB Workout";edit.addEventListener("click",()=>{kbBuilderBlock.value=bi.block;kbBuilderSlot.value=session;showView("kbworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
  if(session==="Generic Gym"){const plan=getGenericGymPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Generic Gym",meta:"No exercises saved yet",note:"Open the Gym tab and choose muscle groups, difficulty, duration, and equipment."});const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Generic Gym Workout":"Build Generic Gym Workout";edit.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
  if(session==="Calisthenics"){const plan=getCalisthenicsPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Calisthenics",meta:"No exercises saved yet",note:"Open the Calisthenics tab to select focus, difficulty, duration, and pull-up-bar access. The app will build an adaptive bodyweight workout."});const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Calisthenics Workout":"Build Calisthenics Workout";edit.addEventListener("click",()=>{calBuilderDate.value=selectedDateISO;showView("calisthenics")});tbList.appendChild(edit);appendDayControls(session);return}
- if(session==="Class / Activity"){const activity=selectedClassForDate(selectedDateISO)||"Class / Activity",cls=classActivity(activity);appendExerciseCard({exercise:activity,target:"Log after class",meta:"CLASS / ACTIVITY",note:cls?cls.note:"Log duration, difficulty/RPE, HR, and relevant metrics afterward."});appendDayControls(session);return}
+ if(session==="Class / Activity"){const activity=selectedClassForDate(selectedDateISO)||"Class / Activity",cls=classActivity(activity),meta=classScheduleMetaForDate(selectedDateISO);appendExerciseCard({exercise:activity,target:meta.time?("Scheduled "+meta.time):"Log after class",meta:"CLASS / ACTIVITY • PRIMARY WORKOUT",note:(cls?cls.note:"Log duration, difficulty/RPE, HR, and relevant metrics afterward.")+" This scheduled class replaces the day's adaptive/rest/conditioning workout."});appendDayControls(session);return}
  if(session==="Custom Workout"){
    const w=(state.settings.customDayWorkouts||{})[selectedDateISO];
    if(w&&Array.isArray(w.rows)&&w.rows.length)w.rows.forEach(r=>appendExerciseCard(r.conditioning?{exercise:r.exercise,target:r.plannedTarget||"Custom",meta:"CUSTOM • "+(w.type||"mixed"),note:"Manual/custom workout saved for this date."}:{exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.weight,meta:"CUSTOM • "+(w.type||"mixed"),note:"Manual/custom workout saved for this date."}));
@@ -6383,7 +6536,10 @@ function buildCalisthenicsWorkout(profile,dateISO){
 }
 function calWorkoutForDate(dateISO){
  const saved=(state.settings.calisthenicsWorkouts||{})[dateISO];
- return saved?JSON.parse(JSON.stringify(saved)):{name:"Calisthenics",profile:{focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},rows:[]};
+ if(saved)return JSON.parse(JSON.stringify(saved));
+ const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseExpectedSession(day,gw),noRest=!!((state.settings.noRestDates||{})[dateISO]);
+ if(noRest&&base==="Recovery / Rest"){const rec=adaptiveNoRestRecommendation(dateISO);if(rec.session==="Calisthenics"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}
+ return {name:"Calisthenics",profile:{focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},rows:[]};
 }
 function getCalisthenicsPlan(dateISO){
  const manual=(state.settings.customDayWorkouts||{})[dateISO];
@@ -6453,18 +6609,36 @@ function renderCalLibrary(){
  }).join("");
 }
 
+function classScheduleMetaForDate(dateISO){return (state.settings.classScheduleMeta||{})[dateISO]||{}}
+function classIsAdditionalToPriorityDay(dateISO){const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),base=baseExpectedSession(dayNameFromDate(dateISO),gw);return base==="TB Maintenance"||String(base).startsWith("KB ")}
 function applyClassOverride(name){
- const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);if(gw<1){classStatus.textContent="Select a date inside the training calendar first.";return}
- state.settings.classOverrides=state.settings.classOverrides||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};
- delete state.settings.genericGymWorkouts[selectedDateISO];delete state.settings.calisthenicsWorkouts[selectedDateISO];clearAutoNoRestSuggestion(selectedDateISO);clearRestRecord(selectedDateISO);state.settings.classOverrides[selectedDateISO]=name;state.settings.dayOverrides[selectedDateISO]="Class / Activity";state.settings.noRestDates[selectedDateISO]=true;recordWorkoutIntent(selectedDateISO,"Class / Activity","manual",name,"class");save();render();
- classStatus.textContent=name+" is now scheduled for "+d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})+".";
+ const dateISO=classScheduleDate?.value||selectedDateISO,d=parseLocalISO(dateISO),gw=trainingWeekForDate(d);if(gw<1){classStatus.textContent="Choose a date inside the training calendar first.";return}
+ selectedDateISO=dateISO;state.settings.classOverrides=state.settings.classOverrides||{};state.settings.classScheduleMeta=state.settings.classScheduleMeta||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};
+ const additional=classIsAdditionalToPriorityDay(dateISO);state.settings.classOverrides[dateISO]=name;state.settings.classScheduleMeta[dateISO]={time:classScheduleTime?.value||"",scheduledAt:Date.now(),additional};clearRestRecord(dateISO);
+ if(additional){
+   // TB/KB remains the primary fixed workout. The class is a second scheduled session.
+   if(state.settings.dayOverrides[dateISO]==="Class / Activity")delete state.settings.dayOverrides[dateISO];
+ }else{
+   // Classes replace adaptive/rest/conditioning work for the day.
+   delete state.settings.genericGymWorkouts[dateISO];delete state.settings.calisthenicsWorkouts[dateISO];clearAutoNoRestSuggestion(dateISO);state.settings.dayOverrides[dateISO]="Class / Activity";state.settings.noRestDates[dateISO]=true;recordWorkoutIntent(dateISO,"Class / Activity","manual",name,"class");
+ }
+ save("class-scheduled");render();renderClassLibrary();
+ classStatus.textContent=name+" is scheduled for "+d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})+(classScheduleTime?.value?" at "+classScheduleTime.value:"")+(additional?" as a second workout alongside the fixed TB/KB session.":" as the primary workout for that day.");
 }
-function clearClassOverride(dateISO){if((state.settings.classOverrides||{})[dateISO])delete state.settings.classOverrides[dateISO];if((state.settings.dayOverrides||{})[dateISO]==="Class / Activity")delete state.settings.dayOverrides[dateISO];save();render();renderClassLibrary()}
+function clearClassOverride(dateISO){if((state.settings.classOverrides||{})[dateISO])delete state.settings.classOverrides[dateISO];if((state.settings.classScheduleMeta||{})[dateISO])delete state.settings.classScheduleMeta[dateISO];if((state.settings.dayOverrides||{})[dateISO]==="Class / Activity")delete state.settings.dayOverrides[dateISO];if((state.settings.noRestDates||{})[dateISO]&&baseExpectedSession(dayNameFromDate(dateISO),Math.max(1,trainingWeekForDate(parseLocalISO(dateISO))))==="Recovery / Rest")delete state.settings.noRestDates[dateISO];save("class-cleared");render();renderClassLibrary()}
+function renderScheduledClassList(){
+ if(!scheduledClassList)return;const today=localISO(new Date()),entries=Object.entries(state.settings.classOverrides||{}).filter(([d])=>validIsoDateValue(d)).sort((a,b)=>a[0].localeCompare(b[0]));
+ if(!entries.length){scheduledClassList.innerHTML='<div class="empty">No classes scheduled yet.</div>';return}
+ const rows=entries.filter(([d])=>daysBetweenISO(d,today)<=14||d>=today).slice(0,30);
+ scheduledClassList.innerHTML='<div class="tablewrap"><table><thead><tr><th>Date</th><th>Class</th><th>Role</th><th></th></tr></thead><tbody>'+rows.map(([date,name])=>{const meta=classScheduleMetaForDate(date),role=classIsAdditionalToPriorityDay(date)?"Second workout • TB/KB remains":"Primary workout";return '<tr><td>'+htmlSafe(date)+(meta.time?' • '+htmlSafe(meta.time):'')+'</td><td>'+htmlSafe(name)+'</td><td>'+htmlSafe(role)+'</td><td><button class="btn clear-scheduled-class" type="button" data-date="'+attrSafe(date)+'">Remove</button></td></tr>'}).join('')+'</tbody></table></div>';
+ scheduledClassList.querySelectorAll('.clear-scheduled-class').forEach(b=>b.addEventListener('click',()=>clearClassOverride(b.dataset.date)));
+}
 function renderClassLibrary(){
  if(document.querySelector(".view.active")?.id!=="classes")return;
+ if(classScheduleDate&&!classScheduleDate.value)classScheduleDate.value=selectedDateISO||localISO(new Date());
  const cat=classCategory.value,q=classSearch.value.trim().toLowerCase(),rows=classActivityLibrary.filter(x=>(cat==="all"||x.category===cat)&&(!q||x.name.toLowerCase().includes(q)||x.note.toLowerCase().includes(q)));
- classLibraryGrid.innerHTML=rows.map(x=>'<div class="conditioning-card"><div class="name">'+x.name+'</div><div class="meta">'+x.category+'</div><div class="desc">'+x.note+'</div><div class="actions"><button class="btn use-class" type="button" data-name="'+x.name.replaceAll('"','&quot;')+'">Use for selected day</button></div></div>').join("");
- classLibraryGrid.querySelectorAll(".use-class").forEach(btn=>btn.addEventListener("click",()=>applyClassOverride(btn.dataset.name)));
+ classLibraryGrid.innerHTML=rows.map(x=>'<div class="conditioning-card"><div class="name">'+x.name+'</div><div class="meta">'+x.category+'</div><div class="desc">'+x.note+'</div><div class="actions"><button class="btn use-class" type="button" data-name="'+x.name.replaceAll('"','&quot;')+'">Schedule class</button></div></div>').join("");
+ classLibraryGrid.querySelectorAll(".use-class").forEach(btn=>btn.addEventListener("click",()=>applyClassOverride(btn.dataset.name)));renderScheduledClassList();
 }
 
 function renderConditioningLibrary(){
@@ -7222,7 +7396,7 @@ function showView(id){
    if(!restorePersistentRecoveryDraft())loadRecoveryForm();
    renderRecoveryHistory();
  }
- if(id==="classes")renderClassLibrary();
+ if(id==="classes"){if(classScheduleDate)classScheduleDate.value=selectedDateISO||localISO(new Date());const meta=classScheduleMetaForDate(classScheduleDate?.value||selectedDateISO);if(classScheduleTime)classScheduleTime.value=meta.time||"";renderClassLibrary()}
  if(id==="trends")renderTrends();
  if(!uiDraftRestoreInProgress)queueUiDraftSave();
 }
@@ -7355,11 +7529,11 @@ calHasBands.addEventListener("change",()=>{state.settings.calHasBands=calHasBand
 calDurationRange.addEventListener("input",()=>calDuration.value=calDurationRange.value);calDuration.addEventListener("input",()=>calDurationRange.value=Math.max(20,Math.min(90,Number(calDuration.value)||45)));
 calSelectFullBody.addEventListener("click",()=>setCalFocus(["push","pull","legs","core","fullbody"]));calSelectUpper.addEventListener("click",()=>setCalFocus(["push","pull"]));calSelectLowerCore.addEventListener("click",()=>setCalFocus(["legs","core"]));calClearFocus.addEventListener("click",()=>setCalFocus([]));
 generateCalWorkout.addEventListener("click",generateCalFromSelections);resetCalSelectionsBtn.addEventListener("click",resetCalSelectionsAction);addCalExercise.addEventListener("click",()=>addCalBuilderRow());saveCalWorkout.addEventListener("click",saveCalBuilder);clearCalWorkout.addEventListener("click",clearCalBuilder);
-classCategory.addEventListener("change",renderClassLibrary);classSearch.addEventListener("input",renderClassLibrary);addLogExercise.addEventListener("click",()=>{logWorkspacePlanEdited=true;appendAdditionalLogExercise();renderWorkoutIntentUi()});
+classCategory.addEventListener("change",renderClassLibrary);classSearch.addEventListener("input",renderClassLibrary);classScheduleDate?.addEventListener("change",()=>{selectedDateISO=classScheduleDate.value||selectedDateISO;const meta=classScheduleMetaForDate(selectedDateISO);if(classScheduleTime)classScheduleTime.value=meta.time||"";renderClassLibrary()});addLogExercise.addEventListener("click",()=>{logWorkspacePlanEdited=true;appendAdditionalLogExercise();renderWorkoutIntentUi()});
 changeWorkoutIntent.addEventListener("click",()=>{workoutIntentPanel.classList.toggle("hidden");if(!workoutIntentPanel.classList.contains("hidden"))workoutIntentModes.classList.add("hidden")});
 workoutIntentPanel.addEventListener("click",e=>{
  const btn=e.target.closest("[data-intent]");if(!btn)return;const kind=btn.dataset.intent,date=logDate.value||localISO(new Date());
- if(kind==="plan"){restoreProgrammedWorkoutIntent(date);workoutIntentPanel.classList.add("hidden");return}
+ if(kind==="plan"){if(adaptiveModeSwitchEligible(date))useRecommendedAdaptiveTraining(date);else restoreProgrammedWorkoutIntent(date);workoutIntentPanel.classList.add("hidden");return}
  if(["calisthenics","gym","kb","conditioning"].includes(kind)){showIntentModes(kind);return}
  if(kind==="class"){selectedDateISO=date;workoutIntentPanel.classList.add("hidden");showView("classes");return}
  if(kind==="custom"){beginManualWorkout("Custom Workout","mixed");workoutIntentPanel.classList.add("hidden");return}
@@ -7377,7 +7551,7 @@ workoutIntentModes.addEventListener("click",e=>{
  if(a==="kb-power")setIntentDaySession(date,"KB Power","adaptive",{label:"KB Power"});
  if(a==="kb-volume")setIntentDaySession(date,"KB Volume","adaptive",{label:"KB Volume"});
  if(a==="kb-manual"){beginManualWorkout("Custom Workout","strength");manualWorkoutName.value="Manual Kettlebell Workout";recordWorkoutIntent(date,"Custom Workout","manual","Manual Kettlebell Workout","log")}
- if(a==="cond-adaptive")setIntentDaySession(date,"Conditioning","adaptive",{keep:"conditioning",label:"Adaptive Conditioning"});
+ if(a==="cond-adaptive"){if(adaptiveModeSwitchEligible(date))switchAdaptiveTrainingMode(date,"Conditioning");else setIntentDaySession(date,"Conditioning","adaptive",{keep:"conditioning",label:"Adaptive Conditioning"})}
  if(a==="cond-manual")beginManualWorkout("Conditioning","conditioning");
  if(a==="cond-library"){selectedDateISO=date;showView("conditioning")}
  workoutIntentPanel.classList.add("hidden");
@@ -7501,7 +7675,7 @@ function completeWorkout(){
    const prior=(state.settings.customDayWorkouts||{})[logDate.value]||{},name=document.getElementById("manualWorkoutName")?.value.trim()||prior.name||logSession.value,type=document.getElementById("manualWorkoutType")?.value||prior.type||"mixed";
    state.settings.customDayWorkouts[logDate.value]={name,type,session:logSession.value,rows:currentLogPlanRows(),updatedAt:Date.now()};
  }
- if(logSession.value==="Class / Activity"&&rows[0]){state.settings.classOverrides=state.settings.classOverrides||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides[logDate.value]=rows[0].exercise;state.settings.dayOverrides[logDate.value]="Class / Activity";state.settings.noRestDates[logDate.value]=true}
+ if(logSession.value==="Class / Activity"&&rows[0]){state.settings.classOverrides=state.settings.classOverrides||{};state.settings.classScheduleMeta=state.settings.classScheduleMeta||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.classOverrides[logDate.value]=rows[0].exercise;state.settings.classScheduleMeta[logDate.value]=state.settings.classScheduleMeta[logDate.value]||{time:logTime.value||"",scheduledAt:Date.now(),additional:classIsAdditionalToPriorityDay(logDate.value)};if(!classIsAdditionalToPriorityDay(logDate.value)){state.settings.dayOverrides[logDate.value]="Class / Activity";state.settings.noRestDates[logDate.value]=true}}
  if(logSession.value==="Generic Gym"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Generic Gym";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Calisthenics"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Calisthenics";state.settings.noRestDates[logDate.value]=true}
  if(logSession.value==="Custom Workout"){state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.dayOverrides[logDate.value]="Custom Workout";state.settings.noRestDates[logDate.value]=true}
@@ -7557,7 +7731,7 @@ saveSettings.addEventListener("click",()=>{
    tbOverrides:previous.tbOverrides||{},blockModes:previous.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:previous.conditioningOverrides||{},
    conditioningSwapMeta:previous.conditioningSwapMeta||{},noRestAutoSuggestions:previous.noRestAutoSuggestions||{},
    pullupBlockPlan:previous.pullupBlockPlan||{},kbCustomWorkouts:previous.kbCustomWorkouts||{},dayOverrides:previous.dayOverrides||{},noRestDates:previous.noRestDates||{},
-   genericGymWorkouts:previous.genericGymWorkouts||{},classOverrides:previous.classOverrides||{},gymAvailability:previous.gymAvailability||{},blockReviews:previous.blockReviews||{},
+   genericGymWorkouts:previous.genericGymWorkouts||{},classOverrides:previous.classOverrides||{},classScheduleMeta:previous.classScheduleMeta||{},gymAvailability:previous.gymAvailability||{},blockReviews:previous.blockReviews||{},
    recoveryWeekStarts:previous.recoveryWeekStarts||{},calisthenicsWorkouts:previous.calisthenicsWorkouts||{}
  };
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
@@ -7566,7 +7740,7 @@ exportJson.addEventListener("click",()=>download("hybrid-training-export.json",J
  exportVersion:35,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
-  conditioning:{type:"adaptive-infinite",version:8,rules:["E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
+  conditioning:{type:"adaptive-infinite",version:8,rules:["E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference including scheduled classes","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:3,rules:["direct TB completion/RPE/feel/technique","block capability trend","expected-vs-actual RPE calibration as a conservative tie-breaker","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
   kettlebell:{type:"adaptive-per-exposure",version:3,rules:["continuous direct capability estimate","predicted next-load RPE","direct performance strongest","detailed cross-modality movement relationships","conservative family transfer","multi-rate localized fatigue","recovery gating","manual kg wins"]},
   genericGym:{type:"adaptive-per-exposure",version:6,rules:["continuous capability estimate","predicted next-load RPE","richer effective-set stimulus","whole-workout local optimization","future-schedule interference","duration-aware exercise count and time estimate","movement diversity","major and sub-muscle selection","related work contributes to progression","manual edits win"]},
@@ -7766,6 +7940,7 @@ function applyNormalizedImport(o){
  state.settings.noRestDates=state.settings.noRestDates||{};
  state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};
  state.settings.classOverrides=state.settings.classOverrides||{};
+ state.settings.classScheduleMeta=state.settings.classScheduleMeta||{};
  state.settings.gymAvailability=state.settings.gymAvailability||{};
  state.settings.blockReviews=state.settings.blockReviews||{};
  state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};
@@ -7868,7 +8043,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
     if(!o||!o.settings||!Array.isArray(o.logs))return -1;
     let n=o.logs.length*1000+Object.keys(o.dailyRecovery||{}).length*500+Object.keys(o.wearableSessions||{}).length*100+Object.keys(o.restDays||{}).length*80;
     const s=o.settings||{};
-    ["tbOverrides","pullupBlockPlan","kbCustomWorkouts","dayOverrides","noRestDates","genericGymWorkouts","classOverrides","blockReviews","recoveryWeekStarts","calisthenicsWorkouts","workoutIntent","customDayWorkouts","customWorkoutTemplates","customExerciseDefinitions"].forEach(k=>n+=Object.keys(s[k]||{}).length*20);
+    ["tbOverrides","pullupBlockPlan","kbCustomWorkouts","dayOverrides","noRestDates","genericGymWorkouts","classOverrides","classScheduleMeta","blockReviews","recoveryWeekStarts","calisthenicsWorkouts","workoutIntent","customDayWorkouts","customWorkoutTemplates","customExerciseDefinitions"].forEach(k=>n+=Object.keys(s[k]||{}).length*20);
     return n;
   }
   function recoveryScore(r){return r&&typeof r==="object"?Object.entries(r).filter(([k,v])=>k!=="_savedAt"&&v!==""&&v!==null&&v!==undefined).length:-1}
