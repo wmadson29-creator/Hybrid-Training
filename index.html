@@ -1306,7 +1306,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.4</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.7</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -2662,7 +2662,7 @@ function utmBuilderContext(name,dateISO){
 }
 
 function progressionRelationshipSummary(name){
- const tbNames=["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine"],all=[...new Set([...tbNames,...gymExerciseLibrary.map(x=>x.name),...kbExerciseLibrary.map(x=>x.name),...calisthenicsExerciseLibrary.map(x=>x.name),...classActivityLibrary.map(x=>x.name)])].filter(x=>x!==name),
+ const tbNames=["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine","Ab Crunch Machine"],all=[...new Set([...tbNames,...gymExerciseLibrary.map(x=>x.name),...kbExerciseLibrary.map(x=>x.name),...calisthenicsExerciseLibrary.map(x=>x.name),...classActivityLibrary.map(x=>x.name)])].filter(x=>x!==name),
  incoming=all.map(x=>({name:x,w:relationshipWeightForNames(name,x)})).filter(x=>x.w>=.20).sort((a,b)=>b.w-a.w||a.name.localeCompare(b.name)),
  outgoing=all.map(x=>({name:x,w:relationshipWeightForNames(x,name)})).filter(x=>x.w>=.20).sort((a,b)=>b.w-a.w||a.name.localeCompare(b.name)),
  group=(arr,lo,hi=2)=>{const rows=arr.filter(x=>x.w>=lo&&x.w<hi),shown=rows.slice(0,12).map(x=>x.name).join(", ");return shown+(rows.length>12?" + "+(rows.length-12)+" more":"")||"None"},
@@ -3317,6 +3317,11 @@ function getTBPlan(gw,dateOrDay=""){
   {exercise:"Chest Machine",sets,reps,weight:chest+" lb",numeric:chest,bar:false,meta:Math.round(p*100)+"%"},
   {exercise:"Incline Chest Machine",sets,reps,weight:incl+" lb",numeric:incl,bar:false,meta:Math.round(p*100)+"%"}
  );
+ // User default TB finisher: always append Ab Crunch Machine after the fixed TB work.
+ // Sets/reps stay fixed at 3x15; only the load adapts from prior logged performance.
+ const accessoryDate=/^\d{4}-\d{2}-\d{2}$/.test(rawDay)?rawDay:(selectedDateISO||localISO(new Date())),
+       abTarget=adaptiveGymTarget("Ab Crunch Machine",accessoryDate),abLoad=gymClampLoad(gymExercise("Ab Crunch Machine"),abTarget.lb);
+ plan.push({exercise:"Ab Crunch Machine",sets:3,reps:15,weight:formatGymWeight("Ab Crunch Machine",abLoad),numeric:abLoad,bar:false,meta:"DEFAULT TB ACCESSORY • ADAPTIVE LOAD",note:abTarget.why});
  return plan;
 }
 function baseExpectedSession(day,gw){
@@ -4360,7 +4365,7 @@ function dayNameFromDate(value){
 }
 function exerciseChoicesForDate(value){
  const day=dayNameFromDate(value),d=parseLocalISO(value),tw=trainingWeekForDate(d),gw=tw>=1?tw:state.settings.currentWeek,session=expectedSession(day,gw,value),gym=gymExerciseLibrary.map(x=>x.name),cal=calisthenicsExerciseLibrary.map(x=>x.name),kb=kbExerciseLibrary.map(x=>x.name),custom=customExerciseNames();
- if(session==="TB Maintenance")return [...new Set([...(blockModeForWeek(gw)==="tb"?["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine"]:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"]),...gym,...cal,...custom])];
+ if(session==="TB Maintenance")return [...new Set([...(blockModeForWeek(gw)==="tb"?["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine","Ab Crunch Machine"]:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine","Ab Crunch Machine"]),...gym,...cal,...custom])];
  if(session.startsWith("KB "))return [...new Set([...kb,...gym,...cal,...custom])];
  if(session==="Calisthenics")return [...new Set([...cal,...gym,...custom])];
  if(session==="Generic Gym"||session==="Open Training"||session==="Custom Workout")return [...new Set([...gym,...cal,...kb,...custom,"Other"])];
@@ -5429,7 +5434,7 @@ function strengthSubstitutionDescriptor(name){
  return {name,g,k,c,custom,cls,families,primary,family,equipment,kind};
 }
 function allStrengthSubstitutionNames(){
- const tb=["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine"];
+ const tb=["Squat","Weighted Pull-up","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine","Ab Crunch Machine"];
  return [...new Set([...tb,...gymExerciseLibrary.map(x=>x.name),...kbExerciseLibrary.map(x=>x.name),...calisthenicsExerciseLibrary.map(x=>x.name),...classActivityLibrary.map(x=>x.name),...customExerciseNames()])];
 }
 function strengthSubstitutionOptions(current,dateISO){
