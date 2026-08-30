@@ -1306,7 +1306,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.7</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.8</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -1771,7 +1771,7 @@ const gymExerciseLibrary=[
  {name:"Hip Adduction Machine",equipment:"Machine",family:"hip_accessory",defaultLb:80,increment:5,load:"total",note:"Hip adductor accessory"},
  {name:"Standing Calf Raise Machine",equipment:"Machine",family:"calves",defaultLb:90,increment:10,load:"total",note:"Standing calf raise"},
  {name:"Seated Calf Raise Machine",equipment:"Machine",family:"calves",defaultLb:70,increment:5,load:"total",note:"Seated calf raise"},
- {name:"Ab Crunch Machine",equipment:"Machine",family:"core",defaultLb:60,increment:5,load:"total",note:"Trunk flexion"},
+ {name:"Ab Crunch Machine",equipment:"Machine",family:"core",defaultLb:60,increment:5,load:"total",plateVisual:false,note:"Selectorized trunk-flexion machine; no plate-loading graphic"},
  {name:"Dumbbell Bench Press",equipment:"Dumbbell",family:"chest_press",defaultLb:40,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
  {name:"Incline Dumbbell Press",equipment:"Dumbbell",family:"chest_press",defaultLb:35,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
  {name:"Dumbbell Floor Press",equipment:"Dumbbell",family:"chest_press",defaultLb:40,increment:5,load:"per_db",note:"Weight shown per dumbbell"},
@@ -3211,6 +3211,7 @@ function strengthVisualInfo(exercise,weightText,plannedNumeric=null,plannedBar=n
  if(name==="Chest Machine"||name==="Incline Chest Machine")return {numeric:total,bar:false};
  const gx=typeof gymExercise==="function" ? gymExercise(name) : null;
  if(gx){
+   if(gx.plateVisual===false)return null;
    if(gx.equipment==="Barbell")return {numeric:total,bar:true};
    if(gx.equipment==="Machine")return {numeric:total,bar:false};
  }
@@ -3318,10 +3319,10 @@ function getTBPlan(gw,dateOrDay=""){
   {exercise:"Incline Chest Machine",sets,reps,weight:incl+" lb",numeric:incl,bar:false,meta:Math.round(p*100)+"%"}
  );
  // User default TB finisher: always append Ab Crunch Machine after the fixed TB work.
- // Sets/reps stay fixed at 3x15; only the load adapts from prior logged performance.
+ // This accessory has its own exposure-based volume progression; it is not tied to the six-week TB wave.
  const accessoryDate=/^\d{4}-\d{2}-\d{2}$/.test(rawDay)?rawDay:(selectedDateISO||localISO(new Date())),
-       abTarget=adaptiveGymTarget("Ab Crunch Machine",accessoryDate),abLoad=gymClampLoad(gymExercise("Ab Crunch Machine"),abTarget.lb);
- plan.push({exercise:"Ab Crunch Machine",sets:3,reps:15,weight:formatGymWeight("Ab Crunch Machine",abLoad),numeric:abLoad,bar:false,meta:"DEFAULT TB ACCESSORY • ADAPTIVE LOAD",note:abTarget.why});
+       abTarget=adaptiveAbCrunchPrescription(accessoryDate);
+ plan.push({exercise:"Ab Crunch Machine",sets:abTarget.sets,reps:abTarget.reps,weight:formatGymWeight("Ab Crunch Machine",abTarget.lb),numeric:null,bar:false,meta:"DEFAULT TB ACCESSORY • ABS DOUBLE PROGRESSION",note:abTarget.why});
  return plan;
 }
 function baseExpectedSession(day,gw){
@@ -5083,6 +5084,28 @@ function adaptiveGymTarget(exercise,dateISO,manualLb=""){
  }
  return {lb:gymClampLoad(ex,target),why:(last?"This exercise has been away for a while, so its last load is reused until new direct data is logged.":"No direct history yet; using the library starting target inside your equipment range.")+(model.plateau?" Plateau detected across recent exposures; consider changing rep range, set count, or a close variation if the next exposure is also flat.":"")+" Capability trend "+cap.trendPct+"%; model confidence "+confidence+"%.",starting:true};
 }
+function adaptiveAbCrunchPrescription(dateISO){
+ const exercise="Ab Crunch Machine",ex=gymExercise(exercise),inc=gymIncrementFor(ex),direct=gymDirectHistory(exercise,dateISO),last=direct.length?direct[direct.length-1]:null,readiness=adaptiveReadiness(dateISO);
+ const stages=[{sets:3,reps:15},{sets:3,reps:18},{sets:3,reps:20},{sets:4,reps:15},{sets:4,reps:18},{sets:4,reps:20}];
+ let lb=last&&parseLb(last.weight)>0?gymClampLoad(ex,parseLb(last.weight)):gymClampLoad(ex,ex?.defaultLb||60);
+ if(!last)return {sets:3,reps:15,lb,why:"Ab progression starts at 3×15. This accessory uses its own exposure-based double progression rather than the six-week Tactical Barbell wave: build reps and sets at the same machine load before adding weight."};
+ const lastSets=Math.max(1,Math.floor(Number(last.sets)||3)),lastReps=Math.max(1,Math.round(parseFirstNumber(last.reps)||15)),q=gymRowQuality(last),status=String(last.status||"").toLowerCase(),rpe=numberRpe(last.rpe);
+ let idx=stages.findIndex(s=>s.sets===lastSets&&s.reps===lastReps);
+ if(idx<0){
+   // Map manually edited prescriptions to the nearest stage without converting unrelated exercise loads.
+   idx=0;let best=Infinity;stages.forEach((s,i)=>{const d=Math.abs(s.sets-lastSets)*8+Math.abs(s.reps-lastReps);if(d<best){best=d;idx=i}});
+ }
+ if(q.bad){
+   if(idx>0)return {...stages[idx-1],lb,why:"The last ab-crunch exposure was harder than desired, so the accessory backs off one volume step while keeping the same machine load. It remains independent of the TB six-week progression."};
+   if(status==="partial"||status==="missed"||rpe>=9.5){lb=gymClampLoad(ex,Math.max(inc,lb-inc));return {sets:3,reps:15,lb,why:"The last exposure was difficult at the base 3×15 volume, so the machine load backs off one available step and restarts at 3×15."}}
+   return {sets:3,reps:15,lb,why:"The last exposure was difficult, so 3×15 is repeated before any progression."};
+ }
+ if(!q.good)return {...stages[idx],lb,why:"The last ab-crunch exposure was mixed/neutral, so the same sets, reps, and machine load are repeated. Progression is earned from direct ab-crunch performance, not the TB block."};
+ if(readiness.recoveryGuard)return {...stages[idx],lb,why:"The previous ab-crunch exposure earned progression, but Recovery Guard holds the current volume/load for this session."};
+ if(idx<stages.length-1){const next=stages[idx+1];return {...next,lb,why:"The previous ab-crunch exposure was completed well, so volume progresses at the same machine load: "+next.sets+"×"+next.reps+". Weight is deliberately held until the full rep/set ladder is owned."}}
+ lb=gymClampLoad(ex,lb+inc);return {sets:3,reps:15,lb,why:"You completed the top ab-crunch volume step (4×20) successfully, so the machine advances one load step and resets to 3×15. This progression is independent of the six-week TB wave."};
+}
+
 function formatGymWeight(exercise,lb){const ex=gymExercise(exercise);if(!ex)return lb?lb+" lb":"";if(ex.load==="per_db")return lb+" lb / DB";if(ex.load==="per_side")return lb+" lb / side";if(ex.load==="assist")return lb+" lb assistance";return lb+" lb"}
 function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];if(saved)return JSON.parse(JSON.stringify(saved));const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseExpectedSession(day,gw),noRest=!!((state.settings.noRestDates||{})[dateISO]);if(noRest&&base==="Recovery / Rest"){const rec=adaptiveNoRestRecommendation(dateISO);if(rec.session==="Generic Gym"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}return {name:"Generic Gym",profile:{focus:[],difficulty:"medium",style:"moderate",duration:60,equipment:[]},rows:[]}}
 function getGenericGymPlan(dateISO){
