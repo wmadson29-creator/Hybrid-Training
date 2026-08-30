@@ -1306,7 +1306,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.8</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.9</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -5106,15 +5106,78 @@ function adaptiveAbCrunchPrescription(dateISO){
  lb=gymClampLoad(ex,lb+inc);return {sets:3,reps:15,lb,why:"You completed the top ab-crunch volume step (4×20) successfully, so the machine advances one load step and resets to 3×15. This progression is independent of the six-week TB wave."};
 }
 
+
+function universalCoreFinisherScore(name,dateISO,existingNames=[]){
+ const ctx=utmBuilderContext(name,dateISO),recent=historyRowsBefore(dateISO,14).filter(x=>x.exercise===name).length;
+ const cal=calisthenicsExercise(name),gym=gymExercise(name),slot=cal?calMovementSlot(cal):gym?gymMovementSlot(gym):"core";
+ const existingSlots=new Set((existingNames||[]).map(n=>{const c=calisthenicsExercise(n),g=gymExercise(n);return c?calMovementSlot(c):g?gymMovementSlot(g):""}).filter(Boolean));
+ return ctx.score-recent*4-(existingSlots.has(slot)?14:0)+tinyTie(dateISO+"|core-finisher|"+name)*2;
+}
+function universalCoreFinisherRaw(session,dateISO,rows=[],profile={}){
+ const existing=(rows||[]).map(r=>r.exercise).filter(Boolean);
+ if(session==="Generic Gym"){
+   let pool=gymExerciseLibrary.filter(g=>g.family==="core"&&gymAvailable(g.name)&&!existing.includes(g.name));
+   const preferred=(profile?.equipment||[]).length?pool.filter(g=>(profile.equipment||[]).some(e=>String(g.equipment||"").includes(e))):pool;
+   if(preferred.length)pool=preferred;
+   if(!pool.length)pool=gymExerciseLibrary.filter(g=>g.family==="core"&&gymAvailable(g.name));
+   if(pool.length){
+     pool.sort((a,b)=>universalCoreFinisherScore(b.name,dateISO,existing)-universalCoreFinisherScore(a.name,dateISO,existing));
+     const ex=pool[0];
+     if(ex.name==="Ab Crunch Machine"){
+       const rx=adaptiveAbCrunchPrescription(dateISO);
+       return {exercise:ex.name,sets:rx.sets,reps:String(rx.reps),manualLb:"",loadScale:1,untimedCoreFinisher:true,coreFinisherWhy:"Untimed core finisher. "+rx.why};
+     }
+     const reps=ex.name==="Pallof Press"?"10–12 / side":ex.name==="Cable Wood Chop"?"10–12 / side":"10–15";
+     return {exercise:ex.name,sets:3,reps,manualLb:"",loadScale:1,untimedCoreFinisher:true,coreFinisherWhy:"Untimed core finisher selected from today's available gym core movements."};
+   }
+   // If every gym core station is explicitly unavailable, a bodyweight core move
+   // still preserves the universal finisher rule.
+   const fallback=calisthenicsExerciseLibrary.filter(x=>x.focus==="core"&&!x.requiresBands&&!x.requiresBar&&!existing.includes(x.name)).sort((a,b)=>universalCoreFinisherScore(b.name,dateISO,existing)-universalCoreFinisherScore(a.name,dateISO,existing))[0]||calisthenicsExercise("Front Plank");
+   const a=adaptiveCalisthenicsTarget(fallback.name,dateISO,profile?.difficulty||"medium");
+   return {exercise:fallback.name,sets:Math.max(2,Math.min(3,Number(a.sets)||3)),reps:a.reps,manualLb:"",loadScale:1,untimedCoreFinisher:true,coreFinisherWhy:"Untimed bodyweight core finisher because no enabled gym core station is available. "+a.why};
+ }
+ const hasBar=profile?.hasPullupBar!==undefined?!!profile.hasPullupBar:state.settings.calHasPullupBar!==false;
+ const hasBands=profile?.hasBands!==undefined?!!profile.hasBands:!!state.settings.calHasBands;
+ let pool=calisthenicsExerciseLibrary.filter(x=>x.focus==="core"&&x.auto!==false&&(!x.requiresBar||hasBar)&&(!x.requiresBands||hasBands)&&!existing.includes(x.name));
+ if(!pool.length)pool=calisthenicsExerciseLibrary.filter(x=>x.focus==="core"&&x.auto!==false&&(!x.requiresBar||hasBar)&&(!x.requiresBands||hasBands));
+ pool.sort((a,b)=>universalCoreFinisherScore(b.name,dateISO,existing)-universalCoreFinisherScore(a.name,dateISO,existing));
+ const ex=pool[0]||calisthenicsExercise("Front Plank"),a=adaptiveCalisthenicsTarget(ex.name,dateISO,profile?.difficulty||"medium");
+ return {exercise:ex.name,sets:Math.max(2,Math.min(3,Number(a.sets)||3)),reps:a.reps,resistance:ex.requiresBands?"Exercise band":"",untimedCoreFinisher:true,coreFinisherWhy:"Untimed core finisher. "+a.why};
+}
+function ensureUniversalCoreFinisherRaw(session,rows,dateISO,profile={}){
+ const out=JSON.parse(JSON.stringify(rows||[]));
+ if(!["Generic Gym","Calisthenics"].includes(session)||out.some(r=>r?.untimedCoreFinisher))return out;
+ out.push(universalCoreFinisherRaw(session,dateISO,out,profile));
+ return out;
+}
+function universalCoreFinisherPlanRow(session,dateISO,existingPlan=[],profile={}){
+ const raw=universalCoreFinisherRaw(session,dateISO,existingPlan,profile),g=gymExercise(raw.exercise),c=calisthenicsExercise(raw.exercise);
+ if(g){
+   const a=raw.exercise==="Ab Crunch Machine"?adaptiveAbCrunchPrescription(dateISO):adaptiveGymTarget(raw.exercise,dateISO,"");
+   const lb=raw.exercise==="Ab Crunch Machine"?a.lb:gymClampLoad(g,a.lb);
+   return {exercise:raw.exercise,sets:raw.sets,reps:raw.reps,weight:formatGymWeight(raw.exercise,lb),numeric:g.equipment==="Barbell"?lb:null,bar:g.equipment==="Barbell",meta:"CORE FINISHER • outside requested time",note:raw.coreFinisherWhy||a.why,conditioning:false,untimedCoreFinisher:true};
+ }
+ const a=adaptiveCalisthenicsTarget(raw.exercise,dateISO,profile?.difficulty||"medium");
+ return {exercise:raw.exercise,sets:raw.sets,reps:raw.reps,weight:raw.resistance||(c?.requiresBands?"Exercise band":"Bodyweight"),meta:"CORE FINISHER • outside requested time",note:raw.coreFinisherWhy||a.why,conditioning:false,untimedCoreFinisher:true};
+}
+function ensureUniversalCoreFinisherPlan(session,rows,dateISO,profile={}){
+ const out=(rows||[]).map(r=>Object.assign({},r));
+ if(!["Generic Gym","Calisthenics"].includes(session)||out.some(r=>r?.untimedCoreFinisher))return out;
+ out.push(universalCoreFinisherPlanRow(session,dateISO,out,profile));
+ return out;
+}
+
 function formatGymWeight(exercise,lb){const ex=gymExercise(exercise);if(!ex)return lb?lb+" lb":"";if(ex.load==="per_db")return lb+" lb / DB";if(ex.load==="per_side")return lb+" lb / side";if(ex.load==="assist")return lb+" lb assistance";return lb+" lb"}
 function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];if(saved)return JSON.parse(JSON.stringify(saved));const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseExpectedSession(day,gw),noRest=!!((state.settings.noRestDates||{})[dateISO]);if(noRest&&base==="Recovery / Rest"){const rec=adaptiveNoRestRecommendation(dateISO);if(rec.session==="Generic Gym"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}return {name:"Generic Gym",profile:{focus:[],difficulty:"medium",style:"moderate",duration:60,equipment:[]},rows:[]}}
 function getGenericGymPlan(dateISO){
  const manual=(state.settings.customDayWorkouts||{})[dateISO];
  if(manual&&manual.session==="Generic Gym"&&Array.isArray(manual.rows)&&manual.rows.length)return manual.rows.filter(r=>!r.conditioning).map(r=>({exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.weight||"",meta:"MANUAL • "+(manual.name||"Generic Gym"),note:"Manual workout saved for this date.",conditioning:false}));
- const w=genericGymWorkoutFor(dateISO);return w.rows.map(r=>{
-   const ex=gymExercise(r.exercise),a=adaptiveGymTarget(r.exercise,dateISO,r.manualLb),scale=(r.manualLb?1:(Number(r.loadScale)||1)),shown=ex?gymClampLoad(ex,a.lb*scale):a.lb;
-   return {exercise:r.exercise,sets:r.sets,reps:r.reps,weight:formatGymWeight(r.exercise,shown),numeric:(ex&&ex.equipment==="Barbell")?shown:null,bar:!!(ex&&ex.equipment==="Barbell"),meta:(a.manual?"MANUAL":"ADAPTIVE")+" • "+(ex?.equipment||"Gym"),note:a.why,conditioning:false};
+ const w=genericGymWorkoutFor(dateISO);let plan=w.rows.map(r=>{
+   const ex=gymExercise(r.exercise),isAbFinisher=!!r.untimedCoreFinisher&&r.exercise==="Ab Crunch Machine",a=isAbFinisher?adaptiveAbCrunchPrescription(dateISO):adaptiveGymTarget(r.exercise,dateISO,r.manualLb),scale=(r.manualLb?1:(Number(r.loadScale)||1)),shown=ex?gymClampLoad(ex,a.lb*scale):a.lb;
+   return {exercise:r.exercise,sets:r.sets,reps:r.reps,weight:ex?formatGymWeight(r.exercise,shown):(r.weight||"Bodyweight"),numeric:(ex&&ex.equipment==="Barbell")?shown:null,bar:!!(ex&&ex.equipment==="Barbell"),meta:r.untimedCoreFinisher?"CORE FINISHER • outside requested time":((a.manual?"MANUAL":"ADAPTIVE")+" • "+(ex?.equipment||"Gym")),note:r.coreFinisherWhy||a.why,conditioning:false,untimedCoreFinisher:!!r.untimedCoreFinisher};
  });
+ return ensureUniversalCoreFinisherPlan("Generic Gym",plan,dateISO,w.profile||{});
+
 }
 
 function conditioningSummary(x){
@@ -5152,7 +5215,8 @@ function selectedClassForDate(dateISO){const v=(state.settings.classOverrides||{
 function planFor(session,gw){
  const manual=(state.settings.customDayWorkouts||{})[logDate.value];
  if(manual&&manual.session===session&&Array.isArray(manual.rows)&&manual.rows.length){
-   return manual.rows.map(r=>r.conditioning?{exercise:r.exercise,plannedTarget:r.plannedTarget||"Custom / manual",meta:r.meta||"MANUAL",conditioning:true}:{exercise:r.exercise,sets:r.sets||"",reps:r.reps||"",weight:r.weight||"",meta:"MANUAL • "+(manual.name||session),note:"Saved manual plan for this date.",conditioning:false});
+   const manualPlan=manual.rows.map(r=>r.conditioning?{exercise:r.exercise,plannedTarget:r.plannedTarget||"Custom / manual",meta:r.meta||"MANUAL",conditioning:true}:{exercise:r.exercise,sets:r.sets||"",reps:r.reps||"",weight:r.weight||"",meta:r.untimedCoreFinisher?"CORE FINISHER • outside requested time":"MANUAL • "+(manual.name||session),note:r.coreFinisherWhy||"Saved manual plan for this date.",conditioning:false,untimedCoreFinisher:!!r.untimedCoreFinisher});
+   return ensureUniversalCoreFinisherPlan(session,manualPlan,logDate.value,manual.profile||{});
  }
  if(session==="TB Maintenance")return getTBPlan(gw,logDate.value);
  if(session.startsWith("KB "))return getKbPlan(session,gw,logDate.value).map(x=>Object.assign({},x,{conditioning:false}));
@@ -5160,7 +5224,7 @@ function planFor(session,gw){
  if(session==="Calisthenics"){
    const saved=getCalisthenicsPlan(logDate.value);if(saved.length)return saved;
    const temp=buildCalisthenicsWorkout({focus:["push","pull","legs","core"],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false},logDate.value);
-   return temp.rows.map(r=>({exercise:r.exercise,sets:r.sets,reps:r.reps,weight:"Bodyweight",meta:"PROVISIONAL CALISTHENICS • customize in Calisthenics tab",note:r.adaptiveWhy||"",conditioning:false}));
+   return temp.rows.map(r=>({exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.resistance||(calisthenicsExercise(r.exercise)?.requiresBands?"Exercise band":"Bodyweight"),meta:r.untimedCoreFinisher?"CORE FINISHER • outside requested time":"PROVISIONAL CALISTHENICS • customize in Calisthenics tab",note:r.coreFinisherWhy||r.adaptiveWhy||"",conditioning:false,untimedCoreFinisher:!!r.untimedCoreFinisher}));
  }
  if(session==="Class / Activity"){const activity=selectedClassForDate(logDate.value)||"Yoga — Vinyasa";return [{exercise:activity,plannedTarget:"Log class metrics",meta:"Class / activity",conditioning:true}]}
  if(session==="Custom Workout")return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"Custom workout — add any exercises you want",conditioning:false}];
@@ -6076,7 +6140,9 @@ function gymExerciseTimeEstimate(ex,p,setsOverride=null){
  return setup+sets*work+Math.max(0,sets-1)*rest;
 }
 function gymEstimatedWorkoutMinutes(rows,p){
- const exerciseMinutes=rows.reduce((sum,row)=>{const ex=gymExercise(row.exercise);return sum+(ex?gymExerciseTimeEstimate(ex,p,row.sets):5)},0);
+ const timedRows=(rows||[]).filter(row=>!row?.untimedCoreFinisher);
+ const exerciseMinutes=timedRows.reduce((sum,row)=>{const ex=gymExercise(row.exercise);return sum+(ex?gymExerciseTimeEstimate(ex,p,row.sets):5)},0);
+ // The universal core finisher is deliberately outside the requested workout clock.
  // General warm-up / movement setup that is not represented as an exercise row.
  return Math.round((exerciseMinutes+Math.min(7,Math.max(3,Number(p.duration)*.08)))*10)/10;
 }
@@ -6208,12 +6274,14 @@ function buildGymWorkoutFromProfile(p,dateISO){
  const stressAdjustment=utmRespectOptionalWorkoutStressBudget(rows,dateISO,"Generic Gym");rows=stressAdjustment.rows;
  if(stressAdjustment.adjusted)durationFit=gymDurationFit(rows,p);
  const estimated=durationFit.estimate;
- const diversityLimited=rows.length<range.min,focusNames=((p.subfocus||[]).length?(p.subfocus||[]).map(x=>gymSubfocusLabels[x]||x):(p.focus||[]).map(x=>gymFocusLabels[x]||x)).join(" + ")||"Accessory";
+ rows=ensureUniversalCoreFinisherRaw("Generic Gym",rows,dateISO,p);
+ const timedRows=rows.filter(r=>!r.untimedCoreFinisher);
+ const diversityLimited=timedRows.length<range.min,focusNames=((p.subfocus||[]).length?(p.subfocus||[]).map(x=>gymSubfocusLabels[x]||x):(p.focus||[]).map(x=>gymFocusLabels[x]||x)).join(" + ")||"Accessory";
  let durationNote="";
  if(durationFit.status==="fit")durationNote="Duration target met: the estimated work is within 90–110% of the requested time without redundant movement variants.";
  else if(durationFit.status==="short")durationNote="Constraint-limited: this focus/equipment combination supports about "+Math.round(estimated)+" quality minutes versus "+p.duration+" requested. The app stopped adding volume before it became junk volume; broaden the selected muscles/equipment if you want a longer session.";
  else durationNote="The generated work estimates slightly longer than requested; reduce a set or exercise if you need a strict time cap.";
- if(diversityLimited)durationNote+=" Only "+rows.length+" distinct movement patterns were available for the selected focus, so duration was filled with sets rather than duplicate implement swaps.";
+ if(diversityLimited)durationNote+=" Only "+timedRows.length+" distinct movement patterns were available for the selected focus, so duration was filled with sets rather than duplicate implement swaps."; durationNote+=" One additional core finisher is appended after the requested time and is not included in the "+p.duration+"-minute estimate.";
  return {
    name:focusNames+" • "+(p.style==="high-rep"?"High Rep":p.style==="strength"?"Strength":"Moderate")+" • "+p.duration+" min",
    profile:p,rows,estimatedMinutes:estimated,targetCount,diversityLimited,
@@ -6226,13 +6294,15 @@ function gymAutoTargetForRow(row){
  return formatGymWeight(row.exercise,shown);
 }
 function addGymBuilderRow(row={exercise:"Dumbbell Curl",sets:3,reps:"10–12",manualLb:"",loadScale:1}){
- const d=document.createElement("div");d.className="gym-builder-row";d.dataset.loadScale=String(row.loadScale||1);
+ const d=document.createElement("div");d.className="gym-builder-row";d.dataset.loadScale=String(row.loadScale||1);d.dataset.untimedCoreFinisher=row.untimedCoreFinisher?"1":"0";
  d.innerHTML='<div class="field exercise-field"><label>Exercise</label><select class="gym-row-ex">'+gymExerciseLibrary.map(x=>'<option value="'+x.name.replaceAll('"','&quot;')+'"'+(x.name===row.exercise?' selected':'')+'>'+x.name+'</option>').join("")+'<option value="__custom__">Custom exercise…</option></select><input class="gym-row-custom hidden" placeholder="Custom exercise"></div>'+
  '<div class="field"><label>Sets</label><input class="gym-row-sets" value="'+attrSafe(row.sets??"")+'"></div><div class="field"><label>Reps / Time</label><input class="gym-row-reps" value="'+attrSafe(row.reps??"")+'"></div>'+
  '<div class="field"><label>Manual lb</label><input class="gym-row-lb" type="number" min="0" step="2.5" value="'+attrSafe(row.manualLb||"")+'" placeholder="Adaptive"><div class="muted gym-auto-hint" style="font-size:.68rem;margin-top:4px"></div></div>'+
  '<div class="remove-field"><button class="btn danger gym-remove-row" type="button">Remove</button></div><div class="builder-guide gym-row-guide">'+movementGuideHtml(row.exercise)+'</div>';
  const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom"),hint=d.querySelector(".gym-auto-hint"),guide=d.querySelector(".gym-row-guide");
- const rowNow=()=>({exercise:sel.value==="__custom__"?custom.value.trim():sel.value,manualLb:d.querySelector(".gym-row-lb").value,loadScale:Number(d.dataset.loadScale)||1});
+ if(row.exercise&&!gymExercise(row.exercise)){sel.value="__custom__";custom.value=row.exercise}
+ if(row.untimedCoreFinisher)d.insertAdjacentHTML("afterbegin",'<div class="muted" style="grid-column:1/-1;font-size:.72rem"><strong>CORE FINISHER</strong> • outside requested workout time</div>');
+ const rowNow=()=>({exercise:sel.value==="__custom__"?custom.value.trim():sel.value,manualLb:d.querySelector(".gym-row-lb").value,loadScale:Number(d.dataset.loadScale)||1,untimedCoreFinisher:d.dataset.untimedCoreFinisher==="1"});
  const update=()=>{const r=rowNow();hint.textContent=r.exercise&&gymExercise(r.exercise)?"Auto target: "+gymAutoTargetForRow(r):"";guide.innerHTML=movementGuideHtml(r.exercise)};
  const sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus();update()};
  sel.addEventListener("change",sync);custom.addEventListener("input",update);d.querySelector(".gym-row-lb").addEventListener("input",update);sync();
@@ -6245,8 +6315,9 @@ function loadGymBuilder(){
 }
 function saveGymBuilder(){
  const date=gymBuilderDate.value||selectedDateISO||localISO(new Date()),profile=gymProfileFromControls();
- const rows=[...gymBuilderRows.querySelectorAll(".gym-builder-row")].map(d=>{const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom");return {exercise:sel.value==="__custom__"?custom.value.trim():sel.value,sets:d.querySelector(".gym-row-sets").value,reps:d.querySelector(".gym-row-reps").value,manualLb:d.querySelector(".gym-row-lb").value,loadScale:Number(d.dataset.loadScale)||1}}).filter(x=>x.exercise);
+ let rows=[...gymBuilderRows.querySelectorAll(".gym-builder-row")].map(d=>{const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom");return {exercise:sel.value==="__custom__"?custom.value.trim():sel.value,sets:d.querySelector(".gym-row-sets").value,reps:d.querySelector(".gym-row-reps").value,manualLb:d.querySelector(".gym-row-lb").value,loadScale:Number(d.dataset.loadScale)||1,untimedCoreFinisher:d.dataset.untimedCoreFinisher==="1"}}).filter(x=>x.exercise);
  if(!rows.length){alert("Build or add at least one exercise.");return}
+ rows=ensureUniversalCoreFinisherRaw("Generic Gym",rows,date,profile);
  state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.genericGymWorkouts[date]={name:gymWorkoutName.value.trim()||"Generic Gym",profile,rows};setGenericGymDay(date);
  selectedDateISO=date;const dd=parseLocalISO(date),tw=trainingWeekForDate(dd);if(tw>=1)browseWeek=tw;recordWorkoutIntent(date,"Generic Gym","builder",gymWorkoutName.value.trim()||"Generic Gym","builder");save();render();gymAdaptiveStatus.innerHTML="<strong>Saved.</strong> The workout is on "+date+". All exercise, set, rep, and weight fields remain editable.";markUiDraftClean("gym");
 }
@@ -6258,7 +6329,8 @@ function generateGymFromSelections(){
  const date=gymBuilderDate.value||selectedDateISO||localISO(new Date()),p=gymProfileFromControls(),w=buildGymWorkoutFromProfile(p,date);
  gymWorkoutName.value=w.name;gymBuilderRows.innerHTML="";w.rows.forEach(addGymBuilderRow);
  const durationLead=w.durationFit==="short"?"<strong>Built shorter than requested:</strong> ":w.durationFit==="long"?"<strong>Built slightly long:</strong> ":"<strong>Built:</strong> ";
- gymAdaptiveStatus.innerHTML=w.rows.length?(durationLead+w.rows.length+" exercises • ~"+Math.round(w.estimatedMinutes||p.duration)+" min estimated vs "+p.duration+" min requested • "+p.difficulty+" • "+(p.style==="high-rep"?"high reps / lighter":p.style==="strength"?"lower reps / heavier":"moderate reps / weight")+". "+(w.durationNote||"")+" Near-identical implement swaps are treated as the same movement slot. "+(w.modelNote||"")+" Adaptive targets use your history and available equipment; edit anything before saving."):"<strong>No matching available exercises.</strong> Re-enable exercises in the library or broaden the equipment preference.";
+ const timedCount=w.rows.filter(r=>!r.untimedCoreFinisher).length,finisherCount=w.rows.filter(r=>r.untimedCoreFinisher).length;
+ gymAdaptiveStatus.innerHTML=w.rows.length?(durationLead+timedCount+" timed exercises • ~"+Math.round(w.estimatedMinutes||p.duration)+" min estimated vs "+p.duration+" min requested"+(finisherCount?" • + "+finisherCount+" untimed core finisher":"")+" • "+p.difficulty+" • "+(p.style==="high-rep"?"high reps / lighter":p.style==="strength"?"lower reps / heavier":"moderate reps / weight")+". "+(w.durationNote||"")+" Near-identical implement swaps are treated as the same movement slot. "+(w.modelNote||"")+" Adaptive targets use your history and available equipment; edit anything before saving."):"<strong>No matching available exercises.</strong> Re-enable exercises in the library or broaden the equipment preference.";
 }
 function renderGymLibrary(){
  if(document.querySelector(".view.active")?.id!=="gymworkouts")return;
@@ -6420,7 +6492,9 @@ function calExerciseTimeEstimate(ex,row,profile){
  return setup+sets*workPerSet+Math.max(0,sets-1)*rest;
 }
 function calEstimatedWorkoutMinutes(rows,profile){
- const work=rows.reduce((sum,row)=>{const ex=calisthenicsExercise(row.exercise);return sum+(ex?calExerciseTimeEstimate(ex,row,profile):4.5)},0),warm=Math.min(7,Math.max(3,(Number(profile.duration)||45)*.08));
+ const timedRows=(rows||[]).filter(row=>!row?.untimedCoreFinisher);
+ const work=timedRows.reduce((sum,row)=>{const ex=calisthenicsExercise(row.exercise);return sum+(ex?calExerciseTimeEstimate(ex,row,profile):4.5)},0),warm=Math.min(7,Math.max(3,(Number(profile.duration)||45)*.08));
+ // The universal core finisher is deliberately outside the requested workout clock.
  return Math.round((work+warm)*10)/10;
 }
 function calMaxSets(ex,profile){
@@ -6552,6 +6626,7 @@ function buildCalisthenicsWorkout(profile,dateISO){
  if(fit.status==="short"&&!stressAdjustment.recoveryGuard){
    fit=calExpandVolumeToDuration(rows,profile);
  }
+ rows=ensureUniversalCoreFinisherRaw("Calisthenics",rows,dateISO,profile);
  const focusName=profile.focus.includes("fullbody")?"Full Body":profile.focus.map(x=>calFocusLabels[x]||x).join(" + ");
  let durationNote=fit.status==="fit"
    ?"Estimated work is within 90–110% of the requested duration."
@@ -6560,7 +6635,7 @@ function buildCalisthenicsWorkout(profile,dateISO){
        ?"Recovery Guard is intentionally prioritizing recovery over the full requested duration."
        :"This unusually narrow focus/equipment combination could not reach 90% of the requested time without exceeding the movement-specific volume ceilings.")
      :"Estimated work is slightly longer than requested; trim a set if you need a strict cap.";
- return {name:focusName+" • "+profile.difficulty+" • "+profile.duration+" min",profile,rows,estimatedMinutes:fit.estimate,durationFit:fit.status,durationRatio:fit.ratio,durationNote:durationNote+" "+stressAdjustment.note,stressBudget:stressAdjustment,modelNote:"Selection is locally optimized as a whole workout for progression-tree readiness, learned dose response, adaptive weekly stress budget, multi-rate localized fatigue, future-schedule interference, movement redundancy, recent related work, prior substitutions. Requested duration is treated as a real programming constraint: exercise breadth first, then productive sets, then modest rep/hold expansion."};
+ return {name:focusName+" • "+profile.difficulty+" • "+profile.duration+" min",profile,rows,estimatedMinutes:fit.estimate,durationFit:fit.status,durationRatio:fit.ratio,durationNote:durationNote+" "+stressAdjustment.note+" One additional core finisher is appended after the requested time and is not included in the "+profile.duration+"-minute estimate.",stressBudget:stressAdjustment,modelNote:"Selection is locally optimized as a whole workout for progression-tree readiness, learned dose response, adaptive weekly stress budget, multi-rate localized fatigue, future-schedule interference, movement redundancy, recent related work, prior substitutions. Requested duration is treated as a real programming constraint: exercise breadth first, then productive sets, then modest rep/hold expansion. Core selected as a focus remains part of the timed workout; the universal core finisher is an additional exercise."};
 }
 function calWorkoutForDate(dateISO){
  const saved=(state.settings.calisthenicsWorkouts||{})[dateISO];
@@ -6573,16 +6648,18 @@ function getCalisthenicsPlan(dateISO){
  const manual=(state.settings.customDayWorkouts||{})[dateISO];
  if(manual&&manual.session==="Calisthenics"&&Array.isArray(manual.rows)&&manual.rows.length)return manual.rows.filter(r=>!r.conditioning).map(r=>({exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.weight||"Bodyweight",meta:"MANUAL CALISTHENICS",note:"Manual workout saved for this date.",conditioning:false}));
  const w=calWorkoutForDate(dateISO);
- return (w.rows||[]).map(r=>{
+ let plan=(w.rows||[]).map(r=>{
    const ex=calisthenicsExercise(r.exercise),a=adaptiveCalisthenicsTarget(r.exercise,dateISO,w.profile?.difficulty||"medium");
-   return {exercise:r.exercise,sets:r.sets||a.sets,reps:r.reps||a.reps,weight:r.resistance||(ex?.requiresBands?"Exercise band":"Bodyweight"),meta:"CALISTHENICS • "+(ex?.focus||"bodyweight"),note:a.why,conditioning:false};
+   return {exercise:r.exercise,sets:r.sets||a.sets,reps:r.reps||a.reps,weight:r.resistance||(ex?.requiresBands?"Exercise band":"Bodyweight"),meta:r.untimedCoreFinisher?"CORE FINISHER • outside requested time":"CALISTHENICS • "+(ex?.focus||"bodyweight"),note:r.coreFinisherWhy||a.why,conditioning:false,untimedCoreFinisher:!!r.untimedCoreFinisher};
  });
+ return ensureUniversalCoreFinisherPlan("Calisthenics",plan,dateISO,w.profile||{});
+
 }
 function calExerciseOptions(selected=""){
  return calisthenicsExerciseLibrary.map(x=>'<option value="'+x.name.replaceAll('"','&quot;')+'"'+(x.name===selected?' selected':'')+'>'+x.name+(x.requiresBar?' • pull-up bar':'')+(x.requiresBands?' • band':'')+'</option>').join("");
 }
 function addCalBuilderRow(row={exercise:"Push-Up",sets:3,reps:"10",resistance:""}){
- const d=document.createElement("div");d.className="cal-builder-row";
+ const d=document.createElement("div");d.className="cal-builder-row";d.dataset.untimedCoreFinisher=row.untimedCoreFinisher?"1":"0";
  d.innerHTML='<div class="field exercise-field"><label>Exercise</label><select class="cal-row-ex">'+calExerciseOptions(row.exercise)+'</select></div>'+
  '<div class="field"><label>Sets</label><input class="cal-row-sets" value="'+attrSafe(row.sets??"")+'"></div>'+
  '<div class="field"><label>Reps / Hold</label><input class="cal-row-reps" value="'+attrSafe(row.reps??"")+'"><div class="muted cal-auto-hint" style="font-size:.68rem;margin-top:4px"></div></div>'+
@@ -6590,6 +6667,7 @@ function addCalBuilderRow(row={exercise:"Push-Up",sets:3,reps:"10",resistance:""
  '<div class="remove-field"><button class="btn danger cal-remove-row" type="button">Remove</button></div>'+
  '<div class="builder-guide cal-row-guide">'+movementGuideHtml(row.exercise)+'</div>';
  const sel=d.querySelector(".cal-row-ex"),hint=d.querySelector(".cal-auto-hint"),guide=d.querySelector(".cal-row-guide"),resField=d.querySelector(".cal-resistance-field");
+ if(row.untimedCoreFinisher)d.insertAdjacentHTML("afterbegin",'<div class="muted" style="grid-column:1/-1;font-size:.72rem"><strong>CORE FINISHER</strong> • outside requested workout time</div>');
  const update=()=>{
    const exName=sel.value,ex=calisthenicsExercise(exName),a=adaptiveCalisthenicsTarget(exName,calBuilderDate.value||selectedDateISO||localISO(new Date()),calDifficulty.value||"medium");
    hint.textContent="Adaptive baseline: "+a.sets+" × "+a.reps;
@@ -6607,17 +6685,20 @@ function loadCalBuilder(){
 function generateCalFromSelections(){
  const date=calBuilderDate.value||selectedDateISO||localISO(new Date()),profile=calProfileFromControls(),w=buildCalisthenicsWorkout(profile,date);calWorkoutName.value=w.name;calBuilderRows.innerHTML="";w.rows.forEach(addCalBuilderRow);
  const durationLead=w.durationFit==="short"?"<strong>Built shorter than requested:</strong> ":w.durationFit==="long"?"<strong>Built slightly long:</strong> ":"<strong>Built:</strong> ";
- calAdaptiveStatus.innerHTML=w.rows.length?(durationLead+w.rows.length+" exercises • ~"+Math.round(w.estimatedMinutes||profile.duration)+" min estimated vs "+profile.duration+" min requested • "+profile.difficulty+(profile.hasPullupBar?" • pull-up bar":" • no pull-up bar")+(profile.hasBands?" • bands":" • no bands")+". "+(w.durationNote||"")+" "+(w.modelNote||"")+" Selection considers direct bodyweight/band history plus recent related TB, KB, gym, class, and conditioning load. Edit anything before saving."):"<strong>No matching exercises.</strong> Change focus or equipment.";
+ const timedCount=w.rows.filter(r=>!r.untimedCoreFinisher).length,finisherCount=w.rows.filter(r=>r.untimedCoreFinisher).length;
+ calAdaptiveStatus.innerHTML=w.rows.length?(durationLead+timedCount+" timed exercises • ~"+Math.round(w.estimatedMinutes||profile.duration)+" min estimated vs "+profile.duration+" min requested"+(finisherCount?" • + "+finisherCount+" untimed core finisher":"")+" • "+profile.difficulty+(profile.hasPullupBar?" • pull-up bar":" • no pull-up bar")+(profile.hasBands?" • bands":" • no bands")+". "+(w.durationNote||"")+" "+(w.modelNote||"")+" Selection considers direct bodyweight/band history plus recent related TB, KB, gym, class, and conditioning load. Edit anything before saving."):"<strong>No matching exercises.</strong> Change focus or equipment.";
 }
 function saveCalBuilder(){
  const date=calBuilderDate.value||selectedDateISO||localISO(new Date()),profile=calProfileFromControls();
- const rows=[...calBuilderRows.querySelectorAll(".cal-builder-row")].map(d=>({
+ let rows=[...calBuilderRows.querySelectorAll(".cal-builder-row")].map(d=>({
    exercise:d.querySelector(".cal-row-ex").value,
    sets:d.querySelector(".cal-row-sets").value,
    reps:d.querySelector(".cal-row-reps").value,
-   resistance:d.querySelector(".cal-row-resistance")?.value||""
+   resistance:d.querySelector(".cal-row-resistance")?.value||"",
+   untimedCoreFinisher:d.dataset.untimedCoreFinisher==="1"
  })).filter(x=>x.exercise);
  if(!rows.length){alert("Build or add at least one calisthenics exercise.");return}
+ rows=ensureUniversalCoreFinisherRaw("Calisthenics",rows,date,profile);
  state.settings.calHasPullupBar=profile.hasPullupBar;state.settings.calHasBands=profile.hasBands;
  state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};
  state.settings.calisthenicsWorkouts[date]={name:calWorkoutName.value.trim()||"Calisthenics",profile,rows};
