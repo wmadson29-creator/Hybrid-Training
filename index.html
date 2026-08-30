@@ -1306,7 +1306,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.9</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.10</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -2081,7 +2081,11 @@ function utmFingerprint(name){
  if(n.includes("weighted pull-up")){utmMerge(p,utmFamilyFingerprint("vertical_pull"));p.type="tb";p.strengthDemand=.9}
  if(n==="barbell row"){utmMerge(p,utmFamilyFingerprint("horizontal_pull"));p.type="tb";utmPut(p.fatigue,"axial",.45)}
  if(n==="chest machine"||n.includes("incline chest")){utmMerge(p,utmFamilyFingerprint("chest_press"));p.type="tb"}
- if(/^lss run|fast 5|warrior run|short hills|600 meter|standard issue hills|oxygen debt|speed-endurance/i.test(name)){p.type="conditioning";utmPut(p.moves,"locomotion",1);utmPut(p.muscles,"quads",.62);utmPut(p.muscles,"calves",.82);utmPut(p.muscles,"glutes",.52);utmPut(p.muscles,"hamstrings",.35);utmPut(p.muscles,"core",.20);utmPut(p.fatigue,"impact",.88);utmPut(p.fatigue,"aerobic",.65);utmPut(p.fatigue,"systemic",.55)}
+ if(/^lss stationary bike/i.test(name)){p.type="conditioning";utmPut(p.moves,"locomotion",.92);utmPut(p.muscles,"quads",.78);utmPut(p.muscles,"glutes",.46);utmPut(p.muscles,"hamstrings",.20);utmPut(p.muscles,"calves",.16);utmPut(p.muscles,"core",.12);utmPut(p.fatigue,"aerobic",.64);utmPut(p.fatigue,"impact",.02);utmPut(p.fatigue,"systemic",.28)}
+ if(/^lss treadmill/i.test(name)){p.type="conditioning";utmPut(p.moves,"locomotion",1);utmPut(p.muscles,"quads",.56);utmPut(p.muscles,"calves",.62);utmPut(p.muscles,"glutes",.46);utmPut(p.muscles,"hamstrings",.28);utmPut(p.muscles,"core",.16);utmPut(p.fatigue,"aerobic",.62);utmPut(p.fatigue,"impact",.35);utmPut(p.fatigue,"systemic",.34)}
+ if(/^lss elliptical/i.test(name)){p.type="conditioning";utmPut(p.moves,"locomotion",.95);utmPut(p.muscles,"quads",.58);utmPut(p.muscles,"glutes",.42);utmPut(p.muscles,"hamstrings",.18);utmPut(p.muscles,"calves",.20);utmPut(p.muscles,"core",.12);utmPut(p.fatigue,"aerobic",.62);utmPut(p.fatigue,"impact",.03);utmPut(p.fatigue,"systemic",.28)}
+ if(/^lss stair stepper/i.test(name)){p.type="conditioning";utmPut(p.moves,"locomotion",1);utmPut(p.muscles,"quads",.80);utmPut(p.muscles,"glutes",.68);utmPut(p.muscles,"calves",.40);utmPut(p.muscles,"core",.18);utmPut(p.fatigue,"aerobic",.72);utmPut(p.fatigue,"impact",.10);utmPut(p.fatigue,"systemic",.34)}
+  if(/^lss run|fast 5|warrior run|short hills|600 meter|standard issue hills|oxygen debt|speed-endurance/i.test(name)){p.type="conditioning";utmPut(p.moves,"locomotion",1);utmPut(p.muscles,"quads",.62);utmPut(p.muscles,"calves",.82);utmPut(p.muscles,"glutes",.52);utmPut(p.muscles,"hamstrings",.35);utmPut(p.muscles,"core",.20);utmPut(p.fatigue,"impact",.88);utmPut(p.fatigue,"aerobic",.65);utmPut(p.fatigue,"systemic",.55)}
  if(/^lss walk/i.test(name)){p.type="conditioning";utmPut(p.moves,"locomotion",1);utmPut(p.muscles,"calves",.35);utmPut(p.muscles,"quads",.25);utmPut(p.fatigue,"aerobic",.5);utmPut(p.fatigue,"impact",.2)}
  if(/^lss cycle/i.test(name)){p.type="conditioning";utmPut(p.moves,"locomotion",1);utmPut(p.muscles,"quads",.76);utmPut(p.muscles,"glutes",.48);utmPut(p.muscles,"hamstrings",.22);utmPut(p.muscles,"calves",.22);utmPut(p.muscles,"core",.14);utmPut(p.fatigue,"aerobic",.62);utmPut(p.fatigue,"impact",.04);utmPut(p.fatigue,"systemic",.30)}
  if(/^stair climber/i.test(name)){p.type="conditioning";utmPut(p.moves,"locomotion",1);utmPut(p.muscles,"quads",.82);utmPut(p.muscles,"glutes",.66);utmPut(p.muscles,"calves",.42);utmPut(p.muscles,"core",.18);utmPut(p.fatigue,"aerobic",.72);utmPut(p.fatigue,"impact",.12);utmPut(p.fatigue,"systemic",.34)}
@@ -2549,7 +2553,7 @@ function utmEvaluateWorkoutOption(label,names,dateISO=localISO(new Date()),optio
 }
 function utmCounterfactualConditioning(dateISO=localISO(new Date())){
  const key=utmModelRevision+"|"+dateISO;if(utmCounterfactualCache.has(key))return utmCounterfactualCache.get(key);
- const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)||currentTrainingWeek()),day=dayNameFromDate(dateISO),readiness=adaptiveReadiness(dateISO),deload=utmDeloadSignal(dateISO),names=["LSS Run","LSS Walk","LSS Cycle","LSS Swim","LSS Row","Ruck Up"];
+ const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)||currentTrainingWeek()),day=dayNameFromDate(dateISO),readiness=adaptiveReadiness(dateISO),deload=utmDeloadSignal(dateISO),names=["LSS Run","LSS Walk","LSS Cycle","LSS Stationary Bike","LSS Treadmill","LSS Elliptical","LSS Swim","LSS Row","LSS Row Machine","Stair Climber","LSS Stair Stepper","Ruck Up"];
  const rows=names.map(name=>{
    const ctx=conditioningContextAdjustment(name,day,gw,dateISO,readiness,{slot:"easy"}),evaln=utmEvaluateWorkoutOption(name,name,dateISO,{readiness}),learning=enduranceModalityLearning(name,dateISO),goal=utmExerciseGoalAlignment(name,dateISO);
    const score=evaln.score+ctx.score+learning.score+(goal-1)*7;
@@ -2912,10 +2916,15 @@ const preKbSaturdayPlan = [
 const tbEnduranceLibrary = [
   {name:"LSS Run", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"run"},
   {name:"LSS Walk", category:"E", prescription:"45–60 min brisk but conversational walking", basic:"30 min easy-to-brisk walk", advanced:"75–120+ min brisk or hilly walk", logging:"walk"},
-  {name:"LSS Cycle", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"bike"},
+  {name:"LSS Cycle", category:"E", prescription:"60 min easy / conversational cycling; outdoor or general cycling unless a machine-specific option is selected", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"bike"},
+  {name:"LSS Stationary Bike", category:"E", prescription:"45–60 min easy on a stationary / exercise bike at conversational effort", basic:"25–35 min easy spin", advanced:"75–120+ min steady spin", logging:"bike"},
+  {name:"LSS Treadmill", category:"E", prescription:"45–60 min easy treadmill walking or jogging at conversational effort; log speed/incline when useful", basic:"25–35 min easy", advanced:"75–100+ min steady treadmill work", logging:"run"},
+  {name:"LSS Elliptical", category:"E", prescription:"45–60 min easy elliptical work at conversational effort", basic:"25–35 min easy", advanced:"75–100+ min steady work", logging:"elliptical"},
   {name:"LSS Swim", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"swim"},
-  {name:"LSS Row", category:"E", prescription:"60 min easy / conversational", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"row"},
+  {name:"LSS Row", category:"E", prescription:"60 min easy / conversational rowing; general rowing unless the row-machine option is selected", basic:"30 min, build toward 45–60", advanced:"90–120+ min", logging:"row"},
+  {name:"LSS Row Machine", category:"E", prescription:"45–60 min easy on an indoor rowing erg / row machine at conversational effort", basic:"25–35 min easy", advanced:"60–90 min steady erg work", logging:"row"},
   {name:"Stair Climber", category:"E", prescription:"45–60 min steady climb at conversational effort", basic:"25–35 min easy steady climb", advanced:"60–90 min steady climb or controlled incline progression", logging:"stair"},
+  {name:"LSS Stair Stepper", category:"E", prescription:"35–60 min easy on a stair stepper / stepmill at conversational effort", basic:"20–30 min easy", advanced:"60–90 min steady stepping", logging:"stair"},
   {name:"Ruck Up", category:"E", prescription:"90 min with 50 lb", basic:"20–30 lb for 30–60 min", advanced:"2–4+ hr and/or 80–100+ lb; distance option 3–10 mi", logging:"ruck"},
   {name:"Triples", category:"E", prescription:"Jump rope 10 min + run 10 min + row 10 min × 2, no rest", basic:"1 circuit", advanced:"3–4 circuits", logging:"triples"},
   {name:"Fun-Run — Standard Issue", category:"E / Fun-Run", prescription:"10 km easy run; every 6 min alternate burpees ×10 and squats ×20 + push-ups ×20", basic:"5 km; burpees ×5 / squats ×10 + push-ups ×10", advanced:"10 km; all 3 every 6 min OR 10–15 lb vest", logging:"funrun"},
@@ -3005,10 +3014,10 @@ const tbAccessoryLibrary = [
 const dayExerciseOptions={
   Monday:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"],
   Tuesday:["Double Clean & Press","Double Front Squat","Gorilla Row","Double Farmer Carry"],
-  Wednesday:["LSS Run","LSS Cycle","LSS Swim","LSS Row","Stair Climber","Ruck Up","Triples","Strength-Endurance Circuit","Easy Run","Swim","Bike","Hike","Other"],
+  Wednesday:["LSS Run","LSS Walk","LSS Cycle","LSS Stationary Bike","LSS Treadmill","LSS Elliptical","LSS Swim","LSS Row","LSS Row Machine","Stair Climber","LSS Stair Stepper","Ruck Up","Triples","Strength-Endurance Circuit","Easy Run","Swim","Bike","Hike","Other"],
   Thursday:["Squat","Weighted Pull-up","Barbell Row","Chest Machine","Incline Chest Machine"],
   Friday:["Double Clean","Double Push Press","Double Swing","Double Reverse Lunge","Double Farmer Carry"],
-  Saturday:["Connaught Range 10 to 1s", "Fast 5 Tempo Run", "600 Meter Resets", "Heavy Bag Resets", "Indoor Power Intervals", "Sledge Drill", "Black on Oxygen (BOO)", "BOO II", "Fobbit Intervals", "Short Hills", "Oxygen Debt 101", "Speed-Endurance Ladders", "Meat-Eater", "Meat-Eater II", "Disarmed", "Standard Issue Hills", "Apex Hills", "Bloody Lungs I", "Bloody Lungs II", "Anaerobic Capacity", "Pepper Potting", "Buffalo Laps", "Meat-Eater III", "Devil's Trinity Combat Conditioning Circuit", "GC 1 — Beat Your Face", "GC 2", "GC 3 — Brig Rat", "GC 4", "GC 5", "GC 6", "GC 7", "GC 8", "GC 9", "GC 10", "GC 11 — Outside the Wire", "GC 12", "BW Plyo – Power", "Power Complex", "Kinetic Conditioning", "Transition Complex", "Fun-Run — Standard Issue", "Fun-Run — Cannonball Run", "Fun-Run — 03 at Stupid-Dark 30", "Warrior Run", "Ruck Up", "Stair Climber", "Triples", "Strength-Endurance Circuit", "Other"],
+  Saturday:["Connaught Range 10 to 1s", "Fast 5 Tempo Run", "600 Meter Resets", "Heavy Bag Resets", "Indoor Power Intervals", "Sledge Drill", "Black on Oxygen (BOO)", "BOO II", "Fobbit Intervals", "Short Hills", "Oxygen Debt 101", "Speed-Endurance Ladders", "Meat-Eater", "Meat-Eater II", "Disarmed", "Standard Issue Hills", "Apex Hills", "Bloody Lungs I", "Bloody Lungs II", "Anaerobic Capacity", "Pepper Potting", "Buffalo Laps", "Meat-Eater III", "Devil's Trinity Combat Conditioning Circuit", "GC 1 — Beat Your Face", "GC 2", "GC 3 — Brig Rat", "GC 4", "GC 5", "GC 6", "GC 7", "GC 8", "GC 9", "GC 10", "GC 11 — Outside the Wire", "GC 12", "BW Plyo – Power", "Power Complex", "Kinetic Conditioning", "Transition Complex", "Fun-Run — Standard Issue", "Fun-Run — Cannonball Run", "Fun-Run — 03 at Stupid-Dark 30", "Warrior Run", "Ruck Up", "Stair Climber", "LSS Stair Stepper", "LSS Stationary Bike", "LSS Treadmill", "LSS Elliptical", "LSS Row Machine", "Triples", "Strength-Endurance Circuit", "Other"],
   Sunday:["Double Clean & Press","Double Front Squat","Single-Arm Row","Single-Arm Snatch","Suitcase Carry"]
 };
 
@@ -4107,11 +4116,89 @@ function tinyTie(text){
  for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}
  return ((h>>>0)%1000)/1000;
 }
+function calControlledVariation(scored,dateISO,ordinal=0){
+ const out=(scored||[]).map(c=>({...c,baseScore:Number(c.score)||0,variantBoost:0}));
+ if(!ordinal)return out.sort((a,b)=>b.score-a.score);
+ const groups=new Map();
+ out.forEach(c=>{
+   const key=(c.ex?.focus||"")+"|"+(c.slot||"");
+   if(!groups.has(key))groups.set(key,[]);
+   groups.get(key).push(c);
+ });
+ const swappable=[];
+ groups.forEach((arr,key)=>{
+   arr.sort((a,b)=>b.baseScore-a.baseScore);
+   const best=arr[0]?.baseScore??-9999,band=Math.max(4.5,Math.abs(best)*.07);
+   const eligible=arr.filter(c=>best-c.baseScore<=band);
+   if(eligible.length>=2)swappable.push({key,eligible,best,band});
+ });
+ // A rebuild changes only one or two movement slots, and only among choices within
+ // the near-equivalent quality band. This creates useful variety without random junk.
+ swappable.sort((a,b)=>tinyTie(dateISO+"|cal-var-group|"+ordinal+"|"+b.key)-tinyTie(dateISO+"|cal-var-group|"+ordinal+"|"+a.key));
+ const swapCount=Math.min(swappable.length,1+((ordinal-1)%2));
+ swappable.slice(0,swapCount).forEach(g=>{
+   const alternatives=g.eligible.slice(1);
+   if(!alternatives.length)return;
+   const offset=Math.floor(tinyTie(dateISO+"|cal-var-pick|"+ordinal+"|"+g.key)*alternatives.length);
+   const pick=alternatives[(ordinal-1+offset)%alternatives.length];
+   pick.variantBoost=g.band+0.75;
+   pick.score=g.best+0.75+tinyTie(dateISO+"|cal-var-boost|"+ordinal+"|"+pick.ex.name)*.5;
+ });
+ return out.sort((a,b)=>b.score-a.score||b.baseScore-a.baseScore||a.ex.name.localeCompare(b.ex.name));
+}
+const calBuilderVariationState={signature:"",ordinal:-1};
+function calBuilderVariationSignature(profile,dateISO){
+ return JSON.stringify({
+   date:dateISO,
+   focus:[...(profile?.focus||[])].sort(),
+   difficulty:profile?.difficulty||"medium",
+   duration:Number(profile?.duration)||45,
+   hasPullupBar:!!profile?.hasPullupBar,
+   hasBands:!!profile?.hasBands
+ });
+}
+function calRotateSelectedNearEquivalent(selectedCandidates,allCandidates,dateISO,ordinal=0){
+ const out=(selectedCandidates||[]).map(c=>({...c}));
+ if(!ordinal||!out.length)return out;
+ let referenceScore=utmWorkoutSetScore(out,dateISO,x=>x.ex.name,x=>x.score);
+ const opportunities=[];
+ out.forEach((current,index)=>{
+   const key=(current.ex?.focus||"")+"|"+(current.slot||"");
+   const group=(allCandidates||[]).filter(c=>(c.ex?.focus||"")+"|"+(c.slot||"")===key).sort((a,b)=>b.score-a.score);
+   if(group.length<2)return;
+   const best=group[0].score,band=Math.max(4.5,Math.abs(best)*.07);
+   const alternatives=group.filter(c=>c.ex.name!==current.ex.name&&best-c.score<=band&&!out.some((x,j)=>j!==index&&x.ex.name===c.ex.name));
+   if(alternatives.length)opportunities.push({index,key,alternatives,band});
+ });
+ opportunities.sort((a,b)=>tinyTie(dateISO+"|cal-selected-group|"+ordinal+"|"+b.key)-tinyTie(dateISO+"|cal-selected-group|"+ordinal+"|"+a.key));
+ const targetSwaps=Math.min(opportunities.length,1+((ordinal-1)%2));
+ let swaps=0;
+ for(const opp of opportunities){
+   if(swaps>=targetSwaps)break;
+   const choices=opp.alternatives.slice().sort((a,b)=>tinyTie(dateISO+"|cal-selected-pick|"+ordinal+"|"+opp.key+"|"+b.ex.name)-tinyTie(dateISO+"|cal-selected-pick|"+ordinal+"|"+opp.key+"|"+a.ex.name));
+   let accepted=null,acceptedScore=referenceScore;
+   for(const cand of choices){
+     const trial=out.slice();trial[opp.index]=cand;
+     if(new Set(trial.map(x=>x.ex.name)).size!==trial.length)continue;
+     const trialScore=utmWorkoutSetScore(trial,dateISO,x=>x.ex.name,x=>x.score);
+     const tolerance=Math.max(6,Math.abs(referenceScore)*.07);
+     if(trialScore>=referenceScore-tolerance){accepted=cand;acceptedScore=trialScore;break}
+   }
+   if(accepted){out[opp.index]=accepted;referenceScore=acceptedScore;swaps++}
+ }
+ return out;
+}
+function nextCalBuilderVariation(profile,dateISO){
+ const sig=calBuilderVariationSignature(profile,dateISO);
+ if(calBuilderVariationState.signature!==sig){calBuilderVariationState.signature=sig;calBuilderVariationState.ordinal=0}
+ else calBuilderVariationState.ordinal++;
+ return calBuilderVariationState.ordinal;
+}
 function conditioningTraits(name){
  const s=String(name||"").toLowerCase();
  return {
-   lowImpact:/swim|cycle|row|walk|stair/.test(s),
-   run:/run|meter|hills|oxygen|ladders|connaught|buffalo|capacity/.test(s),
+   lowImpact:/swim|cycle|bike|row|walk|stair|elliptical/.test(s),
+   run:/run|treadmill|meter|hills|oxygen|ladders|connaught|buffalo|capacity/.test(s),
    sprint:/sprint|hills|600 meter|oxygen debt|speed-endurance|anaerobic capacity|connaught/.test(s),
    hinge:/black on oxygen|fobbit|meat-eater|apex|buffalo|devil|gc 4|gc 6|gc 8/.test(s),
    requiresKb:/black on oxygen|fobbit|meat-eater|apex|buffalo|devil|gc 4|gc 8|bloody lungs ii/.test(s),
@@ -4124,10 +4211,15 @@ function enduranceModalityCost(name){
  return {
    "LSS Walk":.62,
    "LSS Cycle":.70,
+   "LSS Stationary Bike":.68,
+   "LSS Treadmill":.90,
+   "LSS Elliptical":.66,
    "LSS Run":1.00,
    "LSS Swim":1.10,
    "LSS Row":.95,
+   "LSS Row Machine":.95,
    "Stair Climber":.88,
+   "LSS Stair Stepper":.86,
    "Ruck Up":1.08
  }[name]||1;
 }
@@ -4156,8 +4248,8 @@ function adaptiveEnduranceDuration(name,day,dateISO,readiness,longer=false,added
  if(readiness.recoveryGuard){equivalent*=.62;factors.push("Recovery Guard substantially reduces duration.");}
  else if(readiness.caution){equivalent*=.82;factors.push("Recovery Caution reduces duration without automatically cancelling the session.");}
  if(readiness.timeSpike){equivalent*=.78;factors.push("A recent conditioning-time spike reduces duration.");}
- if(readiness.mileageSpike&&(name==="LSS Run"||name==="Ruck Up")){equivalent*=.72;factors.push("A recent running-mileage spike reduces run/ruck duration.");}
- if(readiness.lowerFatigue&&(name==="LSS Run"||name==="Ruck Up")){equivalent*=.80;factors.push("Severe recent lower-body fatigue reduces run/ruck duration.");}
+ if(readiness.mileageSpike&&(name==="LSS Run"||name==="LSS Treadmill"||name==="Ruck Up")){equivalent*=.72;factors.push("A recent running-mileage spike reduces run/ruck duration.");}
+ if(readiness.lowerFatigue&&(name==="LSS Run"||name==="LSS Treadmill"||name==="Ruck Up")){equivalent*=.80;factors.push("Severe recent lower-body fatigue reduces run/ruck duration.");}
  equivalent*=.92+tinyTie(dateISO+"|endurance-duration|"+name)*.18;
  const cost=enduranceModalityCost(name);
  let minutes=equivalent/cost;
@@ -4167,8 +4259,8 @@ function adaptiveEnduranceDuration(name,day,dateISO,readiness,longer=false,added
    minutes=minutes*(1-blend)+learning.targetCenter*blend;
    if(Math.abs(minutes-before)>=2||strong)factors.push(...learning.factors);
  }else if(learning.factors.length)factors.push(...learning.factors);
- const caps={"LSS Walk":[30,120],"LSS Cycle":[35,120],"LSS Run":[30,(weekend&&longer&&!readiness.caution&&!readiness.recoveryGuard)?120:90],"LSS Swim":[25,80],"LSS Row":[30,85],"Stair Climber":[25,90],"Ruck Up":[30,100]},cap=[...(caps[name]||[30,90])];
- if(readiness.recoveryGuard){const guardCaps={"LSS Walk":75,"LSS Cycle":75,"LSS Run":45,"LSS Swim":50,"LSS Row":50,"Stair Climber":50,"Ruck Up":45};cap[1]=Math.min(cap[1],guardCaps[name]||60);}
+ const caps={"LSS Walk":[30,120],"LSS Cycle":[35,120],"LSS Stationary Bike":[30,120],"LSS Treadmill":[30,100],"LSS Elliptical":[30,100],"LSS Run":[30,(weekend&&longer&&!readiness.caution&&!readiness.recoveryGuard)?120:90],"LSS Swim":[25,80],"LSS Row":[30,85],"LSS Row Machine":[30,85],"Stair Climber":[25,90],"LSS Stair Stepper":[25,90],"Ruck Up":[30,100]},cap=[...(caps[name]||[30,90])];
+ if(readiness.recoveryGuard){const guardCaps={"LSS Walk":75,"LSS Cycle":75,"LSS Stationary Bike":75,"LSS Treadmill":55,"LSS Elliptical":70,"LSS Run":45,"LSS Swim":50,"LSS Row":50,"LSS Row Machine":50,"Stair Climber":50,"LSS Stair Stepper":50,"Ruck Up":45};cap[1]=Math.min(cap[1],guardCaps[name]||60);}
  minutes=Math.max(cap[0],Math.min(cap[1],minutes));
  const spread=readiness.recoveryGuard?5:(longer?10:7.5),mid=roundFive(minutes);
  let low=roundFive(mid-spread),high=roundFive(mid+spread);
@@ -4179,7 +4271,7 @@ function adaptiveEnduranceDuration(name,day,dateISO,readiness,longer=false,added
  return {target:low===high?low+" min":low+"–"+high+" min",low,high,why:factors.join(" "),whyFactors:factors,learning};
 }
 function easyAdaptivePick(day,gw,dateISO,readiness,longer=false,reasonPrefix="",options={}){
- const names=["LSS Run","LSS Walk","LSS Cycle","LSS Swim","LSS Row","Triples","Ruck Up"];
+ const names=["LSS Run","LSS Walk","LSS Cycle","LSS Stationary Bike","LSS Treadmill","LSS Elliptical","LSS Swim","LSS Row","LSS Row Machine","Stair Climber","LSS Stair Stepper","Triples","Ruck Up"];
  let scored=names.map(name=>{
    const e=entryForName(name),days=daysSinceConditioning(name,dateISO),
      context=conditioningContextAdjustment(name,day,gw,dateISO,readiness,{slot:"easy",longer,addedRestDay:!!options.addedRestDay}),
@@ -4418,9 +4510,11 @@ function conditioningKind(activity){
   if(s.includes("warrior run"))return "warrior";
   if(s.includes("strength-endurance"))return "se";
   if(s.includes("lss row"))return "row";
-  if(s.includes("stair climber")||s.includes("stair / climb"))return "stair";
+  if(s.includes("elliptical"))return "elliptical";
+  if(s.includes("stair climber")||s.includes("stair stepper")||s.includes("stair / climb"))return "stair";
   if(s.includes("lss swim")||s==="swim"||s.includes("swim interval"))return "swim";
-  if(s.includes("lss cycle")||s==="bike"||s.includes("bike interval"))return "bike";
+  if(s.includes("stationary bike")||s.includes("exercise bike")||s.includes("lss cycle")||s==="bike"||s.includes("bike interval"))return "bike";
+  if(s.includes("treadmill"))return "run";
   if(s.includes("sprint")||s.includes("hill repeat"))return "sprint";
   if(s.includes("hike")||s.includes("walk"))return "hike";
   if(s.includes("run")||s.includes("tempo")||s.includes("fartlek"))return "run";
@@ -4430,12 +4524,12 @@ function conditioningKind(activity){
 
 const CONDITIONING_COMPONENT_PRESETS={
  "Triples":[
-   {label:"Jump Rope",planned:"Jump Rope — Easy",category:"easyAerobic",alternatives:["Jump Rope — Easy","LSS Run","LSS Row","LSS Cycle","Stair Climber","Step-Ups — Easy","Heavy Bag — Easy","Battle Ropes — Easy"]},
-   {label:"Run",planned:"LSS Run",category:"easyAerobic",alternatives:["LSS Run","LSS Row","LSS Cycle","LSS Swim","Stair Climber","LSS Walk"]},
-   {label:"Row",planned:"LSS Row",category:"easyAerobic",alternatives:["LSS Row","LSS Cycle","LSS Run","LSS Swim","Stair Climber"]}
+   {label:"Jump Rope",planned:"Jump Rope — Easy",category:"easyAerobic",alternatives:["Jump Rope — Easy","LSS Treadmill","LSS Stationary Bike","LSS Elliptical","LSS Row Machine","LSS Run","LSS Row","LSS Cycle","LSS Stair Stepper","Stair Climber","Step-Ups — Easy","Heavy Bag — Easy","Battle Ropes — Easy"]},
+   {label:"Run",planned:"LSS Run",category:"easyAerobic",alternatives:["LSS Run","LSS Treadmill","LSS Stationary Bike","LSS Elliptical","LSS Row Machine","LSS Row","LSS Cycle","LSS Swim","LSS Stair Stepper","Stair Climber","LSS Walk"]},
+   {label:"Row",planned:"LSS Row",category:"easyAerobic",alternatives:["LSS Row","LSS Row Machine","LSS Stationary Bike","LSS Elliptical","LSS Treadmill","LSS Cycle","LSS Run","LSS Swim","LSS Stair Stepper","Stair Climber"]}
  ],
  "Fun-Run — Standard Issue":[
-   {label:"Easy Run",planned:"LSS Run",category:"easyAerobic",alternatives:["LSS Run","LSS Cycle","LSS Row","Stair Climber","Elliptical","LSS Walk"]},
+   {label:"Easy Run",planned:"LSS Run",category:"easyAerobic",alternatives:["LSS Run","LSS Treadmill","LSS Stationary Bike","LSS Elliptical","LSS Row Machine","LSS Cycle","LSS Row","LSS Stair Stepper","Stair Climber","LSS Walk"]},
    {label:"Burpees",planned:"Burpees",category:"burpee"},
    {label:"Squats",planned:"Bodyweight Squat",category:"squatEndurance"},
    {label:"Push-Ups",planned:"Push-Up",category:"upperPushEndurance"}
@@ -4462,7 +4556,7 @@ const CONDITIONING_COMPONENT_PRESETS={
  "Sledge Drill":[{label:"Sledge",planned:"Sledge Strikes",category:"sledgePower"},{label:"Jump Rope",planned:"Jump Rope — Hard",category:"hardAerobic"}],
  "Black on Oxygen (BOO)":[{label:"KB Swings",planned:"Russian KB Swing",category:"hingeBallistic"},{label:"Hard Run",planned:"Hard Run",category:"hardAerobic"}],
  "BOO II":[{label:"Burpees",planned:"Burpees",category:"burpee"},{label:"Run",planned:"Hard Run",category:"hardAerobic"}],
- "Fobbit Intervals":[{label:"Easy Cardio",planned:"LSS Run",category:"easyAerobic",alternatives:["LSS Run","LSS Row","Jump Rope — Easy","LSS Cycle","Elliptical","Stair Climber"]},{label:"KB Swings",planned:"Russian KB Swing",category:"hingeBallistic"},{label:"KB Snatches",planned:"Single-Arm Snatch",category:"snatchPower"}],
+ "Fobbit Intervals":[{label:"Easy Cardio",planned:"LSS Run",category:"easyAerobic",alternatives:["LSS Run","LSS Treadmill","LSS Row Machine","LSS Stationary Bike","LSS Elliptical","LSS Row","Jump Rope — Easy","LSS Cycle","LSS Stair Stepper","Stair Climber"]},{label:"KB Swings",planned:"Russian KB Swing",category:"hingeBallistic"},{label:"KB Snatches",planned:"Single-Arm Snatch",category:"snatchPower"}],
  "Meat-Eater":[{label:"Sprint",planned:"Sprint",category:"sprint"},{label:"KB Swings",planned:"Russian KB Swing",category:"hingeBallistic"}],
  "Meat-Eater II":[{label:"KB Swings",planned:"Russian KB Swing",category:"hingeBallistic"},{label:"Burpees",planned:"Burpees",category:"burpee"}],
  "Disarmed":[{label:"Burpees",planned:"Burpees",category:"burpee"},{label:"Heavy Bag",planned:"Heavy Bag",category:"combat"},{label:"Core",planned:"Plank",category:"core"}],
@@ -4490,7 +4584,7 @@ const CONDITIONING_COMPONENT_PRESETS={
  "Transition Complex":[{label:"Front Squat",planned:"Front Squat",category:"squatStrength"},{label:"Squat Jumps",planned:"Jump Squat",category:"squatPower"},{label:"Overhead Press",planned:"Overhead Press",category:"upperPushStrength"},{label:"Plyo Push-ups",planned:"Plyometric Push-Up",category:"upperPushPower"},{label:"Weighted Pull-ups",planned:"Weighted Pull-up",category:"verticalPullStrength"},{label:"Med-ball Slams",planned:"Med-Ball Slam",category:"sledgePower"}]
 };
 const CONDITIONING_COMPONENT_ALTERNATIVES={
- easyAerobic:["LSS Run","LSS Cycle","LSS Row","LSS Swim","Stair Climber","LSS Walk","Elliptical","Jump Rope — Easy","Step-Ups — Easy","Heavy Bag — Easy","Battle Ropes — Easy"],
+ easyAerobic:["LSS Run","LSS Treadmill","LSS Cycle","LSS Stationary Bike","LSS Row","LSS Row Machine","LSS Swim","Stair Climber","LSS Stair Stepper","LSS Walk","LSS Elliptical","Elliptical","Jump Rope — Easy","Step-Ups — Easy","Heavy Bag — Easy","Battle Ropes — Easy"],
  hardAerobic:["Hard Run","Stair Climber — Hard","LSS Row — Hard","LSS Cycle — Hard","Air Bike — Hard"],
  tempoAerobic:["Tempo Run","Bike Tempo","Row Tempo","Stair Climber Tempo","Swim Tempo"],
  sprint:["Sprint","Hill Sprint","Air Bike Sprint","Row Sprint","Stair Climber Sprint","Sled Push Sprint"],
@@ -4520,7 +4614,7 @@ const CONDITIONING_COMPONENT_ALTERNATIVES={
  mountainClimber:["Mountain Climbers","Bear Crawl","High Knees"],
  manual:[],
  pepperPot:["Pepper-Pot Bounds","Burpee Shuttle"],
- aerobic:["LSS Run","LSS Cycle","LSS Row","LSS Swim","Stair Climber","LSS Walk"],
+ aerobic:["LSS Run","LSS Treadmill","LSS Cycle","LSS Stationary Bike","LSS Row","LSS Row Machine","LSS Swim","Stair Climber","LSS Stair Stepper","LSS Walk","LSS Elliptical"],
  upperPush:["Push-Up","Dips","Plyometric Push-Up","Push Press"],
  upperPull:["Pull-Up","Inverted Row","Ring Row","Lat Pulldown"],
  squat:["Bodyweight Squat","Goblet Squat","Step-Up","Walking Lunge"]
@@ -4902,6 +4996,11 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>Rest Between Circuits</label><input class="le-circuitrest" placeholder="e.g. 2 min"></div>'+
     '<div class="field notes"><label>Exercise Cluster</label><input class="le-activities" placeholder="e.g. swings / goblet squat / renegade row / floor press / KB deadlift"></div>'+common;
 
+  if(kind==="elliptical") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
+    '<div class="field"><label>Distance (mi, optional)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
+    '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+
+    '<div class="field"><label>Level / Resistance</label><input class="le-activities" placeholder="optional"></div>'+common;
   if(kind==="stair") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>Floors / Flights</label><input class="le-floors" type="number" min="0" step="1"></div>'+
     '<div class="field"><label>Elevation / Climb (ft)</label><input class="le-elev" type="number" min="0" step="1"></div>'+
@@ -5325,7 +5424,7 @@ function renderTrends(){
  document.getElementById("trendFatigue").innerHTML='<div class="tablewrap"><table class="trend-table"><thead><tr><th>Type</th><th>Area</th><th>Fatigue</th></tr></thead><tbody>'+fatRows.map(x=>'<tr><td>'+trendEsc(x.type)+'</td><td>'+trendEsc(x.name)+'</td><td>'+trendEsc(x.value.toFixed(2))+'</td></tr>').join("")+'</tbody></table></div>';
  const v7=utmEffectiveVolume(now,7),v28=utmEffectiveVolume(now,28),muscles=[...new Set([...Object.keys(v7),...Object.keys(v28)])].sort((a,b)=>(v28[b]||0)-(v28[a]||0));
  document.getElementById("trendVolume").innerHTML='<div class="tablewrap"><table class="trend-table"><thead><tr><th>Muscle</th><th>7d eq. sets</th><th>28d eq. sets</th></tr></thead><tbody>'+muscles.map(k=>'<tr><td>'+trendEsc(k)+'</td><td>'+trendEsc(v7[k]||0)+'</td><td>'+trendEsc(v28[k]||0)+'</td></tr>').join("")+'</tbody></table></div>';
- const mods=["LSS Run","LSS Walk","LSS Cycle","LSS Swim","LSS Row","Stair Climber","Ruck Up"].map(name=>({name,...enduranceModalityLearning(name,now)}));document.getElementById("trendEndurance").innerHTML='<div class="tablewrap"><table class="trend-table"><thead><tr><th>Modality</th><th>Sessions</th><th>Direction</th><th>Learned center</th><th>Efficiency trend</th></tr></thead><tbody>'+mods.map(x=>'<tr><td>'+trendEsc(x.name)+'</td><td>'+x.sessions+'</td><td class="'+(x.direction==="up"?"trend-positive":x.direction==="down"?"trend-negative":"")+'">'+trendEsc(x.direction)+'</td><td>'+(x.targetCenter?trendEsc(x.targetCenter+" min"):"—")+'</td><td>'+((x.performance?.efficiencyTrendPct||0)?trendEsc((x.performance.efficiencyTrendPct>0?"+":"")+x.performance.efficiencyTrendPct+"%"):"—")+'</td></tr>').join("")+'</tbody></table></div>';
+ const mods=["LSS Run","LSS Treadmill","LSS Walk","LSS Cycle","LSS Stationary Bike","LSS Elliptical","LSS Swim","LSS Row","LSS Row Machine","Stair Climber","LSS Stair Stepper","Ruck Up"].map(name=>({name,...enduranceModalityLearning(name,now)}));document.getElementById("trendEndurance").innerHTML='<div class="tablewrap"><table class="trend-table"><thead><tr><th>Modality</th><th>Sessions</th><th>Direction</th><th>Learned center</th><th>Efficiency trend</th></tr></thead><tbody>'+mods.map(x=>'<tr><td>'+trendEsc(x.name)+'</td><td>'+x.sessions+'</td><td class="'+(x.direction==="up"?"trend-positive":x.direction==="down"?"trend-negative":"")+'">'+trendEsc(x.direction)+'</td><td>'+(x.targetCenter?trendEsc(x.targetCenter+" min"):"—")+'</td><td>'+((x.performance?.efficiencyTrendPct||0)?trendEsc((x.performance.efficiencyTrendPct>0?"+":"")+x.performance.efficiencyTrendPct+"%"):"—")+'</td></tr>').join("")+'</tbody></table></div>';
  const top=trendTopExercises(now);document.getElementById("trendProgression").innerHTML='<div class="tablewrap"><table class="trend-table"><thead><tr><th>Exercise</th><th>Exposures</th><th>Direction</th><th>Confidence</th><th>Prediction error</th><th>Plateau</th></tr></thead><tbody>'+top.map(x=>'<tr><td>'+trendEsc(x.name)+'</td><td>'+x.state.exposures+'</td><td class="'+(x.state.direction==="up"?"trend-positive":x.state.direction==="down"?"trend-negative":"")+'">'+trendEsc(x.state.direction)+'</td><td>'+Math.round(x.state.confidence*100)+'%</td><td>'+(x.state.avgPredictionError?(x.state.avgPredictionError>0?"+":"")+x.state.avgPredictionError:"0")+'</td><td>'+(x.state.plateau?'<span class="trend-watch">Yes</span>':"No")+'</td></tr>').join("")+'</tbody></table></div>';
  const portfolio=conditioningFitnessPortfolio(now),prettyQuality=q=>q.replace(/([A-Z])/g," $1").replace(/^./,x=>x.toUpperCase());
  document.getElementById("trendFitnessPortfolio").innerHTML='<div class="tablewrap"><table class="trend-table"><thead><tr><th>Quality</th><th>Days since</th><th>Status</th></tr></thead><tbody>'+Object.entries(portfolio).map(([q,v])=>'<tr><td>'+trendEsc(prettyQuality(q))+'</td><td>'+(v.daysSince>=9999?"Never":v.daysSince)+'</td><td class="'+(v.neglected?"trend-watch":"trend-positive")+'">'+(v.neglected?"Underrepresented":"Recent")+'</td></tr>').join("")+'</tbody></table></div>';
@@ -5556,14 +5655,15 @@ function conditioningSubstitutionOptions(current,dateISO){
    }catch(e){}
  });
  const kind=conditioningKind(current),groups={
-   run:["LSS Run","Stair Climber","LSS Cycle","LSS Row","LSS Swim","LSS Walk"],
-   bike:["LSS Cycle","Stair Climber","LSS Row","LSS Run","LSS Swim"],
-   row:["LSS Row","Stair Climber","LSS Cycle","LSS Run","LSS Swim"],
-   stair:["Stair Climber","LSS Cycle","LSS Row","LSS Run","LSS Walk"],
-   swim:["LSS Swim","LSS Row","LSS Cycle","LSS Run"],
-   hike:["LSS Walk","Stair Climber","Ruck Up","LSS Cycle"],
-   ruck:["Ruck Up","LSS Walk","Stair Climber"],
-   triples:["Triples","LSS Run","LSS Row","LSS Cycle","Stair Climber"],
+   run:["LSS Run","LSS Treadmill","LSS Elliptical","LSS Stationary Bike","LSS Row Machine","Stair Climber","LSS Stair Stepper","LSS Cycle","LSS Row","LSS Swim","LSS Walk"],
+   bike:["LSS Stationary Bike","LSS Cycle","LSS Elliptical","LSS Stair Stepper","Stair Climber","LSS Row Machine","LSS Row","LSS Treadmill","LSS Run","LSS Swim"],
+   row:["LSS Row Machine","LSS Row","LSS Stationary Bike","LSS Elliptical","LSS Stair Stepper","Stair Climber","LSS Cycle","LSS Treadmill","LSS Run","LSS Swim"],
+   stair:["LSS Stair Stepper","Stair Climber","LSS Stationary Bike","LSS Elliptical","LSS Row Machine","LSS Cycle","LSS Row","LSS Treadmill","LSS Run","LSS Walk"],
+   elliptical:["LSS Elliptical","LSS Stationary Bike","LSS Stair Stepper","LSS Row Machine","LSS Treadmill","LSS Cycle","LSS Row","LSS Walk"],
+   swim:["LSS Swim","LSS Row Machine","LSS Row","LSS Stationary Bike","LSS Cycle","LSS Treadmill","LSS Run"],
+   hike:["LSS Walk","LSS Treadmill","LSS Stair Stepper","Stair Climber","Ruck Up","LSS Stationary Bike","LSS Cycle"],
+   ruck:["Ruck Up","LSS Walk","LSS Treadmill","LSS Stair Stepper","Stair Climber"],
+   triples:["Triples","LSS Treadmill","LSS Stationary Bike","LSS Elliptical","LSS Row Machine","LSS Stair Stepper","LSS Run","LSS Row","LSS Cycle","Stair Climber"],
    sprint:["Short Hills","Standard Issue Hills","600 Meter Resets","Indoor Power Intervals"],
    interval:["Indoor Power Intervals","600 Meter Resets","Short Hills","Oxygen Debt 101"],
    hiccomplex:["Indoor Power Intervals","Short Hills","600 Meter Resets","Meat-Eater II"]
@@ -6575,14 +6675,15 @@ function calRespectStressBudgetAndDuration(rows,dateISO,profile){
  }
  return {rows:out,adjusted,before,after,note,softCap,recoveryGuard:readiness.recoveryGuard};
 }
-function buildCalisthenicsWorkout(profile,dateISO){
+function buildCalisthenicsWorkout(profile,dateISO,variationOrdinal=0){
  const focus=profile.focus.includes("fullbody")?["push","pull","legs","core","fullbody"]:profile.focus;
  let candidates=calisthenicsExerciseLibrary.filter(x=>(x.auto!==false)&&focus.includes(x.focus)&&(!x.requiresBar||profile.hasPullupBar)&&(!x.requiresBands||profile.hasBands));if(!candidates.length)return {name:"No matching exercises",profile,rows:[],estimatedMinutes:0,durationFit:"short"};
  const range=calDurationExerciseRange(profile.duration);let count=range.target;if(profile.difficulty==="easy")count=Math.max(range.min,count-1);if(profile.difficulty==="very hard")count=Math.min(range.max,count+1);
- const scored=candidates.map(ex=>{
+ let scored=candidates.map(ex=>{
    const targetLevel=calFocusLevel(ex.focus,dateISO,profile.difficulty),levelPenalty=Math.abs(ex.level-targetLevel)*18,hist=calDirectHistory(ex.name,dateISO),last=hist.length?hist[hist.length-1]:null,age=last?daysBetweenISO(last.date,dateISO):999,recencyPenalty=age<=7?24:(age<=14?12:0),stress=calRecentRelationshipStress(ex.name,dateISO)*7,mastery=calExerciseMastery(ex.name,dateISO),neighbors=calProgressionNeighbors(ex.name),nextMastered=neighbors.prev&&calExerciseMastery(neighbors.prev,dateISO)?12:0;
    const utm=utmBuilderContext(ex.name,dateISO),prog=utmProgressionState(ex.name,dateISO);let score=70-levelPenalty-recencyPenalty-stress-mastery*8+nextMastered+utm.score+(prog.direction==="up"?4:prog.direction==="down"?-5:0)+(prog.plateau&&neighbors.next?8:0)+(ex.focus==="fullbody"&&focus.length>=4?7:0)+tinyTie(dateISO+"|cal|"+ex.name)*3;return {ex,score,slot:calMovementSlot(ex),utm,prog};
- }).sort((a,b)=>b.score-a.score);
+ });
+ scored=scored.sort((a,b)=>b.score-a.score||a.ex.name.localeCompare(b.ex.name));
  const selected=[],selectedNames=new Set(),slotCounts={},focusCounts={},wanted=[...new Set(focus.filter(x=>x!=="fullbody"))];
  const add=c=>{selected.push(c.ex);selectedNames.add(c.ex.name);slotCounts[c.slot]=(slotCounts[c.slot]||0)+1;focusCounts[c.ex.focus]=(focusCounts[c.ex.focus]||0)+1};
  // Guarantee breadth across selected focus areas first.
@@ -6593,8 +6694,8 @@ function buildCalisthenicsWorkout(profile,dateISO){
  // For long single-focus workouts, a second meaningfully different progression
  // within a movement family is acceptable after all distinct slots are represented.
  for(const c of scored){if(selected.length>=count)break;if(selectedNames.has(c.ex.name))continue;if((slotCounts[c.slot]||0)>=2)continue;add(c)}
- const selectedCandidates=selected.map(ex=>scored.find(c=>c.ex.name===ex.name)).filter(Boolean),optimized=utmOptimizeCalSelection(selectedCandidates,scored,wanted,dateISO);
- selected.splice(0,selected.length,...optimized.map(c=>c.ex));selectedNames.clear();Object.keys(slotCounts).forEach(k=>delete slotCounts[k]);Object.keys(focusCounts).forEach(k=>delete focusCounts[k]);selected.forEach(ex=>{selectedNames.add(ex.name);const c=scored.find(x=>x.ex.name===ex.name);if(c){slotCounts[c.slot]=(slotCounts[c.slot]||0)+1;focusCounts[ex.focus]=(focusCounts[ex.focus]||0)+1}});
+ const selectedCandidates=selected.map(ex=>scored.find(c=>c.ex.name===ex.name)).filter(Boolean),optimized=utmOptimizeCalSelection(selectedCandidates,scored,wanted,dateISO),varied=calRotateSelectedNearEquivalent(optimized,scored,dateISO,variationOrdinal);
+ selected.splice(0,selected.length,...varied.map(c=>c.ex));selectedNames.clear();Object.keys(slotCounts).forEach(k=>delete slotCounts[k]);Object.keys(focusCounts).forEach(k=>delete focusCounts[k]);selected.forEach(ex=>{selectedNames.add(ex.name);const c=scored.find(x=>x.ex.name===ex.name);if(c){slotCounts[c.slot]=(slotCounts[c.slot]||0)+1;focusCounts[ex.focus]=(focusCounts[ex.focus]||0)+1}});
  let rows=selected.map(ex=>{const a=adaptiveCalisthenicsTarget(ex.name,dateISO,profile.difficulty);return {exercise:ex.name,sets:a.sets,reps:a.reps,adaptiveWhy:a.why}});
  // Fill requested time with productive volume on the selected movements first.
  // Sets are preferred; reps/holds only rise modestly after useful set headroom is used.
@@ -6635,7 +6736,7 @@ function buildCalisthenicsWorkout(profile,dateISO){
        ?"Recovery Guard is intentionally prioritizing recovery over the full requested duration."
        :"This unusually narrow focus/equipment combination could not reach 90% of the requested time without exceeding the movement-specific volume ceilings.")
      :"Estimated work is slightly longer than requested; trim a set if you need a strict cap.";
- return {name:focusName+" • "+profile.difficulty+" • "+profile.duration+" min",profile,rows,estimatedMinutes:fit.estimate,durationFit:fit.status,durationRatio:fit.ratio,durationNote:durationNote+" "+stressAdjustment.note+" One additional core finisher is appended after the requested time and is not included in the "+profile.duration+"-minute estimate.",stressBudget:stressAdjustment,modelNote:"Selection is locally optimized as a whole workout for progression-tree readiness, learned dose response, adaptive weekly stress budget, multi-rate localized fatigue, future-schedule interference, movement redundancy, recent related work, prior substitutions. Requested duration is treated as a real programming constraint: exercise breadth first, then productive sets, then modest rep/hold expansion. Core selected as a focus remains part of the timed workout; the universal core finisher is an additional exercise."};
+ return {name:focusName+" • "+profile.difficulty+" • "+profile.duration+" min",profile,rows,estimatedMinutes:fit.estimate,durationFit:fit.status,durationRatio:fit.ratio,variationOrdinal,durationNote:durationNote+" "+stressAdjustment.note+" One additional core finisher is appended after the requested time and is not included in the "+profile.duration+"-minute estimate.",stressBudget:stressAdjustment,modelNote:"Selection is locally optimized as a whole workout for progression-tree readiness, learned dose response, adaptive weekly stress budget, multi-rate localized fatigue, future-schedule interference, movement redundancy, recent related work, prior substitutions. Requested duration is treated as a real programming constraint: exercise breadth first, then productive sets, then modest rep/hold expansion. Core selected as a focus remains part of the timed workout; the universal core finisher is an additional exercise. "+(variationOrdinal>0?"This is controlled variation #"+variationOrdinal+": only near-equivalent movements within the same training role were rotated.":"This is the deterministic top-scoring build.")};
 }
 function calWorkoutForDate(dateISO){
  const saved=(state.settings.calisthenicsWorkouts||{})[dateISO];
@@ -6683,10 +6784,11 @@ function loadCalBuilder(){
  calBuilderRows.innerHTML="";if(saved.rows&&saved.rows.length)saved.rows.forEach(addCalBuilderRow);renderCalLibrary();
 }
 function generateCalFromSelections(){
- const date=calBuilderDate.value||selectedDateISO||localISO(new Date()),profile=calProfileFromControls(),w=buildCalisthenicsWorkout(profile,date);calWorkoutName.value=w.name;calBuilderRows.innerHTML="";w.rows.forEach(addCalBuilderRow);
+ const date=calBuilderDate.value||selectedDateISO||localISO(new Date()),profile=calProfileFromControls(),variationOrdinal=nextCalBuilderVariation(profile,date),w=buildCalisthenicsWorkout(profile,date,variationOrdinal);calWorkoutName.value=w.name;calBuilderRows.innerHTML="";w.rows.forEach(addCalBuilderRow);
+ const variationLead=variationOrdinal>0?'<strong>Controlled variation '+variationOrdinal+':</strong> ':'<strong>Top recommendation:</strong> ';
  const durationLead=w.durationFit==="short"?"<strong>Built shorter than requested:</strong> ":w.durationFit==="long"?"<strong>Built slightly long:</strong> ":"<strong>Built:</strong> ";
  const timedCount=w.rows.filter(r=>!r.untimedCoreFinisher).length,finisherCount=w.rows.filter(r=>r.untimedCoreFinisher).length;
- calAdaptiveStatus.innerHTML=w.rows.length?(durationLead+timedCount+" timed exercises • ~"+Math.round(w.estimatedMinutes||profile.duration)+" min estimated vs "+profile.duration+" min requested"+(finisherCount?" • + "+finisherCount+" untimed core finisher":"")+" • "+profile.difficulty+(profile.hasPullupBar?" • pull-up bar":" • no pull-up bar")+(profile.hasBands?" • bands":" • no bands")+". "+(w.durationNote||"")+" "+(w.modelNote||"")+" Selection considers direct bodyweight/band history plus recent related TB, KB, gym, class, and conditioning load. Edit anything before saving."):"<strong>No matching exercises.</strong> Change focus or equipment.";
+ calAdaptiveStatus.innerHTML=w.rows.length?(variationLead+durationLead+timedCount+" timed exercises • ~"+Math.round(w.estimatedMinutes||profile.duration)+" min estimated vs "+profile.duration+" min requested"+(finisherCount?" • + "+finisherCount+" untimed core finisher":"")+" • "+profile.difficulty+(profile.hasPullupBar?" • pull-up bar":" • no pull-up bar")+(profile.hasBands?" • bands":" • no bands")+". "+(w.durationNote||"")+" "+(w.modelNote||"")+" Selection considers direct bodyweight/band history plus recent related TB, KB, gym, class, and conditioning load. Edit anything before saving."):"<strong>No matching exercises.</strong> Change focus or equipment.";
 }
 function saveCalBuilder(){
  const date=calBuilderDate.value||selectedDateISO||localISO(new Date()),profile=calProfileFromControls();
@@ -6827,7 +6929,7 @@ function conditioningContextAdjustment(name,day,gw,dateISO,readiness,options={})
    if(options.longer&&!readiness?.recoveryGuard&&(name==="LSS Run"||name==="Ruck Up"||name==="Triples"))score+=9;
    if(options.addedRestDay){
      if(traits.lowImpact)score+=8;
-     if(name==="LSS Walk"||name==="LSS Cycle")score+=5;
+     if(["LSS Walk","LSS Cycle","LSS Stationary Bike","LSS Elliptical"].includes(name))score+=5;
      if(name==="Ruck Up"||name==="Triples")score-=5;
      reasons.push("Because this is extra training on a day that was originally rest, the engine favors easy aerobic work instead of adding another hard day.");
    }
@@ -6835,7 +6937,7 @@ function conditioningContextAdjustment(name,day,gw,dateISO,readiness,options={})
  return {score,blocked,blockReason,reasons:uniqueConditioningReasons(reasons),traits,cat,slot,localizedFatigueOverlap:Math.round(localizedOverlap*100)/100,futureInterference:future,conditioningCapability:capability,fitnessQuality:neglect.quality,budget,goalAlignment:Math.round(goalAlignment*100)/100,latentPreparedness:latent.preparedness,deload};
 }
 function enduranceModalityLearning(name,dateISO){
- const eligible=new Set(["LSS Run","LSS Walk","LSS Cycle","LSS Swim","LSS Row","Stair Climber","Ruck Up"]),performance=conditioningCapabilityState(name,dateISO);
+ const eligible=new Set(["LSS Run","LSS Walk","LSS Cycle","LSS Stationary Bike","LSS Treadmill","LSS Elliptical","LSS Swim","LSS Row","LSS Row Machine","Stair Climber","LSS Stair Stepper","Ruck Up"]),performance=conditioningCapabilityState(name,dateISO);
  if(!eligible.has(name))return {sessions:0,score:0,direction:"none",factors:[],targetCenter:0};
  const rows=historyRowsBefore(dateISO,180).filter(x=>x.session==="Conditioning"&&x.exercise===name&&Number((x.metrics||{}).time)>0).sort((a,b)=>a.date.localeCompare(b.date)).slice(-8);
  if(!rows.length)return {sessions:0,score:0,direction:"none",factors:["No direct "+name+" duration history yet; the app is building a modality-specific baseline."],targetCenter:0};
@@ -6844,7 +6946,7 @@ function enduranceModalityLearning(name,dateISO){
    hrWarning=!!(lastAge<=42&&hrBase&&lastHr>=hrBase+8),
    quality=row=>{const r=numberRpe(row.rpe),feel=String(row.feel||"").toLowerCase(),sf=String(row.sessionFeel||"").toLowerCase(),status=String(row.status||"complete").toLowerCase(),tech=String(row.technique||"").toLowerCase();const bad=status==="missed"||status==="skipped"||feel==="bad"||feel==="grindy"||tech==="sloppy"||sf==="very rough"||(r>=7),good=status==="complete"&&!bad&&r>0&&r<=5.5&&sf!=="rough";return {good,bad,r}},
    q=recent.map(quality),goodRecent=q.filter(x=>x.good).length,badRecent=q.filter(x=>x.bad).length,lastQ=quality(last),medianTime=medianNum(times.slice(-5)),
-   lastTwo=rows.slice(-2),lastTwoGood=lastTwo.length===2&&lastTwo.every(x=>quality(x).good)&&lastTwo.every(x=>daysBetweenISO(x.date,dateISO)<=56),step=(name==="LSS Walk"||name==="LSS Cycle"||name==="Stair Climber")?10:5;
+   lastTwo=rows.slice(-2),lastTwoGood=lastTwo.length===2&&lastTwo.every(x=>quality(x).good)&&lastTwo.every(x=>daysBetweenISO(x.date,dateISO)<=56),step=(["LSS Walk","LSS Cycle","LSS Stationary Bike","LSS Elliptical","Stair Climber","LSS Stair Stepper"].includes(name))?10:5;
  let direction="hold",score=0,targetCenter=medianTime||Number((last.metrics||{}).time)||0,factors=[];
  if(lastAge>56){
    factors.push("Your direct "+name+" history is older than eight weeks, so it is used as a reference but not automatically progressed or downgraded.");
@@ -7849,11 +7951,11 @@ exportJson.addEventListener("click",()=>download("hybrid-training-export.json",J
  exportVersion:35,exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
-  conditioning:{type:"adaptive-infinite",version:8,rules:["E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference including scheduled classes","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
+  conditioning:{type:"adaptive-infinite",version:9,rules:["E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference including scheduled classes","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:3,rules:["direct TB completion/RPE/feel/technique","block capability trend","expected-vs-actual RPE calibration as a conservative tie-breaker","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
   kettlebell:{type:"adaptive-per-exposure",version:3,rules:["continuous direct capability estimate","predicted next-load RPE","direct performance strongest","detailed cross-modality movement relationships","conservative family transfer","multi-rate localized fatigue","recovery gating","manual kg wins"]},
   genericGym:{type:"adaptive-per-exposure",version:6,rules:["continuous capability estimate","predicted next-load RPE","richer effective-set stimulus","whole-workout local optimization","future-schedule interference","duration-aware exercise count and time estimate","movement diversity","major and sub-muscle selection","related work contributes to progression","manual edits win"]},
-  calisthenics:{type:"adaptive-bodyweight",version:3,rules:["continuous bodyweight capability estimate","predicted next-step RPE","progression-chain difficulty selection","whole-workout local optimization","future-schedule interference","pull-up-bar and exercise-band availability","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","manual exercise/sets/reps edits win"]},
+  calisthenics:{type:"adaptive-bodyweight",version:4,rules:["continuous bodyweight capability estimate","predicted next-step RPE","progression-chain difficulty selection","whole-workout local optimization","future-schedule interference","pull-up-bar and exercise-band availability","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","controlled near-equivalent rebuild variation","manual exercise/sets/reps edits win"]},
   blockTransition:{type:"six-week-review",version:1,rules:["first app open in an unreviewed new block","review schedule mode","review each TB TM","review pull-up progression","review KB plan","optional recovery/open pause week that does not consume a program week"]}
  },
  unifiedTrainingModel:{type:"latent-fitness-fatigue-adaptive-programming",version:5,rules:["session-time and same-day awareness","richer set/rep/RPE/duration stimulus estimation","slow fitness vs fast fatigue states","muscle-specific and stress-system-specific fatigue half-lives","recovery-constrained fatigue decay","directional strength transfer","weak learned personal transfer after sufficient paired history","localized conditioning overlap","richer effective muscle volume","continuous exercise capability estimates","capability-aware progression","expected-vs-actual RPE calibration","manual substitution learning","goal-aware priorities","adaptive weekly stress budgets","future-schedule interference","whole-workout local optimization","evidence-gated dose-response learning","conditioning fitness-quality portfolio","modality-specific efficiency and repeatability trends","interval volume/density/speed overlays","evidence-gated adaptive deload detection","counterfactual workout evaluation","personal recovery-signal weighting"]},
