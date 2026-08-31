@@ -65,7 +65,18 @@ button.day-card{font:inherit}
 input,select,textarea{width:100%;min-height:46px;background:#0c1219;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:10px 11px;font-size:16px;outline:none}textarea{min-height:82px;resize:vertical}
 input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(115,167,255,.12)}
 .log-toolbar{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px}
-.log-exercise{padding:11px;margin-bottom:8px}.log-title{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:9px}.planned{font-size:.73rem;color:var(--accent2);font-weight:850}
+.log-exercise{padding:12px;margin-bottom:14px;position:relative;overflow:hidden;border-color:#34485f;box-shadow:0 7px 20px rgba(0,0,0,.18)}
+#plannedExercises{counter-reset:logged-exercise}
+#plannedExercises>.log-exercise{counter-increment:logged-exercise}
+#plannedExercises>.log-exercise::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 999px 999px 0;background:var(--accent2)}
+#plannedExercises>.log-exercise:nth-child(even)::before{background:var(--accent)}
+#plannedExercises>.log-exercise:last-child{margin-bottom:0}
+.log-title{display:flex;justify-content:flex-start;gap:9px;align-items:flex-start;margin-bottom:11px;padding:8px 9px;background:#131d27;border:1px solid #293b4e;border-radius:11px}
+#plannedExercises>.log-exercise .log-title::before{content:counter(logged-exercise);display:inline-flex;align-items:center;justify-content:center;flex:0 0 24px;width:24px;height:24px;border-radius:999px;background:#203147;border:1px solid #3a5876;color:#dce8f7;font-size:.72rem;font-weight:950;line-height:1}
+.log-title>div{min-width:0;flex:1}.log-title strong{font-size:.98rem;line-height:1.2}.planned{font-size:.73rem;color:var(--accent2);font-weight:850;margin-top:3px}
+.field label.rpe-unknown-label{display:inline-flex;align-items:center;gap:6px;width:auto;margin:6px 0 0;color:var(--muted);font-size:.68rem;font-weight:750;line-height:1.1;cursor:pointer}
+.field label.rpe-unknown-label .le-rpe-unknown{appearance:auto;-webkit-appearance:checkbox;width:14px!important;height:14px!important;min-width:14px!important;min-height:14px!important;max-width:14px!important;padding:0!important;margin:0!important;flex:0 0 14px;border-radius:3px;box-shadow:none}
+
 .log-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.log-grid .notes{grid-column:span 2}
 .session-feel{display:grid;grid-template-columns:1fr 2fr;gap:9px;margin-top:10px}
 .notice{margin-top:9px;padding:10px 12px;border-radius:11px;background:#162332;border:1px solid #25384d;font-size:.82rem}
@@ -138,7 +149,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent2);box-shadow:0
   .tools-toggle{min-height:44px}
   .form-grid{gap:7px}
   input,select,textarea{min-height:44px;padding:8px 9px}
-  .log-exercise{padding:9px}
+  .log-exercise{padding:10px}
   .log-grid{gap:6px}
   .conditioning-card,.kb-lib-card,.gym-lib-card{padding:10px}
   .panel-head{margin-bottom:8px}
@@ -1307,7 +1318,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.17</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.18</strong> • guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, six-week transition reviews, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -3300,16 +3311,24 @@ function plates(side){let rem=side,out={45:0,25:0,10:0,5:0,2.5:0};[45,25,10,5,2.
 function plateSpans(c,rev){let a=[];[45,25,10,5,2.5].forEach(p=>{for(let i=0;i<c[p];i++)a.push('<i class="plate '+(p===2.5?'p2':'p'+p)+'"></i>')});if(rev)a.reverse();return a.join("")}
 function plateText(c){let a=[];[45,25,10,5,2.5].forEach(p=>{if(c[p])a.push(c[p]+"×"+p)});return a.join(" + ")||"0"}
 function visualLoad(total,bar){
+ if(bar==="machine"){
+   const side=total/2,c=plates(side),cap='<div class="load-caption"><strong>'+side+' / side</strong><span>'+plateText(c)+'</span></div>';
+   return '<div class="load-helper">'+cap+'<div class="machine"><div class="machine-side">'+plateSpans(c,true)+'</div><div class="no-bar">plate-loaded<br>machine</div><div class="machine-side">'+plateSpans(c,false)+'</div></div></div>';
+ }
  if(!bar)return "";
  const side=(total-45)/2,c=plates(side),cap='<div class="load-caption"><strong>'+side+' / side</strong><span>'+plateText(c)+'</span></div>';
  return '<div class="load-helper">'+cap+'<div class="barbell"><div class="bar-side left">'+plateSpans(c,true)+'</div><div class="bar"></div><div class="bar-side right">'+plateSpans(c,false)+'</div></div></div>';
 }
 function strengthVisualInfo(exercise,weightText,plannedNumeric=null,plannedBar=null){
- const name=String(exercise||"").trim();
+ const name=String(exercise||"").trim(),plateMachine=name==="Chest Machine"||name==="Incline Chest Machine";
  const plannedNum=Number(plannedNumeric);
- if(Number.isFinite(plannedNum)&&plannedNum>0)return plannedBar===true?{numeric:plannedNum,bar:true}:null;
+ if(Number.isFinite(plannedNum)&&plannedNum>0){
+   if(plateMachine)return {numeric:plannedNum,bar:"machine"};
+   return plannedBar===true?{numeric:plannedNum,bar:true}:null;
+ }
  const total=parseLb(weightText);
  if(!(Number.isFinite(total)&&total>0))return null;
+ if(plateMachine)return {numeric:total,bar:"machine"};
  if(name==="Squat"||name==="Deadlift"||name==="Barbell Row")return {numeric:total,bar:true};
  const gx=typeof gymExercise==="function" ? gymExercise(name) : null;
  if(gx&&gx.equipment==="Barbell"&&gx.plateVisual!==false)return {numeric:total,bar:true};
@@ -3326,8 +3345,9 @@ function updateLogPlateVisual(card){
  const exSel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom"),weight=card.querySelector(".le-weight");
  const exercise=exSel ? (exSel.value==="__custom__" ? (custom ? custom.value.trim() : "") : exSel.value) : "";
  const weightText=weight ? weight.value.trim() : "";
- const plannedNumeric=card.dataset.plannedNumeric||"";
- const plannedBar=card.dataset.plannedBar==="1";
+ const sameAsPlanned=exercise===String(card.dataset.plannedExercise||"").trim(),
+   plannedNumeric=sameAsPlanned?(card.dataset.plannedNumeric||""):"",
+   plannedBar=sameAsPlanned&&card.dataset.plannedBar==="1";
  holder.innerHTML=logPlateVisualHtml(exercise,weightText,plannedNumeric,plannedNumeric!=="" ? plannedBar : null);
 }
 function wireLogPlateVisual(card){
@@ -3413,8 +3433,8 @@ function getTBPlan(gw,dateOrDay=""){
  }
  plan.push(
   {exercise:"Barbell Row",sets,reps,weight:String(row),numeric:row,bar:true,meta:Math.round(p*100)+"%"},
-  {exercise:"Chest Machine",sets,reps,weight:String(chest),numeric:chest,bar:false,meta:Math.round(p*100)+"%"},
-  {exercise:"Incline Chest Machine",sets,reps,weight:String(incl),numeric:incl,bar:false,meta:Math.round(p*100)+"%"}
+  {exercise:"Chest Machine",sets,reps,weight:String(chest),numeric:chest,bar:"machine",meta:Math.round(p*100)+"%"},
+  {exercise:"Incline Chest Machine",sets,reps,weight:String(incl),numeric:incl,bar:"machine",meta:Math.round(p*100)+"%"}
  );
  // User default TB finisher: always append Ab Crunch Machine after the fixed TB work.
  // This accessory has its own exposure-based volume progression; it is not tied to the six-week TB wave.
@@ -6072,7 +6092,7 @@ function appendAdditionalLogExercise(){
  d.innerHTML='<div class="log-title"><div><strong>Additional Exercise</strong><div class="planned">Add any extra exercise performed in this session</div></div></div>'+
  '<div class="log-grid"><div class="field"><label>Exercise</label><select class="le-ex">'+buildExerciseSelect("",logDate.value,logSession.value)+'</select><input class="le-custom hidden" placeholder="Custom exercise"></div>'+
  '<div class="field"><label>Sets</label><input class="le-sets"></div><div class="field"><label>Reps / Time</label><input class="le-reps"></div><div class="field"><label>Weight</label><input class="le-weight"></div>'+
- '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"><label class="small-note"><input class="le-rpe-unknown" type="checkbox"> RPE unknown</label></div>'+
+ '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"><label class="rpe-unknown-label"><input class="le-rpe-unknown" type="checkbox"> RPE unknown</label></div>'+
  '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
  '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
  '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
@@ -6132,7 +6152,7 @@ function loadPlannedSession(){
       '<div class="field"><label>Sets</label><input class="le-sets" value="'+attrSafe(x.sets??"")+'"></div>'+
       '<div class="field"><label>Reps / Time</label><input class="le-reps" value="'+attrSafe(x.reps??"")+'"></div>'+
       '<div class="field"><label>Weight</label><input class="le-weight" value="'+attrSafe(x.weight??"")+'"></div>'+
-      '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"><label class="small-note"><input class="le-rpe-unknown" type="checkbox"> RPE unknown</label></div>'+
+      '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"><label class="rpe-unknown-label"><input class="le-rpe-unknown" type="checkbox"> RPE unknown</label></div>'+
       '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
       '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
       '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
@@ -7678,7 +7698,7 @@ function appendSavedExerciseCard(row){
     '<div class="field"><label>Sets</label><input class="le-sets" value="'+attrSafe(row.sets??"")+'"></div>'+
     '<div class="field"><label>Reps / Time</label><input class="le-reps" value="'+attrSafe(row.reps??"")+'"></div>'+
     '<div class="field"><label>Weight</label><input class="le-weight" value="'+attrSafe(row.weight??"")+'"></div>'+
-    '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5" value="'+attrSafe(row.rpe??"")+'"><label class="small-note"><input class="le-rpe-unknown" type="checkbox"'+(row.rpeUnknown?' checked':'')+'> RPE unknown</label></div>'+
+    '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5" value="'+attrSafe(row.rpe??"")+'"><label class="rpe-unknown-label"><input class="le-rpe-unknown" type="checkbox"'+(row.rpeUnknown?' checked':'')+'> RPE unknown</label></div>'+
     '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
     '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
     '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
@@ -8414,7 +8434,7 @@ saveSettings.addEventListener("click",()=>{
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:36,appBuild:"v36.17",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:36,appBuild:"v36.18",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:9,rules:["E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference including scheduled classes","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
