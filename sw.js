@@ -1,13 +1,11 @@
-const CACHE="hybrid-training-v36-16";
+const CACHE="hybrid-training-v36-17";
 const FALLBACK="./index.html";
 const PRECACHE=[
   FALLBACK,
   "./manifest-v36.webmanifest",
   "./hybrid-training-v34-64.png",
   "./hybrid-training-v34-180.png",
-  "./hybrid-training-v34-192.png",
-  "./hybrid-training-v34-512.png",
-  "./hybrid-training-v34-512-maskable.png"
+  "./hybrid-training-v34-192.png"
 ];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE)
