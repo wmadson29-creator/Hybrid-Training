@@ -1336,7 +1336,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.27</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.28</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -2223,7 +2223,7 @@ function utmDirectionalTransfer(targetName,sourceName,dateISO=localISO(new Date(
 let utmModelRevision=0;
 const utmCapabilityCache=new Map(),utmTransferCache=new Map(),utmRecoveryWeightCache=new Map(),utmFatigueCache=new Map(),utmVolumeCache=new Map(),
   utmLatentCache=new Map(),utmStressCache=new Map(),utmDoseCache=new Map(),utmDeloadCache=new Map(),utmCounterfactualCache=new Map();
-function utmInvalidateCaches(){utmModelRevision++;[utmCapabilityCache,utmTransferCache,utmRecoveryWeightCache,utmFatigueCache,utmVolumeCache,utmLatentCache,utmStressCache,utmDoseCache,utmDeloadCache,utmCounterfactualCache].forEach(x=>x.clear());try{rollingOpenDayCache.clear()}catch(e){}try{adaptiveNoRestCache.clear()}catch(e){}}
+function utmInvalidateCaches(){utmModelRevision++;[utmCapabilityCache,utmTransferCache,utmRecoveryWeightCache,utmFatigueCache,utmVolumeCache,utmLatentCache,utmStressCache,utmDoseCache,utmDeloadCache,utmCounterfactualCache].forEach(x=>x.clear());try{rollingOpenDayCache.clear()}catch(e){}try{adaptiveNoRestCache.clear()}catch(e){}try{resetRollingForecastProjection()}catch(e){}}
 function utmClamp(v,lo,hi){return Math.max(lo,Math.min(hi,Number(v)||0))}
 function utmMean(a){const x=a.filter(Number.isFinite);return x.length?x.reduce((s,v)=>s+v,0)/x.length:0}
 function utmPearson(xs,ys){
@@ -3780,10 +3780,51 @@ function resumeProgramPause(startDate){ensureProgramExceptionStores();const info
 // evaluated continuously from trailing training exposure, current fatigue, and the next
 // fixed anchor. There is deliberately no Monday-Sunday reset and no mandatory rest quota.
 const rollingOpenDayCache=new Map(),rollingOpenDayResolving=new Set();
+// Future-calendar shadow conditioning history. This is deliberately lightweight:
+// it changes recency / endurance-dose reasoning without pretending uncompleted future
+// workouts are real training records or rewriting learned performance/fatigue baselines.
+var rollingForecastActive=false,rollingForecastVirtualRows=[];
+var rollingForecastProjectionCache={key:"",through:"",rows:[]};
+var rollingForecastRecommendationCache=new Map(),rollingForecastConditioningCache=new Map();
+const ROLLING_FORECAST_MAX_DAYS=42;
+function resetRollingForecastProjection(){rollingForecastProjectionCache={key:"",through:"",rows:[]};rollingForecastRecommendationCache.clear();rollingForecastConditioningCache.clear()}
 function rollingCompletedRow(r){return r&&!['skipped','missed'].includes(String(r.status||'').toLowerCase())}
 function rollingRowMinutes(r){const m=r?.metrics||{},n=Number(m.time)||Number(m.duration)||0;return Number.isFinite(n)&&n>0?n:0}
 function rollingIsEnduranceRow(r){if(!rollingCompletedRow(r))return false;if(!['Conditioning','Active Recovery'].includes(r.session))return false;return categoryForEntry(entryForName(r.exercise))==='E'}
 function rollingDaysSince(dateISO,predicate,maxDays=365){let best=9999;historyRowsBefore(dateISO,maxDays).forEach(r=>{if(predicate(r)){const d=daysBetweenISO(r.date,dateISO);if(d<best)best=d}});return best}
+function rollingForecastMinutes(target,fallback=45){const nums=(String(target||"").match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(x=>Number.isFinite(x)&&x>0);return !nums.length?fallback:(nums.length===1?nums[0]:(nums[0]+nums[1])/2)}
+function rollingForecastRpe(value,fallback=5){const nums=(String(value||"").match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);return nums.length?nums.reduce((a,b)=>a+b,0)/nums.length:fallback}
+function rollingForecastConditioningRow(dateISO,plan){const activity=plan?.activity||"Adaptive Conditioning",hard=/sprint|hill|interval|hic|gc|warrior|tempo/i.test(activity),mins=rollingForecastMinutes(plan?.target,hard?25:45);return {date:dateISO,session:"Conditioning",exercise:activity,status:"complete",rpe:rollingForecastRpe(plan?.rpe,hard?8:5),metrics:{time:mins,duration:mins},sessionFeel:"Good",feel:"Good",technique:"Clean",sessionId:"forecast-conditioning|"+dateISO,projectedForecast:true}}
+function rollingForecastBaseConditioningDate(dateISO){
+ const base=programScheduledSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),override=(state.settings.dayOverrides||{})[dateISO];
+ if((state.settings.conditioningOverrides||{})[dateISO]||override==="Conditioning"||intent?.selectedSession==="Conditioning")return true;
+ if(["Generic Gym","Calisthenics","Strength-Endurance","Active Recovery","Recovery / Rest","Class / Activity"].includes(override||intent?.selectedSession||""))return false;
+ return base==="Conditioning";
+}
+function ensureRollingForecastRowsBefore(targetISO){
+ const today=localISO(new Date());if(!validIsoDateValue(targetISO)||targetISO<=today)return [];
+ const key=utmModelRevision+"|"+today;if(rollingForecastProjectionCache.key!==key)rollingForecastProjectionCache={key,through:"",rows:[]};
+ const hardStop=localISO(addDays(parseLocalISO(today),ROLLING_FORECAST_MAX_DAYS-1)),targetPrev=localISO(addDays(parseLocalISO(targetISO),-1)),stop=targetPrev<hardStop?targetPrev:hardStop;
+ let cursor=rollingForecastProjectionCache.through?localISO(addDays(parseLocalISO(rollingForecastProjectionCache.through),1)):today;if(cursor>stop)return rollingForecastProjectionCache.rows.filter(r=>r.date<targetISO);
+ const priorActive=rollingForecastActive,priorRows=rollingForecastVirtualRows;rollingForecastActive=true;
+ try{
+   while(cursor<=stop){
+     const actualConditioning=(state.logs||[]).some(r=>r.date===cursor&&r.session==="Conditioning"&&rollingCompletedRow(r));
+     if(!actualConditioning&&rollingForecastBaseConditioningDate(cursor)){
+       rollingForecastVirtualRows=rollingForecastProjectionCache.rows;
+       const d=parseLocalISO(cursor),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(cursor),plan=conditioningFor(day,gw,cursor);
+       rollingForecastProjectionCache.rows.push(rollingForecastConditioningRow(cursor,plan));
+     }
+     rollingForecastProjectionCache.through=cursor;cursor=localISO(addDays(parseLocalISO(cursor),1));
+   }
+ }finally{rollingForecastActive=priorActive;rollingForecastVirtualRows=priorRows}
+ return rollingForecastProjectionCache.rows.filter(r=>r.date<targetISO);
+}
+function withRollingForecastForDate(dateISO,fn){
+ const today=localISO(new Date());if(rollingForecastActive||!validIsoDateValue(dateISO)||dateISO<=today)return fn(false);
+ const rows=ensureRollingForecastRowsBefore(dateISO),priorActive=rollingForecastActive,priorRows=rollingForecastVirtualRows;rollingForecastActive=true;rollingForecastVirtualRows=rows;
+ try{return fn(rows.length>0)}finally{rollingForecastActive=priorActive;rollingForecastVirtualRows=priorRows}
+}
 function rollingEnduranceState(dateISO){
  const rows=historyRowsBefore(dateISO,28).filter(rollingIsEnduranceRow);let decayedEquivalentMinutes=0,recent7EquivalentMinutes=0,lastMeaningful='',lastAny='';
  rows.forEach(r=>{const mins=rollingRowMinutes(r);if(!(mins>0))return;let factor=enduranceModalityCost(r.exercise);if(r.session==='Active Recovery')factor*=.65;const eq=mins*factor,days=daysBetweenISO(r.date,dateISO),decay=Math.pow(.5,days/7);decayedEquivalentMinutes+=eq*decay;if(days<=7)recent7EquivalentMinutes+=eq;if(!lastAny||r.date>lastAny)lastAny=r.date;if(eq>=30&&(!lastMeaningful||r.date>lastMeaningful))lastMeaningful=r.date});
@@ -3831,6 +3872,10 @@ function adaptiveSEPrescription(dateISO){
 function adaptiveSEWorkoutFor(dateISO){return (state.settings.adaptiveSEWorkouts||{})[dateISO]||null}
 function adaptiveSEPlanForDate(dateISO){const w=adaptiveSEWorkoutFor(dateISO);if(!w||!Array.isArray(w.circuit))return [];return w.circuit.map(r=>({exercise:r.exercise,sets:w.circuits,reps:w.reps,weight:baseSELoadText(r.exercise,dateISO),numeric:null,bar:false,meta:'ADAPTIVE SE • '+w.circuits+' circuits × '+w.reps+' reps',note:'One-day Strength-Endurance circuit generated from today’s available equipment. It is not a Base Building progression.'}))}
 function rollingOpenDayRecommendation(dateISO,options={}){
+ if(!rollingForecastActive&&!options.skipForecastProjection&&validIsoDateValue(dateISO)&&dateISO>localISO(new Date())){
+   const fkey=utmModelRevision+"|open|"+dateISO+"|"+(options.suppressRest?"no-rest":"rest-ok");if(rollingForecastRecommendationCache.has(fkey))return rollingForecastRecommendationCache.get(fkey);
+   const out=withRollingForecastForDate(dateISO,projected=>{const r=rollingOpenDayRecommendation(dateISO,{...options,skipForecastProjection:true});if(projected&&r&&typeof r==="object")r.projectedForecast=true;return r});rollingForecastRecommendationCache.set(fkey,out);return out;
+ }
  const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),bbSession=baseBuildingSessionForDate(dateISO),base=programScheduledSessionForDate(dateISO),mode=isManualProgramPauseDate(dateISO)?'paused':blockModeForWeek(gw);
  if(!rollingOpenDayEligible(dateISO,base))return {session:base,label:base,score:0,why:['This date is a fixed program anchor rather than an adaptive open day.'],options:[]};
  const key=utmModelRevision+'|rolling-open|'+dateISO+'|'+(options.suppressRest?'no-rest':'rest-ok');if(rollingOpenDayCache.has(key))return rollingOpenDayCache.get(key);
@@ -4402,8 +4447,8 @@ function hoursBeforeModelMoment(row,dateISO,explicitTime=""){
 }
 
 function historyRowsBefore(dateISO,days=9999,explicitTime=""){
- const target=modelAsOfTimestamp(dateISO,explicitTime),sameDayAllowed=!!(explicitTime||dateISO===localISO(new Date())||(typeof logDate!=="undefined"&&logDate?.value===dateISO&&logTime?.value));
- return state.logs.filter(x=>{
+ const target=modelAsOfTimestamp(dateISO,explicitTime),sameDayAllowed=!!(explicitTime||dateISO===localISO(new Date())||(typeof logDate!=="undefined"&&logDate?.value===dateISO&&logTime?.value)),source=rollingForecastActive?[...state.logs,...rollingForecastVirtualRows]:state.logs;
+ return source.filter(x=>{
    if(!x.date)return false;
    if(x.date<dateISO)return daysBetweenISO(x.date,dateISO)<=days;
    if(x.date!==dateISO||!sameDayAllowed)return false;
@@ -4913,8 +4958,14 @@ function easyAdaptivePick(day,gw,dateISO,readiness,longer=false,reasonPrefix="",
    const e=entryForName(name),days=daysSinceConditioning(name,dateISO),
      context=conditioningContextAdjustment(name,day,gw,dateISO,readiness,{slot:"easy",longer,addedRestDay:!!options.addedRestDay}),
      learning=enduranceModalityLearning(name,dateISO);
-   let score=(days>=9999?48:Math.min(days,60));
-   if(days<10)score-=55;
+   const traits=conditioningTraits(name),runPriority=traits.run&&!traits.sprint,runFamilyDays=runPriority?rollingDaysSince(dateISO,r=>r.session==="Conditioning"&&categoryForEntry(entryForName(r.exercise))==="E"&&conditioningTraits(r.exercise).run,30):9999;
+   let score=days>=9999?(runPriority?28:18):Math.min(days,30);
+   if(runPriority){
+     score+=10;if(days<=1)score-=34;else if(days===2)score-=8;else if(days<=4)score+=4;else if(days>=7)score+=7;
+     // LSS Run and treadmill running share a frequency family. Frequent running is
+     // encouraged, but a different label must not bypass recovery after yesterday's run.
+     if(runFamilyDays<=1)score-=24;else if(runFamilyDays===2)score-=4;else if(runFamilyDays<=4)score+=3;
+   }else{if(days<4)score-=45;else if(days<7)score-=24;else if(days<10)score-=10;}
    score+=context.score+learning.score+tinyTie(dateISO+"|"+name)*2;
    return {e,score,days,context,learning};
  }).filter(x=>!x.context.blocked).sort((a,b)=>b.score-a.score);
@@ -4987,7 +5038,7 @@ function conditioningMetricSnapshot(row){
  return {primary,kind,speed,watts,paceSec,avgRep,best,last,workSec,restSec,intervalCount,repeatDensity,fade,efficiency,hr,rpe,minutes:mins};
 }
 function conditioningCapabilityState(name,dateISO){
- const rows=historyRowsBefore(dateISO,240).filter(x=>x.session==="Conditioning"&&x.exercise===name&&!["skipped","missed"].includes(String(x.status||"").toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).slice(-12),
+ const rows=historyRowsBefore(dateISO,240).filter(x=>!x.projectedForecast&&x.session==="Conditioning"&&x.exercise===name&&!["skipped","missed"].includes(String(x.status||"").toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).slice(-12),
    vals=rows.map(row=>({row,s:conditioningMetricSnapshot(row)})).filter(x=>x.s.primary>0),n=vals.length,quality=conditioningQualityForName(name);
  if(!n)return {name,quality,exposures:rows.length,metricExposures:0,confidence:.18,direction:"none",performanceTrendPct:0,efficiencyTrendPct:0,fadeTrendPct:0};
  const recent=vals.slice(-6),split=Math.max(1,Math.floor(recent.length/2)),trendOf=fn=>{const a=utmMean(recent.slice(0,split).map(x=>fn(x.s)).filter(x=>x>0)),b=utmMean(recent.slice(split).map(x=>fn(x.s)).filter(x=>x>0));return a&&b?(b-a)/a*100:0},
@@ -5031,8 +5082,10 @@ function hardAdaptivePick(day,gw,dateISO,readiness){
  const priorConditioning=historyRowsBefore(dateISO,9999).filter(x=>x.session==="Conditioning");
  let candidates=tbHICLibrary.filter(x=>x.num<=36).map(e=>{
    const cat=categoryForEntry(e),days=daysSinceConditioning(e.name,dateISO),catDays=lastCategoryDays(cat,dateISO),trend=conditioningPerformanceTrend(e.name,dateISO),context=conditioningContextAdjustment(e.name,day,gw,dateISO,readiness,{slot:"hard"}),quality=conditioningQualityNeglectBonus(e.name,dateISO);
-   let score=(days>=9999?35:Math.min(days,70)*.70)+(catDays>=9999?18:Math.min(catDays,45)*.45);
-   if(days<28)score-=60;
+   const traits=context.traits||conditioningTraits(e.name);
+   let score=(days>=9999?(traits.run?30:35):Math.min(days,70)*.70)+(catDays>=9999?18:Math.min(catDays,45)*.45);
+   if(traits.run){if(days<=1)score-=55;else if(days===2)score-=28;else if(days<5)score-=10;else if(days<8)score+=4;else score+=9;}
+   else if(days<28)score-=60;
    if(["600 Meter Resets","Indoor Power Intervals","Short Hills","Oxygen Debt 101","Speed-Endurance Ladders","Fast 5 Tempo Run","Standard Issue Hills","GC 2","GC 3 — Brig Rat","GC 9","Connaught Range 10 to 1s"].includes(e.name))score+=5;
    score+=trend.score+context.score+tinyTie(dateISO+"|"+e.name)*2;
    return {e,score,days,cat,catDays,context,trend,quality};
@@ -5051,7 +5104,7 @@ function hardAdaptivePick(day,gw,dateISO,readiness){
  let factors=[exact,category,...(pick.context.reasons||[])];
  if(pick.trend&&pick.trend.text)factors.push(pick.trend.text);
  if(interval.eligible&&interval.exposures>=2)factors.push(interval.why);
- factors.push("Exact repeats inside roughly four weeks are strongly penalized.");
+ factors.push((pick.context?.traits?.run?"Running-based hard sessions may recur much sooner than four weeks when recovery and mileage are appropriate; only very close repeats are strongly penalized.":"Exact repeats inside roughly four weeks are strongly penalized."));
  factors=uniqueConditioningReasons(factors);
  const rpe=pick.e.name==="Fast 5 Tempo Run"?"7–8":(pick.cat==="GC"?"8":"8–9");
  const modelConfidence=Math.round(utmClamp(.36+Math.min(8,pick.trend?.state?.metricExposures||0)*.055+(pick.days<9999?.08:0),.36,.92)*100);
@@ -5072,6 +5125,10 @@ function conditioningSlot(day,gw){
  return "easy";
 }
 function conditioningFor(day,gw,dateISO=""){
+ if(dateISO&&!rollingForecastActive&&validIsoDateValue(dateISO)&&dateISO>localISO(new Date())){
+   const fkey=utmModelRevision+"|conditioning|"+dateISO+"|"+day+"|"+gw;if(rollingForecastConditioningCache.has(fkey))return rollingForecastConditioningCache.get(fkey);
+   const out=withRollingForecastForDate(dateISO,projected=>{const r=conditioningFor(day,gw,dateISO);if(projected&&r&&typeof r==="object")r.projectedForecast=true;return r});rollingForecastConditioningCache.set(fkey,out);return out;
+ }
  const liveDraft=dateISO?activeUserLogDraftForDate(dateISO):null;
  if(liveDraft?.session==="Conditioning"&&Array.isArray(liveDraft.cards)&&liveDraft.cards.length){
    const card=liveDraft.cards.find(c=>String(c?.conditioning||"")==="1")||liveDraft.cards[0],activity=draftExerciseName(card);
@@ -6373,7 +6430,7 @@ function appendProgramExceptionNotice(dateISO){
  else box.innerHTML='<strong>Program paused:</strong> '+htmlSafe(pause.startDate)+' through '+htmlSafe(pause.endDate)+'. Fixed program anchors are suspended for this interval. Open-day recommendations still use rolling load/recovery, and the same program sequence resumes afterward.';
  tbList.appendChild(box);
 }
-function appendAdaptiveOpenDayNotice(dateISO,session){const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=programScheduledSessionForDate(dateISO),moveFrom=programMoveFromDate(dateISO);if((baseBuildingForDate(dateISO)&&!moveFrom)||!rollingOpenDayEligible(dateISO,base))return;const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])}),box=document.createElement("div");box.className="notice";const alternatives=(rec.options||[]).filter(x=>x.session!==rec.session).slice(0,3).map(x=>x.session+" ("+x.score+")").join(" • "),why=(rec.why||[]).slice(0,5);box.innerHTML='<strong>Rolling-horizon pick:</strong> '+htmlSafe(rec.session)+(rec.label&&rec.label!==rec.session?' • '+htmlSafe(rec.label):'')+(alternatives?'<br><span class="muted">Other scored modes: '+htmlSafe(alternatives)+'</span>':'')+(rec.endurance?'<br><span class="muted">Endurance: '+(rec.endurance.daysSinceMeaningful>=9999?'no meaningful recent dose':rec.endurance.daysSinceMeaningful+' days since meaningful dose')+' • decayed dose '+rec.endurance.decayedEquivalentMinutes+' run-equivalent min</span>':'')+(why.length?'<br><span class="muted">'+why.map(htmlSafe).join(" • ")+'</span>':'');tbList.appendChild(box)}
+function appendAdaptiveOpenDayNotice(dateISO,session){const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=programScheduledSessionForDate(dateISO),moveFrom=programMoveFromDate(dateISO);if((baseBuildingForDate(dateISO)&&!moveFrom)||!rollingOpenDayEligible(dateISO,base))return;const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])}),box=document.createElement("div");box.className="notice";const alternatives=(rec.options||[]).filter(x=>x.session!==rec.session).slice(0,3).map(x=>x.session+" ("+x.score+")").join(" • "),why=(rec.why||[]).slice(0,5);box.innerHTML='<strong>Rolling-horizon pick:</strong> '+htmlSafe(rec.session)+(rec.label&&rec.label!==rec.session?' • '+htmlSafe(rec.label):'')+(rec.projectedForecast?'<br><span class="muted"><strong>Projected:</strong> earlier future conditioning recommendations are temporarily counted for recency/dose so the preview does not repeat one modality simply because it is unlogged. Actual logs always replace the projection.</span>':'')+(alternatives?'<br><span class="muted">Other scored modes: '+htmlSafe(alternatives)+'</span>':'')+(rec.endurance?'<br><span class="muted">Endurance: '+(rec.endurance.daysSinceMeaningful>=9999?'no meaningful recent dose':rec.endurance.daysSinceMeaningful+' days since meaningful dose')+' • decayed dose '+rec.endurance.decayedEquivalentMinutes+' run-equivalent min</span>':'')+(why.length?'<br><span class="muted">'+why.map(htmlSafe).join(" • ")+'</span>':'');tbList.appendChild(box)}
 function renderSelectedWorkout(){
  const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);
  if(gw<1&&!baseBuildingForDate(selectedDateISO)){tbList.innerHTML='<div class="empty">This date is before Training Week 1.</div>';workoutTitle.textContent="Workout Prescription";tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});selectedDateBadge.textContent="Before plan";plateLegend.classList.add("hidden");return}
@@ -7875,6 +7932,7 @@ function conditioningContextAdjustment(name,day,gw,dateISO,readiness,options={})
  if(deload.level==="recommend"){score-=hard?12:2;reasons.push("The adaptive deload detector sees a multi-domain accumulation signal, so extra hard stress is strongly de-emphasized.");}
  else if(deload.level==="watch"&&hard){score-=4;reasons.push("The deload detector is on Watch, so hard choices lose a small tie-breaker without automatically cancelling the scheduled session.");}
  if(latent.preparedness<.45&&hard){score-=6;reasons.push("Underlying fitness is not interpreted as lost, but short-term fatigue is currently suppressing preparedness.");}
+ if(traits.run&&!readiness?.recoveryGuard&&!readiness?.mileageSpike&&!readiness?.lowerFatigue){const runBonus=hard?(traits.sprint?9:7):11;score+=runBonus;reasons.push(hard?(traits.sprint?"Sprint/hill-running exposure is a priority conditioning quality when lower-body recovery permits.":"Hard/tempo running is a priority conditioning quality when recovery permits."):"Frequent easy running is an expected part of the hybrid plan, so healthy run frequency receives a positive priority rather than a novelty penalty.");}
  const missing=conditioningRequirementKeys(name).filter(k=>unavailable.has(k));
  if(missing.length){
    blocked=true;blockReason="That option requires equipment you marked unavailable today.";reasons.push(blockReason);
@@ -7930,7 +7988,7 @@ function conditioningContextAdjustment(name,day,gw,dateISO,readiness,options={})
 function enduranceModalityLearning(name,dateISO){
  const eligible=new Set(["LSS Run","LSS Walk","LSS Cycle","LSS Stationary Bike","LSS Treadmill","LSS Elliptical","LSS Swim","LSS Row","LSS Row Machine","Stair Climber","LSS Stair Stepper","Ruck Up"]),performance=conditioningCapabilityState(name,dateISO);
  if(!eligible.has(name))return {sessions:0,score:0,direction:"none",factors:[],targetCenter:0};
- const rows=historyRowsBefore(dateISO,180).filter(x=>x.session==="Conditioning"&&x.exercise===name&&Number((x.metrics||{}).time)>0).sort((a,b)=>a.date.localeCompare(b.date)).slice(-8);
+ const rows=historyRowsBefore(dateISO,180).filter(x=>!x.projectedForecast&&x.session==="Conditioning"&&x.exercise===name&&Number((x.metrics||{}).time)>0).sort((a,b)=>a.date.localeCompare(b.date)).slice(-8);
  if(!rows.length)return {sessions:0,score:0,direction:"none",factors:["No direct "+name+" duration history yet; the app is building a modality-specific baseline."],targetCenter:0};
  const times=rows.map(x=>Number((x.metrics||{}).time)).filter(x=>x>0),recent=rows.slice(-3),last=rows[rows.length-1],lastAge=daysBetweenISO(last.date,dateISO),
    priorHr=rows.slice(0,-1).map(x=>Number((x.metrics||{}).avgHr)).filter(x=>x>0),hrBase=priorHr.length>=2?medianNum(priorHr.slice(-5)):0,lastHr=Number((last.metrics||{}).avgHr)||0,
@@ -9090,10 +9148,10 @@ saveSettings.addEventListener("click",()=>{
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:36,appBuild:"v36.27",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:36,appBuild:"v36.28",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
-  conditioning:{type:"adaptive-infinite",version:11,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference including scheduled classes","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
+  conditioning:{type:"adaptive-infinite",version:12,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference including scheduled classes","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:4,rules:["direct TB completion/set performance/broad effort/technique; exact RPE optional","block capability trend","expected-vs-actual RPE calibration as a conservative tie-breaker","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
   kettlebell:{type:"adaptive-per-exposure",version:3,rules:["continuous direct capability estimate","predicted next-load RPE","direct performance strongest","detailed cross-modality movement relationships","conservative family transfer","multi-rate localized fatigue","recovery gating","manual kg wins"]},
   genericGym:{type:"adaptive-per-exposure",version:9,rules:["continuous capability estimate","rapid first-two-exposure calibration","exact-rep double progression","reps progress before resistance","resistance increase resets reps to the lower exact step","assistance progression decreases assistance then resets reps","hard high-rep exposure backs reps off before resistance","predicted next-load RPE","richer effective-set stimulus","whole-workout local optimization","future-schedule interference","duration-aware exercise count and time estimate","movement diversity","major and sub-muscle selection","related work contributes to progression","manual rep edits win"]},
