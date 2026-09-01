@@ -672,7 +672,7 @@ body.substitution-sheet-open{overflow:hidden}
     <div class="stats">
       <div class="card"><div class="label">Current Week</div><div class="value" id="statWeek">Week 5</div><div class="hint" id="statBlock">Block 1 • W5</div></div>
       <div class="card"><div class="label">TB Prescription</div><div class="value" id="statTB">3×5 @ 85%</div><div class="hint">Maintenance</div></div>
-      <div class="card"><div class="label">Current Pull-up</div><div class="value" id="statPull">Neutral +30</div><div class="hint">3×5</div></div>
+      <div class="card"><div class="label">Current Pull-up</div><div class="value" id="statPull">Neutral +30</div><div class="hint" id="statPullRx">3×5</div></div>
       <div class="card"><div class="label">Logged Sessions</div><div class="value" id="statSessions">0</div><div class="hint" id="statEntries">0 entries</div></div>
     </div>
 
@@ -1336,7 +1336,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.24</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.26</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -1636,6 +1636,7 @@ const squatTm=document.getElementById("squatTm");
 const statBlock=document.getElementById("statBlock");
 const statEntries=document.getElementById("statEntries");
 const statPull=document.getElementById("statPull");
+const statPullRx=document.getElementById("statPullRx");
 const statSessions=document.getElementById("statSessions");
 const statTB=document.getElementById("statTB");
 const statWeek=document.getElementById("statWeek");
@@ -2127,6 +2128,27 @@ function utmFamilyFingerprint(family){
  }
  return p;
 }
+function calTrainingEffect(ex){
+ const n=String(ex?.name||"").toLowerCase();
+ // Some calisthenics movements are useful mobility/activation/stability work but do
+ // not create the same strengthening stimulus as a push-up, pull-up, squat, lunge,
+ // dip, or harder trunk movement. Keep them available without letting the model
+ // count them as equivalent strength/fatigue exposure.
+ let strength=1,fatigue=1,label="strength";
+ if(/dead hang/.test(n)){strength=.25;fatigue=.55;label="mobility / grip";}
+ else if(/prone y-t-w|reverse snow angel/.test(n)){strength=.42;fatigue=.38;label="activation / mobility";}
+ else if(/bird dog/.test(n)){strength=.52;fatigue=.38;label="stability";}
+ else if(/dead bug/.test(n)){strength=.62;fatigue=.45;label="stability strength";}
+ else if(/band lateral walk|band monster walk|band clamshell/.test(n)){strength=.58;fatigue=.50;label="activation accessory";}
+ else if(/scapular pull-up/.test(n)){strength=.64;fatigue=.58;label="scapular strength / mobility";}
+ else if(/cossack squat/.test(n)){strength=.68;fatigue=.58;label="mobility-strength";}
+ else if(/band pull-apart/.test(n)){strength=.68;fatigue=.55;label="activation accessory";}
+ else if(/front plank|side plank/.test(n)){strength=.78;fatigue=.62;label="isometric strength-endurance";}
+ else if(/crab walk/.test(n)){strength=.72;fatigue=.72;label="movement / conditioning";}
+ return {strength,fatigue,label};
+}
+function utmScaleMap(map,scale){Object.keys(map||{}).forEach(k=>map[k]=Math.max(0,Math.min(1,(Number(map[k])||0)*scale)));return map}
+
 function utmFingerprint(name){
  const n=String(name||"").toLowerCase(),p=utmBlank(),custom=customExerciseDefinition(name),g=gymExercise(name),k=kbExercise(name),c=calisthenicsExercise(name),cls=classActivity(name);
  if(custom){
@@ -2147,6 +2169,12 @@ function utmFingerprint(name){
   if(c.focus==="core"){utmPut(p.moves,"core",1);utmPut(p.muscles,"core",1)}
   if(/jump|burpee|mountain climber|bear crawl/.test(n)){utmPut(p.moves,"power",.65);utmPut(p.fatigue,"impact",.55);utmPut(p.fatigue,"anaerobic",.45)}
   if(/pistol|skater|bulgarian|split squat|lunge/.test(n))utmPut(p.moves,"lunge",.85);
+  const effect=calTrainingEffect(c);
+  // Strength/muscle credit is reduced more aggressively than fatigue for things such
+  // as hangs or activation drills. This prevents stretch-like work from satisfying a
+  // muscle's strength need while still acknowledging that it can create some fatigue.
+  utmScaleMap(p.muscles,effect.strength);utmScaleMap(p.moves,effect.strength);utmScaleMap(p.fatigue,effect.fatigue);
+  p.strengthDemand=Math.max(.08,Math.min(1,p.strengthDemand*effect.strength));
  }
  if(cls){
   p.type="class";const kind=cls.kind||"";
@@ -3967,7 +3995,7 @@ function showIntentModes(kind){
  const button=(action,label,desc)=>'<button class="btn intent-mode-action" type="button" data-action="'+action+'"><strong>'+label+'</strong><span style="display:block;font-size:.63rem;color:var(--muted)">'+desc+'</span></button>';
  let title="",buttons=[];
  if(kind==="calisthenics"){title="Calisthenics — how do you want to build it?";buttons=[button("cal-adaptive","Adaptive Workout","45-minute full-body recommendation using today’s fatigue/progression state."),button("cal-manual","Build It Myself","Start blank inside Log Workout."),button("cal-builder","Open Full Builder","Choose focus, difficulty, duration, bar and band access.")] }
- if(kind==="gym"){title="Generic Gym — how do you want to build it?";buttons=[button("gym-adaptive","Adaptive Full Body","60-minute full-body recommendation using v28 builder context."),button("gym-manual","Build It Myself","Start blank inside Log Workout."),button("gym-builder","Open Full Builder","Choose muscles, sub-muscles, equipment and duration.")] }
+ if(kind==="gym"){title="Generic Gym — how do you want to build it?";buttons=[button("gym-adaptive","Adaptive Full Body","Model-selected muscles, duration, difficulty, style, and exercises from today’s readiness/history."),button("gym-manual","Build It Myself","Start blank inside Log Workout."),button("gym-builder","Open Full Builder","Choose muscles, sub-muscles, equipment and duration.")] }
  if(kind==="kb"){title="Kettlebell — choose the session or build manually.";buttons=[button("kb-heavy","KB Heavy","Load the adaptive Heavy slot."),button("kb-power","KB Power","Load the adaptive Power slot."),button("kb-volume","KB Volume","Load the adaptive Volume slot."),button("kb-manual","Build It Myself","Start a manual kettlebell workout.")] }
  if(kind==="conditioning"){title="Conditioning — use the engine or take over.";buttons=[button("cond-adaptive","Adaptive Recommendation","Use today’s conditioning recommendation with recovery/fatigue context."),button("cond-manual","Build It Myself","Start a manual conditioning entry with full metrics."),button("cond-library","Open Full Library","Browse Endurance, HIC/GC and Power sessions.")] }
  holder.innerHTML='<div class="intent-mode-title">'+htmlSafe(title)+'</div><div class="inline-actions">'+buttons.join("")+'</div>';
@@ -4045,14 +4073,55 @@ function recommendedAdaptiveSessionForDate(dateISO){
  const x=adaptiveModeSwitchBase(dateISO);if(x.scheduledClass&&!x.priorityBase)return "Class / Activity";if(!x.priorityBase&&rollingOpenDayEligible(dateISO,x.base))return rollingOpenDayRecommendation(dateISO,{suppressRest:x.noRest}).session;return expectedSession(x.day,x.gw,dateISO);
 }
 
+const GYM_AUTO_FOCUS_KEYS=["chest","back","shoulders","biceps","triceps","quads","posterior","calves","core"];
+const GYM_AUTO_MAJOR_FOCUS=new Set(["chest","back","shoulders","biceps","triceps","quads","posterior"]);
+function gymAutomaticFocusScore(focus,dateISO){
+ const exercises=gymExerciseLibrary.filter(g=>gymAvailable(g.name)&&gymFocusForExerciseName(g.name)===focus);
+ if(!exercises.length)return {focus,score:-999,raw:-999,top:[],available:0};
+ const scored=exercises.map(g=>{const ctx=utmBuilderContext(g.name,dateISO),recent=gymRecentFamilyStress(g.family,dateISO);return {g,ctx,score:ctx.score+gymSelectionPriority(g)*.35-recent*2.5}}).sort((a,b)=>b.score-a.score);
+ const vals=scored.slice(0,3).map(x=>x.score),raw=vals.length===1?vals[0]:vals.length===2?vals[0]*.62+vals[1]*.38:vals[0]*.52+vals[1]*.30+vals[2]*.18;
+ // Automatic recommendations should not mistake "not trained lately" for "high priority"
+ // on small accessory groups. Calves remain fully available when explicitly selected in
+ // the manual builder, but they need a much stronger signal to enter an automatic session.
+ let adjusted=raw;
+ if(focus==="calves")adjusted=raw*.35-14;
+ else if(focus==="core")adjusted=raw*.60-8; // every Gym workout already receives an untimed core finisher.
+ return {focus,score:adjusted,raw,top:scored.slice(0,3),available:exercises.length};
+}
+function gymAutomaticProfile(dateISO){
+ const readiness=adaptiveReadiness(dateISO),stress=utmWeeklyStressBudget(dateISO),goal=utmGoalWeights(dateISO),maxStress=Math.max(...Object.values(stress.ratio||{x:0}));
+ const ranked=GYM_AUTO_FOCUS_KEYS.map(f=>gymAutomaticFocusScore(f,dateISO)).filter(x=>x.available).sort((a,b)=>b.score-a.score);
+ const major=ranked.filter(x=>GYM_AUTO_MAJOR_FOCUS.has(x.focus)),focuses=major.slice(0,3).map(x=>x.focus);
+ // Calves are deliberately an accessory priority. They can enter only after at least two
+ // major groups are already selected AND only when their adjusted need is exceptionally high.
+ const calf=ranked.find(x=>x.focus==="calves"),nextMajor=major[3];
+ if(focuses.length>=2&&calf&&calf.score>(nextMajor?.score??-999)+12&&calf.raw>28)focuses[2]="calves";
+ if(!focuses.length)focuses.push("back","shoulders","quads");
+ let difficulty="medium",duration=45,style="optimized";
+ if(readiness.recoveryGuard){difficulty="easy";duration=30;style="optimized";}
+ else if(readiness.caution){difficulty="easy";duration=maxStress>.95?30:35;style="optimized";}
+ else{
+   if(maxStress<.70&&readiness.fatigueScore<.65){difficulty="hard";duration=55;}
+   else if(maxStress<.88){difficulty="medium";duration=50;}
+   else{difficulty="medium";duration=40;}
+   const strengthPriority=Number(goal?.weights?.strength)||1;
+   const compoundFocus=focuses.some(f=>["chest","back","shoulders","quads","posterior"].includes(f));
+   style=(strengthPriority>=1.18&&compoundFocus&&maxStress<.82)?"strength":"optimized";
+ }
+ return {profile:{focus:focuses,subfocus:[],difficulty,style,duration,equipment:[]},ranked,readiness,maxStress,goal};
+}
 function recommendedAdaptiveGymForDate(dateISO){
- const readiness=adaptiveReadiness(dateISO),rank=gymExerciseLibrary.filter(g=>gymAvailable(g.name)).map(g=>({g,ctx:utmBuilderContext(g.name,dateISO)})).sort((a,b)=>b.ctx.score-a.ctx.score).slice(0,10),focuses=[];
- rank.forEach(x=>{const f=gymFocusForExerciseName(x.g.name);if(f&&!focuses.includes(f)&&focuses.length<3)focuses.push(f)});
- const profile={focus:focuses.length?focuses:["back","shoulders","core"],subfocus:[],difficulty:readiness.caution?"easy":"medium",style:"optimized",duration:readiness.caution?30:45,equipment:[]},plan=buildGymWorkoutFromProfile(profile,dateISO);
- return {session:"Generic Gym",label:plan.name||"Adaptive Gym",plan,why:uniqueConditioningReasons(["Built from today’s highest-scoring available gym movements.",...rank.slice(0,4).flatMap(x=>x.ctx.future?.reasons||[])])};
+ const auto=gymAutomaticProfile(dateISO),profile=auto.profile,plan=buildGymWorkoutFromProfile(profile,dateISO),selected=new Set(profile.focus),topMovements=auto.ranked.filter(x=>selected.has(x.focus)).flatMap(x=>x.top.slice(0,1));
+ const styleLabel=profile.style==="strength"?"lower-rep/heavier":"exercise-specific optimized loading";
+ return {session:"Generic Gym",label:plan.name||"Adaptive Gym",plan,why:uniqueConditioningReasons([
+   "The model selected muscle groups first, then optimized exercises inside those groups; isolated high-scoring accessory movements cannot hijack the whole recommendation.",
+   "Calves are intentionally low-priority in automatic Gym recommendations. They remain available whenever you explicitly select Calves in the builder.",
+   "Today’s model chose "+profile.duration+" minutes, "+profile.difficulty+" difficulty, and "+styleLabel+" from readiness, rolling stress, training priorities, history, future interference, and available equipment.",
+   ...topMovements.flatMap(x=>x.ctx.future?.reasons||[])
+ ])};
 }
 function recommendedAdaptiveCalisthenicsForDate(dateISO){
- const readiness=adaptiveReadiness(dateISO),rank=calisthenicsExerciseLibrary.filter(x=>x.auto!==false&&(!x.requiresBar||state.settings.calHasPullupBar!==false)&&(!x.requiresBands||!!state.settings.calHasBands)).map(ex=>({ex,ctx:utmBuilderContext(ex.name,dateISO)})).sort((a,b)=>b.ctx.score-a.ctx.score).slice(0,10),focuses=[];
+ const readiness=adaptiveReadiness(dateISO),rank=calisthenicsExerciseLibrary.filter(x=>x.auto!==false&&(!x.requiresBar||state.settings.calHasPullupBar!==false)&&(!x.requiresBands||!!state.settings.calHasBands)).map(ex=>{const ctx=utmBuilderContext(ex.name,dateISO),effect=calTrainingEffect(ex);return {ex,ctx,effect,score:ctx.score-(1-effect.strength)*22}}).sort((a,b)=>b.score-a.score).slice(0,10),focuses=[];
  rank.forEach(x=>{const f=x.ex.focus;if(f!=="fullbody"&&!focuses.includes(f)&&focuses.length<3)focuses.push(f)});
  const profile={focus:focuses.length?focuses:["push","pull","core"],difficulty:readiness.caution?"easy":"medium",duration:readiness.caution?30:40,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},plan=buildCalisthenicsWorkout(profile,dateISO);
  return {session:"Calisthenics",label:plan.name||"Adaptive Calisthenics",plan,why:uniqueConditioningReasons(["Built from today’s highest-scoring bodyweight movements.",...rank.slice(0,4).flatMap(x=>x.ctx.future?.reasons||[])])};
@@ -6190,7 +6259,7 @@ function render(){
  const gw=currentTrainingWeek();if(state.settings.currentWeek!==gw){state.settings.currentWeek=gw;save()}const b=blockInfo(gw),w=wave[b.wib-1],pu=pullupForWeek(gw),nx=pullupForWeek(gw+1),paused=isRecoveryPauseDate(new Date()),bbNow=baseBuildingForDate(localISO(new Date()));
  heroCurrent.textContent=bbNow?("Base Building • Week "+bbNow.week+" of 8"):(pu[3]+" +"+pu[6]+" • "+pu[4]+"×"+pu[5]);heroNext.textContent=bbNow?"Standard SE-first • aerobic base priority":("Next: "+nx[3]+" +"+nx[6]+" • "+nx[4]+"×"+nx[5]);
  if(bbNow){statWeek.textContent="BB W"+bbNow.week;statBlock.textContent="Base Building • 8 weeks"}else if(paused){statWeek.textContent="PAUSE";statBlock.textContent="Before Block "+(b.block+1)}else{statWeek.textContent="Week "+gw;statBlock.textContent="Block "+b.block+" • W"+b.wib}
- statTB.textContent=bbNow?(bbNow.week<=5?"SE + Endurance":"Max Strength + HIC/E"):(w[1]+"×"+w[2]+" @ "+Math.round(w[0]*100)+"%");statPull.textContent=bbNow?"Aerobic base":(pu[3].replace("Side / ","")+" +"+pu[6]);
+ statTB.textContent=bbNow?(bbNow.week<=5?"SE + Endurance":"Max Strength + HIC/E"):(w[1]+"×"+w[2]+" @ "+Math.round(w[0]*100)+"%");statPull.textContent=bbNow?"Aerobic base":(pu[3].replace("Side / ","")+" +"+pu[6]);if(statPullRx)statPullRx.textContent=bbNow?"":(pu[4]+"×"+pu[5]);
  statSessions.textContent=new Set(state.logs.map(x=>x.sessionId)).size;statEntries.textContent=state.logs.length+" entries";
  renderWeek();renderSelectedWorkout();renderHistory();renderProgress();renderConditioningLibrary();renderTbMaxes();renderRecoverySnapshot();renderRecoveryHistory();renderToolsVisibility();syncSettings();if(document.querySelector(".view.active")?.id==="trends")renderTrends();
  setTimeout(maybeShowBlockReview,0);
@@ -7195,7 +7264,7 @@ function buildGymWorkoutFromProfile(p,dateISO){
 
  const optimizedSelection=utmOptimizeGymSelection(selected,candidates,focus,dateISO);
  selected.splice(0,selected.length,...optimizedSelection);
- let rows=selected.map(c=>{const scheme=gymRepScheme(c.g,p),a=adaptiveGymTarget(c.g.name,dateISO,"",p);return {exercise:c.g.name,sets:scheme.sets,reps:String(a.repTarget||scheme.lowReps),manualLb:"",loadScale:scheme.scale,adaptiveRepManaged:true,restSeconds:gymRestSeconds(c.g,p)}});rows=orderGymRows(rows,p);
+ let rows=selected.map(c=>{const scheme=gymRepScheme(c.g,p),a=adaptiveGymTarget(c.g.name,dateISO,"",p);return {exercise:c.g.name,sets:scheme.sets,reps:String(a.repTarget||scheme.lowReps),manualLb:"",autoWeightManaged:true,loadScale:scheme.scale,adaptiveRepManaged:true,restSeconds:gymRestSeconds(c.g,p)}});rows=orderGymRows(rows,p);
 
  // Fit duration by adding productive volume to the selected diverse movements.
  // We never pad a workout with Machine/Cable/DB copies of the same movement just
@@ -7229,21 +7298,29 @@ function gymAutoTargetForRow(row){
    shown=gymClampLoad(ex,a.lb*(a.applyScale===false?1:scale));
  return {weight:formatGymWeight(row.exercise,shown),reps:a.repTarget,why:a.why};
 }
-function addGymBuilderRow(row={exercise:"Dumbbell Curl",sets:3,reps:"12",manualLb:"",loadScale:1,restSeconds:90}){
- row={...row,reps:exactRepPrescription(row.reps)};const d=document.createElement("div");d.className="gym-builder-row";d.dataset.loadScale=String(row.loadScale||1);d.dataset.untimedCoreFinisher=row.untimedCoreFinisher?"1":"0";d.dataset.adaptiveRepManaged=row.adaptiveRepManaged?"1":"0";
+function gymRecommendedWeightNumberForRow(row){
+ const date=gymBuilderDate.value||selectedDateISO||localISO(new Date()),ex=gymExercise(row.exercise);if(!ex)return 0;
+ const profile=gymProfileFromControls(),a=adaptiveGymTarget(row.exercise,date,"",profile),scale=Number(row.loadScale)||1;
+ return gymClampLoad(ex,a.lb*(a.applyScale===false?1:scale));
+}
+function addGymBuilderRow(row={exercise:"Dumbbell Curl",sets:3,reps:"12",manualLb:"",autoWeightManaged:true,loadScale:1,restSeconds:90}){
+ row={...row,reps:exactRepPrescription(row.reps)};const d=document.createElement("div");d.className="gym-builder-row";d.dataset.loadScale=String(row.loadScale||1);d.dataset.untimedCoreFinisher=row.untimedCoreFinisher?"1":"0";d.dataset.adaptiveRepManaged=row.adaptiveRepManaged?"1":"0";d.dataset.autoWeightManaged=row.autoWeightManaged===false?"0":"1";
  d.innerHTML='<div class="field exercise-field"><label>Exercise</label><select class="gym-row-ex">'+gymExerciseLibrary.map(x=>'<option value="'+x.name.replaceAll('"','&quot;')+'"'+(x.name===row.exercise?' selected':'')+'>'+x.name+'</option>').join("")+'<option value="__custom__">Custom exercise…</option></select><input class="gym-row-custom hidden" placeholder="Custom exercise"></div>'+
  '<div class="field"><label>Sets</label><input class="gym-row-sets" value="'+attrSafe(row.sets??"")+'"></div><div class="field"><label>Reps / Time</label><input class="gym-row-reps" value="'+attrSafe(row.reps??"")+'"></div>'+
  '<div class="field"><label>Rest (sec)</label><input class="gym-row-rest" type="number" min="30" step="15" value="'+attrSafe(row.restSeconds||"")+'"></div>'+
- '<div class="field"><label>Manual Weight</label><input class="gym-row-lb" type="number" min="0" step="2.5" value="'+attrSafe(row.manualLb||"")+'" placeholder="Adaptive"><div class="muted gym-auto-hint" style="font-size:.68rem;margin-top:4px"></div></div>'+
+ '<div class="field"><label>Weight</label><input class="gym-row-lb" type="number" min="0" step="2.5" value="'+attrSafe(row.manualLb||"")+'" placeholder="Model recommendation"><div class="muted gym-auto-hint" style="font-size:.68rem;margin-top:4px"></div></div>'+
  '<div class="remove-field"><button class="btn danger gym-remove-row" type="button">Remove</button></div><div class="builder-guide gym-row-guide">'+movementGuideHtml(row.exercise)+'</div>';
  const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom"),hint=d.querySelector(".gym-auto-hint"),guide=d.querySelector(".gym-row-guide");
  if(row.exercise&&!gymExercise(row.exercise)){sel.value="__custom__";custom.value=row.exercise}
  if(row.untimedCoreFinisher)d.insertAdjacentHTML("afterbegin",'<div class="muted" style="grid-column:1/-1;font-size:.72rem"><strong>CORE FINISHER</strong> • outside requested workout time</div>');
- const repsInput=d.querySelector(".gym-row-reps");
- const rowNow=()=>({exercise:sel.value==="__custom__"?custom.value.trim():sel.value,manualLb:d.querySelector(".gym-row-lb").value,loadScale:Number(d.dataset.loadScale)||1,untimedCoreFinisher:d.dataset.untimedCoreFinisher==="1",adaptiveRepManaged:d.dataset.adaptiveRepManaged==="1",restSeconds:Number(d.querySelector(".gym-row-rest")?.value)||0});
- const update=()=>{const r=rowNow(),a=r.exercise&&gymExercise(r.exercise)?gymAutoTargetForRow(r):null;hint.textContent=a?("Auto target: "+a.weight+" • "+a.reps+" reps"):"";guide.innerHTML=movementGuideHtml(r.exercise)};
- const sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus();if(d.dataset.adaptiveRepManaged==="1"&&!c){const a=gymAutoTargetForRow(rowNow());if(a&&a.reps)repsInput.value=String(a.reps)}update()};
- sel.addEventListener("change",sync);custom.addEventListener("input",update);d.querySelector(".gym-row-lb").addEventListener("input",update);
+ const repsInput=d.querySelector(".gym-row-reps"),lbInput=d.querySelector(".gym-row-lb");
+ const rowNow=()=>({exercise:sel.value==="__custom__"?custom.value.trim():sel.value,manualLb:lbInput.value,autoWeightManaged:d.dataset.autoWeightManaged==="1",loadScale:Number(d.dataset.loadScale)||1,untimedCoreFinisher:d.dataset.untimedCoreFinisher==="1",adaptiveRepManaged:d.dataset.adaptiveRepManaged==="1",restSeconds:Number(d.querySelector(".gym-row-rest")?.value)||0});
+ const targetIgnoringPrefill=()=>{const r=rowNow();if(d.dataset.autoWeightManaged==="1")r.manualLb="";return r.exercise&&gymExercise(r.exercise)?gymAutoTargetForRow(r):null};
+ const update=()=>{const r=rowNow(),a=targetIgnoringPrefill();hint.textContent=a?((d.dataset.autoWeightManaged==="1"?"Model recommendation: ":"Current target: ")+a.weight+" • "+a.reps+" reps"):"";guide.innerHTML=movementGuideHtml(r.exercise)};
+ const fillRecommendedWeight=()=>{const r=rowNow();r.manualLb="";const n=r.exercise&&gymExercise(r.exercise)?gymRecommendedWeightNumberForRow(r):0;if(n>0)lbInput.value=String(n)};
+ if(d.dataset.autoWeightManaged==="1"&&!lbInput.value&&row.exercise&&gymExercise(row.exercise))fillRecommendedWeight();
+ const sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus();if(d.dataset.adaptiveRepManaged==="1"&&!c){const a=targetIgnoringPrefill();if(a&&a.reps)repsInput.value=String(a.reps)}update()};
+ sel.addEventListener("change",()=>{if(d.dataset.autoWeightManaged==="1")fillRecommendedWeight();sync()});custom.addEventListener("input",update);lbInput.addEventListener("input",()=>{d.dataset.autoWeightManaged="0";update()});
  repsInput.addEventListener("input",()=>{d.dataset.adaptiveRepManaged="0"});
  sync();
  d.querySelector(".gym-remove-row").addEventListener("click",()=>d.remove());gymBuilderRows.appendChild(d);
@@ -7255,7 +7332,7 @@ function loadGymBuilder(){
 }
 function saveGymBuilder(){
  const date=gymBuilderDate.value||selectedDateISO||localISO(new Date()),profile=gymProfileFromControls();
- let rows=[...gymBuilderRows.querySelectorAll(".gym-builder-row")].map(d=>{const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom");return {exercise:sel.value==="__custom__"?custom.value.trim():sel.value,sets:d.querySelector(".gym-row-sets").value,reps:exactRepPrescription(d.querySelector(".gym-row-reps").value),manualLb:d.querySelector(".gym-row-lb").value,loadScale:Number(d.dataset.loadScale)||1,untimedCoreFinisher:d.dataset.untimedCoreFinisher==="1",adaptiveRepManaged:d.dataset.adaptiveRepManaged==="1",restSeconds:Number(d.querySelector(".gym-row-rest")?.value)||0}}).filter(x=>x.exercise);
+ let rows=[...gymBuilderRows.querySelectorAll(".gym-builder-row")].map(d=>{const sel=d.querySelector(".gym-row-ex"),custom=d.querySelector(".gym-row-custom");return {exercise:sel.value==="__custom__"?custom.value.trim():sel.value,sets:d.querySelector(".gym-row-sets").value,reps:exactRepPrescription(d.querySelector(".gym-row-reps").value),manualLb:d.querySelector(".gym-row-lb").value,autoWeightManaged:d.dataset.autoWeightManaged==="1",loadScale:Number(d.dataset.loadScale)||1,untimedCoreFinisher:d.dataset.untimedCoreFinisher==="1",adaptiveRepManaged:d.dataset.adaptiveRepManaged==="1",restSeconds:Number(d.querySelector(".gym-row-rest")?.value)||0}}).filter(x=>x.exercise);
  if(!rows.length){alert("Build or add at least one exercise.");return}
  rows=ensureUniversalCoreFinisherRaw("Generic Gym",rows,date,profile);
  state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.genericGymWorkouts[date]={name:gymWorkoutName.value.trim()||"Generic Gym",profile,rows};setGenericGymDay(date);
@@ -7272,13 +7349,13 @@ function generateGymFromSelections(){
  gymWorkoutName.value=w.name;gymBuilderRows.innerHTML="";w.rows.forEach(addGymBuilderRow);
  const durationLead=w.durationFit==="short"?"<strong>Built shorter than requested:</strong> ":w.durationFit==="long"?"<strong>Built slightly long:</strong> ":"<strong>Built:</strong> ";
  const timedCount=w.rows.filter(r=>!r.untimedCoreFinisher).length,finisherCount=w.rows.filter(r=>r.untimedCoreFinisher).length;
- gymAdaptiveStatus.innerHTML=w.rows.length?(durationLead+timedCount+" timed exercises • ~"+Math.round(w.estimatedMinutes||p.duration)+" min estimated vs "+p.duration+" min requested"+(finisherCount?" • + "+finisherCount+" untimed core finisher":"")+" • "+p.difficulty+" • "+(p.style==="optimized"?"exercise-specific mixed loading":p.style==="high-rep"?"high reps / lighter":p.style==="strength"?"lower reps / heavier":"moderate reps / weight")+". "+(w.durationNote||"")+" Near-identical implement swaps are treated as the same movement slot. "+(w.modelNote||"")+" Adaptive targets use your history and available equipment; edit anything before saving."):"<strong>No matching available exercises.</strong> Re-enable exercises in the library or broaden the equipment preference.";
+ gymAdaptiveStatus.innerHTML=w.rows.length?(durationLead+timedCount+" timed exercises • ~"+Math.round(w.estimatedMinutes||p.duration)+" min estimated vs "+p.duration+" min requested"+(finisherCount?" • + "+finisherCount+" untimed core finisher":"")+" • "+p.difficulty+" • "+(p.style==="optimized"?"exercise-specific mixed loading":p.style==="high-rep"?"high reps / lighter":p.style==="strength"?"lower reps / heavier":"moderate reps / weight")+". "+(w.durationNote||"")+" Near-identical implement swaps are treated as the same movement slot. "+(w.modelNote||"")+" Weights are pre-filled from the adaptive recommendation using your history and available equipment; edit anything before saving."):"<strong>No matching available exercises.</strong> Re-enable exercises in the library or broaden the equipment preference.";
 }
 function recommendGymFromModel(){
  const date=gymBuilderDate.value||selectedDateISO||localISO(new Date()),rec=recommendedAdaptiveGymForDate(date),w=rec.plan||{},p=w.profile||{};
  applyGymProfileToControls(p);gymWorkoutName.value=w.name||rec.label||"Adaptive Gym";gymBuilderRows.innerHTML="";(w.rows||[]).forEach(addGymBuilderRow);
  const why=(rec.why||[]).slice(0,5).map(htmlSafe).join(" • "),timed=(w.rows||[]).filter(r=>!r.untimedCoreFinisher).length,finishers=(w.rows||[]).filter(r=>r.untimedCoreFinisher).length;
- gymAdaptiveStatus.innerHTML='<strong>Recommended for '+htmlSafe(date)+':</strong> '+htmlSafe(w.name||rec.label||"Adaptive Gym")+' • '+timed+' timed exercises • ~'+Math.round(w.estimatedMinutes||p.duration||45)+' min'+(finishers?' • + '+finishers+' untimed core finisher':'')+'.'+(why?'<br><span class="muted">'+why+'</span>':'')+'<br><span class="muted">Nothing is scheduled until you tap Save Workout to Date. You can edit every field first.</span>';
+ gymAdaptiveStatus.innerHTML='<strong>Recommended for '+htmlSafe(date)+':</strong> '+htmlSafe(w.name||rec.label||"Adaptive Gym")+' • '+timed+' timed exercises • ~'+Math.round(w.estimatedMinutes||p.duration||45)+' min'+(finishers?' • + '+finishers+' untimed core finisher':'')+'.'+(why?'<br><span class="muted">'+why+'</span>':'')+'<br><span class="muted">Recommended weights are pre-filled in each row. Nothing is scheduled until you tap Save Workout to Date, and you can edit every field first.</span>';
 }
 
 function renderGymLibrary(){
@@ -7444,7 +7521,7 @@ function calGeneralWarmupMinutes(profile){const d=Math.max(20,Number(profile.dur
 function calEstimatedWorkoutMinutes(rows,profile){const timedRows=(rows||[]).filter(row=>!row?.untimedCoreFinisher),work=timedRows.reduce((sum,row)=>{const ex=calisthenicsExercise(row.exercise);return sum+(ex?calExerciseTimeEstimate(ex,row,profile):4)},0);return Math.round((work+calGeneralWarmupMinutes(profile))*10)/10}
 
 function calMaxSets(ex,profile){
- const level=Number(ex?.level)||2,d=Number(profile.duration)||45,diff=profile.difficulty||"medium";
+ const level=Number(ex?.level)||2,d=Number(profile.duration)||45,diff=profile.difficulty||"medium",effect=calTrainingEffect(ex);
  // Time is an explicit user constraint. Short workouts with only a few legitimate
  // movements need permission to use more sets instead of stopping 30–40% early.
  let max=d<=35?5:d<=50?6:d<=70?6:7;
@@ -7453,14 +7530,18 @@ function calMaxSets(ex,profile){
  // Advanced leverage/plyometric movements still get a tighter ceiling.
  if(level>=4)max=Math.min(max,d<=35?5:6);
  if(level>=5)max=Math.min(max,5);
- return Math.max(4,max);
+ // Mobility/activation-heavy movements can appear, but they should not become the
+ // main duration filler just because they are easy to accumulate.
+ if(effect.strength<.5)max=Math.min(max,3);
+ else if(effect.strength<.7)max=Math.min(max,4);
+ return Math.max(effect.strength<.5?2:effect.strength<.7?3:4,max);
 }
 function calDurationFit(rows,profile){const estimate=calEstimatedWorkoutMinutes(rows,profile),low=profile.duration*.99,high=profile.duration*1.08;return {estimate,status:estimate<low?"short":estimate>high?"long":"fit",ratio:estimate/Math.max(1,profile.duration),low,high}}
 
 function calVolumeRepCeiling(ex,row,profile){
- const raw=String(row?.reps||""),amount=Math.max(1,parseFirstNumber(raw)||(ex?.baseSeconds?30:8)),isHold=/sec/i.test(raw)||!!ex?.baseSeconds,level=Number(ex?.level)||2;
- if(isHold)return Math.max(amount,Math.round(Math.min(90,amount*(level>=4?1.25:1.50))/5)*5);
- const mult=level>=4?1.22:level>=3?1.32:1.50;
+ const raw=String(row?.reps||""),amount=Math.max(1,parseFirstNumber(raw)||(ex?.baseSeconds?30:8)),isHold=/sec/i.test(raw)||!!ex?.baseSeconds,level=Number(ex?.level)||2,effect=calTrainingEffect(ex);
+ if(isHold){const mult=effect.strength<.6?1.15:(level>=4?1.25:1.50);return Math.max(amount,Math.round(Math.min(90,amount*mult)/5)*5)}
+ const mult=effect.strength<.6?1.18:level>=4?1.22:level>=3?1.32:1.50;
  return Math.max(amount,Math.round(amount*mult));
 }
 function calAddOneRepVolume(row,ex,profile){
@@ -7475,7 +7556,7 @@ function calExpandVolumeToDuration(rows,profile){
  // First choice: add sets to the existing high-quality movements.
  while(rows.length&&fit.status==="short"&&setPass++<120){
    const options=rows.map((row,i)=>{const ex=calisthenicsExercise(row.exercise),sets=Math.max(1,Number(row.sets)||3),max=calMaxSets(ex,profile);return sets<max?{i,sets,max,level:Number(ex?.level)||2}:null})
-     .filter(Boolean).sort((a,b)=>(b.max-b.sets)-(a.max-a.sets)||a.level-b.level);
+     .filter(Boolean).sort((a,b)=>(calTrainingEffect(calisthenicsExercise(rows[b.i].exercise)).strength-calTrainingEffect(calisthenicsExercise(rows[a.i].exercise)).strength)||((b.max-b.sets)-(a.max-a.sets))||a.level-b.level);
    if(!options.length)break;
    rows[options[0].i].sets=options[0].sets+1;
    fit=calDurationFit(rows,profile);
@@ -7527,7 +7608,7 @@ function buildCalisthenicsWorkout(profile,dateISO,variationOrdinal=0){
  const range=calDurationExerciseRange(profile.duration);let count=range.target;if(profile.difficulty==="easy")count=Math.max(range.min,count-1);if(profile.difficulty==="very hard")count=Math.min(range.max,count+1);
  let scored=candidates.map(ex=>{
    const targetLevel=calFocusLevel(ex.focus,dateISO,profile.difficulty),levelPenalty=Math.abs(ex.level-targetLevel)*18,hist=calDirectHistory(ex.name,dateISO),last=hist.length?hist[hist.length-1]:null,age=last?daysBetweenISO(last.date,dateISO):999,tier=calExercisePriorityTier(ex),recencyPenalty=age<=7?(tier>=3?10:tier===2?16:24):(age<=14?(tier>=3?5:tier===2?8:12):0),stress=calRecentRelationshipStress(ex.name,dateISO)*7,mastery=calExerciseMastery(ex.name,dateISO),neighbors=calProgressionNeighbors(ex.name),nextMastered=neighbors.prev&&calExerciseMastery(neighbors.prev,dateISO)?12:0;
-   const utm=utmBuilderContext(ex.name,dateISO),prog=utmProgressionState(ex.name,dateISO);let score=70+calEvidencePriority(ex)-levelPenalty-recencyPenalty-stress-mastery*8+nextMastered+utm.score+(prog.direction==="up"?4:prog.direction==="down"?-5:0)+(prog.plateau&&neighbors.next?8:0)+(ex.focus==="fullbody"&&focus.length>=4?7:0)+tinyTie(dateISO+"|cal|"+ex.name)*3;return {ex,score,slot:calMovementSlot(ex),utm,prog,tier};
+   const utm=utmBuilderContext(ex.name,dateISO),prog=utmProgressionState(ex.name,dateISO),effect=calTrainingEffect(ex),effectPenalty=(1-effect.strength)*24;let score=70+calEvidencePriority(ex)-levelPenalty-recencyPenalty-stress-mastery*8+nextMastered+utm.score-effectPenalty+(prog.direction==="up"?4:prog.direction==="down"?-5:0)+(prog.plateau&&neighbors.next?8:0)+(ex.focus==="fullbody"&&focus.length>=4?7:0)+tinyTie(dateISO+"|cal|"+ex.name)*3;return {ex,score,slot:calMovementSlot(ex),utm,prog,tier,effect};
  });
  scored=scored.sort((a,b)=>b.score-a.score||a.ex.name.localeCompare(b.ex.name));
  const selected=[],selectedNames=new Set(),slotCounts={},focusCounts={},wanted=[...new Set(focus.filter(x=>x!=="fullbody"))];
@@ -7583,7 +7664,7 @@ function buildCalisthenicsWorkout(profile,dateISO,variationOrdinal=0){
        ?"Recovery Guard is intentionally prioritizing recovery over the full requested duration."
        :"This unusually narrow focus/equipment combination could not reach 90% of the requested time without exceeding the movement-specific volume ceilings.")
      :"Estimated work is slightly longer than requested; trim a set if you need a strict cap.";
- return {name:focusName+" • "+profile.difficulty+" • "+profile.duration+" min",profile,rows,estimatedMinutes:fit.estimate,durationFit:fit.status,durationRatio:fit.ratio,variationOrdinal,durationNote:durationNote+" "+stressAdjustment.note+" One additional core finisher is appended after the requested time and is not included in the "+profile.duration+"-minute estimate.",stressBudget:stressAdjustment,modelNote:"Selection is locally optimized as a whole workout for progression-tree readiness, learned dose response, adaptive rolling 7-day stress budget, multi-rate localized fatigue, future-schedule interference, movement redundancy, recent related work, prior substitutions. Requested duration is treated as a real programming constraint: exercise breadth first, then productive sets, then modest rep/hold expansion. Core selected as a focus remains part of the timed workout; the universal core finisher is an additional exercise. "+(variationOrdinal>0?"This is controlled variation #"+variationOrdinal+": only near-equivalent movements within the same training role were rotated.":"This is the deterministic top-scoring build.")};
+ return {name:focusName+" • "+profile.difficulty+" • "+profile.duration+" min",profile,rows,estimatedMinutes:fit.estimate,durationFit:fit.status,durationRatio:fit.ratio,variationOrdinal,durationNote:durationNote+" "+stressAdjustment.note+" One additional core finisher is appended after the requested time and is not included in the "+profile.duration+"-minute estimate.",stressBudget:stressAdjustment,modelNote:"Selection is locally optimized as a whole workout for progression-tree readiness, learned dose response, adaptive rolling 7-day stress budget, multi-rate localized fatigue, future-schedule interference, movement redundancy, recent related work, prior substitutions, and a training-effect factor that gives mobility/activation-heavy movements less strength and fatigue credit than primary strengthening movements. Requested duration is treated as a real programming constraint: exercise breadth first, then productive sets, then modest rep/hold expansion. Core selected as a focus remains part of the timed workout; the universal core finisher is an additional exercise. "+(variationOrdinal>0?"This is controlled variation #"+variationOrdinal+": only near-equivalent movements within the same training role were rotated.":"This is the deterministic top-scoring build.")};
 }
 function calWorkoutForDate(dateISO){
  const saved=(state.settings.calisthenicsWorkouts||{})[dateISO];
@@ -7642,7 +7723,7 @@ function recommendCalFromModel(){
  const date=calBuilderDate.value||selectedDateISO||localISO(new Date()),rec=recommendedAdaptiveCalisthenicsForDate(date),w=rec.plan||{},p=w.profile||{};
  applyCalProfileToControls(p);calWorkoutName.value=w.name||rec.label||"Adaptive Calisthenics";calBuilderRows.innerHTML="";(w.rows||[]).forEach(addCalBuilderRow);
  const why=(rec.why||[]).slice(0,5).map(htmlSafe).join(" • "),timed=(w.rows||[]).filter(r=>!r.untimedCoreFinisher).length,finishers=(w.rows||[]).filter(r=>r.untimedCoreFinisher).length;
- calAdaptiveStatus.innerHTML='<strong>Recommended for '+htmlSafe(date)+':</strong> '+htmlSafe(w.name||rec.label||"Adaptive Calisthenics")+' • '+timed+' timed exercises • ~'+Math.round(w.estimatedMinutes||p.duration||40)+' min'+(finishers?' • + '+finishers+' untimed core finisher':'')+'.'+(why?'<br><span class="muted">'+why+'</span>':'')+'<br><span class="muted">Nothing is scheduled until you tap Save Workout to Date. You can edit every field first.</span>';
+ calAdaptiveStatus.innerHTML='<strong>Recommended for '+htmlSafe(date)+':</strong> '+htmlSafe(w.name||rec.label||"Adaptive Calisthenics")+' • '+timed+' timed exercises • ~'+Math.round(w.estimatedMinutes||p.duration||40)+' min'+(finishers?' • + '+finishers+' untimed core finisher':'')+'.'+(why?'<br><span class="muted">'+why+'</span>':'')+'<br><span class="muted">Mobility/activation-heavy movements can still appear, but the model gives them less strengthening credit and lower fatigue/load impact than primary strength movements. Nothing is scheduled until you tap Save Workout to Date, and you can edit every field first.</span>';
 }
 
 function saveCalBuilder(){
@@ -9009,7 +9090,7 @@ saveSettings.addEventListener("click",()=>{
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:36,appBuild:"v36.24",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:36,appBuild:"v36.26",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:11,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference including scheduled classes","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides"]},
