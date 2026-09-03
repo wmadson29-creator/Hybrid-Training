@@ -584,6 +584,12 @@ body.substitution-sheet-open{overflow:hidden}
 .substitution-search-results{display:grid;gap:5px;margin-top:7px;max-height:260px;overflow:auto}
 .substitution-search-result{width:100%;text-align:left;white-space:normal;padding:9px 10px;min-height:42px}
 .substitution-empty{font-size:.7rem;color:var(--muted);padding:8px 2px}
+.log-change-reason{margin:7px 0 2px;padding:8px 9px;border:1px solid #294156;border-radius:11px;background:#0c151e}
+.log-change-reason.hidden{display:none}
+.log-change-reason .field{margin:0}
+.recommendation-feedback-panel{margin:10px 0;padding:11px;border:1px solid #2a455f;border-radius:13px;background:#0c151e}
+.recommendation-feedback-panel.hidden{display:none}
+.recommendation-feedback-panel .form-grid{margin-top:8px}
 .conditioning-components-host:empty{display:none}
 .conditioning-components-box{margin:8px 0 10px;padding:9px;border:1px solid #2b4055;border-radius:12px;background:#0b151f}
 .conditioning-components-head{margin-bottom:7px}
@@ -816,6 +822,16 @@ body.substitution-sheet-open{overflow:hidden}
         </div>
         <div class="field"><label>Overall notes</label><textarea id="sessionNotes" placeholder="Energy, soreness, pain, sleep, what felt strong or weak, etc."></textarea></div>
       </div>
+      <div class="recommendation-feedback-panel hidden" id="recommendationFeedbackPanel">
+        <div class="gym-step-title">Recommendation feedback <span class="muted">(optional)</span></div>
+        <div class="gym-step-sub">This teaches the adaptive engine whether the workout choice and dose were useful. It never changes fixed TB / KB anchor days.</div>
+        <div class="form-grid">
+          <div class="field"><label>How was the recommendation?</label>
+            <select id="recommendationFeedback"><option value=""></option><option value="good">Good recommendation</option><option value="too_easy">Too easy</option><option value="too_hard">Too hard</option><option value="wrong_type">Wrong type of workout</option><option value="avoid_often">Would rather not see this often</option></select>
+          </div>
+          <div class="field"><label>Feedback note <span class="muted">(optional)</span></label><input id="recommendationFeedbackNote" placeholder="e.g. wanted to run, legs were fine, too much swimming..."></div>
+        </div>
+      </div>
       <div class="gym-step wearable-session-panel">
         <div class="gym-step-title">Helio Workout Metrics <span class="muted">(optional)</span></div>
         <div class="gym-step-sub">Use the workout summary from Zepp. These values are stored once for the whole session, not once per exercise.</div>
@@ -862,6 +878,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="field"><label>SpO₂ (%)</label><input id="recSpo2" type="number" min="50" max="100" step=".1"></div>
         <div class="field"><label>Steps / daily activity</label><input id="recSteps" type="number" min="0" step="1"></div>
         <div class="field"><label>VO₂ max</label><input id="recVo2" type="number" min="0" step=".1"></div>
+        <div class="field"><label>Bodyweight (lb) <span class="muted">— weekly optional</span></label><input id="recBodyweight" type="number" min="80" max="500" step=".1" placeholder="e.g. 210.0"></div>
         <div class="field notes"><label>Notes</label><input id="recNotes" placeholder="Travel, unusually late bedtime, illness, soreness, etc."></div>
       </div>
       <div class="notice" id="recoveryAnalysis"><strong>Baseline:</strong> Add several days of data and the app will compare today's HRV, resting HR, sleep, BioCharge, stress, and prior-day activity with your own normal range.</div>
@@ -881,7 +898,7 @@ body.substitution-sheet-open{overflow:hidden}
     </div>
     <div class="panel">
       <div class="panel-head"><div><div class="panel-title">Recent Daily Recovery</div><div class="panel-sub">Most recent 21 Helio entries. Tap Edit to reopen any saved day.</div></div></div>
-      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Sleep</th><th>HRV</th><th>Rest HR</th><th>BioCharge</th><th>Stress</th><th>Steps</th><th>Readiness</th><th>Action</th></tr></thead><tbody id="recoveryHistoryBody"></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Sleep</th><th>HRV</th><th>Rest HR</th><th>BioCharge</th><th>Stress</th><th>Steps</th><th>Weight</th><th>Readiness</th><th>Action</th></tr></thead><tbody id="recoveryHistoryBody"></tbody></table></div>
     </div>
     <div class="panel">
       <div class="panel-head"><div><div class="panel-title">Recent Helio Workout Metrics</div><div class="panel-sub">Optional session-level data entered while logging workouts.</div></div></div>
@@ -1336,7 +1353,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.28</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.31</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -1631,6 +1648,9 @@ const saveTbMaxes=document.getElementById("saveTbMaxes");
 const selectedDateBadge=document.getElementById("selectedDateBadge");
 const sessionFeel=document.getElementById("sessionFeel");
 const sessionNotes=document.getElementById("sessionNotes");
+const recommendationFeedbackPanel=document.getElementById("recommendationFeedbackPanel");
+const recommendationFeedback=document.getElementById("recommendationFeedback");
+const recommendationFeedbackNote=document.getElementById("recommendationFeedbackNote");
 const squatInc=document.getElementById("squatInc");
 const squatTm=document.getElementById("squatTm");
 const statBlock=document.getElementById("statBlock");
@@ -2315,7 +2335,8 @@ function utmRecoveryOutcomeForDate(dateISO){
  return (errors.length?utmMean(errors):0)+bad*.45-good*.08;
 }
 function utmRecoveryMetricBadness(dateISO,key,value){
- const base=recoveryMetricBaseline(dateISO,key,28).value;if(base===null||!Number.isFinite(Number(value)))return null;const v=Number(value);
+ const base=recoveryMetricBaseline(dateISO,key,28).value;if(base===null||!Number.isFinite(Number(value)))return null;
+ const v=key==="steps"?backgroundStepContextForDate(dateISO).background:Number(value);if(v===null||!Number.isFinite(Number(v)))return null;
  if(key==="sleepHours"||key==="sleepScore"||key==="hrv"||key==="wakeBio"||key==="currentBio")return (base-v)/Math.max(1,Math.abs(base));
  if(key==="restingHr"||key==="stress"||key==="steps")return (v-base)/Math.max(1,Math.abs(base));
  return null;
@@ -2341,17 +2362,17 @@ function utmHalfLifeHours(group,key){
  return group==="muscles"?(UTM_MUSCLE_HALF_LIFE[key]||28):(UTM_SYSTEM_HALF_LIFE[key]||28);
 }
 function utmPerformanceIndex(row,name=row?.exercise){
- if(!row||!name)return 0;const details=Array.isArray(row.setDetails)?row.setDetails.filter(sd=>sd&&(sd.reps||sd.weight||sd.rpe)):[];
- if(details.length){const vals=details.map(sd=>{const rr=Number(sd.rpe)||effectiveEffortRpe(row),rp=utmRepAverage(sd.reps||row.reps),kg=/kg/i.test(String(sd.weight||row.weight||"")),ld=kg?parseKg(sd.weight||row.weight):parseLb(sd.weight||row.weight);if(ld>0){const rir=rr?utmClamp(10-rr,0,4):2,base=/weighted pull-up/i.test(name)?100+ld:ld;return base*(1+(Math.max(1,rp||5)+rir)/30)}return 0}).filter(x=>x>0).sort((a,b)=>b-a);if(vals.length)return utmMean(vals.slice(0,Math.min(2,vals.length)))}
+ if(!row||!name)return 0;const details=Array.isArray(row.setDetails)?row.setDetails.filter(sd=>sd&&(sd.reps||sd.weight||sd.rpe)):[],bodyLb=estimatedBodyweightForDate(row.date||localISO(new Date()),120)?.lb||100;
+ if(details.length){const vals=details.map(sd=>{const rr=Number(sd.rpe)||effectiveEffortRpe(row),rp=utmRepAverage(sd.reps||row.reps),kg=/kg/i.test(String(sd.weight||row.weight||"")),ld=kg?parseKg(sd.weight||row.weight):parseLb(sd.weight||row.weight);if(ld>0){const rir=rr?utmClamp(10-rr,0,4):2,base=/weighted pull-up/i.test(name)?bodyLb+ld:ld;return base*(1+(Math.max(1,rp||5)+rir)/30)}return 0}).filter(x=>x>0).sort((a,b)=>b-a);if(vals.length)return utmMean(vals.slice(0,Math.min(2,vals.length)))}
  const r=effectiveEffortRpe(row),reps=utmRepAverage(row.reps),sets=Math.max(1,Number(row.sets)||1),kg=/kg/i.test(String(row.weight||"")),load=kg?parseKg(row.weight):parseLb(row.weight),cal=calisthenicsExercise(name),gym=gymExercise(name),kbe=kbExercise(name);
  if(gym?.load==="assist")return 0;
  if(load>0){
-   const rir=r?utmClamp(10-r,0,4):2,repEq=Math.max(1,reps||5)+rir,baseLoad=(/weighted pull-up/i.test(name)?100+load:load);
+   const rir=r?utmClamp(10-r,0,4):2,repEq=Math.max(1,reps||5)+rir,baseLoad=(/weighted pull-up/i.test(name)?bodyLb+load:load);
    return baseLoad*(1+repEq/30)*(1+Math.min(4,sets-1)*.008);
  }
  if(cal){
-   const level=Number(cal.level)||1,hold=/sec|second/i.test(String(row.reps||"")),measure=reps||1;
-   return level*100+(hold?Math.min(120,measure)*.35:Math.log1p(measure)*12)+Math.min(5,sets)*1.5;
+   const level=Number(cal.level)||1,hold=/sec|second/i.test(String(row.reps||"")),measure=reps||1,bw=estimatedBodyweightForDate(row.date||localISO(new Date()),120)?.lb||200,bwScale=utmClamp(bw/200,.85,1.20);
+   return (level*100+(hold?Math.min(120,measure)*.35:Math.log1p(measure)*12)+Math.min(5,sets)*1.5)*bwScale;
  }
  if(kbe&&load<=0)return (Number(kbe.level)||1)*100+Math.log1p(reps||5)*10;
  return reps?Math.log1p(reps)*15+sets*2:0;
@@ -2502,7 +2523,32 @@ function utmProgressionState(name,dateISO,_internal=false){
  return {exposures:cap.exposures,recent:recent.length,good,bad,confidence:cap.confidence,evidenceReady,validPredictionErrors:predErr.length,avgPredictionError:Math.round(avgErr*10)/10,plateau:cap.plateau,direction,capability:cap.capability,bestCapability:cap.best,trendPct:cap.trendPct,uncertainty:cap.uncertainty};
 }
 function utmOverridePreference(name,dateISO){
- let score=0;historyRowsBefore(dateISO,180).forEach(x=>{if(x.modelPlannedExercise&&x.modelPlannedExercise!==x.exercise){if(x.exercise===name)score+=1.5;if(x.modelPlannedExercise===name)score-=1.5}});return Math.max(-6,Math.min(6,score))
+ let score=0;historyRowsBefore(dateISO,180).forEach(x=>{
+  if(!(x.modelPlannedExercise&&x.modelPlannedExercise!==x.exercise))return;
+  const reason=String(x.changeReason||x.substitutionReason||"").toLowerCase();
+  let weight=1.5;if(["equipment_unavailable","too_fatigued","pain_discomfort","time_constraint"].includes(reason))weight=0;
+  else if(reason==="wanted_variety")weight=.55;else if(reason==="dislike")weight=2.25;
+  if(x.exercise===name)score+=weight;if(x.modelPlannedExercise===name)score-=weight;
+ });return Math.max(-6,Math.min(6,score))
+}
+function recommendationFeedbackHistory(dateISO,days=180){
+ const seen=new Set(),out=[];historyRowsBefore(dateISO,days).slice().sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a)).forEach(x=>{
+  const id=x.sessionId||[x.date,x.session,x.sessionTime||""].join("|");if(seen.has(id)||!x.recommendationFeedback)return;seen.add(id);out.push(x);
+ });return out;
+}
+function recommendationFeedbackAdjustment(target,dateISO,scope="target"){
+ let score=0,matched=0;const t=String(target||"");if(!t)return {score:0,matched:0,reasons:[]};
+ for(const x of recommendationFeedbackHistory(dateISO,180)){
+  const key=scope==="session"?String(x.recommendationFeedbackSession||x.session||""):String(x.recommendationFeedbackTarget||"");if(key!==t)continue;
+  const age=Math.max(0,daysBetweenISO(x.date,dateISO)),decay=Math.max(.25,1-age/180),f=String(x.recommendationFeedback||"");matched++;
+  if(f==="good")score+=2.2*decay;else if(f==="wrong_type")score-=8*decay;else if(f==="avoid_often")score-=4.5*decay;
+ }
+ score=Math.max(-12,Math.min(6,score));const reasons=[];if(score<=-2)reasons.push("Your prior recommendation feedback lowers this option's priority.");else if(score>=1.5)reasons.push("Your prior recommendation feedback modestly favors this option.");return {score,matched,reasons};
+}
+function recommendationDoseNudge(target,dateISO,scope="target"){
+ let n=0,w=0;const t=String(target||"");if(!t)return 0;
+ for(const x of recommendationFeedbackHistory(dateISO,120)){const key=scope==="session"?String(x.recommendationFeedbackSession||x.session||""):String(x.recommendationFeedbackTarget||"");if(key!==t)continue;const age=Math.max(0,daysBetweenISO(x.date,dateISO)),decay=Math.max(.35,1-age/120),f=String(x.recommendationFeedback||"");if(f==="too_easy"){n+=decay;w+=decay}else if(f==="too_hard"){n-=decay;w+=decay}}
+ return w?Math.max(-1,Math.min(1,n/w)):0;
 }
 
 
@@ -2587,6 +2633,7 @@ function utmStressVectorForRow(row){
  out.hingeAxial=base*((v.hinge||0)*.75+(f.axial||0));
  out.impact=base*(f.impact||0)*1.35;out.grip=base*Math.max(m.grip||0,f.grip||0);
  out.aerobic=base*(f.aerobic||0)*1.45;out.anaerobic=base*(f.anaerobic||0)*1.35;out.systemic=base*(f.systemic||0);
+ if(conditioningTraits(row.exercise).run){const bwScale=bodyweightRelativeLoadScale(row.date||localISO(new Date())),root=Math.sqrt(bwScale);out.impact*=bwScale;out.lowerBody*=root;out.systemic*=root}
  return Object.fromEntries(UTM_STRESS_DIMS.map(k=>[k,Math.round((out[k]||0)*100)/100]));
 }
 function utmStressVectorAdd(a,b){const o={};UTM_STRESS_DIMS.forEach(k=>o[k]=(a[k]||0)+(b[k]||0));return o}
@@ -3209,7 +3256,7 @@ const conditioningPlan = [
   {"week": 1, "wed": {"activity": "LSS Run", "detail": "45 min easy, steady, conversational pace", "target": "45 min", "rpe": "4–5"}, "sat": {"activity": "Connaught Range 10 to 1s", "detail": "HIC #1 • aerobic/anaerobic mix", "target": "10-to-1", "rpe": "8–9"}},
   {"week": 2, "wed": {"activity": "LSS Swim", "detail": "45 min easy continuous aerobic work", "target": "45 min", "rpe": "4"}, "sat": {"activity": "GC 1 — Beat Your Face", "detail": "HIC #25 • general conditioning; record burpees by interval", "target": "1–3 rounds", "rpe": "8–9"}},
   {"week": 3, "wed": {"activity": "LSS Cycle", "detail": "50 min easy, steady, conversational effort", "target": "50 min", "rpe": "4–5"}, "sat": {"activity": "600 Meter Resets", "detail": "HIC #3 • 600 m max effort / 3–5 min reset ×6", "target": "6 × 600 m", "rpe": "9"}},
-  {"week": 4, "wed": {"activity": "Triples", "detail": "Jump rope 10 + run 10 + row 10 ×2, all easy", "target": "2 circuits", "rpe": "4–5"}, "sat": {"activity": "GC 9", "detail": "HIC #33 • 10-min AMRAP then 100 m sprints", "target": "A + B", "rpe": "8"}},
+  {"week": 4, "wed": {"activity": "Triples", "detail": "Row 10 + run 10 + bike 10 ×2, all easy", "target": "2 circuits", "rpe": "4–5"}, "sat": {"activity": "GC 9", "detail": "HIC #33 • 10-min AMRAP then 100 m sprints", "target": "A + B", "rpe": "8"}},
   {"week": 5, "wed": {"activity": "LSS Swim", "detail": "45–60 min easy continuous aerobic work", "target": "45–60 min", "rpe": "4"}, "sat": {"activity": "Short Hills", "detail": "HIC #10 • 10–15 sec hills with walk-back recovery", "target": "10 hills", "rpe": "8–9"}},
   {"week": 6, "wed": {"activity": "LSS Run", "detail": "45 min very comfortable; keep it genuinely easy", "target": "45 min", "rpe": "4"}, "sat": {"activity": "GC 10", "detail": "HIC #34 • controlled version for the end of the strength block", "target": "4 rounds + finisher", "rpe": "7–8"}},
   {"week": 7, "wed": {"activity": "LSS Cycle", "detail": "60 min easy", "target": "60 min", "rpe": "4–5"}, "sat": {"activity": "BOO II", "detail": "HIC #8 • burpee/run circuit", "target": "3 rounds", "rpe": "8–9"}},
@@ -3228,7 +3275,7 @@ const conditioningPlan = [
 
 const preKbSaturdayPlan = [
  {activity:"LSS Run",detail:"60 min easy, steady, conversational pace",target:"60 min",rpe:"4–5"},
- {activity:"Triples",detail:"2 easy circuits: jump rope / run / row",target:"2 circuits",rpe:"4–5"},
+ {activity:"Triples",detail:"2 easy circuits: row / run / bike",target:"2 circuits",rpe:"4–5"},
  {activity:"LSS Run",detail:"60 min easy steady run",target:"60 min",rpe:"4–5"},
  {activity:"Ruck Up",detail:"45–60 min purposeful walk with a moderate load",target:"45–60 min",rpe:"4–5"},
  {activity:"LSS Run",detail:"60 min easy; work for time, not pace",target:"60 min",rpe:"4–5"},
@@ -3256,7 +3303,7 @@ const tbEnduranceLibrary = [
   {name:"Stair Climber", category:"E", prescription:"45–60 min steady climb at conversational effort", basic:"25–35 min easy steady climb", advanced:"60–90 min steady climb or controlled incline progression", logging:"stair"},
   {name:"LSS Stair Stepper", category:"E", prescription:"35–60 min easy on a stair stepper / stepmill at conversational effort", basic:"20–30 min easy", advanced:"60–90 min steady stepping", logging:"stair"},
   {name:"Ruck Up", category:"E", prescription:"90 min with 50 lb", basic:"20–30 lb for 30–60 min", advanced:"2–4+ hr and/or 80–100+ lb; distance option 3–10 mi", logging:"ruck"},
-  {name:"Triples", category:"E", prescription:"Jump rope 10 min + run 10 min + row 10 min × 2, no rest", basic:"1 circuit", advanced:"3–4 circuits", logging:"triples"},
+  {name:"Triples", category:"E", prescription:"Row 10 min + run 10 min + bike 10 min × 2, no rest", basic:"1 circuit", advanced:"3–4 circuits", logging:"triples"},
   {name:"Fun-Run — Standard Issue", category:"E / Fun-Run", prescription:"10 km easy run; every 6 min alternate burpees ×10 and squats ×20 + push-ups ×20", basic:"5 km; burpees ×5 / squats ×10 + push-ups ×10", advanced:"10 km; all 3 every 6 min OR 10–15 lb vest", logging:"funrun"},
   {name:"Fun-Run — Cannonball Run", category:"E / Fun-Run", prescription:"3 mi easy run with 12–24 kg KB in pack; every 7 min rotate swings ×10 / goblet squats ×10 / push-ups ×10", basic:"1.5 mi", advanced:"6 mi and/or 20 reps each and/or heavier KB", logging:"cannonball"},
   {name:"Fun-Run — 03 at Stupid-Dark 30", category:"E / Fun-Run", prescription:"6 mi for time; every 7 min rotate A/B/C calisthenics; timer pauses during exercises", basic:"2–3 mi with reduced reps", advanced:"8–10 mi with standard A/B/C", logging:"03"},
@@ -3486,6 +3533,17 @@ function save(reason="general"){
    return false;
  }
 }
+function repairStaleAutoRestSessionNotes(){
+ let repaired=0;
+ (state.logs||[]).forEach(row=>{
+   if(!row||row.session==="Recovery / Rest"||row.exercise==="Rest Day")return;
+   if(String(row.sessionNotes||"").trim()==="Rest day"){row.sessionNotes="";repaired++}
+ });
+ return repaired;
+}
+const v3629RepairedRestNotes=repairStaleAutoRestSessionNotes();
+if(v3629RepairedRestNotes)save("v36.29-stale-rest-note-repair");
+
 function clamp(n,a,b){n=Number(n);return Number.isFinite(n)?Math.max(a,Math.min(b,n)):a}
 function localISO(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day}
 function parseLocalISO(s){const p=String(s||"").split("-").map(Number);return p.length===3?new Date(p[0],p[1]-1,p[2],12,0,0):new Date(NaN)}
@@ -3889,6 +3947,7 @@ function rollingOpenDayRecommendation(dateISO,options={}){
    scores.Calisthenics+=4+(goal.calisthenics-1)*9+(stim.daysSinceCal>=8?5:stim.daysSinceCal<=2?-4:0);
    scores['Active Recovery']+=readiness.recoveryGuard?30:readiness.caution?13:Math.max(-5,(readiness.fatigueScore||0)*3-5);if(stim.recent3>=3)scores['Active Recovery']+=5;if(stim.daysSinceActive<=1)scores['Active Recovery']-=4;
    scores['Recovery / Rest']+=-10+(readiness.recoveryGuard?46:readiness.caution?13:Math.max(0,(readiness.fatigueScore||0)*3));if(stim.recent3>=3)scores['Recovery / Rest']+=5;if(stim.recent5>=5)scores['Recovery / Rest']+=5;if(stim.daysSinceFullRest<=3)scores['Recovery / Rest']-=8;if(noRest||options.suppressRest)scores['Recovery / Rest']=-999;
+   ["Conditioning","Strength-Endurance","Generic Gym","Calisthenics","Active Recovery"].forEach(sess=>{const f=recommendationFeedbackAdjustment(sess,dateISO,"session");scores[sess]+=f.score;if(f.reasons.length)why[sess].push(...f.reasons)});
    if(anchor.days<=1){scores['Generic Gym']-=6;scores['Strength-Endurance']-=8;if(readiness.caution)scores.Calisthenics-=3;why['Strength-Endurance'].push('A fixed '+anchor.session+' anchor is tomorrow, so muscular SE interference is penalized.');}
    if(readiness.lowerFatigue){scores['Strength-Endurance']-=8;scores['Generic Gym']-=4;scores.Conditioning+=endurance.urgency>=10?2:-3;}
    if(readiness.recoveryGuard){scores.Conditioning-=26;scores['Strength-Endurance']-=24;scores['Generic Gym']-=24;scores.Calisthenics-=20}
@@ -4135,7 +4194,7 @@ function gymAutomaticFocusScore(focus,dateISO){
 }
 function gymAutomaticProfile(dateISO){
  const readiness=adaptiveReadiness(dateISO),stress=utmWeeklyStressBudget(dateISO),goal=utmGoalWeights(dateISO),maxStress=Math.max(...Object.values(stress.ratio||{x:0}));
- const ranked=GYM_AUTO_FOCUS_KEYS.map(f=>gymAutomaticFocusScore(f,dateISO)).filter(x=>x.available).sort((a,b)=>b.score-a.score);
+ const ranked=GYM_AUTO_FOCUS_KEYS.map(f=>gymAutomaticFocusScore(f,dateISO)).filter(x=>x.available).sort((a,b)=>b.score-a.score),feedbackDose=recommendationDoseNudge("Generic Gym",dateISO,"session");
  const major=ranked.filter(x=>GYM_AUTO_MAJOR_FOCUS.has(x.focus)),focuses=major.slice(0,3).map(x=>x.focus);
  // Calves are deliberately an accessory priority. They can enter only after at least two
  // major groups are already selected AND only when their adjusted need is exceptionally high.
@@ -4149,6 +4208,7 @@ function gymAutomaticProfile(dateISO){
    if(maxStress<.70&&readiness.fatigueScore<.65){difficulty="hard";duration=55;}
    else if(maxStress<.88){difficulty="medium";duration=50;}
    else{difficulty="medium";duration=40;}
+   if(feedbackDose>.25&&difficulty==="medium")difficulty="hard";else if(feedbackDose<-.25&&difficulty==="hard")difficulty="medium";else if(feedbackDose<-.45&&difficulty==="medium")difficulty="easy";
    const strengthPriority=Number(goal?.weights?.strength)||1;
    const compoundFocus=focuses.some(f=>["chest","back","shoulders","quads","posterior"].includes(f));
    style=(strengthPriority>=1.18&&compoundFocus&&maxStress<.82)?"strength":"optimized";
@@ -4168,7 +4228,7 @@ function recommendedAdaptiveGymForDate(dateISO){
 function recommendedAdaptiveCalisthenicsForDate(dateISO){
  const readiness=adaptiveReadiness(dateISO),rank=calisthenicsExerciseLibrary.filter(x=>x.auto!==false&&(!x.requiresBar||state.settings.calHasPullupBar!==false)&&(!x.requiresBands||!!state.settings.calHasBands)).map(ex=>{const ctx=utmBuilderContext(ex.name,dateISO),effect=calTrainingEffect(ex);return {ex,ctx,effect,score:ctx.score-(1-effect.strength)*22}}).sort((a,b)=>b.score-a.score).slice(0,10),focuses=[];
  rank.forEach(x=>{const f=x.ex.focus;if(f!=="fullbody"&&!focuses.includes(f)&&focuses.length<3)focuses.push(f)});
- const profile={focus:focuses.length?focuses:["push","pull","core"],difficulty:readiness.caution?"easy":"medium",duration:readiness.caution?30:40,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},plan=buildCalisthenicsWorkout(profile,dateISO);
+ const calFeedbackDose=recommendationDoseNudge("Calisthenics",dateISO,"session"),profile={focus:focuses.length?focuses:["push","pull","core"],difficulty:readiness.caution?"easy":(calFeedbackDose>.3?"hard":calFeedbackDose<-.3?"easy":"medium"),duration:readiness.caution?30:(calFeedbackDose>.3?45:calFeedbackDose<-.3?35:40),hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands},plan=buildCalisthenicsWorkout(profile,dateISO);
  return {session:"Calisthenics",label:plan.name||"Adaptive Calisthenics",plan,why:uniqueConditioningReasons(["Built from today’s highest-scoring bodyweight movements.",...rank.slice(0,4).flatMap(x=>x.ctx.future?.reasons||[])])};
 }
 function recommendedAdaptiveConditioningForDate(dateISO){
@@ -4527,7 +4587,56 @@ function numericOrNull(v){const n=Number(v);return Number.isFinite(n)&&String(v)
 function median(vals){const a=vals.filter(x=>Number.isFinite(x)).sort((x,y)=>x-y);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
 function dailyRecoveryEntriesBefore(dateISO,days=28){return Object.entries(state.dailyRecovery||{}).filter(([d])=>d<dateISO&&daysBetweenISO(d,dateISO)<=days).map(([date,row])=>({date,...row})).sort((a,b)=>a.date.localeCompare(b.date))}
 function dailyRecoveryFor(dateISO){return (state.dailyRecovery||{})[dateISO]||null}
-function recoveryMetricBaseline(dateISO,key,days=28){const vals=dailyRecoveryEntriesBefore(dateISO,days).map(x=>numericOrNull(x[key])).filter(x=>x!==null);return {value:vals.length>=5?median(vals):null,count:vals.length}}
+function stepBearingConditioningRow(row){
+ const name=String(row?.exercise||""),kind=conditioningKind(name),t=conditioningTraits(name);
+ return row?.session==="Conditioning"||row?.session==="Active Recovery"||row?.session==="Class / Activity"
+   ?(t.run||/walk|hike|ruck/i.test(name)||kind==="runclass"||kind==="mixedstudio")
+   :false;
+}
+function locomotionMilesForStepCredit(row){
+ if(!stepBearingConditioningRow(row))return 0;
+ const m=row?.metrics||{},kind=conditioningKind(row.exercise),name=String(row.exercise||"");
+ if(kind==="mixedstudio"&&Number(m.runDistance)>0)return Number(m.runDistance);
+ const d=Number(m.distance);if(!(d>0))return 0;
+ let unit=String(m.distanceUnit||"").toLowerCase();
+ if(!unit){if(/standard issue/i.test(name))unit="km";else unit="mi"}
+ if(unit==="mi")return d;if(unit==="km")return d*.621371;if(unit==="m")return d/1609.344;if(unit==="yd")return d/1760;return 0;
+}
+function purposefulStepEstimateForDate(dateISO){
+ const rows=(state.logs||[]).filter(x=>x.date===dateISO&&!x.projectedForecast&&!["skipped","missed"].includes(String(x.status||"").toLowerCase())&&stepBearingConditioningRow(x));
+ let estimated=0,creditedRows=0;
+ rows.forEach(row=>{
+   const miles=locomotionMilesForStepCredit(row),name=String(row.exercise||""),m=row.metrics||{},mins=Number(m.time)||0,t=conditioningTraits(name),
+     walkLike=/walk|hike|ruck/i.test(name)&&!t.run,
+     stepsPerMile=walkLike?1850:1550;
+   let rowSteps=miles>0?miles*stepsPerMile:0;
+   // If distance was not logged, use a deliberately conservative time estimate.
+   // This prevents obvious double-counting without pretending we know exact cadence.
+   if(!(rowSteps>0)&&mins>0)rowSteps=mins*(walkLike?85:(t.run?125:0));
+   if(rowSteps>0){estimated+=rowSteps;creditedRows++}
+ });
+ return {estimated:Math.max(0,Math.round(estimated)),creditedRows};
+}
+function backgroundStepContextForDate(dateISO){
+ const row=dailyRecoveryFor(dateISO),total=numericOrNull(row?.steps),credit=purposefulStepEstimateForDate(dateISO);
+ if(total===null)return {total:null,purposeful:credit.estimated,background:null,creditedRows:credit.creditedRows};
+ // Never subtract the entire day. The estimate is intentionally capped because watch step
+ // counts and workout-derived step estimates are both imperfect.
+ const purposeful=Math.min(Math.round(total*.85),credit.estimated),background=Math.max(0,total-purposeful);
+ return {total,purposeful,background,creditedRows:credit.creditedRows};
+}
+function recoveryMetricBaseline(dateISO,key,days=28){
+ const vals=dailyRecoveryEntriesBefore(dateISO,days).map(x=>key==="steps"?backgroundStepContextForDate(x.date).background:numericOrNull(x[key])).filter(x=>x!==null);
+ return {value:vals.length>=5?median(vals):null,count:vals.length}
+}
+function graduatedStepLoadPoints(background,baseline){
+ if(!(background>=0)||!(baseline>0))return 0;
+ const delta=background-baseline,ratio=delta/baseline;
+ if(delta<2000||ratio<.20)return 0;
+ // Smooth, capped background-activity burden. Around an 8k baseline this is roughly:
+ // 12k -> .29, 18k -> .61, 25k -> .90 before personal weighting.
+ return Math.round(utmClamp(.08+.28*ratio+.018*(delta/1000),0,.90)*100)/100;
+}
 function wearableSessionEntriesBefore(dateISO,days=35){
  const target=modelAsOfTimestamp(dateISO),sameDayAllowed=dateISO===localISO(new Date())||(typeof logDate!=="undefined"&&logDate?.value===dateISO&&logTime?.value);
  return Object.values(state.wearableSessions||{}).filter(x=>{
@@ -4551,9 +4660,22 @@ function wearableRecoverySignals(dateISO){
   const cb=cur("currentBio");if(cb!==null){available++;if(cb<25)add(.75,"current BioCharge was very low","currentBio");else if(cb<40)add(.35,"current BioCharge was low","currentBio")}
   const stress=cur("stress");if(stress!==null){available++;if(stress>=80)add(.75,"stress was very high","stress");else if(stress>=70)add(.4,"stress was elevated","stress")}
  }
- if(prior){const steps=numericOrNull(prior.steps),base=b("steps");if(steps!==null&&base){available++;if(steps>base*1.35&&steps>base+3000)add(.5,"prior-day steps/activity were unusually high","steps")}}
+ const stepContext=prior?backgroundStepContextForDate(yesterday):{total:null,purposeful:0,background:null,creditedRows:0};
+ if(prior){
+  const base=b("steps");
+  if(stepContext.background!==null&&base){
+   available++;
+   const pts=graduatedStepLoadPoints(stepContext.background,base);
+   if(pts>0){
+    const delta=Math.round(stepContext.background-base),total=Math.round(stepContext.total||0),bg=Math.round(stepContext.background),
+      credit=Math.round(stepContext.purposeful||0),
+      creditText=credit>0?"; about "+credit.toLocaleString()+" steps were credited to logged run/walk/hike/ruck work":"";
+    add(pts,"prior-day background activity was elevated: "+total.toLocaleString()+" total steps, "+bg.toLocaleString()+" background vs "+Math.round(base).toLocaleString()+" baseline (+"+delta.toLocaleString()+")"+creditText,"steps");
+   }
+  }
+ }
  const sess=wearableSessionLoadSignals(dateISO);if(sess.loadSpike)add(.75,"Helio training load spiked above your recent weekly baseline");if(sess.recoveryFlag)add(.5,"the latest Helio workout still carried a long recovery-time recommendation");
- score=Math.max(0,score);return {current,baselines,score,level:score>=2?"guard":score>=1?"watch":"normal",reasons,available,sessionLoad:sess,learnedWeights};
+ score=Math.max(0,score);return {current,baselines,score,level:score>=2?"guard":score>=1?"watch":"normal",reasons,available,sessionLoad:sess,learnedWeights,stepContext};
 }
 function recoveryReadinessLabel(sig){if(!sig||!sig.current)return "No data";if(sig.level==="guard")return "Recovery constrained";if(sig.level==="watch")return "Watch recovery";return "Normal"}
 function recoveryAnalysisText(dateISO){const s=wearableRecoverySignals(dateISO),c=s.current;if(!c)return "<strong>No Helio entry for this date.</strong> Add today's recovery values to let the adaptive engine compare them with your rolling baseline.";const parts=[],metric=(label,key,unit="")=>{const v=numericOrNull(c[key]),base=s.baselines[key]?.value;if(v!==null)parts.push("<strong>"+label+":</strong> "+v+unit+(base!==null&&base!==undefined?" (baseline "+Math.round(base*10)/10+unit+")":""))};metric("Sleep","sleepHours"," h");metric("HRV","hrv"," ms");metric("Resting HR","restingHr"," bpm");metric("Wake BioCharge","wakeBio","");let text="<strong>"+recoveryReadinessLabel(s)+"</strong> • wearable fatigue score "+(Math.round(s.score*100)/100)+". "+parts.join(" • ");if(s.reasons.length)text+="<br><strong>Recovery flags:</strong> "+s.reasons.join("; ")+".";else text+="<br>No meaningful wearable recovery flags are active. Good wearable data removes the recovery brake but does not create bonus progression.";return text}
@@ -4878,8 +5000,8 @@ function conditioningTraits(name){
  const s=String(name||"").toLowerCase();
  return {
    lowImpact:/swim|cycle|bike|row|walk|hike|stair|elliptical/.test(s),
-   run:/run|treadmill|meter|hills|oxygen|ladders|connaught|buffalo|capacity/.test(s),
-   sprint:/sprint|hills|600 meter|oxygen debt|speed-endurance|anaerobic capacity|connaught/.test(s),
+   run:/run|treadmill|meter|hills|oxygen|ladders|connaught|buffalo|capacity|black on oxygen|boo ii|meat-eater/.test(s),
+   sprint:/sprint|hills|600 meter|oxygen debt|speed-endurance|anaerobic capacity|connaught|meat-eater/.test(s),
    hinge:/black on oxygen|fobbit|meat-eater|apex|buffalo|devil|gc 4|gc 6|gc 8/.test(s),
    requiresKb:/black on oxygen|fobbit|meat-eater|apex|buffalo|devil|gc 4|gc 8|bloody lungs ii/.test(s),
    specialist:/heavy bag|sledge|disarmed|pepper potting|devil's trinity|outside the wire/.test(s)
@@ -4932,6 +5054,7 @@ function adaptiveEnduranceDuration(name,day,dateISO,readiness,longer=false,added
  if(readiness.timeSpike){equivalent*=.78;factors.push("A recent conditioning-time spike reduces duration.");}
  if(readiness.mileageSpike&&(name==="LSS Run"||name==="LSS Treadmill"||name==="Ruck Up")){equivalent*=.72;factors.push("A recent running-mileage spike reduces run/ruck duration.");}
  if(readiness.lowerFatigue&&(name==="LSS Run"||name==="LSS Treadmill"||name==="Ruck Up")){equivalent*=.80;factors.push("Severe recent lower-body fatigue reduces run/ruck duration.");}
+ const feedbackDose=recommendationDoseNudge(name,dateISO,"target");if(feedbackDose>.2){equivalent*=1+.08*feedbackDose;factors.push("Your prior feedback said this recommendation was too easy, so the next dose gets a small upward nudge.");}else if(feedbackDose<-.2){equivalent*=1+.10*feedbackDose;factors.push("Your prior feedback said this recommendation was too hard, so the next dose is reduced.");}
  equivalent*=.92+tinyTie(dateISO+"|endurance-duration|"+name)*.18;
  const cost=enduranceModalityCost(name);
  let minutes=equivalent/cost;
@@ -4966,8 +5089,8 @@ function easyAdaptivePick(day,gw,dateISO,readiness,longer=false,reasonPrefix="",
      // encouraged, but a different label must not bypass recovery after yesterday's run.
      if(runFamilyDays<=1)score-=24;else if(runFamilyDays===2)score-=4;else if(runFamilyDays<=4)score+=3;
    }else{if(days<4)score-=45;else if(days<7)score-=24;else if(days<10)score-=10;}
-   score+=context.score+learning.score+tinyTie(dateISO+"|"+name)*2;
-   return {e,score,days,context,learning};
+   const feedback=recommendationFeedbackAdjustment(name,dateISO,"target");score+=context.score+learning.score+feedback.score+tinyTie(dateISO+"|"+name)*2;
+   return {e,score,days,context,learning,feedback};
  }).filter(x=>!x.context.blocked).sort((a,b)=>b.score-a.score);
  const pick=scored[0]||{e:entryForName("LSS Walk"),score:0,days:9999,context:{reasons:[]},learning:{factors:[]}},
    name=pick.e.name,recovery=readiness.recoveryGuard,
@@ -4976,7 +5099,7 @@ function easyAdaptivePick(day,gw,dateISO,readiness,longer=false,reasonPrefix="",
  const recency=pick.days>=9999?"This modality has not been logged yet.":"Last "+name+" session was "+pick.days+" days ago.";
  let factors=[];
  if(reasonPrefix)factors.push(reasonPrefix);
- factors.push(recency,...(pick.context.reasons||[]),...(duration.whyFactors||[]));
+ factors.push(recency,...(pick.context.reasons||[]),...(pick.feedback?.reasons||[]),...(duration.whyFactors||[]));
  if(readiness.mileageSpike)factors.push("Recent running mileage is "+readiness.recentMiles.toFixed(1)+" mi versus a "+readiness.baselineWeeklyMiles.toFixed(1)+" mi weekly baseline.");
  if(readiness.timeSpike)factors.push("Recent conditioning time is "+Math.round(readiness.recentMinutes)+" min versus a "+Math.round(readiness.baselineWeeklyMinutes)+" min weekly baseline.");
  if(readiness.hrElevated)factors.push("Recent conditioning heart-rate response is elevated versus your overall recent conditioning baseline.");
@@ -5025,17 +5148,19 @@ function conditioningMetricSnapshot(row){
    speed=meters>0&&seconds>0?meters/seconds:0,watts=Number(m.avgWatts)||0,paceSec=parsePaceSeconds(m.pace),avgRep=parseFlexibleSeconds(m.avgRep||m.bestRep),best=parseFlexibleSeconds(m.bestRep),last=parseFlexibleSeconds(m.lastRep),
    workSec=parseFlexibleSeconds(m.workInterval),restSec=parseFlexibleSeconds(m.restInterval),intervalCount=parseFirstNumber(m.intervals)||0,
    fade=best>0&&last>0?Math.max(0,(last-best)/best):0,hr=Number(m.avgHr)||0,rpe=numberRpe(row?.rpe),
+   temp=Number(m.temperature)||0,elev=Number(m.elevation)||0,env=String(m.environment||""),surface=String(m.surface||""),isRun=conditioningTraits(row?.exercise).run,
+   heatFactor=isRun&&temp>=82?1+Math.min(.07,(temp-82)*.0018):1,vertFactor=isRun&&elev>0&&meters>0?1+Math.min(.06,(elev/Math.max(.25,meters/1609.344))*0.00008):1,
    baseEffDen=(1+Math.max(0,hr-90)/100)*(1+Math.max(0,rpe-4)*.08),
    repeatDensity=avgRep>0?(1/avgRep)*(1+Math.min(20,intervalCount)*.012)/(1+(restSec>0?Math.min(4,restSec/avgRep)*.10:0)):0,
    pacePerformance=paceSec>0?1/paceSec:0,
-   efficiency=speed>0?speed/baseEffDen:watts>0?watts/baseEffDen:pacePerformance>0?pacePerformance/baseEffDen:repeatDensity>0?repeatDensity/baseEffDen:0;
+   efficiency=speed>0?(speed*heatFactor*vertFactor)/baseEffDen:watts>0?watts/baseEffDen:pacePerformance>0?(pacePerformance*heatFactor*vertFactor)/baseEffDen:repeatDensity>0?repeatDensity/baseEffDen:0;
  let primary=0,kind="";
  if(watts>0){primary=watts;kind="power"}
  else if(speed>0){primary=speed;kind="speed"}
  else if(pacePerformance>0){primary=pacePerformance;kind="pace"}
  else if(repeatDensity>0){primary=repeatDensity;kind="repeat-density"}
  else if(mins>0&&categoryForEntry(entryForName(row.exercise))==="E"){primary=mins;kind="duration"}
- return {primary,kind,speed,watts,paceSec,avgRep,best,last,workSec,restSec,intervalCount,repeatDensity,fade,efficiency,hr,rpe,minutes:mins};
+ return {primary,kind,speed,watts,paceSec,avgRep,best,last,workSec,restSec,intervalCount,repeatDensity,fade,efficiency,hr,rpe,minutes:mins,temperature:temp,elevation:elev,environment:env,surface,heatFactor,vertFactor};
 }
 function conditioningCapabilityState(name,dateISO){
  const rows=historyRowsBefore(dateISO,240).filter(x=>!x.projectedForecast&&x.session==="Conditioning"&&x.exercise===name&&!["skipped","missed"].includes(String(x.status||"").toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).slice(-12),
@@ -5045,8 +5170,10 @@ function conditioningCapabilityState(name,dateISO){
    performanceTrendPct=trendOf(x=>x.primary),efficiencyTrendPct=trendOf(x=>x.efficiency),
    fades=recent.map(x=>x.s.fade).filter(x=>x>0),fadeTrendPct=fades.length>=2?((fades[fades.length-1]-fades[0])/Math.max(.01,fades[0]))*100:0,
    avgRpe=utmMean(recent.map(x=>x.s.rpe).filter(x=>x>0)),confidence=utmClamp(.28+Math.min(8,n)*.075+(recent.length>=4?.08:0),.28,.96);
- let direction="hold";if((performanceTrendPct>=2||efficiencyTrendPct>=2)&&(!avgRpe||avgRpe<=8.5))direction="up";if(performanceTrendPct<=-5||efficiencyTrendPct<=-5||(fadeTrendPct>=20&&fades.length>=2))direction="down";
- return {name,quality,exposures:rows.length,metricExposures:n,confidence:Math.round(confidence*100)/100,direction,performanceTrendPct:Math.round(performanceTrendPct*10)/10,efficiencyTrendPct:Math.round(efficiencyTrendPct*10)/10,fadeTrendPct:Math.round(fadeTrendPct*10)/10,avgRpe:Math.round(avgRpe*10)/10,latest:recent[recent.length-1]?.s||{}};
+ const runContext=conditioningTraits(name).run&&recent.some(x=>Number(x.s.temperature)>0||Number(x.s.elevation)>0||x.s.environment||x.s.surface);
+ let rawDecline=performanceTrendPct<=-5;if(runContext&&efficiencyTrendPct>-3)rawDecline=false;
+ let direction="hold";if((performanceTrendPct>=2||efficiencyTrendPct>=2)&&(!avgRpe||avgRpe<=8.5))direction="up";if(rawDecline||efficiencyTrendPct<=-5||(fadeTrendPct>=20&&fades.length>=2))direction="down";
+ return {name,quality,exposures:rows.length,metricExposures:n,confidence:Math.round(confidence*100)/100,direction,performanceTrendPct:Math.round(performanceTrendPct*10)/10,efficiencyTrendPct:Math.round(efficiencyTrendPct*10)/10,fadeTrendPct:Math.round(fadeTrendPct*10)/10,avgRpe:Math.round(avgRpe*10)/10,environmentContext:!!runContext,latest:recent[recent.length-1]?.s||{}};
 }
 function conditioningQualityRecency(quality,dateISO){
  const rows=historyRowsBefore(dateISO,365).filter(x=>x.session==="Conditioning"&&! ["skipped","missed"].includes(String(x.status||"").toLowerCase())&&(quality==="aerobicBase"?categoryForEntry(entryForName(x.exercise))==="E":conditioningQualityForName(x.exercise)===quality));
@@ -5087,8 +5214,8 @@ function hardAdaptivePick(day,gw,dateISO,readiness){
    if(traits.run){if(days<=1)score-=55;else if(days===2)score-=28;else if(days<5)score-=10;else if(days<8)score+=4;else score+=9;}
    else if(days<28)score-=60;
    if(["600 Meter Resets","Indoor Power Intervals","Short Hills","Oxygen Debt 101","Speed-Endurance Ladders","Fast 5 Tempo Run","Standard Issue Hills","GC 2","GC 3 — Brig Rat","GC 9","Connaught Range 10 to 1s"].includes(e.name))score+=5;
-   score+=trend.score+context.score+tinyTie(dateISO+"|"+e.name)*2;
-   return {e,score,days,cat,catDays,context,trend,quality};
+   const feedback=recommendationFeedbackAdjustment(e.name,dateISO,"target");score+=trend.score+context.score+feedback.score+tinyTie(dateISO+"|"+e.name)*2;
+   return {e,score,days,cat,catDays,context,trend,quality,feedback};
  }).filter(x=>!x.context.blocked);
  const warrior=entryForName("Warrior Run");
  if(warrior&&priorConditioning.length>=6){
@@ -5101,7 +5228,7 @@ function hardAdaptivePick(day,gw,dateISO,readiness){
    exact=pick.days>=9999?"This exact workout has not been logged before.":"This exact workout was last done "+pick.days+" days ago.",
    category=pick.catDays>=9999?catLabel+" has not been used recently.":catLabel+" was last used "+pick.catDays+" days ago.";
  const interval=utmIntervalProgressionState(pick.e.name,dateISO);
- let factors=[exact,category,...(pick.context.reasons||[])];
+ let factors=[exact,category,...(pick.context.reasons||[]),...(pick.feedback?.reasons||[])];
  if(pick.trend&&pick.trend.text)factors.push(pick.trend.text);
  if(interval.eligible&&interval.exposures>=2)factors.push(interval.why);
  factors.push((pick.context?.traits?.run?"Running-based hard sessions may recur much sooner than four weeks when recovery and mileage are appropriate; only very close repeats are strongly penalized.":"Exact repeats inside roughly four weeks are strongly penalized."));
@@ -5230,9 +5357,9 @@ function conditioningKind(activity){
 
 const CONDITIONING_COMPONENT_PRESETS={
  "Triples":[
-   {label:"Jump Rope",planned:"Jump Rope — Easy",category:"easyAerobic",alternatives:["Jump Rope — Easy","LSS Treadmill","LSS Stationary Bike","LSS Elliptical","LSS Row Machine","LSS Run","LSS Row","LSS Cycle","LSS Stair Stepper","Stair Climber","Step-Ups — Easy","Heavy Bag — Easy","Battle Ropes — Easy"]},
+   {label:"Row",planned:"LSS Row",category:"easyAerobic",alternatives:["LSS Row","LSS Row Machine","LSS Stationary Bike","LSS Elliptical","LSS Treadmill","LSS Cycle","LSS Run","LSS Swim","LSS Stair Stepper","Stair Climber"]},
    {label:"Run",planned:"LSS Run",category:"easyAerobic",alternatives:["LSS Run","LSS Treadmill","LSS Stationary Bike","LSS Elliptical","LSS Row Machine","LSS Row","LSS Cycle","LSS Swim","LSS Stair Stepper","Stair Climber","LSS Walk"]},
-   {label:"Row",planned:"LSS Row",category:"easyAerobic",alternatives:["LSS Row","LSS Row Machine","LSS Stationary Bike","LSS Elliptical","LSS Treadmill","LSS Cycle","LSS Run","LSS Swim","LSS Stair Stepper","Stair Climber"]}
+   {label:"Bike",planned:"LSS Cycle",category:"easyAerobic",alternatives:["LSS Cycle","LSS Stationary Bike","LSS Elliptical","LSS Treadmill","LSS Row Machine","LSS Row","LSS Run","LSS Swim","LSS Stair Stepper","Stair Climber"]}
  ],
  "Fun-Run — Standard Issue":[
    {label:"Easy Run",planned:"LSS Run",category:"easyAerobic",alternatives:["LSS Run","LSS Treadmill","LSS Stationary Bike","LSS Elliptical","LSS Row Machine","LSS Cycle","LSS Row","LSS Stair Stepper","Stair Climber","LSS Walk"]},
@@ -5450,8 +5577,15 @@ function validateConditioningComponentRatings(cards){
  return {ok:true};
 }
 
+function runningConditionsFieldsHTML(activity){
+ const treadmill=/treadmill/i.test(String(activity||""));
+ return '<div class="field"><label>Environment</label><select class="le-environment"><option'+(!treadmill?' selected':'')+'>Outdoor</option><option'+(treadmill?' selected':'')+'>Treadmill</option><option>Track</option><option>Indoor Track</option></select></div>'+
+   '<div class="field"><label>Temperature (°F)</label><input class="le-temperature" type="number" min="-20" max="140" step="1" placeholder="optional"></div>'+
+   '<div class="field"><label>Elevation Gain (ft)</label><input class="le-elev" type="number" min="0" step="1"></div>'+
+   '<div class="field"><label>Surface</label><select class="le-surface"><option value=""></option><option'+(treadmill?' selected':'')+'>Treadmill</option><option>Road</option><option>Sidewalk</option><option>Track</option><option>Trail</option><option>Mixed</option><option>Other</option></select></div>';
+}
 function conditioningFieldsHTML(activity){
-  const kind=conditioningKind(activity);
+  const kind=conditioningKind(activity),runConditions=runningConditionsFieldsHTML(activity);
   const common =
     '<div class="field"><label>RPE</label><input class="le-rpe" type="number" min="1" max="10" step=".5"></div>'+
     '<div class="field"><label>How it felt</label><select class="le-feel"><option value=""></option><option>Easy</option><option>Good</option><option>Hard but good</option><option>Grindy</option><option>Bad</option></select></div>'+
@@ -5487,9 +5621,8 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
     '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 8:15 /mi"></div>'+
     '<div class="field"><label>Avg Speed (mph)</label><input class="le-speed" type="number" min="0" step=".1"></div>'+
-    '<div class="field"><label>Elevation / Climb (ft)</label><input class="le-elev" type="number" min="0" step="1"></div>'+
     '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+runConditions+common;
   if(kind==="stairclass") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>Floors / Flights</label><input class="le-floors" type="number" min="0" step="1"></div>'+
     '<div class="field"><label>Elevation (ft)</label><input class="le-elev" type="number" min="0" step="1"></div>'+
@@ -5528,20 +5661,20 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>Sprint Distance (m)</label><input class="le-sprintdistance" type="number" min="0" step="10" value="100"></div>'+
     '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+runConditions+common;
 
   if(kind==="tempo") return '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01" placeholder="3.1"></div>'+
     '<div class="field"><label>Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 7:45 /mi"></div>'+
     '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+runConditions+common;
 
   if(kind==="resets600") return '<div class="field"><label>Reps Completed</label><input class="le-intervals" type="number" min="0" step="1" value="6"></div>'+
     '<div class="field"><label>Best 600 m</label><input class="le-bestrep" placeholder="e.g. 2:08"></div>'+
     '<div class="field"><label>Average 600 m</label><input class="le-avgrep" placeholder="e.g. 2:13"></div>'+
     '<div class="field"><label>Last 600 m</label><input class="le-lastrep" placeholder="e.g. 2:18"></div>'+
     '<div class="field"><label>Rest Used</label><input class="le-rest" placeholder="e.g. 4 min"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+runConditions+common;
 
   if(kind==="heavybag") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="5"></div>'+
     '<div class="field"><label>Work Interval</label><input class="le-work" value="90 sec"></div>'+
@@ -5567,14 +5700,14 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>Swings</label><input class="le-work" placeholder="60 sec or 30 reps"></div>'+
     '<div class="field"><label>Average 800 m</label><input class="le-avgrep" placeholder="e.g. 3:20"></div>'+
     '<div class="field"><label>Rest Interval</label><input class="le-rest" value="2–3 min"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+runConditions+common;
 
   if(kind==="boo2") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="3"></div>'+
     '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>Average 800 m</label><input class="le-avgrep" placeholder="optional"></div>'+
     '<div class="field"><label>Average 400 m</label><input class="le-lastrep" placeholder="optional"></div>'+
     '<div class="field"><label>Rest Interval</label><input class="le-rest" value="2–3 min"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+runConditions+common;
 
   if(kind==="fobbit") return '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1" value="20"></div>'+
     '<div class="field"><label>Cardio Mode</label><select class="le-activities"><option>Treadmill</option><option>Rower</option><option>Jump Rope</option></select></div>'+
@@ -5588,7 +5721,7 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>Recovery</label><input class="le-rest" placeholder="walk-back / 30–60 sec"></div>'+
     '<div class="field"><label>Vest Weight (lb)</label><input class="le-vestweight" type="number" min="0" step="1"></div>'+
     '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+runConditions+common;
 
 
   if(kind==="oxygen101") return '<div class="field"><label>Rounds Completed</label><input class="le-intervals" type="number" min="0" step="1" value="4"></div>'+
@@ -5596,20 +5729,20 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>Best 200 m</label><input class="le-bestrep" placeholder="e.g. 0:34"></div>'+
     '<div class="field"><label>Average 200 m</label><input class="le-avgrep" placeholder="e.g. 0:37"></div>'+
     '<div class="field"><label>30-sec Recovery Kept?</label><select class="le-activities"><option>Yes</option><option>Mostly</option><option>No</option></select></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1"></div>'+runConditions+common;
 
   if(kind==="seladder") return '<div class="field"><label>Ladders Completed</label><input class="le-intervals" type="number" min="0" step="1" value="1"></div>'+
     '<div class="field"><label>400 m Time</label><input class="le-bestrep" placeholder="time"></div>'+
     '<div class="field"><label>300 m Time</label><input class="le-avgrep" placeholder="time"></div>'+
     '<div class="field"><label>200 m Time</label><input class="le-lastrep" placeholder="time"></div>'+
     '<div class="field"><label>100 m Time</label><input class="le-sprint100" placeholder="time"></div>'+
-    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+common;
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+runConditions+common;
 
   if(kind==="meateater") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="10"></div>'+
     '<div class="field"><label>KB Weight</label><input class="le-kbweight" placeholder="kg"></div>'+
     '<div class="field"><label>Sprint Distance (m)</label><input class="le-sprintdistance" type="number" value="100"></div>'+
     '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0"></div>'+runConditions+common;
 
   if(kind==="meateater2") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="10"></div>'+
     '<div class="field"><label>KB Weight</label><input class="le-kbweight" placeholder="kg"></div>'+
@@ -5627,13 +5760,13 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>Typical Hill Time</label><input class="le-work" placeholder="30–45 sec"></div>'+
     '<div class="field"><label>Rest at Bottom</label><input class="le-rest" placeholder="1–2 min"></div>'+
     '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0"></div>'+runConditions+common;
 
   if(kind==="apexhills") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" placeholder="5–10"></div>'+
     '<div class="field"><label>KB Weight</label><input class="le-kbweight" placeholder="kg"></div>'+
     '<div class="field"><label>Hill Sprint Time</label><input class="le-work" placeholder="sec"></div>'+
     '<div class="field"><label>Rest at Bottom</label><input class="le-rest" placeholder="1–2 min"></div>'+
-    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+common;
+    '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+runConditions+common;
 
   if(kind==="bloody1") return '<div class="field"><label>Rounds</label><input class="le-intervals" type="number" min="0" step="1" value="5"></div>'+
     '<div class="field"><label>Plank Push-ups / Round</label><input class="le-work" value="10"></div>'+
@@ -5666,34 +5799,34 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>Minutes / Activity</label><input class="le-work" placeholder="e.g. 10 min"></div>'+
     '<div class="field"><label>Total Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
-    '<div class="field"><label>Activities Used</label><input class="le-activities" placeholder="Jump rope / run / row"></div>'+common;
+    '<div class="field"><label>Activities Used</label><input class="le-activities" placeholder="Row / run / bike"></div>'+common;
 
   if(kind==="funrun") return '<div class="field"><label>Run Distance (km)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
     '<div class="field"><label>Run Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>Exercise Stops</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
     '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
     '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+
-    '<div class="field"><label>Vest Weight (lb)</label><input class="le-vestweight" type="number" min="0" step="1"></div>'+common;
+    '<div class="field"><label>Vest Weight (lb)</label><input class="le-vestweight" type="number" min="0" step="1"></div>'+runConditions+common;
 
   if(kind==="cannonball") return '<div class="field"><label>Run Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
     '<div class="field"><label>Run Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>KB Weight</label><input class="le-kbweight" placeholder="e.g. 16 kg"></div>'+
     '<div class="field"><label>Exercise Stops</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
     '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+runConditions+common;
 
   if(kind==="03") return '<div class="field"><label>Run Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
     '<div class="field"><label>Running Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>Exercise Stops</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
     '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 8:10 /mi"></div>'+
     '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+runConditions+common;
 
   if(kind==="warrior") return '<div class="field"><label>Duration (min)</label><input class="le-time" type="number" min="0" step=".1" value="45"></div>'+
     '<div class="field"><label>Distance (mi)</label><input class="le-distance" type="number" min="0" step=".01"></div>'+
     '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 7:45 /mi"></div>'+
     '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
-    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+common;
+    '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+runConditions+common;
 
   if(kind==="se") return '<div class="field"><label>Cluster Type</label><select class="le-clustertype"><option>Kettlebell Cluster</option><option>Bodyweight Cluster</option><option>Barbell Cluster</option><option>Dumbbell Cluster</option><option>Mixed SE Circuit</option></select></div>'+
     '<div class="field"><label>Circuits Completed</label><input class="le-intervals" type="number" min="0" step="1"></div>'+
@@ -5723,7 +5856,7 @@ function conditioningFieldsHTML(activity){
     '<div class="field"><label>Time (min)</label><input class="le-time" type="number" min="0" step=".1"></div>'+
     '<div class="field"><label>Avg Heart Rate</label><input class="le-avghr" type="number" min="0" step="1" placeholder="bpm"></div>'+
     '<div class="field"><label>Max Heart Rate</label><input class="le-maxhr" type="number" min="0" step="1" placeholder="bpm"></div>'+
-    '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 8:20 /mi"></div>'+common;
+    '<div class="field"><label>Avg Pace</label><input class="le-pace" placeholder="e.g. 8:20 /mi"></div>'+runConditions+common;
 
   if(kind==="swim") return '<div class="field"><label>Distance</label><input class="le-distance" type="number" min="0" step="1"></div>'+
     '<div class="field"><label>Distance Unit</label><select class="le-unit"><option>yd</option><option>m</option><option>mi</option></select></div>'+
@@ -6200,7 +6333,24 @@ function planFor(session,gw){
  return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"",conditioning:false}];
 }
 
-const recoveryFieldMap={sleepHours:"recSleepHours",sleepScore:"recSleepScore",hrv:"recHrv",restingHr:"recRestingHr",wakeBio:"recWakeBio",currentBio:"recCurrentBio",stress:"recStress",spo2:"recSpo2",steps:"recSteps",vo2:"recVo2",notes:"recNotes"};
+const recoveryFieldMap={sleepHours:"recSleepHours",sleepScore:"recSleepScore",hrv:"recHrv",restingHr:"recRestingHr",wakeBio:"recWakeBio",currentBio:"recCurrentBio",stress:"recStress",spo2:"recSpo2",steps:"recSteps",vo2:"recVo2",bodyweight:"recBodyweight",notes:"recNotes"};
+function latestBodyweightForDate(dateISO=localISO(new Date()),maxAge=90){
+ const rows=Object.entries(state.dailyRecovery||{}).filter(([d,x])=>d<=dateISO&&Number(x?.bodyweight)>0).sort((a,b)=>b[0].localeCompare(a[0]));
+ if(!rows.length)return null;const [d,x]=rows[0],age=Math.max(0,daysBetweenISO(d,dateISO));if(age>maxAge)return null;return {date:d,lb:Number(x.bodyweight),age};
+}
+function bodyweightTrend(dateISO=localISO(new Date())){
+ const rows=Object.entries(state.dailyRecovery||{}).filter(([d,x])=>d<=dateISO&&Number(x?.bodyweight)>0).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8);
+ if(!rows.length)return {latest:null,entries:0,trendLb:0};const first=Number(rows[0][1].bodyweight),last=Number(rows[rows.length-1][1].bodyweight);return {latest:last,entries:rows.length,trendLb:Math.round((last-first)*10)/10};
+}
+function estimatedBodyweightForDate(dateISO=localISO(new Date()),maxDistanceDays=120){
+ const rows=Object.entries(state.dailyRecovery||{}).filter(([d,x])=>Number(x?.bodyweight)>0).map(([d,x])=>({date:d,lb:Number(x.bodyweight),distance:Math.abs(daysBetweenISO(d,dateISO))})).sort((a,b)=>a.distance-b.distance||b.date.localeCompare(a.date));
+ if(!rows.length||rows[0].distance>maxDistanceDays)return null;return rows[0];
+}
+function bodyweightRelativeLoadScale(dateISO=localISO(new Date())){
+ const rows=Object.entries(state.dailyRecovery||{}).filter(([d,x])=>d<=dateISO&&Number(x?.bodyweight)>0).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8);
+ if(rows.length<2)return 1;const current=Number(rows[rows.length-1][1].bodyweight),prior=rows.slice(0,-1).map(([,x])=>Number(x.bodyweight)).sort((a,b)=>a-b),m=Math.floor(prior.length/2),baseline=prior.length%2?prior[m]:(prior[m-1]+prior[m])/2;
+ if(!baseline)return 1;return utmClamp(current/baseline,.92,1.08);
+}
 function loadRecoveryForm(){const date=recoveryDate.value||localISO(new Date());recoveryDate.value=date;const row=dailyRecoveryFor(date)||{};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const el=document.getElementById(id);el.value=row[key]??""});recoveryAnalysis.innerHTML=recoveryAnalysisText(date)}
 function openRecoveryForDate(dateISO){
  const date=validIsoDateValue(dateISO)?dateISO:localISO(new Date());
@@ -6231,8 +6381,8 @@ function renderRecoveryHistory(){
  const rows=Object.entries(state.dailyRecovery||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,21);
  recoveryHistoryBody.innerHTML=rows.length?rows.map(([date,x])=>{
    const s=wearableRecoverySignals(date),lbl=recoveryReadinessLabel(s);
-   return "<tr><td>"+htmlSafe(date)+"</td><td>"+htmlSafe(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+htmlSafe(x.hrv??"")+"</td><td>"+htmlSafe(x.restingHr??"")+"</td><td>"+htmlSafe(x.wakeBio??"")+"</td><td>"+htmlSafe(x.stress??"")+"</td><td>"+htmlSafe(x.steps??"")+"</td><td>"+htmlSafe(lbl)+"</td><td><button class=\"btn recovery-history-edit\" data-date=\""+attrSafe(date)+"\" type=\"button\">Edit</button></td></tr>"
- }).join(""):'<tr><td colspan="9"><div class="empty">No daily Helio recovery entries yet.</div></td></tr>';
+   return "<tr><td>"+htmlSafe(date)+"</td><td>"+htmlSafe(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+htmlSafe(x.hrv??"")+"</td><td>"+htmlSafe(x.restingHr??"")+"</td><td>"+htmlSafe(x.wakeBio??"")+"</td><td>"+htmlSafe(x.stress??"")+"</td><td>"+htmlSafe(x.steps??"")+"</td><td>"+htmlSafe(x.bodyweight??"")+(x.bodyweight!==undefined?" lb":"")+"</td><td>"+htmlSafe(lbl)+"</td><td><button class=\"btn recovery-history-edit\" data-date=\""+attrSafe(date)+"\" type=\"button\">Edit</button></td></tr>"
+ }).join(""):'<tr><td colspan="10"><div class="empty">No daily Helio recovery entries yet.</div></td></tr>';
  recoveryHistoryBody.querySelectorAll(".recovery-history-edit").forEach(b=>b.addEventListener("click",()=>openRecoveryForDate(b.dataset.date)));
  const sessions=Object.values(state.wearableSessions||{}).filter(Boolean).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,20);
  wearableSessionHistoryBody.innerHTML=sessions.length?sessions.map(x=>"<tr><td>"+htmlSafe(x.date||"")+"</td><td>"+htmlSafe(x.session||"")+"</td><td>"+htmlSafe(x.duration||"")+(x.duration?" min":"")+"</td><td>"+htmlSafe(x.avgHr||"")+" / "+htmlSafe(x.maxHr||"")+"</td><td>"+htmlSafe(x.trainingLoad||"")+"</td><td>"+htmlSafe(x.aerobicTe||"")+" / "+htmlSafe(x.anaerobicTe||"")+"</td><td>"+htmlSafe(x.hrRecovery||"")+(x.hrRecovery?" bpm":"")+"</td><td>"+htmlSafe(x.recoveryHours||"")+(x.recoveryHours?" h":"")+"</td></tr>").join(""):'<tr><td colspan="8"><div class="empty">No Helio workout summaries logged yet.</div></td></tr>'
@@ -6597,6 +6747,15 @@ function substitutionBrowseChoices(conditioning,dateISO,current){
  if(conditioning)return [...new Set([...tbEnduranceLibrary.map(x=>x.name),...tbHICLibrary.map(x=>x.name),...tbPowerLibrary.map(x=>x.name),...(dayExerciseOptions.Wednesday||[]),...(dayExerciseOptions.Saturday||[])])].filter(x=>x&&x!==current&&x!=="Other");
  return allStrengthSubstitutionNames().filter(x=>x&&x!==current&&strengthSubstitutionAvailable(x)&&!entryForName(x));
 }
+const LOG_CHANGE_REASON_OPTIONS=[["","— Optional —"],["equipment_unavailable","Equipment unavailable"],["pain_discomfort","Pain / discomfort"],["too_fatigued","Too fatigued"],["time_constraint","Time constraint"],["dislike","Didn't like the exercise / activity"],["wanted_variety","Wanted variety"],["other","Other"]];
+function ensureLogChangeReasonControl(card){
+ if(!card||card.querySelector(".log-change-reason"))return;const swap=card.querySelector(".log-swap-action")||card.querySelector(".log-title");if(!swap)return;const box=document.createElement("div");box.className="log-change-reason hidden";
+ box.innerHTML='<div class="field"><label class="change-reason-label">Why did you change / skip it? <span class="muted">(optional)</span></label><select class="le-change-reason">'+LOG_CHANGE_REASON_OPTIONS.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join("")+'</select></div>';
+ swap.insertAdjacentElement("afterend",box);box.querySelector(".le-change-reason").addEventListener("change",()=>{logWorkspaceUserTouched=true;writeLogWorkspace()});
+}
+function refreshLogChangeReasonControl(card){
+ ensureLogChangeReasonControl(card);const box=card?.querySelector(".log-change-reason");if(!box)return;const planned=card.dataset.plannedExercise||currentCardExercise(card),actual=currentCardExercise(card),status=String(card.querySelector(".le-status")?.value||"").toLowerCase(),changed=!!(planned&&actual&&planned!==actual),notDone=["missed","skipped"].includes(status);box.classList.toggle("hidden",!(changed||notDone));const label=box.querySelector(".change-reason-label");if(label)label.innerHTML=(notDone?"Why was it skipped / missed?":"Why did you substitute it?")+' <span class="muted">(optional)</span>';
+}
 function applyLogCardSubstitution(card,name){
  const sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");if(!sel)return;
  let opt=[...sel.options].find(o=>o.value===name);
@@ -6604,7 +6763,7 @@ function applyLogCardSubstitution(card,name){
  card.dataset.userSubstituted="1";
  sel.value=name;if(custom)custom.classList.add("hidden");sel.dispatchEvent(new Event("change",{bubbles:true}));
  const title=card.querySelector(".log-title strong");if(title)title.textContent=name;
- refreshLogSwapTrigger(card);logWorkspaceUserTouched=true;writeLogWorkspace();
+ refreshLogSwapTrigger(card);refreshLogChangeReasonControl(card);logWorkspaceUserTouched=true;writeLogWorkspace();
 }
 function closeSubstitutionSheet(){
  document.querySelector(".substitution-sheet-backdrop")?.remove();document.body.classList.remove("substitution-sheet-open");
@@ -6615,7 +6774,7 @@ function refreshLogSwapTrigger(card){
  const current=currentCardExercise(card),planned=card.dataset.plannedExercise||current,conditioning=card.dataset.conditioning==="1",changed=planned&&current&&planned!==current;
  const strong=trigger.querySelector(".log-swap-copy strong"),sub=trigger.querySelector(".log-swap-copy span");if(strong)strong.textContent=changed?"Change substitute":"Swap "+(conditioning?"activity":"exercise");
  if(sub)sub.textContent=changed?("Planned: "+planned+" • Current: "+current):("Planned: "+planned+" • Tap to choose a close equivalent");
- trigger.setAttribute("aria-label",(changed?"Change substitute for ":"Choose substitute for ")+planned);
+ trigger.setAttribute("aria-label",(changed?"Change substitute for ":"Choose substitute for ")+planned);refreshLogChangeReasonControl(card);
 }
 function renderSubstitutionSearchResults(card,host,query){
  const current=currentCardExercise(card),conditioning=card.dataset.conditioning==="1",q=String(query||"").trim().toLowerCase(),all=substitutionBrowseChoices(conditioning,logDate.value,current),rows=all.filter(x=>!q||x.toLowerCase().includes(q)).slice(0,32);
@@ -6643,10 +6802,10 @@ function ensureLogSwapAction(card){
  if(!card||card.querySelector(".log-swap-action"))return;const title=card.querySelector(".log-title");if(!title)return;
  const conditioning=card.dataset.conditioning==="1",wrap=document.createElement("div");wrap.className="log-swap-action";
  wrap.innerHTML='<button class="btn log-swap-trigger" type="button"><span class="log-swap-icon">↔</span><span class="log-swap-copy"><strong>Swap '+(conditioning?'activity':'exercise')+'</strong><span></span></span><span class="log-swap-chevron">›</span></button>';
- title.insertAdjacentElement("afterend",wrap);wrap.querySelector(".log-swap-trigger").addEventListener("click",()=>openSubstitutionSheet(card));refreshLogSwapTrigger(card);
+ title.insertAdjacentElement("afterend",wrap);wrap.querySelector(".log-swap-trigger").addEventListener("click",()=>openSubstitutionSheet(card));ensureLogChangeReasonControl(card);refreshLogSwapTrigger(card);
  const sel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom");
- sel?.addEventListener("change",e=>{if(e.isTrusted)card.dataset.userSubstituted="1";refreshLogSwapTrigger(card)});
- custom?.addEventListener("input",e=>{if(e.isTrusted)card.dataset.userSubstituted="1";refreshLogSwapTrigger(card)});
+ sel?.addEventListener("change",e=>{if(e.isTrusted)card.dataset.userSubstituted="1";refreshLogSwapTrigger(card);refreshLogChangeReasonControl(card)});
+ custom?.addEventListener("input",e=>{if(e.isTrusted)card.dataset.userSubstituted="1";refreshLogSwapTrigger(card);refreshLogChangeReasonControl(card)});
 }
 function addLogCardControls(card){
  if(!card)return;
@@ -6693,7 +6852,7 @@ function syncExerciseCompletionState(card){
  const status=card.querySelector(".le-status");if(!status)return;
  const notDone=["missed","skipped"].includes(String(status.value||"").toLowerCase());
  card.classList.toggle("exercise-not-done",notDone);
- const exempt=new Set(["le-ex","le-custom","le-status","le-notes"]);
+ const exempt=new Set(["le-ex","le-custom","le-status","le-notes","le-change-reason"]);
  card.querySelectorAll("input,select,textarea").forEach(el=>{
    const classes=[...el.classList],keep=classes.some(c=>exempt.has(c));
    if(!keep){
@@ -6709,15 +6868,26 @@ function wireExerciseCompletionState(card){
    const syncRpe=()=>{const has=!!rpe.value;confidence.disabled=!has;if(has&&!confidence.value)confidence.value="rough";if(!has)confidence.value="";};
    rpe.addEventListener("input",syncRpe);confidence.addEventListener("change",writeLogWorkspace);syncRpe();
  }
- status.addEventListener("change",()=>syncExerciseCompletionState(card));
- syncExerciseCompletionState(card);
+ status.addEventListener("change",()=>{syncExerciseCompletionState(card);refreshLogChangeReasonControl(card)});
+ syncExerciseCompletionState(card);refreshLogChangeReasonControl(card);
 }
 
+function recommendationFeedbackTargetForCurrentSession(){
+ const sess=logSession.value||"";if(sess==="Conditioning"||sess==="Active Recovery"){const c=plannedExercises.querySelector(".log-exercise"),planned=safePlainText(c?.dataset?.plannedExercise||"",240),actual=c?currentCardExercise(c):"";return planned||actual||sess}return sess;
+}
+function recommendationFeedbackApplicable(){return ["Conditioning","Generic Gym","Calisthenics","Strength-Endurance","Active Recovery"].includes(logSession.value||"")}
+function updateRecommendationFeedbackVisibility(){if(!recommendationFeedbackPanel)return;recommendationFeedbackPanel.classList.toggle("hidden",!recommendationFeedbackApplicable())}
 function loadPlannedSession(){
  blankNextWorkout=false;
- const gw=Math.max(1,Math.floor(Number(logWeek.value)||1)),session=logSession.value,plan=planFor(session,gw);plannedExercises.innerHTML="";
+ const gw=Math.max(1,Math.floor(Number(logWeek.value)||1)),session=logSession.value,plan=planFor(session,gw);
+ // v36.29: the old Log Rest Day shortcut could leave its autogenerated note
+ // behind when the user moved to a real workout. Never carry that sentinel
+ // note into a non-rest session.
+ if(session!=="Recovery / Rest"&&sessionNotes&&String(sessionNotes.value||"").trim()==="Rest day")sessionNotes.value="";
+ plannedExercises.innerHTML="";
+ updateRecommendationFeedbackVisibility();
  plan.forEach((x,i)=>{
-  const d=document.createElement("div");d.className="log-exercise";d.dataset.i=i;d.dataset.conditioning=x.conditioning?"1":"0";d.dataset.untimedCoreFinisher=x.untimedCoreFinisher?"1":"0";
+  const d=document.createElement("div");d.className="log-exercise";d.dataset.i=i;d.dataset.conditioning=x.conditioning?"1":"0";d.dataset.untimedCoreFinisher=x.untimedCoreFinisher?"1":"0";d.dataset.plannedExercise=safePlainText(x.exercise||"",240);
   if(!x.conditioning){x.reps=exactRepPrescription(x.reps);x.weight=displayWeightText(x.weight)}
   const restText=!x.conditioning&&Number(x.restSeconds)>0?' • Rest '+Math.round(Number(x.restSeconds))+' sec':'';
   const primerLine=!x.conditioning&&x.optionalPrimer?'<div class="tb-primer"><span class="tag">Optional primer</span><strong>'+htmlSafe(x.optionalPrimer.sets)+' × '+htmlSafe(x.optionalPrimer.reps)+' • '+htmlSafe(x.optionalPrimer.weight)+'</strong><br>'+htmlSafe(x.optionalPrimer.note||'Not counted as a working set.')+'</div>':'';
@@ -6788,7 +6958,7 @@ function resetLogForNextWorkout(dateISO){
  logWeek.value=tw>=1?tw:state.settings.currentWeek;
  logSession.value="Other";
  plannedExercises.innerHTML="";
- sessionFeel.value="";sessionNotes.value="";clearWearableSessionForm();
+ sessionFeel.value="";sessionNotes.value="";if(recommendationFeedback)recommendationFeedback.value="";if(recommendationFeedbackNote)recommendationFeedbackNote.value="";updateRecommendationFeedbackVisibility();clearWearableSessionForm();
  if(sessionSaveStatus){
    sessionSaveStatus.classList.remove("hidden");
    sessionSaveStatus.innerHTML="<strong>Workout completed and saved to History.</strong> Ready for the next workout. Choose a session type or tap + Add Exercise.";
@@ -6834,7 +7004,7 @@ function finishSavedSession(sessionId,sessionName,date,rowCount,action="saved"){
 function recoveryHistorySummary(dateISO){
  const x=(state.dailyRecovery||{})[dateISO];if(!x)return "";
  const sig=wearableRecoverySignals(dateISO),bits=[],add=(label,val,suffix="")=>{if(val!==undefined&&val!==null&&val!=="")bits.push(label+" "+val+suffix)};
- add("Sleep",x.sleepHours,"h");add("score",x.sleepScore);add("HRV",x.hrv);add("RHR",x.restingHr);add("Wake Bio",x.wakeBio);add("Current Bio",x.currentBio);add("Stress",x.stress);add("SpO₂",x.spo2,"%");add("Steps",x.steps);add("VO₂",x.vo2);if(x.notes)bits.push("Notes: "+x.notes);bits.push("Readiness: "+recoveryReadinessLabel(sig));return bits.join(" • ");
+ add("Sleep",x.sleepHours,"h");add("score",x.sleepScore);add("HRV",x.hrv);add("RHR",x.restingHr);add("Wake Bio",x.wakeBio);add("Current Bio",x.currentBio);add("Stress",x.stress);add("SpO₂",x.spo2,"%");add("Steps",x.steps);add("Weight",x.bodyweight," lb");add("VO₂",x.vo2);if(x.notes)bits.push("Notes: "+x.notes);bits.push("Readiness: "+recoveryReadinessLabel(sig));return bits.join(" • ");
 }
 function historyTimelineDates(){const s=new Set();state.logs.forEach(x=>x.date&&s.add(x.date));Object.keys(state.dailyRecovery||{}).forEach(d=>s.add(d));Object.keys(state.restDays||{}).forEach(d=>s.add(d));return [...s].sort((a,b)=>b.localeCompare(a))}
 
@@ -6859,11 +7029,11 @@ function renderHistory(){
   const rec=recoveryHistorySummary(date),rest=restRecord(date),context=document.createElement("tr");context.className="history-context-row";const restText=rest?(rest.status==="confirmed"?"Confirmed Rest":rest.status==="planned"?"Planned Rest":"Scheduled Rest"):"";
   context.innerHTML='<td colspan="9"><div class="history-context-wrap"><div class="history-context-copy"><div class="history-context-title">'+htmlSafe(date)+(restText?'<span class="history-rest-badge">'+htmlSafe(restText)+'</span>':'')+'</div><div class="history-context-meta">'+(rec?htmlSafe(rec):"No daily recovery entry.")+(rest?(" • Rest source: "+htmlSafe(rest.source||"program")):"")+'</div></div><div class="history-context-actions"><button class="btn '+(rec?'primary ':'')+'recovery-edit-btn" data-date="'+attrSafe(date)+'" type="button">'+(rec?'Edit Recovery':'Add Recovery')+'</button></div></div></td>';historyBody.appendChild(context);
   (byDate[date]||[]).slice().reverse().forEach(g=>{
-   const header=document.createElement("tr");header.className="history-session-header";const wearable=(g.sessionId&&(state.wearableSessions||{})[g.sessionId])||null,wearSummary=wearableHistorySummary(wearable),wearMeta=wearSummary?(" • "+htmlSafe(wearSummary)):"",firstRow=g.rows[0]||{},intentMeta=(firstRow.modelOriginalScheduledSession&&firstRow.modelOriginalScheduledSession!==g.session?(" • Planned "+htmlSafe(firstRow.modelOriginalScheduledSession)+" → actual "+htmlSafe(g.session)+(firstRow.modelWorkoutIntentSource?" ("+htmlSafe(firstRow.modelWorkoutIntentSource)+")":"")):"");
+   const header=document.createElement("tr");header.className="history-session-header";const wearable=(g.sessionId&&(state.wearableSessions||{})[g.sessionId])||null,wearSummary=wearableHistorySummary(wearable),wearMeta=wearSummary?(" • "+htmlSafe(wearSummary)):"",firstRow=g.rows[0]||{},feedbackMeta=firstRow.recommendationFeedback?(" • Feedback: "+htmlSafe({good:"good",too_easy:"too easy",too_hard:"too hard",wrong_type:"wrong type",avoid_often:"see less often"}[firstRow.recommendationFeedback]||firstRow.recommendationFeedback)):"",intentMeta=(firstRow.modelOriginalScheduledSession&&firstRow.modelOriginalScheduledSession!==g.session?(" • Planned "+htmlSafe(firstRow.modelOriginalScheduledSession)+" → actual "+htmlSafe(g.session)+(firstRow.modelWorkoutIntentSource?" ("+htmlSafe(firstRow.modelWorkoutIntentSource)+")":"")):"");
    const timeMeta=firstRow.sessionTime?(" • "+htmlSafe(firstRow.sessionTime)):"";
-   header.innerHTML='<td colspan="9"><div class="history-session-head"><div><strong>'+htmlSafe(g.session)+'</strong><div class="history-session-meta">'+g.rows.length+' exercise entr'+(g.rows.length===1?'y':'ies')+timeMeta+wearMeta+intentMeta+'</div></div><div class="history-session-actions">'+(g.sessionId?'<button class="btn primary edit-session" data-session-id="'+attrSafe(g.sessionId)+'" type="button">✎ Edit Workout</button>':'<span class="muted">Legacy session</span>')+'</div></div></td>';historyBody.appendChild(header);
+   header.innerHTML='<td colspan="9"><div class="history-session-head"><div><strong>'+htmlSafe(g.session)+'</strong><div class="history-session-meta">'+g.rows.length+' exercise entr'+(g.rows.length===1?'y':'ies')+timeMeta+wearMeta+feedbackMeta+intentMeta+'</div></div><div class="history-session-actions">'+(g.sessionId?'<button class="btn primary edit-session" data-session-id="'+attrSafe(g.sessionId)+'" type="button">✎ Edit Workout</button>':'<span class="muted">Legacy session</span>')+'</div></div></td>';historyBody.appendChild(header);
    g.rows.forEach((x,j)=>{const idx=g.indices[j],tr=document.createElement("tr"),actual=(x.session==="Conditioning"||x.session==="Class / Activity")?conditioningSummary(x):(Array.isArray(x.setDetails)&&x.setDetails.length?x.setDetails.map((sd,i)=>"S"+(i+1)+" "+(sd.reps||x.reps||"?")+"×"+(sd.weight||x.weight||"—")).join(" • "):((x.sets||"")+" × "+(x.reps||"")+" • "+(x.weight||""))),model=x.modelExpectedRpe?("Model RPE "+x.modelExpectedRpe+(x.modelPredictionError!==undefined?" • error "+(Number(x.modelPredictionError)>0?"+":"")+x.modelPredictionError:"")):"";
-    tr.innerHTML='<td></td><td></td><td>'+htmlSafe(x.exercise)+'</td><td>'+htmlSafe(actual)+'</td><td>'+htmlSafe(x.rpe?(x.rpe+(x.rpeConfidence?" ("+(x.rpeConfidence==="confident"?"confident":"rough")+")":"")):(x.rpeUnknown?"—":""))+'</td><td>'+htmlSafe(x.feel||"")+'</td><td>'+htmlSafe(x.technique||"")+'</td><td>'+htmlSafe((x.notes||"")+(model?((x.notes?" • ":"")+model):""))+'</td><td><button class="btn danger del" data-i="'+idx+'">Delete</button></td>';historyBody.appendChild(tr)});
+    tr.innerHTML='<td></td><td></td><td>'+htmlSafe(x.exercise)+'</td><td>'+htmlSafe(actual)+'</td><td>'+htmlSafe(x.rpe?(x.rpe+(x.rpeConfidence?" ("+(x.rpeConfidence==="confident"?"confident":"rough")+")":"")):(x.rpeUnknown?"—":""))+'</td><td>'+htmlSafe(x.feel||"")+'</td><td>'+htmlSafe(x.technique||"")+'</td><td>'+htmlSafe((x.notes||"")+(x.changeReason?((x.notes?" • ":"")+"Change reason: "+x.changeReason.replaceAll("_"," ")):"")+(model?(((x.notes||x.changeReason)?" • ":"")+model):""))+'</td><td><button class="btn danger del" data-i="'+idx+'">Delete</button></td>';historyBody.appendChild(tr)});
   });
  });
  historyBody.querySelectorAll(".recovery-edit-btn").forEach(b=>b.addEventListener("click",()=>openRecoveryForDate(b.dataset.date)));
@@ -8253,7 +8423,7 @@ function captureLogDraft(){
  return {
    date:logDate.value,time:logTime.value,week:logWeek.value,session:logSession.value,editingSessionId:editingSessionId||"",blankNext:!!blankNextWorkout,_userTouched:!!logWorkspaceUserTouched,
    _sessionUserChanged:!!logWorkspaceSessionUserChanged,_planEdited:!!logWorkspacePlanEdited,
-   sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,
+   sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,recommendationFeedback:recommendationFeedback?.value||"",recommendationFeedbackNote:recommendationFeedbackNote?.value||"",
    wearable:Object.fromEntries(Object.entries(wearableSessionElements()).map(([k,el])=>[k,el?el.value:""])),
    cards:[...plannedExercises.querySelectorAll(".log-exercise")].map(c=>({
      conditioning:c.dataset.conditioning||"0",plannedExercise:c.dataset.plannedExercise||"",plannedTarget:c.dataset.plannedTarget||"",userSubstituted:c.dataset.userSubstituted==="1",
@@ -8340,7 +8510,7 @@ const savedMetricClassMap={
  intervals:"le-intervals",workInterval:"le-work",restInterval:"le-rest",ruckWeight:"le-ruckweight",vestWeight:"le-vestweight",kbWeight:"le-kbweight",
  secondWeight:"le-secondweight",sledgeWeight:"le-sledgeweight",activities:"le-activities",circuitRest:"le-circuitrest",lowRung:"le-lowrung",
  sprintDistance:"le-sprintdistance",bestRep:"le-bestrep",avgRep:"le-avgrep",lastRep:"le-lastrep",sprint100:"le-sprint100",secondWork:"le-secondwork",
- clusterType:"le-clustertype",temperature:"le-temperature",avgWatts:"le-avgwatts",maxWatts:"le-maxwatts",cadence:"le-cadence",strokeRate:"le-strokerate",
+ clusterType:"le-clustertype",temperature:"le-temperature",environment:"le-environment",surface:"le-surface",avgWatts:"le-avgwatts",maxWatts:"le-maxwatts",cadence:"le-cadence",strokeRate:"le-strokerate",
  floors:"le-floors",runDistance:"le-rundistance",rowDistance:"le-rowdistance"
 };
 function setExerciseSelectForSavedCard(card,exercise){
@@ -8350,7 +8520,7 @@ function setExerciseSelectForSavedCard(card,exercise){
  else{sel.value="__custom__";if(custom){custom.value=exercise||"";custom.classList.remove("hidden")}}
 }
 function appendSavedExerciseCard(row){
- const conditioning=savedRowIsConditioning(row),d=document.createElement("div");d.className="log-exercise";d.dataset.conditioning=conditioning?"1":"0";d.dataset.untimedCoreFinisher=row.untimedCoreFinisher?"1":"0";
+ const conditioning=savedRowIsConditioning(row),d=document.createElement("div");d.className="log-exercise";d.dataset.conditioning=conditioning?"1":"0";d.dataset.untimedCoreFinisher=row.untimedCoreFinisher?"1":"0";d.dataset.plannedExercise=safePlainText(row.modelPlannedExercise||row.exercise||"",240);
  if(conditioning){
    d.innerHTML='<div class="log-title"><div><strong>'+htmlSafe(row.exercise)+'</strong><div class="planned">Saved exercise • editing completed session</div></div></div>'+
     '<div class="conditioning-components-host"></div><div class="log-grid"><div class="field notes"><label>Activity</label><select class="le-ex">'+buildExerciseSelect(row.exercise,row.date||logDate.value,row.session||logSession.value)+'</select><input class="le-custom hidden" placeholder="Custom activity"></div>'+
@@ -8402,6 +8572,7 @@ function appendSavedExerciseCard(row){
  };
  sel.addEventListener("change",()=>{syncCustom();syncCond();if(!conditioning)updateLogPlateVisual(d)});
  custom.addEventListener("change",syncCond);syncCustom();wireExerciseCompletionState(d);if(!conditioning){wireLogPlateVisual(d);wireSetDetailLogging(d,row.setDetails||[])}
+ const changeReason=d.querySelector(".le-change-reason");if(changeReason)changeReason.value=row.changeReason||"";refreshLogChangeReasonControl(d);
 }
 function openSavedSessionForEdit(sessionId){
  const rows=state.logs.filter(x=>x.sessionId===sessionId);if(!rows.length){alert("That saved session could not be found.");return}
@@ -8411,7 +8582,7 @@ function openSavedSessionForEdit(sessionId){
  logDate.value=first.date||localISO(new Date());logTime.value=first.sessionTime||((Number(first.sessionTimestamp)>0)?currentClockHHMM(new Date(Number(first.sessionTimestamp))):"12:00");logWeek.value=first.week||state.settings.currentWeek;
  if([...logSession.options].some(o=>o.value===first.session||o.text===first.session))logSession.value=first.session;
  plannedExercises.innerHTML="";rows.forEach(appendSavedExerciseCard);
- sessionFeel.value=first.sessionFeel||"";sessionNotes.value=first.sessionNotes||"";
+ sessionFeel.value=first.sessionFeel||"";sessionNotes.value=first.sessionNotes||"";if(recommendationFeedback)recommendationFeedback.value=first.recommendationFeedback||"";if(recommendationFeedbackNote)recommendationFeedbackNote.value=first.recommendationFeedbackNote||"";updateRecommendationFeedbackVisibility();
  clearWearableSessionForm();
  const wear=(state.wearableSessions||{})[sessionId]||{},els=wearableSessionElements();
  Object.entries(els).forEach(([k,el])=>{if(el)el.value=wear[k]??""});
@@ -8457,7 +8628,8 @@ function restoreLogDraft(d){
    refreshLogSwapTrigger(card);syncExerciseCompletionState(card);
  });
  sessionFeel.value=d.sessionFeel||"";
- sessionNotes.value=d.sessionNotes||"";
+ sessionNotes.value=d.sessionNotes||"";if(recommendationFeedback)recommendationFeedback.value=d.recommendationFeedback||"";if(recommendationFeedbackNote)recommendationFeedbackNote.value=d.recommendationFeedbackNote||"";updateRecommendationFeedbackVisibility();
+ if(logSession.value!=="Recovery / Rest"&&String(sessionNotes.value||"").trim()==="Rest day")sessionNotes.value="";
  const w=d.wearable||{},wm=wearableSessionElements();
  Object.entries(wm).forEach(([k,el])=>{if(el)el.value=w[k]??""});
  setSessionEditMode(d.editingSessionId&&state.logs.some(x=>x.sessionId===d.editingSessionId)?d.editingSessionId:"");
@@ -8532,7 +8704,7 @@ function loadScheduledLogDate(dateISO=localISO(new Date())){
  setSessionEditMode("");blankNextWorkout=false;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
  logDate.value=target.date;logTime.value=target.date===localISO(new Date())?currentClockHHMM():"12:00";
  logWeek.value=target.week;logSession.value=target.session;
- sessionFeel.value="";sessionNotes.value="";clearWearableSessionForm();
+ sessionFeel.value="";sessionNotes.value="";if(recommendationFeedback)recommendationFeedback.value="";if(recommendationFeedbackNote)recommendationFeedbackNote.value="";updateRecommendationFeedbackVisibility();clearWearableSessionForm();
  loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();
  return target;
 }
@@ -8923,7 +9095,7 @@ cancelCustomExerciseDefinition.addEventListener("click",()=>customExerciseEditor
 saveCustomExerciseDefinition.addEventListener("click",saveCustomExerciseDefinitionFromUi);
 
 recalcConditioning.addEventListener("click",()=>{renderWeek();renderSelectedWorkout();conditioningOverrideStatus.innerHTML="<strong>Recalculated.</strong> Recommendations now reflect all logs saved through today.";});
-logRestDay.addEventListener("click",()=>{const d=parseLocalISO(logDate.value);if(isNaN(d))return;markRestDay(logDate.value);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value="Recovery / Rest";loadPlannedSession();sessionNotes.value=sessionNotes.value||"Rest day";});
+logRestDay.addEventListener("click",()=>{const d=parseLocalISO(logDate.value);if(isNaN(d))return;markRestDay(logDate.value);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value="Recovery / Rest";loadPlannedSession();});
 
 toggleTools.addEventListener("click",()=>{setTimeout(()=>{
  const details=document.getElementById("toolsDetails");
@@ -8975,6 +9147,7 @@ function completeWorkout(){
  saveSession.disabled=true;saveSession.textContent=isEditing?"Saving Changes…":"Saving…";
  if(sessionSaveStatus){sessionSaveStatus.classList.remove("hidden");sessionSaveStatus.innerHTML="<strong>"+(isEditing?"Updating workout…":"Saving workout…")+"</strong> Verifying local storage before finishing.";}
  const cards=[...plannedExercises.querySelectorAll(".log-exercise")],wearableData=wearableSessionFormData(),intent=workoutIntentForDate(logDate.value),manualPlan=(state.settings.customDayWorkouts||{})[logDate.value]||null,
+   recFeedback=recommendationFeedbackApplicable()?(recommendationFeedback?.value||""):"",recFeedbackTarget=recommendationFeedbackTargetForCurrentSession(),recFeedbackNote=safePlainText(recommendationFeedbackNote?.value||"",1000),
    sessionTime=/^\d{2}:\d{2}$/.test(logTime.value)?logTime.value:(logDate.value===localISO(new Date())?currentClockHHMM():"12:00"),
    sessionTimestamp=localDateTimeTimestamp(logDate.value,sessionTime);
  const componentCheck=validateConditioningComponentRatings(cards);
@@ -9002,7 +9175,7 @@ function completeWorkout(){
    const status=valueOf(c,".le-status"),notDone=["missed","skipped"].includes(String(status||"").toLowerCase());
    const base={sessionId,date:logDate.value,sessionTime,sessionTimestamp,completedAt:Date.now(),week:+logWeek.value,session:logSession.value,exercise,
      rpe:notDone?"":valueOf(c,".le-rpe"),rpeConfidence:!notDone&&c.dataset.conditioning!=="1"?valueOf(c,".le-rpe-confidence"):"",rpeUnknown:!notDone&&c.dataset.conditioning!=="1"&&!valueOf(c,".le-rpe"),feel:notDone?"":normalizeEffortRating(valueOf(c,".le-feel")),status,notes:valueOf(c,".le-notes"),
-     sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value.trim(),
+     sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value.trim(),recommendationFeedback:recFeedback,recommendationFeedbackTarget:safePlainText(recFeedbackTarget,240),recommendationFeedbackSession:safePlainText(logSession.value,120),recommendationFeedbackNote:recFeedbackNote,changeReason:valueOf(c,".le-change-reason"),
      modelPlannedExercise:safePlainText(c.dataset.plannedExercise||exercise,240),
      modelPlannedSets:safePlainText(c.dataset.plannedSets||"",80),
      modelPlannedReps:safePlainText(c.dataset.plannedReps||"",160),
@@ -9026,7 +9199,7 @@ function completeWorkout(){
        secondWeight:valueOf(c,".le-secondweight"),sledgeWeight:valueOf(c,".le-sledgeweight"),activities:valueOf(c,".le-activities"),circuitRest:valueOf(c,".le-circuitrest"),
        lowRung:valueOf(c,".le-lowrung"),sprintDistance:valueOf(c,".le-sprintdistance"),bestRep:valueOf(c,".le-bestrep"),avgRep:valueOf(c,".le-avgrep"),
        lastRep:valueOf(c,".le-lastrep"),sprint100:valueOf(c,".le-sprint100"),secondWork:valueOf(c,".le-secondwork"),clusterType:valueOf(c,".le-clustertype"),
-       temperature:valueOf(c,".le-temperature"),avgWatts:valueOf(c,".le-avgwatts"),maxWatts:valueOf(c,".le-maxwatts"),cadence:valueOf(c,".le-cadence"),
+       temperature:valueOf(c,".le-temperature"),environment:valueOf(c,".le-environment"),surface:valueOf(c,".le-surface"),avgWatts:valueOf(c,".le-avgwatts"),maxWatts:valueOf(c,".le-maxwatts"),cadence:valueOf(c,".le-cadence"),
        strokeRate:valueOf(c,".le-strokerate"),floors:valueOf(c,".le-floors"),runDistance:valueOf(c,".le-rundistance"),rowDistance:valueOf(c,".le-rowdistance"),
        components:collectConditioningComponents(c)
      };
@@ -9104,7 +9277,7 @@ function completeWorkout(){
  const finishedSessionName=logSession.value,finishedDate=logDate.value,wasEditing=isEditing;
  clearLogWorkspace();uiDraftDirty.log=false;
  if(wasEditing){
-   clearWearableSessionForm();setSessionEditMode("");
+   clearWearableSessionForm();if(recommendationFeedback)recommendationFeedback.value="";if(recommendationFeedbackNote)recommendationFeedbackNote.value="";setSessionEditMode("");
    if(sessionSaveStatus)sessionSaveStatus.innerHTML="<strong>Changes saved and verified.</strong> Opening History…";
    saveSession.disabled=false;saveSession.textContent="Complete Workout";
    finishSavedSession(sessionId,finishedSessionName,finishedDate,rows.length,"updated");
@@ -9148,27 +9321,27 @@ saveSettings.addEventListener("click",()=>{
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:36,appBuild:"v36.28",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:36,appBuild:"v36.31",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
-  conditioning:{type:"adaptive-infinite",version:12,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference including scheduled classes","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work"]},
+  conditioning:{type:"adaptive-infinite",version:13,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific duration/pace/power efficiency","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference including scheduled classes","mileage and duration vs baseline","avg/max HR trend","graduated Normal/Caution/Guard recovery model","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","direct recommendation feedback learning","running heat/elevation/environment context"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:4,rules:["direct TB completion/set performance/broad effort/technique; exact RPE optional","block capability trend","expected-vs-actual RPE calibration as a conservative tie-breaker","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
   kettlebell:{type:"adaptive-per-exposure",version:3,rules:["continuous direct capability estimate","predicted next-load RPE","direct performance strongest","detailed cross-modality movement relationships","conservative family transfer","multi-rate localized fatigue","recovery gating","manual kg wins"]},
-  genericGym:{type:"adaptive-per-exposure",version:9,rules:["continuous capability estimate","rapid first-two-exposure calibration","exact-rep double progression","reps progress before resistance","resistance increase resets reps to the lower exact step","assistance progression decreases assistance then resets reps","hard high-rep exposure backs reps off before resistance","predicted next-load RPE","richer effective-set stimulus","whole-workout local optimization","future-schedule interference","duration-aware exercise count and time estimate","movement diversity","major and sub-muscle selection","related work contributes to progression","manual rep edits win"]},
-  calisthenics:{type:"adaptive-bodyweight",version:5,rules:["continuous bodyweight capability estimate","predicted next-step RPE","progression-chain difficulty selection","whole-workout local optimization","future-schedule interference","pull-up-bar and exercise-band availability","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","controlled near-equivalent rebuild variation","manual exercise/sets/reps edits win"]},
+  genericGym:{type:"adaptive-per-exposure",version:10,rules:["continuous capability estimate","rapid first-two-exposure calibration","exact-rep double progression","reps progress before resistance","resistance increase resets reps to the lower exact step","assistance progression decreases assistance then resets reps","hard high-rep exposure backs reps off before resistance","predicted next-load RPE","richer effective-set stimulus","whole-workout local optimization","future-schedule interference","duration-aware exercise count and time estimate","movement diversity","major and sub-muscle selection","related work contributes to progression","manual rep edits win"]},
+  calisthenics:{type:"adaptive-bodyweight",version:6,rules:["continuous bodyweight capability estimate","predicted next-step RPE","progression-chain difficulty selection","whole-workout local optimization","future-schedule interference","pull-up-bar and exercise-band availability","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","controlled near-equivalent rebuild variation","manual exercise/sets/reps edits win"]},
   blockTransition:{type:"adaptive-block-review",version:2,rules:["first app open in an unreviewed new block","recommend TB, TB+KB, conditioning emphasis, or rare Base Building","Base Building frequency guard","review each TB TM","review pull-up progression","review KB plan","optional recovery/open pause week that does not consume a program week","8-week Base Building pauses the ordinary six-week timeline"]},baseBuilding:{type:"tactical-barbell-standard-base-building",version:1,rules:["8-week Standard/SE-first template","Weeks 1-5 stable primary SE circuit","equipment-first mixed SE generator","one-day same-role substitutions","adaptive E modality selection","walking duration explicitly scaled upward","Weeks 6-8 HIC restricted to #1-10","rare recommendation frequency guard","manual override always allowed"]}
  },
- unifiedTrainingModel:{type:"latent-fitness-fatigue-adaptive-programming",version:9,rules:["session-time and same-day awareness","richer set/rep/RPE/duration stimulus estimation","slow fitness vs fast fatigue states","muscle-specific and stress-system-specific fatigue half-lives","recovery-constrained fatigue decay","directional strength transfer","weak learned personal transfer after sufficient paired history","localized conditioning overlap","richer effective muscle volume","continuous exercise capability estimates","capability-aware progression","planned-vs-performed RPE separation","versioned performed-prediction calibration","three-exposure decline gate","manual substitution learning","goal-aware priorities","adaptive rolling 7-day stress budgets","future-schedule interference","whole-workout local optimization","evidence-gated dose-response learning","conditioning fitness-quality portfolio","modality-specific efficiency and repeatability trends","interval volume/density/speed overlays","evidence-gated adaptive deload detection","counterfactual workout evaluation","personal recovery-signal weighting","modality-cost-adjusted aerobic dose and fatigue","active recovery modeled separately from full rest"]},
+ unifiedTrainingModel:{type:"latent-fitness-fatigue-adaptive-programming",version:11,rules:["session-time and same-day awareness","richer set/rep/RPE/duration stimulus estimation","slow fitness vs fast fatigue states","muscle-specific and stress-system-specific fatigue half-lives","recovery-constrained fatigue decay","directional strength transfer","weak learned personal transfer after sufficient paired history","localized conditioning overlap","richer effective muscle volume","continuous exercise capability estimates","capability-aware progression","planned-vs-performed RPE separation","versioned performed-prediction calibration","three-exposure decline gate","reason-aware substitution learning","direct recommendation feedback learning","weekly bodyweight context","goal-aware priorities","adaptive rolling 7-day stress budgets","future-schedule interference","whole-workout local optimization","evidence-gated dose-response learning","conditioning fitness-quality portfolio","modality-specific efficiency and repeatability trends","interval volume/density/speed overlays","evidence-gated adaptive deload detection","counterfactual workout evaluation","personal recovery-signal weighting","graduated background-step load with purposeful locomotion credit","modality-cost-adjusted aerobic dose and fatigue","active recovery modeled separately from full rest"]},
   adaptiveProgramming:{type:"rolling-horizon-goal-stress-dose-counterfactual",version:2,rules:["automatic or user-selected goal profile","fixed TB/KB anchors plus continuously re-scored open intervals","Tuesday/Thursday strong conditioning priors in TB-only mode without hard requirements","rolling endurance recency/dose priority with no Monday reset","Full Rest has no weekly quota and competes from actual fatigue/recovery evidence","Active Recovery is separate from Full Rest","adaptive one-day Strength-Endurance circuits from current equipment","priority-weighted optional training","rolling 7-day stress budgets learned from recent seven-day windows","productive-dose range requires dose diversity","counterfactual run/walk/cycle/swim/row/ruck/rest comparison","deload watch/recommend requires multiple independent warning domains","deload never inserts itself automatically","block review may preselect recovery week when strong deload recommendation exists"]},workoutIntentModel:{type:"planned-vs-actual-workout",version:2,rules:["planned rest vs confirmed rest","change workout directly from Log","adaptive or manual build mode","date-only custom plans","reusable workout templates","custom exercise stimulus definitions","planned-vs-actual session metadata"]},tbDeadliftSchedule:{version:1,mode:"tb-only",days:["Monday","Friday"],workSetsPerDay:1,workSetsPerWeek:2,hybridDeadlift:false,note:"TB-only deadlift uses the current wave percentage/reps but exactly one work set on Monday and Friday; Wednesday has no deadlift. Hybrid has no Tactical Barbell deadlift."},relationshipModel:{type:"directional-stimulus-graph",version:4,note:"Exact performance is strongest. Relationships distinguish strength transfer, movement/muscle overlap, technical similarity, and fatigue overlap. Source-to-target transfer is directional; after enough paired direct history, a small confidence-shrunk personal correlation modifier can refine the biomechanical prior. Unlike absolute loads are never directly converted."},
  tbEnduranceLibrary,tbHICLibrary,tbPowerLibrary,tbAccessoryLibrary,tbSEClusters,tbSEGuidance,logs:state.logs
 },null,2),"application/json"));
 exportCsv.addEventListener("click",()=>{
- const keys=["date","sessionTime","sessionTimestamp","completedAt","setDetails","components","untimedCoreFinisher","week","session","exercise","sets","reps","weight","modelPlannedExercise","modelPlannedSets","modelPlannedReps","modelPlannedWeight","modelExpectedRpe","modelPlannedExpectedRpe","modelPlannedRestSeconds","modelPredictionVersion","modelPredictionError","modelPlannedPredictionError","rpeUnknown","rpeConfidence","modelExerciseOverride","modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType","distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","temperature","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
+ const keys=["date","sessionTime","sessionTimestamp","completedAt","setDetails","components","untimedCoreFinisher","week","session","exercise","sets","reps","weight","modelPlannedExercise","modelPlannedSets","modelPlannedReps","modelPlannedWeight","modelExpectedRpe","modelPlannedExpectedRpe","modelPlannedRestSeconds","modelPredictionVersion","modelPredictionError","modelPlannedPredictionError","rpeUnknown","rpeConfidence","modelExerciseOverride","modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType","recommendationFeedback","recommendationFeedbackTarget","recommendationFeedbackSession","recommendationFeedbackNote","changeReason","distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","temperature","environment","surface","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
  const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
  const row=x=>keys.map(k=>{
    if(k==="setDetails")return esc(Array.isArray(x.setDetails)?JSON.stringify(x.setDetails):"");
    if(k==="components")return esc(Array.isArray((x.metrics||{}).components)?JSON.stringify((x.metrics||{}).components):"");
-   if(["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","temperature","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance"].includes(k)) return esc((x.metrics||{})[k]);
+   if(["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","temperature","environment","surface","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance"].includes(k)) return esc((x.metrics||{})[k]);
    return esc(x[k]);
  }).join(",");
  const csv=[keys.join(","),...state.logs.map(row)].join("\n");
@@ -9250,12 +9423,16 @@ function normalizeImportedLog(row,index){
  if(row.rpeConfidence!==undefined){const rc=importedScalar(row.rpeConfidence,20).toLowerCase();if(rc&&!["rough","confident"].includes(rc))throw new Error("Workout log row "+(index+1)+" has an invalid RPE confidence.");out.rpeConfidence=rc;}
  if(row.modelExerciseOverride!==undefined)out.modelExerciseOverride=!!row.modelExerciseOverride;
  if(row.untimedCoreFinisher!==undefined)out.untimedCoreFinisher=!!row.untimedCoreFinisher;
- ["modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType"].forEach(k=>{if(row[k]!==undefined)out[k]=importedScalar(row[k],k==="customWorkoutName"?240:120)});
+ ["modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType","recommendationFeedbackTarget","recommendationFeedbackSession"].forEach(k=>{if(row[k]!==undefined)out[k]=importedScalar(row[k],k==="customWorkoutName"||k==="recommendationFeedbackTarget"?240:120)});
+ if(row.recommendationFeedback!==undefined){const rf=importedScalar(row.recommendationFeedback,40);if(rf&&!['good','too_easy','too_hard','wrong_type','avoid_often'].includes(rf))throw new Error("Workout log row "+(index+1)+" has invalid recommendation feedback.");out.recommendationFeedback=rf}
+ if(row.recommendationFeedbackNote!==undefined)out.recommendationFeedbackNote=importedScalar(row.recommendationFeedbackNote,1000);
+ if(row.changeReason!==undefined){const cr=importedScalar(row.changeReason,40);if(cr&&!['equipment_unavailable','pain_discomfort','too_fatigued','time_constraint','dislike','wanted_variety','other'].includes(cr))throw new Error("Workout log row "+(index+1)+" has invalid change reason.");out.changeReason=cr}
+
  if(row.rpe!==undefined&&row.rpe!==""){
    const r=Number(row.rpe);if(!Number.isFinite(r)||r<1||r>10)throw new Error("Workout log row "+(index+1)+" has an invalid RPE.");
    out.rpe=r;
  }
- const metricKeys=["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance"];
+ const metricKeys=["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","environment","surface","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance"];
  if(isPlainRecord(row.metrics)){
    out.metrics={};
    metricKeys.forEach(k=>{if(row.metrics[k]!==undefined)out.metrics[k]=importedScalar(row.metrics[k],500)});
@@ -9277,7 +9454,7 @@ function normalizeImportedRecovery(input){
  if(!isPlainRecord(input))throw new Error("dailyRecovery must be an object.");
  const entries=Object.entries(input);if(entries.length>IMPORT_MAX_RECOVERY_DAYS)throw new Error("Import has too many recovery dates.");
  const out={};
- const numericFields={sleepHours:[0,24],sleepScore:[0,100],hrv:[0,1000],restingHr:[20,250],wakeBio:[0,100],currentBio:[0,100],stress:[0,100],spo2:[0,100],steps:[0,500000],vo2:[0,150],_savedAt:[0,1e15]};
+ const numericFields={sleepHours:[0,24],sleepScore:[0,100],hrv:[0,1000],restingHr:[20,250],wakeBio:[0,100],currentBio:[0,100],stress:[0,100],spo2:[0,100],steps:[0,500000],vo2:[0,150],bodyweight:[80,500],_savedAt:[0,1e15]};
  entries.forEach(([date,row])=>{
    if(!validIsoDateValue(date)||!isPlainRecord(row))throw new Error("Import contains an invalid recovery record.");
    const r={};
@@ -9368,6 +9545,7 @@ function applyNormalizedImport(o){
  if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;
  if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;
  state.logs=o.logs;
+ repairStaleAutoRestSessionNotes();
  state.dailyRecovery=o.dailyRecovery;
  state.wearableSessions=o.wearableSessions;
  state.restDays=o.restDays||{};
