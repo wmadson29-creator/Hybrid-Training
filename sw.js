@@ -1,4 +1,4 @@
-const CACHE="hybrid-training-v36-40";
+const CACHE="hybrid-training-v36-41";
 const FALLBACK="./index.html";
 const PRECACHE=[
   FALLBACK,
