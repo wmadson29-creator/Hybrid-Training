@@ -634,7 +634,7 @@ body.substitution-sheet-open{overflow:hidden}
 }
 
 
-/* v36.47 rolling six-lane non-anchor cadence + v36.46 need-based reflow + v36.44 multimodal research + v36.43 builder/calendar/core-balance upgrade:
+/* v36.49 exact adjustable-kettlebell settings + v36.48 granular kettlebell availability + v36.47 rolling six-lane non-anchor cadence + v36.46 need-based reflow + v36.44 multimodal research + v36.43 builder/calendar/core-balance upgrade:
    - Non-anchor days no longer inherit a hidden weekly template. Six soft cadence lanes compete continuously: Run, Other Cardio, Speed/HIC, Generic Gym, Calisthenics, and Strength-Endurance.
    - "Roughly weekly" is capacity-aware rather than Monday-Sunday: with TB M/W/F anchors, six lanes across four open slots implies about a 10-11 day average rotation before recovery/rest or manual constraints.
    - The most overdue lane gets priority, but readiness, adaptation gaps, future anchors/classes, feedback, and interference can delay or reorder it. Recovery Guard remains authoritative.
@@ -1475,7 +1475,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.47</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.49</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -1658,7 +1658,17 @@ body.substitution-sheet-open{overflow:hidden}
         <label class="gym-choice"><input type="checkbox" class="bb-equip" value="pullupBar">Pull-up bar</label>
         <label class="gym-choice"><input type="checkbox" class="bb-equip" value="bands">Bands</label>
         <label class="gym-choice"><input type="checkbox" class="bb-equip" value="dumbbells">Dumbbells</label>
-        <label class="gym-choice"><input type="checkbox" class="bb-equip" value="kettlebells">Kettlebells</label>
+        <div class="gym-choice" style="grid-column:1/-1">
+          <div style="font-weight:800;margin-bottom:6px">Kettlebell setup</div>
+          <select id="baseBuildingKbSetup" aria-label="Kettlebell setup available today">
+            <option value="none">No kettlebells</option>
+            <option value="40single">1 × 40 lb adjustable KB</option>
+            <option value="70single">1 × 70 lb adjustable KB</option>
+            <option value="70pair">2 × 70 lb adjustable KBs</option>
+            <option value="all">All: 1 × 40 lb + 2 × 70 lb adjustable KBs</option>
+          </select>
+          <div class="gym-step-sub" style="margin-top:6px">Choose what is physically available for this session. The 40 lb BowFlex 840 uses its actual dial settings: 8, 12, 20, 25, 35, or 40 lb (3.5, 5.5, 9, 11, 16, or 18 kg). The 70 lb adjustable bells use 12–32 kg in 2 kg steps. Single-bell setups exclude double-kettlebell movements.</div>
+        </div>
         <label class="gym-choice"><input type="checkbox" class="bb-equip" value="barbell">Barbell + rack</label>
         <label class="gym-choice"><input type="checkbox" class="bb-equip" value="bench">Bench</label>
         <label class="gym-choice"><input type="checkbox" class="bb-equip" value="machines">Machines / cables</label>
@@ -1692,6 +1702,7 @@ const baseBuildingSetupTitle=document.getElementById("baseBuildingSetupTitle");
 const baseBuildingSetupEyebrow=document.getElementById("baseBuildingSetupEyebrow");
 const baseBuildingSetupSub=document.getElementById("baseBuildingSetupSub");
 const baseBuildingSetupCancel=document.getElementById("baseBuildingSetupCancel");
+const baseBuildingKbSetup=document.getElementById("baseBuildingKbSetup");
 const baseBuildingSetupConfirm=document.getElementById("baseBuildingSetupConfirm");
 const baseBuildingCircuitPreview=document.getElementById("baseBuildingCircuitPreview");
 const baseBuildingSetupNote=document.getElementById("baseBuildingSetupNote");
@@ -3617,7 +3628,35 @@ function baseBuildingEligibility(dateISO=localISO(new Date())){
  else{level="normal";eligible=true;reason=last?"It has been "+days+" days since Base Building; it is back in the normal recommendation pool if the aerobic base warrants it.":reason}
  return {eligible,level,lastCompleted:last,daysSince:days,rolling12Months:rolling,reason};
 }
-const baseSEEquipmentLabels={bodyweight:"Bodyweight",pullupBar:"Pull-up bar",bands:"Bands",dumbbells:"Dumbbells",kettlebells:"Kettlebells",barbell:"Barbell + rack",bench:"Bench",machines:"Machines / cables"};
+const baseSEEquipmentLabels={bodyweight:"Bodyweight",pullupBar:"Pull-up bar",bands:"Bands",dumbbells:"Dumbbells",kettlebells:"Kettlebells",barbell:"Barbell + rack",bench:"Bench",machines:"Machines / cables","kbSetup:40single":"1 × 40 lb adjustable KB","kbSetup:70single":"1 × 70 lb adjustable KB","kbSetup:70pair":"2 × 70 lb adjustable KBs","kbSetup:all":"1 × 40 lb + 2 × 70 lb adjustable KBs"};
+const KB_40_SELECTTECH_KG=[3.5,5.5,9,11,16,18];
+const KB_40_SELECTTECH_LB=[8,12,20,25,35,40];
+const KB_70_ADJUSTABLE_KG=[12,14,16,18,20,22,24,26,28,30,32];
+const KB_EQUIPMENT_SETUPS={
+ none:{label:"No kettlebells",bells:0,maxKg:0,pair:false,singleKg:[],pairKg:[]},
+ "40single":{label:"1 × 40 lb adjustable KB",bells:1,maxKg:18,pair:false,singleKg:KB_40_SELECTTECH_KG,pairKg:[]},
+ "70single":{label:"1 × 70 lb adjustable KB",bells:1,maxKg:32,pair:false,singleKg:KB_70_ADJUSTABLE_KG,pairKg:[]},
+ "70pair":{label:"2 × 70 lb adjustable KBs",bells:2,maxKg:32,pair:true,singleKg:KB_70_ADJUSTABLE_KG,pairKg:KB_70_ADJUSTABLE_KG},
+ all:{label:"1 × 40 lb + 2 × 70 lb adjustable KBs",bells:3,maxKg:32,pair:true,singleKg:[...new Set([...KB_40_SELECTTECH_KG,...KB_70_ADJUSTABLE_KG])].sort((a,b)=>a-b),pairKg:KB_70_ADJUSTABLE_KG}
+};
+function kbSetupFromEquipment(equipment=[]){const set=new Set(equipment||[]),tag=[...set].find(x=>String(x).startsWith("kbSetup:"));if(tag&&KB_EQUIPMENT_SETUPS[tag.slice(8)])return tag.slice(8);if(set.has("kettlebells"))return "all";return "none"}
+function kbSetupInfo(equipment=[]){return KB_EQUIPMENT_SETUPS[kbSetupFromEquipment(equipment)]||KB_EQUIPMENT_SETUPS.none}
+function kbSetupHasPair(equipment=[]){return !!kbSetupInfo(equipment).pair}
+function kbEquipmentMaxKg(equipment=[]){return Number(kbSetupInfo(equipment).maxKg)||0}
+function kbEquipmentWeightsKg(equipment=[],loadType="single"){const info=kbSetupInfo(equipment),src=loadType==="double"?info.pairKg:info.singleKg;return Array.isArray(src)?src.slice().sort((a,b)=>a-b):[]}
+function kbSnapEquipmentKg(target,equipment=[],loadType="single"){
+ const choices=kbEquipmentWeightsKg(equipment,loadType);if(!choices.length)return 0;
+ const t=Number(target);if(!Number.isFinite(t))return choices[0];
+ const atOrBelow=choices.filter(x=>x<=t+1e-9);return atOrBelow.length?atOrBelow[atOrBelow.length-1]:choices[0];
+}
+function kb40DialLbForKg(kg){const i=KB_40_SELECTTECH_KG.findIndex(x=>Math.abs(x-Number(kg))<.001);return i>=0?KB_40_SELECTTECH_LB[i]:0}
+function kbEquipmentLoadText(kg,equipment=[],loadType="single"){
+ const setup=kbSetupFromEquipment(equipment),n=Number(kg),pair=loadType==="double";
+ if(!Number.isFinite(n)||n<=0)return "";
+ const lb=!pair&&(setup==="40single"||setup==="all")?kb40DialLbForKg(n):0;
+ return String(n)+" kg"+(lb?" ("+lb+" lb)":"")+(pair?" / bell":"");
+}
+function equipmentWithKbSetup(equipment=[],setup="none"){const out=[...new Set((equipment||[]).filter(x=>x!=="kettlebells"&&!String(x).startsWith("kbSetup:")))];if(setup!=="none"&&KB_EQUIPMENT_SETUPS[setup]){out.push("kettlebells","kbSetup:"+setup)}return out}
 const baseSECandidates=[
  {name:"Barbell Front Squat",role:"squat",equipment:["barbell"],priority:10,implement:"barbell"},{name:"Goblet Squat",role:"squat",equipment:["kettlebells"],priority:10,implement:"kb"},{name:"Dumbbell Goblet Squat",role:"squat",equipment:["dumbbells"],priority:9,implement:"db"},{name:"Bodyweight Squat",role:"squat",equipment:["bodyweight"],priority:7,implement:"bodyweight"},
  {name:"Push-Up",role:"push",equipment:["bodyweight"],priority:11,implement:"bodyweight"},{name:"Barbell Push Press",role:"push",equipment:["barbell"],priority:9,implement:"barbell"},{name:"Double Push Press",role:"push",equipment:["kettlebells"],priority:9,implement:"kb"},{name:"Dumbbell Floor Press",role:"push",equipment:["dumbbells"],priority:8,implement:"db"},{name:"Band-Resisted Push-Up",role:"push",equipment:["bodyweight","bands"],priority:8,implement:"bands"},
@@ -3626,7 +3665,12 @@ const baseSECandidates=[
  {name:"Double Floor Press",role:"secondary",equipment:["kettlebells"],priority:8,implement:"kb"},{name:"Dumbbell Floor Press",role:"secondary",equipment:["dumbbells"],priority:8,implement:"db"},{name:"Push-Up",role:"secondary",equipment:["bodyweight"],priority:8,implement:"bodyweight"},{name:"Band Squat",role:"secondary",equipment:["bands"],priority:6,implement:"bands"},
  {name:"Bicycle Crunch",role:"core",equipment:["bodyweight"],priority:10,implement:"bodyweight"},{name:"Reverse Crunch",role:"core",equipment:["bodyweight"],priority:9,implement:"bodyweight"},{name:"Ab Crunch Machine",role:"core",equipment:["machines"],priority:8,implement:"machine"}
 ];
-function baseSEEquipmentAvailable(candidate,equipment){const set=new Set(equipment||[]);return (candidate.equipment||[]).every(x=>set.has(x))}
+function baseSEEquipmentAvailable(candidate,equipment){
+ const set=new Set(equipment||[]),needsKb=(candidate.equipment||[]).includes("kettlebells");
+ if(!(candidate.equipment||[]).every(x=>x==="kettlebells"?set.has("kettlebells"):set.has(x)))return false;
+ if(needsKb){const ex=kbExercise(candidate.name);if(ex?.load==="double"&&!kbSetupHasPair(equipment))return false;if(kbEquipmentMaxKg(equipment)<=0)return false}
+ return true
+}
 function generateBaseSECircuit(equipment=[],seed=""){
  const equip=[...new Set(["bodyweight",...(equipment||[])])],roles=["squat","push","pull","hinge","secondary","core"],usedNames=new Set(),usedImpl=new Map(),rows=[];
  roles.forEach(role=>{
@@ -3639,12 +3683,18 @@ function generateBaseSECircuit(equipment=[],seed=""){
 }
 function baseSEPrescription(week,dayIndex){const map={1:{0:[3,20],3:[2,20]},2:{0:[3,30],3:[2,30]},3:{0:[3,40],3:[2,40]},4:{0:[1,50],3:[1,50]},5:{0:[3,50],3:[2,50]}};const v=map[week]?.[dayIndex];return v?{circuits:v[0],reps:v[1]}:null}
 function currentBaseCircuitForDate(dateISO){const bb=baseBuildingForDate(dateISO);if(!bb)return [];const tmp=bb.plan.temporaryCircuits?.[dateISO];return Array.isArray(tmp)&&tmp.length?tmp:(Array.isArray(bb.plan.primaryCircuit)?bb.plan.primaryCircuit:[])}
-function baseSELoadText(name,dateISO){
- const last=historyRowsBefore(dateISO,365).filter(x=>x.exercise===name&&x.session==="Strength-Endurance"&&x.weight).slice(-1)[0];if(last?.weight)return displayWeightText(last.weight);
+function baseSEEquipmentForDate(dateISO){
+ const adaptive=adaptiveSEWorkoutFor(dateISO);if(adaptive?.equipment)return adaptive.equipment;
+ const bb=baseBuildingForDate(dateISO);if(bb){const tmp=bb.plan.temporaryEquipment?.[dateISO];if(Array.isArray(tmp)&&tmp.length)return tmp;if(Array.isArray(bb.plan.primaryEquipment))return bb.plan.primaryEquipment}
+ return state.settings.adaptiveSELastEquipment||["bodyweight","kettlebells","kbSetup:all"]
+}
+function baseSELoadText(name,dateISO,equipmentOverride=null){
+ const equipment=equipmentOverride||baseSEEquipmentForDate(dateISO),last=historyRowsBefore(dateISO,365).filter(x=>x.exercise===name&&x.session==="Strength-Endurance"&&x.weight).slice(-1)[0],k=kbExercise(name);
+ if(k){const loadType=k.load==="double"?"double":"single",choices=kbEquipmentWeightsKg(equipment,loadType);if(!choices.length)return "No KB available";const target=last?.weight?parseKg(last.weight):Math.max(choices[0],(k.defaultKg||16)*.7),kg=kbSnapEquipmentKg(target,equipment,loadType);return kbEquipmentLoadText(kg,equipment,loadType)}
+ if(last?.weight)return displayWeightText(last.weight);
  if(calisthenicsExercise(name)&&!calisthenicsExercise(name)?.requiresBands)return "Bodyweight";
  if(name==="Barbell Front Squat")return String(round5(effectiveTM("squat",blockInfo(Math.max(1,trainingWeekForDate(parseLocalISO(dateISO))||1)).block)*.20));
  const g=gymExercise(name);if(g?.load==="barbell")return String(round5(Math.max(20,(g.defaultLb||45)*.45)));if(g?.load==="perdb")return String(Math.max(5,round5((g.defaultLb||20)*.55)))+" / DB";
- const k=kbExercise(name);if(k)return String(Math.max(8,Math.round((k.defaultKg||16)*.7/2)*2))+" kg"+(k.load==="double"?" / bell":"");
  if(/Band/i.test(name))return "Exercise band";return "Light load";
 }
 function baseSEPlanForDate(dateISO){const bb=baseBuildingForDate(dateISO),rx=bb?baseSEPrescription(bb.week,bb.dayIndex):null;if(!bb||!rx)return [];return currentBaseCircuitForDate(dateISO).map((r,i)=>({exercise:r.exercise,sets:rx.circuits,reps:rx.reps,weight:baseSELoadText(r.exercise,dateISO),numeric:null,bar:false,meta:"BASE BUILDING SE • "+rx.circuits+" circuits × "+rx.reps+" reps",note:(r.replaces?"TODAY ONLY • substitutes for "+r.replaces+". ":"")+"Keep transitions short and the load sustainable across every prescribed rep."}))}
@@ -9580,14 +9630,21 @@ function nextBlockAdaptiveRecommendation(target,dateISO=localISO(new Date())){
  return {mode:"tb",label:"TB Only",why:["No strong conditioning-base deficit currently clears the evidence threshold; continuing strength-focused work is the conservative recommendation."]};
 }
 let baseBuildingSetupContext=null;
-function selectedBaseBuildingEquipment(){return [...document.querySelectorAll(".bb-equip:checked")].map(x=>x.value)}
-function setBaseBuildingEquipmentChoices(values=[]){const set=new Set(["bodyweight",...(values||[])]);document.querySelectorAll(".bb-equip").forEach(x=>{x.checked=set.has(x.value);if(x.value==="bodyweight")x.checked=true})}
-function renderBaseBuildingCircuitPreview(){if(!baseBuildingCircuitPreview)return;const equip=selectedBaseBuildingEquipment(),seed=baseBuildingSetupContext?.seed||localISO(new Date()),circuit=generateBaseSECircuit(equip,seed),adaptive=baseBuildingSetupContext?.mode==="adaptive"?adaptiveSEPrescription(baseBuildingSetupContext?.dateISO||seed):null;baseBuildingCircuitPreview.innerHTML=(adaptive?'<strong>'+adaptive.circuits+' circuits × '+adaptive.reps+' reps per movement</strong><br>':'')+'<strong>'+circuit.map(x=>htmlSafe(x.exercise)).join(' → ')+'</strong><br><span class="muted">Mixed implements are allowed when available. Selection prioritizes repeatable high-rep movements and avoids making every slot the same implement.</span>';return circuit}
+function selectedBaseBuildingEquipment(){
+ const base=[...document.querySelectorAll(".bb-equip:checked")].map(x=>x.value),setup=baseBuildingKbSetup?.value||"none";return equipmentWithKbSetup(base,setup)
+}
+function setBaseBuildingEquipmentChoices(values=[]){
+ const set=new Set(["bodyweight",...(values||[])]);document.querySelectorAll(".bb-equip").forEach(x=>{x.checked=set.has(x.value);if(x.value==="bodyweight")x.checked=true});if(baseBuildingKbSetup)baseBuildingKbSetup.value=kbSetupFromEquipment(values)
+}
+function renderBaseBuildingCircuitPreview(){
+ if(!baseBuildingCircuitPreview)return;const equip=selectedBaseBuildingEquipment(),seed=baseBuildingSetupContext?.seed||localISO(new Date()),circuit=generateBaseSECircuit(equip,seed),adaptive=baseBuildingSetupContext?.mode==="adaptive"?adaptiveSEPrescription(baseBuildingSetupContext?.dateISO||seed):null,kb=kbSetupInfo(equip);
+ baseBuildingCircuitPreview.innerHTML=(adaptive?'<strong>'+adaptive.circuits+' circuits × '+adaptive.reps+' reps per movement</strong><br>':'')+'<strong>'+circuit.map(x=>htmlSafe(x.exercise)).join(' → ')+'</strong><br><span class="muted">Kettlebells: '+htmlSafe(kb.label)+'. Mixed implements are allowed when available. Prescriptions snap to a physically selectable setting: BowFlex 840 = 8/12/20/25/35/40 lb; 70 lb adjustables = 12–32 kg by 2 kg. Double-bell work requires the 70 lb pair and therefore uses the pair’s 12–32 kg settings.</span>';return circuit
+}
 function openBaseBuildingEquipmentModal(mode="new",dateISO="",targetBlock=0){
- let equipment=["bodyweight","pullupBar","bands","dumbbells","kettlebells","barbell","bench","machines"],seed=dateISO||localISO(new Date());
+ let equipment=["bodyweight","pullupBar","bands","dumbbells","kettlebells","kbSetup:all","barbell","bench","machines"],seed=dateISO||localISO(new Date());
  if(mode==="adaptive")equipment=(state.settings.adaptiveSELastEquipment||equipment);
  else if(mode!=="new"){const bb=baseBuildingForDate(dateISO);if(bb){equipment=mode==="temporary"?(bb.plan.temporaryEquipment?.[dateISO]||bb.plan.primaryEquipment||equipment):(bb.plan.primaryEquipment||equipment);seed=bb.plan.startDate}}
- baseBuildingSetupContext={mode,dateISO,targetBlock,seed};setBaseBuildingEquipmentChoices(equipment);if(baseBuildingSetupEyebrow)baseBuildingSetupEyebrow.textContent=mode==="adaptive"?"STRENGTH-ENDURANCE":"BASE BUILDING";baseBuildingSetupTitle.textContent=mode==="adaptive"?"Build Today's Adaptive SE Circuit":mode==="temporary"?"Today's SE Equipment":mode==="primary"?"Primary SE Circuit Settings":"Start Base Building — Primary SE Circuit";baseBuildingSetupSub.textContent=mode==="adaptive"?"Choose the equipment you actually have today. The app will build a one-day SE circuit and choose an exact circuit × rep dose from current fatigue, SE recency, and the next fixed training anchor.":mode==="temporary"?"Choose only what you have today. Unavailable primary movements are replaced by the closest same-role option for this date only.":"Choose the equipment you expect to have most often. The circuit will remain the default throughout Weeks 1–5.";baseBuildingSetupConfirm.textContent=mode==="adaptive"?"Build Today's SE Circuit":mode==="temporary"?"Use Substitutions Today":mode==="primary"?"Update Primary Circuit":"Start 8-Week Base Building";baseBuildingSetupNote.textContent=mode==="adaptive"?"Outside Base Building this circuit belongs to today only. Future open days are re-evaluated from the rolling training state.":mode==="temporary"?"This does not alter the primary circuit or any future SE day.":"The circuit stays stable across the block; use one-day substitutions only when equipment access forces a change.";renderBaseBuildingCircuitPreview();baseBuildingSetupModal.classList.remove("hidden");
+ baseBuildingSetupContext={mode,dateISO,targetBlock,seed};setBaseBuildingEquipmentChoices(equipment);if(baseBuildingSetupEyebrow)baseBuildingSetupEyebrow.textContent=mode==="adaptive"?"STRENGTH-ENDURANCE":"BASE BUILDING";baseBuildingSetupTitle.textContent=mode==="adaptive"?"Build Today's Adaptive SE Circuit":mode==="temporary"?"Today's SE Equipment":mode==="primary"?"Primary SE Circuit Settings":"Start Base Building — Primary SE Circuit";baseBuildingSetupSub.textContent=mode==="adaptive"?"Choose the equipment you actually have today. Kettlebell availability is modeled by bell count and the exact selectable settings, so a single 40 lb BowFlex, one 70 lb bell, or the 70 lb pair produce different exercise and load options. The app then builds a one-day SE circuit and chooses an exact circuit × rep dose from current fatigue, SE recency, and the next fixed training anchor.":mode==="temporary"?"Choose only what you have today. Kettlebell setup is session-specific; unavailable double-bell movements are replaced for this date only.":"Choose the equipment you expect to have most often. Your kettlebell inventory is represented as 1 × 40 lb adjustable plus 2 × 70 lb adjustable bells, and you can choose which subset is normally available. The circuit will remain the default throughout Weeks 1–5.";baseBuildingSetupConfirm.textContent=mode==="adaptive"?"Build Today's SE Circuit":mode==="temporary"?"Use Substitutions Today":mode==="primary"?"Update Primary Circuit":"Start 8-Week Base Building";baseBuildingSetupNote.textContent=mode==="adaptive"?"Outside Base Building this circuit belongs to today only. The selected kettlebell setup is remembered as the next one-day default, but you can change it every time.":mode==="temporary"?"This does not alter the primary circuit or any future SE day. The next SE day returns to its normal equipment profile.":"The circuit stays stable across the block; use one-day substitutions when equipment access changes.";renderBaseBuildingCircuitPreview();baseBuildingSetupModal.classList.remove("hidden");
 }
 function closeBaseBuildingEquipmentModal(){baseBuildingSetupModal.classList.add("hidden");baseBuildingSetupContext=null}
 function startBaseBuildingFromReview(target,equipment,circuit){
@@ -10556,6 +10613,7 @@ transitionMode.addEventListener("change",updateTransitionKbVisibility);
 baseBuildingSetupCancel.addEventListener("click",closeBaseBuildingEquipmentModal);
 baseBuildingSetupConfirm.addEventListener("click",applyBaseBuildingEquipmentSetup);
 document.querySelectorAll(".bb-equip").forEach(x=>x.addEventListener("change",renderBaseBuildingCircuitPreview));
+baseBuildingKbSetup?.addEventListener("change",renderBaseBuildingCircuitPreview);
 baseBuildingSetupModal.addEventListener("click",e=>{if(e.target===baseBuildingSetupModal)closeBaseBuildingEquipmentModal()});
 
 loadPlan.addEventListener("click",()=>{logGuidedPlan=null;loadPlannedSession();writeLogWorkspace()});
@@ -10766,12 +10824,12 @@ saveSettings.addEventListener("click",()=>{
 });
 const CURRENT_EXPORT_VERSION=40;
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.47",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.49",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:16,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","wearable VO2 trend is low weight","wearable calories are reference only"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:4,rules:["direct TB completion/set performance/broad effort/technique; exact RPE optional","block capability trend","expected-vs-actual RPE calibration as a conservative tie-breaker","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
-  kettlebell:{type:"adaptive-per-exposure",version:4,rules:["continuous direct capability estimate","predicted next-load RPE","direct performance strongest","detailed cross-modality movement relationships","conservative family transfer","multi-rate localized fatigue","recovery gating","manual kg wins"]},
+  kettlebell:{type:"adaptive-per-exposure",version:5,rules:["session-specific adjustable-bell availability distinguishes one 40 lb bell, one 70 lb bell, the 70 lb pair, or the full inventory","double-bell movements require an actual pair and equipment-aware SE prescriptions snap to physically selectable bell settings rather than arbitrary kg values","continuous direct capability estimate","predicted next-load RPE","direct performance strongest","detailed cross-modality movement relationships","conservative family transfer","multi-rate localized fatigue","recovery gating","manual kg wins"]},
   genericGym:{type:"adaptive-per-exposure",version:13,rules:["continuous exercise-specific capability estimate","rapid first-two-exposure calibration","exact-rep double progression","reps progress before resistance","resistance increase resets reps to the lower exact step","assistance progression decreases assistance then resets reps","hard high-rep exposure backs reps off before resistance","predicted next-load RPE","proximity-to-failure informs stimulus without rewarding maximal effort indiscriminately","optional set-level RPE and actual rest","set-to-set repeatability / fatigue resistance","absolute and bodyweight-allometric capability trends","richer effective-set stimulus","optional set-completion timestamps derive rest/density without mandatory entry","whole-workout local optimization","future-schedule interference weighted by local overlap, intensity and time proximity","personalized recovery-spacing tie-breaker","duration-aware exercise count and time estimate","movement diversity","major and sub-muscle selection","related work contributes to progression","manual rep edits win"]},
   calisthenics:{type:"adaptive-bodyweight",version:10,rules:["continuous bodyweight capability estimate using latent-smoothed sparse bodyweight history","body-mass-scaled planned demand so weight changes affect predicted difficulty rather than only historical capability","absolute and bodyweight-adjusted capability views","predicted next-step RPE","task-specific progression graph with mastery gates","movement-direction-specific fingerprints: horizontal vs vertical push/pull are not conflated","evidence-informed directional cross-exercise priors","optional set-level RPE/rest and repeatability","longer rests for trained/high-force calisthenics","whole-workout local optimization","future-schedule interference weighted by local overlap, intensity and time proximity","personalized recovery-spacing tie-breaker","separate pull-up bar, bands, low-row setup and dip-bar availability","TB/KB/gym/calisthenics/class transfer","recent related-load penalty","controlled near-equivalent rebuild variation","activation/mobility/plyometric work receives distinct strength-vs-fatigue credit","manual exercise/sets/reps edits win"]},
   classes:{type:"evidence-weighted-class-adaptation",version:1,rules:["class-specific aerobic/anaerobic/strength/endurance/mobility/core/power priors","evidence-confidence caps prevent a class label from proving heavy compound strength","hot-class heart-rate inflation is discounted when HR is the only aerobic evidence","spin/row/run classes build modality-specific aerobic qualities","Pilates and yoga receive core/mobility/endurance credit without heavy-strength equivalence","BodyPump and circuit classes are modeled primarily as strength-endurance","TRX/suspension transfer is capped; EMG activation is not treated as longitudinal outcome proof","Lagree and barre use deliberately low-confidence priors because direct outcome evidence is sparse","aquatic and dance classes contribute aerobic fitness with modality-specific impact","mixed/HIIT studio classes use logged components as the stronger fingerprint when available","class fatigue remains separate from adaptation credit"]},
