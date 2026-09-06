@@ -634,7 +634,7 @@ body.substitution-sheet-open{overflow:hidden}
 }
 
 
-/* v36.51 context-dosed adaptive SE + v36.49 exact adjustable-kettlebell settings + v36.48 granular kettlebell availability + v36.47 rolling six-lane non-anchor cadence + v36.46 need-based reflow + v36.44 multimodal research + v36.43 builder/calendar/core-balance upgrade:
+/* v36.52 movement-diverse SE circuits + v36.51 context-dosed adaptive SE + v36.49 exact adjustable-kettlebell settings + v36.48 granular kettlebell availability + v36.47 rolling six-lane non-anchor cadence + v36.46 need-based reflow + v36.44 multimodal research + v36.43 builder/calendar/core-balance upgrade:
    - Outside Base Building, Strength-Endurance has no progressive dose ladder. Each one-day circuit is selected fresh from time available, current recovery/fatigue, recent workload, SE recency, subjective freshness, and proximity to the next fixed anchor.
    - The legal dose space remains 2 or 3 circuits at 15/20/25/30/35/40/45/50 reps. Higher-rep / three-circuit prescriptions automatically use lighter external loading.
    - The adaptive SE equipment modal now asks how much time is available and optionally lets the user override recovery-derived freshness for today.
@@ -1479,7 +1479,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.51</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.52</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, TB/KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and TB max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -2281,6 +2281,7 @@ const calisthenicsExerciseLibrary=[
  {name:"Assisted Nordic Hamstring Curl",focus:"legs",family:"hamstrings",secondary:["hinge","core"],requiresBar:false,auto:false,level:4,baseSets:3,baseReps:5,note:"Manual option requiring a secure ankle anchor or partner. Use hand/band assistance to control the eccentric and return; Nordics are modeled primarily as knee-flexor eccentric strength, not as a deadlift-equivalent hinge."},
  {name:"Nordic Hamstring Curl",focus:"legs",family:"hamstrings",secondary:["hinge","core"],requiresBar:false,auto:false,level:5,baseSets:3,baseReps:4,note:"Manual advanced option requiring a secure ankle anchor or partner. Emphasize controlled eccentric knee flexion; low volumes can still provide a strong eccentric stimulus."},
  {name:"Single-Leg Calf Raise",focus:"legs",family:"calves",secondary:[],requiresBar:false,level:2,baseSets:3,baseReps:15,note:"Controlled single-leg calf raise through full range."},
+ {name:"Bodyweight Calf Raise",focus:"legs",family:"calves",secondary:[],requiresBar:false,level:1,baseSets:3,baseReps:25,note:"Two-leg standing calf raise through a full controlled range; useful when higher-rep calf endurance is the goal."},
  {name:"Wall Sit",focus:"legs",family:"quads",secondary:["core"],requiresBar:false,level:1,baseSets:3,baseSeconds:40,note:"Isometric squat hold with back supported against a wall."},
 
  {name:"Front Plank",focus:"core",family:"core",secondary:[],requiresBar:false,level:1,baseSets:3,baseSeconds:40,note:"Rigid forearm plank while maintaining stacked ribs and pelvis."},
@@ -3697,10 +3698,11 @@ function baseSEEquipmentAvailable(candidate,equipment){
 function generateBaseSECircuit(equipment=[],seed=""){
  const equip=[...new Set(["bodyweight",...(equipment||[])])],roles=["squat","push","pull","hinge","secondary","core"],usedNames=new Set(),usedImpl=new Map(),rows=[];
  roles.forEach(role=>{
-   let pool=baseSECandidates.filter(c=>c.role===role&&baseSEEquipmentAvailable(c,equip)&&!usedNames.has(c.name));
-   if(!pool.length)pool=baseSECandidates.filter(c=>c.role===role&&baseSEEquipmentAvailable(c,["bodyweight"])&&!usedNames.has(c.name));
+   const compatible=c=>!usedNames.has(c.name)&&seCandidatePatternCompatible(c,rows,20);
+   let pool=baseSECandidates.filter(c=>c.role===role&&baseSEEquipmentAvailable(c,equip)&&compatible(c));
+   if(!pool.length&&role!=="secondary")pool=baseSECandidates.filter(c=>c.role===role&&baseSEEquipmentAvailable(c,["bodyweight"])&&compatible(c));
    pool.sort((a,b)=>{const av=(usedImpl.get(a.implement)||0),bv=(usedImpl.get(b.implement)||0),as=a.priority-av*2+tinyTie(seed+"|"+role+"|"+a.name),bs=b.priority-bv*2+tinyTie(seed+"|"+role+"|"+b.name);return bs-as});
-   const pick=pool[0];if(pick){usedNames.add(pick.name);usedImpl.set(pick.implement,(usedImpl.get(pick.implement)||0)+1);rows.push({exercise:pick.name,role:pick.role,implement:pick.implement})}
+   const pick=pool[0];if(pick){const family=pick.family||seMovementFamily(pick.name);usedNames.add(pick.name);usedImpl.set(pick.implement,(usedImpl.get(pick.implement)||0)+1);rows.push({exercise:pick.name,role:pick.role,implement:pick.implement,family})}
  });
  return rows;
 }
@@ -3732,18 +3734,73 @@ function adaptiveSESessionHistory(dateISO,days=365){
    return {...g,circuits,reps,completion,maxRpe,avgRpe,bad,good:completion>=.90&&!bad&&positive&&(maxRpe===0||maxRpe<=8.5),solid:completion>=.85&&!bad&&(maxRpe===0||maxRpe<=9),hard:bad||completion<.75||maxRpe>=9.5}
  }).sort((a,b)=>a.date.localeCompare(b.date)||String(a.rows[0]?.sessionId||"").localeCompare(String(b.rows[0]?.sessionId||"")))
 }
+function seMovementFamily(name){
+ const n=String(name||"").toLowerCase();
+ if(/push-up|floor press|chest press/.test(n))return "horizontal_push";
+ if(/push press|overhead press|shoulder press/.test(n))return "vertical_push";
+ if(/row/.test(n)&&!/mountain/.test(n))return "horizontal_pull";
+ if(/pull-up|pulldown/.test(n))return "vertical_pull";
+ if(/front squat|goblet squat|bodyweight squat|band squat/.test(n))return "squat";
+ if(/lunge|split squat|step-up/.test(n))return "unilateral_knee";
+ if(/swing|romanian deadlift|good morning|glute bridge/.test(n))return "hinge";
+ if(/calf raise/.test(n))return "calf";
+ if(/pull-apart|face pull/.test(n))return "scapular_pull";
+ if(/lateral raise/.test(n))return "shoulder_accessory";
+ if(/mountain climber/.test(n))return "locomotion_core";
+ if(/dead bug|bird dog/.test(n))return "stability_core";
+ if(/bicycle crunch|reverse crunch|ab crunch/.test(n))return "trunk_flexion";
+ return "other:"+n.replace(/[^a-z0-9]+/g,"_")
+}
+function seCandidateRepCompatible(candidate,reps){
+ const r=Number(reps)||20;
+ if(candidate?.minReps&&r<candidate.minReps)return false;
+ if(candidate?.maxReps&&r>candidate.maxReps)return false;
+ return true
+}
+function seCandidatePatternCompatible(candidate,rows,reps){
+ if(!candidate||!seCandidateRepCompatible(candidate,reps))return false;
+ const family=candidate.family||seMovementFamily(candidate.name),used=new Set((rows||[]).map(x=>x.family||seMovementFamily(x.exercise)));
+ // One movement per meaningful pattern. Variations are alternatives, not extra volume:
+ // Push-Up + Incline/Band-Resisted Push-Up/Floor Press can never coexist, and the
+ // same rule applies to squat, hinge, row, overhead-press, etc. families.
+ if(used.has(family))return false;
+ // At very high rep prescriptions, avoid adding a third demanding lower-body pattern
+ // on top of the required squat + hinge slots. Low-systemic calf/locomotion work is fine.
+ if(Number(reps)>=35&&family==="unilateral_knee"&&[...used].some(x=>x==="squat")&&[...used].some(x=>x==="hinge"))return false;
+ return true
+}
 function adaptiveSERepSuitability(name,reps){
  const r=Number(reps)||20;if(r<35)return 0;let score=0;
- if(/Incline Push-Up|Bodyweight Squat|Glute Bridge|Superman Row|Band Bent-Over Row|Band Good Morning|Bicycle Crunch|Reverse Crunch|Two-Hand Swing/i.test(name))score+=r>=45?6:3;
- if(name==="Push-Up"||/Inverted Row|Push Press|Romanian Deadlift/i.test(name))score-=r>=45?7:3;
+ if(/Incline Push-Up|Bodyweight Squat|Glute Bridge|Superman Row|Band Bent-Over Row|Band Good Morning|Bicycle Crunch|Reverse Crunch|Band Pull-Apart|Band Face Pull/i.test(name))score+=r>=45?6:3;
+ if(name==="Push-Up"||/Inverted Row|Push Press|Romanian Deadlift|Shoulder Press|Reverse Lunge/i.test(name))score-=r>=45?8:3;
  return score
 }
+const adaptiveSEExtraCandidates=[
+ {name:"Incline Push-Up",role:"push",equipment:["bodyweight"],priority:10,implement:"bodyweight",family:"horizontal_push"},
+ // The sixth slot is complementary, never just another version of a primary movement.
+ {name:"Single-Leg Calf Raise",role:"secondary",equipment:["bodyweight"],priority:10,implement:"bodyweight",family:"calf",maxReps:30},
+ {name:"Bodyweight Calf Raise",role:"secondary",equipment:["bodyweight"],priority:9,implement:"bodyweight",family:"calf",minReps:35},
+ {name:"Reverse Lunge",role:"secondary",equipment:["bodyweight"],priority:7,implement:"bodyweight",family:"unilateral_knee",maxReps:30},
+ {name:"Band Pull-Apart",role:"secondary",equipment:["bands"],priority:11,implement:"bands",family:"scapular_pull"},
+ {name:"Band Face Pull",role:"secondary",equipment:["bands"],priority:10,implement:"bands",family:"scapular_pull",maxReps:45},
+ {name:"Band Overhead Press",role:"secondary",equipment:["bands"],priority:8,implement:"bands",family:"vertical_push",maxReps:35},
+ {name:"Dumbbell Lateral Raise",role:"secondary",equipment:["dumbbells"],priority:9,implement:"db",family:"shoulder_accessory",maxReps:40},
+ {name:"Face Pull",role:"secondary",equipment:["machines"],priority:10,implement:"machine",family:"scapular_pull",maxReps:45},
+ {name:"Cable Lateral Raise",role:"secondary",equipment:["machines"],priority:8,implement:"machine",family:"shoulder_accessory",maxReps:40},
+ {name:"Dead Bug",role:"core",equipment:["bodyweight"],priority:8,implement:"bodyweight",family:"stability_core",maxReps:30},
+ {name:"Bird Dog",role:"core",equipment:["bodyweight"],priority:7,implement:"bodyweight",family:"stability_core",maxReps:30},
+ {name:"Hanging Knee Raise",role:"core",equipment:["bodyweight","pullupBar"],priority:9,implement:"bodyweight",family:"trunk_flexion",maxReps:25}
+];
 function generateAdaptiveSECircuit(equipment=[],seed="",reps=20){
- const extras=[{name:"Incline Push-Up",role:"push",equipment:["bodyweight"],priority:10,implement:"bodyweight"},{name:"Incline Push-Up",role:"secondary",equipment:["bodyweight"],priority:8,implement:"bodyweight"}],candidates=[...baseSECandidates,...extras],equip=[...new Set(["bodyweight",...(equipment||[])])],roles=["squat","push","pull","hinge","secondary","core"],usedNames=new Set(),usedImpl=new Map(),rows=[];
+ const candidates=[...baseSECandidates,...adaptiveSEExtraCandidates],equip=[...new Set(["bodyweight",...(equipment||[])])],roles=["squat","push","pull","hinge","secondary","core"],usedNames=new Set(),usedImpl=new Map(),rows=[];
  roles.forEach(role=>{
-   let pool=candidates.filter(c=>c.role===role&&baseSEEquipmentAvailable(c,equip)&&!usedNames.has(c.name));if(!pool.length)pool=candidates.filter(c=>c.role===role&&baseSEEquipmentAvailable(c,["bodyweight"])&&!usedNames.has(c.name));
+   const eligible=(eq)=>candidates.filter(c=>c.role===role&&baseSEEquipmentAvailable(c,eq)&&!usedNames.has(c.name)&&seCandidatePatternCompatible(c,rows,reps));
+   let pool=eligible(equip);
+   // Required movement slots may fall back to bodyweight. The complementary secondary
+   // slot is optional: 5 well-balanced movements are better than forcing a redundant 6th.
+   if(!pool.length&&role!=="secondary")pool=eligible(["bodyweight"]);
    pool.sort((a,b)=>{const av=usedImpl.get(a.implement)||0,bv=usedImpl.get(b.implement)||0,as=a.priority+adaptiveSERepSuitability(a.name,reps)-av*2+tinyTie(seed+"|adaptive-se|"+reps+"|"+role+"|"+a.name),bs=b.priority+adaptiveSERepSuitability(b.name,reps)-bv*2+tinyTie(seed+"|adaptive-se|"+reps+"|"+role+"|"+b.name);return bs-as});
-   const pick=pool[0];if(pick){usedNames.add(pick.name);usedImpl.set(pick.implement,(usedImpl.get(pick.implement)||0)+1);rows.push({exercise:pick.name,role:pick.role,implement:pick.implement})}
+   const pick=pool[0];if(pick){const family=pick.family||seMovementFamily(pick.name);usedNames.add(pick.name);usedImpl.set(pick.implement,(usedImpl.get(pick.implement)||0)+1);rows.push({exercise:pick.name,role:pick.role,implement:pick.implement,family})}
  });return rows
 }
 function currentBaseCircuitForDate(dateISO){const bb=baseBuildingForDate(dateISO);if(!bb)return [];const tmp=bb.plan.temporaryCircuits?.[dateISO];return Array.isArray(tmp)&&tmp.length?tmp:(Array.isArray(bb.plan.primaryCircuit)?bb.plan.primaryCircuit:[])}
@@ -3758,7 +3815,7 @@ function baseSELoadText(name,dateISO,equipmentOverride=null){
  if(last?.weight)return displayWeightText(last.weight);
  if(calisthenicsExercise(name)&&!calisthenicsExercise(name)?.requiresBands)return "Bodyweight";
  if(name==="Barbell Front Squat")return String(round5(effectiveTM("squat",blockInfo(Math.max(1,trainingWeekForDate(parseLocalISO(dateISO))||1)).block)*.20));
- const g=gymExercise(name);if(g?.load==="barbell")return String(round5(Math.max(20,(g.defaultLb||45)*.45)));if(g?.load==="perdb")return String(Math.max(5,round5((g.defaultLb||20)*.55)))+" / DB";
+ const g=gymExercise(name);if(g?.load==="barbell")return String(round5(Math.max(20,(g.defaultLb||45)*.45)));if(g?.load==="per_db")return String(Math.max(5,round5((g.defaultLb||20)*.55)))+" / DB";if(["total","single"].includes(g?.load))return String(Math.max(g.increment||5,Math.floor(((g.defaultLb||20)*.55)/(g.increment||5))*(g.increment||5)));
  if(/Band/i.test(name))return "Exercise band";return "Light load";
 }
 function adaptiveSELoadText(name,dateISO,equipmentOverride=null,reps=20,circuits=2){
@@ -3769,7 +3826,7 @@ function adaptiveSELoadText(name,dateISO,equipmentOverride=null,reps=20,circuits
  if(/Band/i.test(name))return "Exercise band";
  if(last?.weight){const raw=parseLb(last.weight);if(raw>0){let step=/Ab Crunch Machine/i.test(name)?10:5,target=Math.max(step,raw*ratio),rounded=Math.max(step,Math.floor((target+1e-9)/step)*step);return String(rounded)+(/\/ DB/i.test(String(last.weight))?" / DB":"")}}
  if(name==="Barbell Front Squat"){const base=effectiveTM("squat",blockInfo(Math.max(1,trainingWeekForDate(parseLocalISO(dateISO))||1)).block)*.20;return String(round5(Math.max(20,base*doseFactor)))}
- const g=gymExercise(name);if(g?.load==="barbell")return String(round5(Math.max(20,(g.defaultLb||45)*.45*doseFactor)));if(g?.load==="perdb")return String(Math.max(5,Math.floor(((g.defaultLb||20)*.55*doseFactor)/5)*5))+" / DB";
+ const g=gymExercise(name);if(g?.load==="barbell")return String(round5(Math.max(20,(g.defaultLb||45)*.45*doseFactor)));if(g?.load==="per_db"){const step=g.increment||5;return String(Math.max(step,Math.floor(((g.defaultLb||20)*.55*doseFactor)/step)*step))+" / DB"}if(["total","single"].includes(g?.load)){const step=g.increment||5;return String(Math.max(step,Math.floor(((g.defaultLb||20)*.55*doseFactor)/step)*step))}
  return "Light load";
 }
 function baseSEPlanForDate(dateISO){const bb=baseBuildingForDate(dateISO),rx=bb?baseSEPrescription(bb.week,bb.dayIndex):null;if(!bb||!rx)return [];return currentBaseCircuitForDate(dateISO).map((r,i)=>({exercise:r.exercise,sets:rx.circuits,reps:rx.reps,weight:baseSELoadText(r.exercise,dateISO),numeric:null,bar:false,meta:"BASE BUILDING SE • "+rx.circuits+" circuits × "+rx.reps+" reps",note:(r.replaces?"TODAY ONLY • substitutes for "+r.replaces+". ":"")+"Keep transitions short and the load sustainable across every prescribed rep."}))}
@@ -10935,7 +10992,7 @@ saveSettings.addEventListener("click",()=>{
 });
 const CURRENT_EXPORT_VERSION=40;
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.51",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.52",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:16,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","wearable VO2 trend is low weight","wearable calories are reference only"]},
