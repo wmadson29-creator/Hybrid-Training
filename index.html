@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0b0f14">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest">
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.65">
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
@@ -699,7 +699,7 @@ body.substitution-sheet-open{overflow:hidden}
 }
 
 
-/* v36.63 researched class expansion + explicit activity-step input + normalized class times + v36.62 walking dose-vs-toll separation + very-low easy-walking fatigue + v36.61 calendar/runtime hotfix + v36.60 capacity calibration + subjective fatigue + wave-aware decline detection + v36.59 slightly lower Calisthenics / SE rolling frequency + v36.58 research-based pickleball drilling vs match modeling + v36.57 barbell strength naming + v36.52 movement-diverse SE circuits + v36.51 context-dosed adaptive SE + v36.49 exact adjustable-kettlebell settings + v36.48 granular kettlebell availability + v36.47 rolling six-lane non-anchor cadence + v36.46 need-based reflow + v36.44 multimodal research + v36.43 builder/calendar/core-balance upgrade:
+/* v36.65 forced-update/cache hardening + v36.64 prescription-time consistency + v36.63 researched class expansion + explicit activity-step input + normalized class times + v36.62 walking dose-vs-toll separation + very-low easy-walking fatigue + v36.61 calendar/runtime hotfix + v36.60 capacity calibration + subjective fatigue + wave-aware decline detection + v36.59 slightly lower Calisthenics / SE rolling frequency + v36.58 research-based pickleball drilling vs match modeling + v36.57 barbell strength naming + v36.52 movement-diverse SE circuits + v36.51 context-dosed adaptive SE + v36.49 exact adjustable-kettlebell settings + v36.48 granular kettlebell availability + v36.47 rolling six-lane non-anchor cadence + v36.46 need-based reflow + v36.44 multimodal research + v36.43 builder/calendar/core-balance upgrade:
    - Outside Base Building, Strength-Endurance has no progressive dose ladder. Each one-day circuit is selected fresh from time available, current recovery/fatigue, recent workload, SE recency, subjective freshness, and proximity to the next fixed anchor.
    - The legal dose space remains 2 or 3 circuits at 15/20/25/30/35/40/45/50 reps. Higher-rep / three-circuit prescriptions automatically use lighter external loading.
    - The adaptive SE equipment modal now asks how much time is available and optionally lets the user override recovery-derived freshness for today.
@@ -1556,7 +1556,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.63</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, Barbell Strength / KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.65</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, Barbell Strength / KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -6375,6 +6375,16 @@ function conditioningDifficultyRating(activity){
  if(/rest 3|rest 4|rest 5/.test(s))score-=.15;
  return Math.max(1,Math.min(10,Math.round(score*4)/4));
 }
+
+function targetConsistentConditioningPrescription(activity,target,entry=null){
+ const e=entry||entryForName(activity),p=String(e?.prescription||"").trim(),t=String(target||"").trim();
+ if(!t||t==="Standard")return p||"Use the planned target shown above.";
+ if(!p)return t;
+ if(t===p)return p;
+ const duration=/^(\d+(?:\.\d+)?)(?:\s*[–-]\s*(\d+(?:\.\d+)?))?\s*(?:min|mins|minutes)\b/i;
+ if(duration.test(t)&&duration.test(p))return p.replace(duration,t);
+ return t;
+}
 function conditioningTargetRpe(activity){
  const d=conditioningDifficultyRating(activity);
  if(d>=9)return "9";
@@ -6430,10 +6440,12 @@ function conditioningLogHelperHTML(activity){
  const e=entryForName(activity);if(!e)return '<div class="planned">Workout instructions: use the planned target above.</div>';
  const needs=conditioningEquipmentNeeds(activity),difficulty=conditioningDifficultyRating(activity),dateISO=logDate?.value||localISO(new Date()),d=parseLocalISO(dateISO),
    gw=Math.max(1,Number(logWeek?.value)||trainingWeekForDate(d)||state.settings.currentWeek),day=dayNameFromDate(dateISO),readiness=adaptiveReadiness(dateISO),decision=conditioningFor(day,gw,dateISO),
+   currentTarget=decision?.activity===activity?decision.target:"",
+   displayedPrescription=targetConsistentConditioningPrescription(activity,currentTarget,e),
    factors=decision?.activity===activity?uniqueConditioningReasons(decision.whyFactors||[]):[],
    whyToday=factors.length?'<div class="planned"><strong>Why today:</strong> '+htmlSafe(factors.slice(0,3).join(" • "))+'</div>':"",
    guardNote=readiness.recoveryGuard?'<div class="planned"><strong>Recovery Guard:</strong> A harder swap is disabled; an Easier swap can redirect a hard session to appropriate aerobic work.</div>':"";
- return '<div class="planned"><strong>What to do:</strong> '+htmlSafe(e.prescription)+'</div>'+
+ return '<div class="planned"><strong>What to do:</strong> '+htmlSafe(displayedPrescription)+'</div>'+
    '<div class="planned"><strong>Effort:</strong> '+difficulty.toFixed(1)+'/10 • target RPE '+htmlSafe(conditioningTargetRpe(activity))+' • <strong>Emphasis:</strong> '+htmlSafe(conditioningFocusLabel(activity))+'</div>'+
    '<div class="planned"><strong>Equipment:</strong> '+(needs.length?needs.map(x=>htmlSafe(x.label)).join(" • "):"No specialty equipment identified")+'</div>'+whyToday+guardNote+
    '<div class="actions conditioning-swap-actions"><button class="btn conditioning-swap-btn" type="button" data-swap="similar">Swap Similar</button><button class="btn conditioning-swap-btn" type="button" data-swap="easier">Slightly Easier</button><button class="btn conditioning-swap-btn" type="button" data-swap="harder"'+(readiness.recoveryGuard?' disabled title="Recovery Guard blocks harder conditioning"':'')+'>Slightly Harder</button></div>'+
@@ -8881,10 +8893,11 @@ function renderSelectedWorkout(){
  }
  if(session==="Open Training"){appendExerciseCard({exercise:"Open Training Day",meta:"PROTECTED FROM REST",note:"This date is protected from rest. If it was originally a rest day, the app can fill the open slot with an adaptive recommendation; you can still override it with gym, calisthenics, class, conditioning, or another session."});appendDayControls(session);return}
  if(session==="Active Recovery"){
-   const c=activeRecoveryPick(selectedDateISO),lib=tbEnduranceLibrary.find(x=>x.name===c.activity),factors=c.whyFactors||[];
-   let note='<strong>Recovery prescription:</strong> '+htmlSafe(c.detail)+'<br><strong>Hard ceiling:</strong> stay at RPE 2–3; this should leave you fresher, not trained.';
+   const c=activeRecoveryPick(selectedDateISO),lib=tbEnduranceLibrary.find(x=>x.name===c.activity),factors=c.whyFactors||[],
+     movement=targetConsistentConditioningPrescription(c.activity,c.target,lib);
+   let note="<strong>Today's duration:</strong> "+htmlSafe(c.target)+"<br><strong>Recovery-dose basis:</strong> "+htmlSafe(c.detail)+"<br><strong>Hard ceiling:</strong> stay at RPE 2–3; this should leave you fresher, not trained.";
    if(factors.length)note+='<br><strong>Why today:</strong><ul>'+factors.map(x=>'<li>'+htmlSafe(x)+'</li>').join("")+'</ul>';
-   if(lib)note+='<br><strong>Movement:</strong> '+htmlSafe(lib.prescription);
+   if(movement)note+='<br><strong>Movement:</strong> '+htmlSafe(movement);
    appendExerciseCard({exercise:c.activity,target:c.target,weight:"RPE 2–3",meta:"ACTIVE RECOVERY • LOWER-STRAIN AEROBIC",note,noteHtml:true});appendDayControls(session);return
  }
  if(session==="Conditioning"){
@@ -8894,7 +8907,10 @@ function renderSelectedWorkout(){
    let note='<strong>Recommendation:</strong> '+htmlSafe(c.detail);
    if(factors.length)note+='<br><strong>Why today:</strong><ul>'+factors.slice(0,5).map(x=>'<li>'+htmlSafe(x)+'</li>').join("")+'</ul>';
    else if(c.why)note+='<br><strong>Why today:</strong> '+htmlSafe(c.why);
-   if(lib){note+='<br><strong>Full prescription:</strong> '+htmlSafe(lib.prescription);if(lib.basic)note+='<br><strong>Basic:</strong> '+htmlSafe(lib.basic);if(lib.advanced)note+='<br><strong>Advanced:</strong> '+htmlSafe(lib.advanced)}
+   if(lib){
+     const todayPrescription=targetConsistentConditioningPrescription(c.activity,c.target,lib);
+     note+="<br><strong>Today's prescription:</strong> "+htmlSafe(todayPrescription);
+   }
    appendExerciseCard({exercise:c.activity,target:c.target,weight:"RPE "+c.rpe,meta:(c.inProgress?"IN-PROGRESS LOG • ":(c.autoNoRest?"ADAPTIVE NO-REST FILL • ":(c.swap?"ADAPTIVE ONE-DAY SWAP • ":(c.override?"MANUAL OVERRIDE • ":(c.adaptive?"ADAPTIVE • ":"")))))+(lib&&lib.num?"HIC #"+lib.num+" • "+hicCategory(lib.num):(lib?lib.category||"Endurance":"Conditioning")),note,noteHtml:true});
    if(c.override){const clr=document.createElement("button");clr.className="btn";clr.type="button";clr.textContent="Clear Conditioning Override";clr.addEventListener("click",clearConditioningOverrideForSelected);tbList.appendChild(clr)}
    appendDayControls(session);return
@@ -11414,9 +11430,23 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
+const HYBRID_APP_BUILD="36.65";
+async function checkForDeployedBuild(){
+ try{
+  const r=await fetch("./version.json?_="+Date.now(),{cache:"no-store"});if(!r.ok)return;
+  const v=await r.json(),latest=String(v?.build||"").replace(/^v/,"");
+  if(latest&&latest!==HYBRID_APP_BUILD){
+   const u=new URL(location.href);u.searchParams.set("v",latest);u.searchParams.set("refresh",Date.now());location.replace(u.href);
+  }
+ }catch(_e){}
+}
 if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
   navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(sessionStorage.getItem("hybrid-controller-reload")!==HYBRID_APP_BUILD){sessionStorage.setItem("hybrid-controller-reload",HYBRID_APP_BUILD);location.reload()}
+  });
 }
+checkForDeployedBuild();
 if(navigator.storage&&navigator.storage.persist){
   navigator.storage.persist().catch(()=>{});
 }
@@ -11794,10 +11824,10 @@ saveSettings.addEventListener("click",()=>{
 });
 const CURRENT_EXPORT_VERSION=40;
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.63",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.65",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
-  conditioning:{type:"adaptive-infinite",version:17,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","wearable VO2 trend is low weight","wearable calories are reference only"]},
+  conditioning:{type:"adaptive-infinite",version:18,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","wearable VO2 trend is low weight","wearable calories are reference only"]},
   tbMaxes:{type:"adaptive-by-6-week-block",version:4,rules:["direct Barbell Strength completion/set performance/broad effort/technique; exact RPE optional","block capability trend","expected-vs-actual RPE calibration as a conservative tie-breaker","adaptive increase-hold-reduce proposal","lift-by-lift transition review","manual override wins","infinite block navigation"]},
   kettlebell:{type:"adaptive-per-exposure",version:5,rules:["session-specific adjustable-bell availability distinguishes one 40 lb bell, one 70 lb bell, the 70 lb pair, or the full inventory","double-bell movements require an actual pair and equipment-aware SE prescriptions snap to physically selectable bell settings rather than arbitrary kg values","continuous direct capability estimate","predicted next-load RPE","direct performance strongest","detailed cross-modality movement relationships","conservative family transfer","multi-rate localized fatigue","recovery gating","manual kg wins"]},
   genericGym:{type:"adaptive-per-exposure",version:13,rules:["continuous exercise-specific capability estimate","rapid first-two-exposure calibration","exact-rep double progression","reps progress before resistance","resistance increase resets reps to the lower exact step","assistance progression decreases assistance then resets reps","hard high-rep exposure backs reps off before resistance","predicted next-load RPE","proximity-to-failure informs stimulus without rewarding maximal effort indiscriminately","optional set-level RPE and actual rest","set-to-set repeatability / fatigue resistance","absolute and bodyweight-allometric capability trends","richer effective-set stimulus","optional set-completion timestamps derive rest/density without mandatory entry","whole-workout local optimization","future-schedule interference weighted by local overlap, intensity and time proximity","personalized recovery-spacing tie-breaker","duration-aware exercise count and time estimate","movement diversity","major and sub-muscle selection","related work contributes to progression","manual rep edits win"]},
