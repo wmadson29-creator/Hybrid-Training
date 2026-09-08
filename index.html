@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0b0f14">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.65">
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.66">
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
@@ -699,7 +699,7 @@ body.substitution-sheet-open{overflow:hidden}
 }
 
 
-/* v36.65 forced-update/cache hardening + v36.64 prescription-time consistency + v36.63 researched class expansion + explicit activity-step input + normalized class times + v36.62 walking dose-vs-toll separation + very-low easy-walking fatigue + v36.61 calendar/runtime hotfix + v36.60 capacity calibration + subjective fatigue + wave-aware decline detection + v36.59 slightly lower Calisthenics / SE rolling frequency + v36.58 research-based pickleball drilling vs match modeling + v36.57 barbell strength naming + v36.52 movement-diverse SE circuits + v36.51 context-dosed adaptive SE + v36.49 exact adjustable-kettlebell settings + v36.48 granular kettlebell availability + v36.47 rolling six-lane non-anchor cadence + v36.46 need-based reflow + v36.44 multimodal research + v36.43 builder/calendar/core-balance upgrade:
+/* v36.66 class/activity separation + today-tab class/activity entry + v36.65 forced-update/cache hardening + v36.64 prescription-time consistency + v36.63 researched class expansion + explicit activity-step input + normalized class times + v36.62 walking dose-vs-toll separation + very-low easy-walking fatigue + v36.61 calendar/runtime hotfix + v36.60 capacity calibration + subjective fatigue + wave-aware decline detection + v36.59 slightly lower Calisthenics / SE rolling frequency + v36.58 research-based pickleball drilling vs match modeling + v36.57 barbell strength naming + v36.52 movement-diverse SE circuits + v36.51 context-dosed adaptive SE + v36.49 exact adjustable-kettlebell settings + v36.48 granular kettlebell availability + v36.47 rolling six-lane non-anchor cadence + v36.46 need-based reflow + v36.44 multimodal research + v36.43 builder/calendar/core-balance upgrade:
    - Outside Base Building, Strength-Endurance has no progressive dose ladder. Each one-day circuit is selected fresh from time available, current recovery/fatigue, recent workload, SE recency, subjective freshness, and proximity to the next fixed anchor.
    - The legal dose space remains 2 or 3 circuits at 15/20/25/30/35/40/45/50 reps. Higher-rep / three-circuit prescriptions automatically use lighter external loading.
    - The adaptive SE equipment modal now asks how much time is available and optionally lets the user override recovery-derived freshness for today.
@@ -741,7 +741,7 @@ body.substitution-sheet-open{overflow:hidden}
       <button class="tab" data-view="kbworkouts">KB Workouts</button>
       <button class="tab" data-view="gymworkouts">Gym</button>
       <button class="tab" data-view="calisthenics">Calisthenics</button>
-      <button class="tab" data-view="classes">Classes</button>
+      <button class="tab" data-view="classes">Classes &amp; Activities</button>
       <button class="tab" data-view="maxes">Barbell Strength Maxes</button>
       <button class="tab" data-view="settings">Settings</button>
       <button class="tab" data-view="trends">Trends</button>
@@ -1401,21 +1401,22 @@ body.substitution-sheet-open{overflow:hidden}
 
 <section id="classes" class="view">
     <div class="panel">
-      <div class="panel-head"><div><div class="panel-title">Classes & Other Training</div><div class="panel-sub">Schedule classes in advance. On Barbell Strength / KB days the class becomes a second workout; on conditioning, adaptive, or rest days the class becomes that day's workout. Future adaptive training accounts for the class's muscle and fatigue profile.</div></div></div>
+      <div class="panel-head"><div><div class="panel-title">Classes & Activities</div><div class="panel-sub">Schedule studio classes and independent activities in advance. On Barbell Strength / KB days they become a second workout; on conditioning, adaptive, or rest days they become that day's workout. Future adaptive training accounts for the specific session's muscle and fatigue profile.</div></div></div>
       <div class="form-grid" style="margin-bottom:12px">
-        <div class="field"><label>Class date</label><input id="classScheduleDate" type="date"></div>
+        <div class="field"><label>Date</label><input id="classScheduleDate" type="date"></div>
         <div class="field"><label>Start time (optional)</label><input id="classScheduleTime" type="time"></div>
-        <div class="field"><label>Planned duration (min, optional)</label><input id="classScheduleDuration" type="number" min="0" step="5" placeholder="e.g. 45, 50, 60"><div class="hint">Use the studio's actual class length. The app does not infer duration from the class name.</div></div>
+        <div class="field"><label>Planned duration (min, optional)</label><input id="classScheduleDuration" type="number" min="0" step="5" placeholder="e.g. 45, 50, 60"><div class="hint">Use the studio's actual class or activity length. The app does not infer duration from the name.</div></div>
       </div>
       <div class="conditioning-filter-row">
+        <div class="field"><label>Type</label><select id="classTypeFilter"><option value="all">All</option><option value="class">Classes</option><option value="activity">Activities</option></select></div>
         <div class="field"><label>Category</label><select id="classCategory"><option value="all">All</option><option value="mindbody">Yoga / Pilates / Mobility</option><option value="cardio">Cardio Classes</option><option value="sports">Sports / Recreation</option><option value="combat">Combat / HIIT</option><option value="strength">Strength / Mixed</option></select></div>
-        <div class="field"><label>Search</label><input id="classSearch" placeholder="Search classes"></div>
+        <div class="field"><label>Search</label><input id="classSearch" placeholder="Search classes or activities"></div>
       </div>
-      <div class="notice" id="classStatus">Choose a date above, then tap <strong>Schedule class</strong>. The app will decide whether it is the day's primary workout or an additional second session.</div>
+      <div class="notice" id="classStatus">Choose a date above, then tap <strong>Schedule class</strong> or <strong>Schedule activity</strong>. The app will decide whether it becomes the day's primary workout or an additional second session.</div>
       <div class="conditioning-grid" id="classLibraryGrid"></div>
     </div>
     <div class="panel">
-      <div class="panel-head"><div><div class="panel-title">Scheduled Classes</div><div class="panel-sub">Upcoming and recent class commitments used by the adaptive engine.</div></div></div>
+      <div class="panel-head"><div><div class="panel-title">Scheduled Classes & Activities</div><div class="panel-sub">Upcoming and recent scheduled sessions used by the adaptive engine.</div></div></div>
       <div id="scheduledClassList"></div>
     </div>
   </section>
@@ -1556,7 +1557,7 @@ body.substitution-sheet-open{overflow:hidden}
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.65</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, Barbell Strength / KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.66</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, Barbell Strength / KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -1825,11 +1826,13 @@ const calSelectUpper=document.getElementById("calSelectUpper");
 const calWorkoutName=document.getElementById("calWorkoutName");
 const chestTm=document.getElementById("chestTm");
 const classCategory=document.getElementById("classCategory");
+const classTypeFilter=document.getElementById("classTypeFilter");
 const classLibraryGrid=document.getElementById("classLibraryGrid");
 const classSearch=document.getElementById("classSearch");
 const classStatus=document.getElementById("classStatus");
 const classScheduleDate=document.getElementById("classScheduleDate");
 const classScheduleTime=document.getElementById("classScheduleTime");
+const classScheduleDuration=document.getElementById("classScheduleDuration");
 const scheduledClassList=document.getElementById("scheduledClassList");
 const clearCalWorkout=document.getElementById("clearCalWorkout");
 const clearGymWorkout=document.getElementById("clearGymWorkout");
@@ -4130,6 +4133,31 @@ if(typeof MutationObserver!=="undefined"){
  window.addEventListener("DOMContentLoaded",()=>{movementGuideObserver.observe(document.body,{subtree:true,childList:true});hydrateVisibleMovementGuides()});
 }
 function classActivity(name){return classActivityLibrary.find(x=>x.name===name)}
+function classActivityType(itemOrName){
+ const x=typeof itemOrName==="string"?classActivity(itemOrName):itemOrName;if(!x)return "class";
+ const activityKinds=new Set(["pickleballdrill","pickleballmatch","racquetsport","teamsport","climbing"]);
+ return activityKinds.has(x.kind)?"activity":"class";
+}
+function classActivityTypeLabel(itemOrName){return classActivityType(itemOrName)==="activity"?"Activity":"Class"}
+function classActivityChooserLabel(type){return type==="activity"?"activity":(type==="class"?"class":"class or activity")}
+function classActivityStatusHtml(dateISO,type="all"){
+ const scheduled=selectedClassForDate(dateISO),label=classActivityChooserLabel(type);
+ if(scheduled)return '<strong>Already scheduled:</strong> '+htmlSafe(scheduled)+' ('+htmlSafe(classActivityTypeLabel(scheduled))+') on '+htmlSafe(dateISO)+'. Choose another '+htmlSafe(label)+' below to replace it, or use <strong>Cancel</strong> on the scheduled card/list.';
+ return 'Choose a '+htmlSafe(label)+' below for '+htmlSafe(dateISO)+'.';
+}
+function openClassActivityPlanner(dateISO,type="all"){
+ const target=validIsoDateValue(dateISO)?dateISO:(selectedDateISO||localISO(new Date()));
+ selectedDateISO=target;
+ showView("classes",{preserveDate:true});
+ if(classScheduleDate)classScheduleDate.value=target;
+ if(classTypeFilter)classTypeFilter.value=type;
+ const meta=classScheduleMetaForDate(target);
+ if(classScheduleTime)classScheduleTime.value=meta.time||"";
+ if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";
+ if(classStatus)classStatus.innerHTML=classActivityStatusHtml(target,type);
+ renderClassLibrary();
+ return true;
+}
 function classEffortPrior(name){
  const x=classActivity(name);
  return x?{effort:x.effort||"Variable",rpe:x.rpe||"individual",met:x.met||"variable",evidence:x.evidence||"family"}:{effort:"Variable",rpe:"individual",met:"variable",evidence:"unknown"};
@@ -5825,16 +5853,18 @@ function appendAdaptiveModeSwitcher(dateISO,session){
  if(!adaptiveModeSwitchEligible(dateISO))return;
  const recommended=recommendedAdaptiveSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),box=document.createElement("div");box.className="adaptive-mode-switcher";
  box.innerHTML='<div class="adaptive-mode-switcher-head"><div><div class="adaptive-mode-switcher-title">Switch training type</div><div class="adaptive-mode-switcher-copy">Every non-anchor day is re-scored from a rolling six-lane cadence: Run, Other Cardio, Speed / HIC, Gym, Calisthenics, and Strength-Endurance. There is no Monday-Sunday quota. The target spacing stretches automatically when anchors/rest/classes leave fewer open slots, and recovery can still override training.</div></div></div><div class="adaptive-mode-buttons"></div>';
- const host=box.querySelector(".adaptive-mode-buttons"),defs=[
+ const host=box.querySelector(".adaptive-mode-buttons"),scheduledItem=selectedClassForDate(dateISO),scheduledType=scheduledItem?classActivityType(scheduledItem):"",defs=[
    {mode:"recommended",label:"Use Recommended",desc:"Rolling-horizon pick: "+recommended},
    {mode:"Conditioning",label:"Conditioning",desc:"Today’s adaptive conditioning"},
    {mode:"Strength-Endurance",label:"SE Circuit",desc:"Choose equipment, then build today’s circuit"},
    {mode:"Calisthenics",label:"Calisthenics",desc:"Recommended bodyweight session"},
    {mode:"Generic Gym",label:"Generic Gym",desc:"Recommended weight session"},
+   {mode:"class-picker",label:scheduledType==="class"?"Change Class":"Classes",desc:scheduledType==="class"&&scheduledItem?('Scheduled: '+scheduledItem):"Browse and schedule researched classes"},
+   {mode:"activity-picker",label:scheduledType==="activity"?"Change Activity":"Activities",desc:scheduledType==="activity"&&scheduledItem?('Scheduled: '+scheduledItem):"Browse and schedule sports or other activities"},
    {mode:"Active Recovery",label:"Active Recovery",desc:"Very easy aerobic recovery"},
    {mode:"Recovery / Rest",label:"Full Rest",desc:"No formal training"}
  ];
- defs.forEach(def=>{const b=document.createElement("button");b.type="button";b.className="btn adaptive-mode-btn";const current=def.mode==="recommended"?(!intent||intent.mode!=="adaptive-switch"):(session===def.mode&&intent?.mode==="adaptive-switch");if(current)b.classList.add("current");b.innerHTML='<strong>'+htmlSafe(def.label)+'</strong><span>'+htmlSafe(def.desc)+'</span>';b.addEventListener("click",()=>{if(def.mode==="recommended")useRecommendedAdaptiveTraining(dateISO);else if(def.mode==="Active Recovery")markActiveRecoveryDay(dateISO);else if(def.mode==="Recovery / Rest")markRestDay(dateISO);else switchAdaptiveTrainingMode(dateISO,def.mode)});host.appendChild(b)});
+ defs.forEach(def=>{const b=document.createElement("button");b.type="button";b.className="btn adaptive-mode-btn";const current=def.mode==="recommended"?(!intent||intent.mode!=="adaptive-switch"):(def.mode==="class-picker"?scheduledType==="class":(def.mode==="activity-picker"?scheduledType==="activity":(session===def.mode&&intent?.mode==="adaptive-switch")));if(current)b.classList.add("current");b.innerHTML='<strong>'+htmlSafe(def.label)+'</strong><span>'+htmlSafe(def.desc)+'</span>';b.addEventListener("click",()=>{if(def.mode==="recommended")useRecommendedAdaptiveTraining(dateISO);else if(def.mode==="class-picker")openClassActivityPlanner(dateISO,"class");else if(def.mode==="activity-picker")openClassActivityPlanner(dateISO,"activity");else if(def.mode==="Active Recovery")markActiveRecoveryDay(dateISO);else if(def.mode==="Recovery / Rest")markRestDay(dateISO);else switchAdaptiveTrainingMode(dateISO,def.mode)});host.appendChild(b)});
  tbList.appendChild(box);
 }
 function noRestSuggestionForDate(dateISO){return adaptiveNoRestRecommendation(dateISO)}
@@ -8830,7 +8860,7 @@ function appendExerciseCard(x){
 function renderTB(gw){
  tbList.innerHTML="";getTBPlan(gw,selectedDateISO).forEach(appendExerciseCard);
 }
-function appendScheduledClassSidecar(dateISO){const activity=selectedClassForDate(dateISO);if(!activity)return;const meta=classScheduleMetaForDate(dateISO),cls=classActivity(activity);appendExerciseCard({exercise:activity,target:classScheduleLabel(meta)?("Scheduled "+classScheduleLabel(meta)):"Scheduled class",meta:"ADDITIONAL CLASS • SECOND WORKOUT",note:(cls?cls.note+" ":"")+"This class is additive because the primary Barbell Strength / KB session is fixed. Log it as a separate Class / Activity workout when completed."})}
+function appendScheduledClassSidecar(dateISO){const activity=selectedClassForDate(dateISO);if(!activity)return;const meta=classScheduleMetaForDate(dateISO),cls=classActivity(activity),typeLabel=classActivityTypeLabel(activity).toUpperCase();appendExerciseCard({exercise:activity,target:classScheduleLabel(meta)?("Scheduled "+classScheduleLabel(meta)):(classActivityType(activity)==="activity"?"Scheduled activity":"Scheduled class"),meta:"ADDITIONAL "+typeLabel+" • SECOND WORKOUT",note:(cls?cls.note+" ":"")+"This "+classActivityType(activity)+" is additive because the primary Barbell Strength / KB session is fixed. Log it as a separate Class / Activity workout when completed."})}
 function logDraftNavigationDecision(targetDate,targetEditingSessionId=""){
  const draft=readLogWorkspace();if(!draft||!logWorkspaceHasUserWork(draft))return "new";
  if(targetEditingSessionId&&draft.editingSessionId===targetEditingSessionId)return "resume";
@@ -8853,7 +8883,7 @@ function appendDayControls(session){
  if(isManualRest||isManualActive){const b=document.createElement("button");b.className="btn";b.type="button";b.textContent="Restore Scheduled Workout";b.addEventListener("click",()=>clearDayOverride(selectedDateISO));wrap.appendChild(b)}
  if(session==="Recovery / Rest"){if(!restRecord(selectedDateISO)){const confirmRest=document.createElement("button");confirmRest.className="btn primary";confirmRest.type="button";confirmRest.textContent="Use Full Rest Today";confirmRest.addEventListener("click",()=>markRestDay(selectedDateISO));wrap.appendChild(confirmRest)}const active=document.createElement("button");active.className="btn";active.type="button";active.textContent="Switch to Active Recovery";active.addEventListener("click",()=>markActiveRecoveryDay(selectedDateISO));wrap.appendChild(active)}else if(session==="Active Recovery"){const full=document.createElement("button");full.className="btn";full.type="button";full.textContent="Make This Full Rest";full.addEventListener("click",()=>markRestDay(selectedDateISO));wrap.appendChild(full)}else{const b=document.createElement("button");b.className="btn";b.type="button";b.textContent="Make This a Rest Day";b.addEventListener("click",()=>markRestDay(selectedDateISO));wrap.appendChild(b)}
  if(!fixed){const protect=document.createElement("button");protect.className="btn";protect.type="button";if(noRest){protect.textContent="Allow Rest Day Again";protect.addEventListener("click",()=>clearNoRestDay(selectedDateISO))}else{protect.textContent="Do Not Use as Rest Day";protect.addEventListener("click",()=>markNoRestDay(selectedDateISO))}wrap.appendChild(protect)}
- const gym=document.createElement("button");gym.className="btn";gym.type="button";gym.textContent=session==="Generic Gym"?"Edit Generic Gym Workout":"+ Generic Gym Workout";gym.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts",{preserveDate:true})});wrap.appendChild(gym);const cal=document.createElement("button");cal.className="btn";cal.type="button";cal.textContent=session==="Calisthenics"?"Edit Calisthenics":"+ Calisthenics";cal.addEventListener("click",()=>{calBuilderDate.value=selectedDateISO;showView("calisthenics",{preserveDate:true})});wrap.appendChild(cal);const hasClass=!!selectedClassForDate(selectedDateISO),cls=document.createElement("button");cls.className="btn";cls.type="button";cls.textContent=hasClass?"Change Scheduled Class":"+ Schedule Class";cls.addEventListener("click",()=>{if(classScheduleDate)classScheduleDate.value=selectedDateISO;showView("classes",{preserveDate:true})});wrap.appendChild(cls);if(hasClass){const clear=document.createElement("button");clear.className="btn danger";clear.type="button";clear.textContent="Cancel Scheduled Class";clear.addEventListener("click",()=>cancelScheduledClass(selectedDateISO));wrap.appendChild(clear)}tbList.appendChild(details);
+ const gym=document.createElement("button");gym.className="btn";gym.type="button";gym.textContent=session==="Generic Gym"?"Edit Generic Gym Workout":"+ Generic Gym Workout";gym.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts",{preserveDate:true})});wrap.appendChild(gym);const cal=document.createElement("button");cal.className="btn";cal.type="button";cal.textContent=session==="Calisthenics"?"Edit Calisthenics":"+ Calisthenics";cal.addEventListener("click",()=>{calBuilderDate.value=selectedDateISO;showView("calisthenics",{preserveDate:true})});wrap.appendChild(cal);const scheduledItem=selectedClassForDate(selectedDateISO),scheduledType=scheduledItem?classActivityType(scheduledItem):"class",hasClass=!!scheduledItem,cls=document.createElement("button");cls.className="btn";cls.type="button";cls.textContent=hasClass?(scheduledType==="activity"?"Change Scheduled Activity":"Change Scheduled Class"):"+ Schedule Class / Activity";cls.addEventListener("click",()=>openClassActivityPlanner(selectedDateISO,hasClass?scheduledType:"all"));wrap.appendChild(cls);if(hasClass){const clear=document.createElement("button");clear.className="btn danger";clear.type="button";clear.textContent=scheduledType==="activity"?"Cancel Scheduled Activity":"Cancel Scheduled Class";clear.addEventListener("click",()=>cancelScheduledClass(selectedDateISO));wrap.appendChild(clear)}tbList.appendChild(details);
 }
 
 function appendProgramExceptionNotice(dateISO){
@@ -8884,7 +8914,7 @@ function renderSelectedWorkout(){
  if(session.startsWith("KB ")){getKbPlan(session,prescriptionGw,prescriptionDate).forEach(appendExerciseCard);appendScheduledClassSidecar(selectedDateISO);const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent="Edit This KB Workout";edit.addEventListener("click",()=>{kbBuilderBlock.value=bi.block;kbBuilderSlot.value=session;showView("kbworkouts")});tbList.appendChild(edit);appendDayControls(session);return}
  if(session==="Generic Gym"){const plan=getGenericGymPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Generic Gym",meta:"No exercises saved yet",note:"Open the Gym tab and choose muscle groups, difficulty, duration, and equipment."});const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Generic Gym Workout":"Build Generic Gym Workout";edit.addEventListener("click",()=>{gymBuilderDate.value=selectedDateISO;showView("gymworkouts",{preserveDate:true})});tbList.appendChild(edit);appendDayControls(session);return}
  if(session==="Calisthenics"){const plan=getCalisthenicsPlan(selectedDateISO);if(plan.length)plan.forEach(appendExerciseCard);else appendExerciseCard({exercise:"Calisthenics",meta:"No exercises saved yet",note:"Open the Calisthenics tab to select focus, difficulty, duration, and pull-up-bar access. The app will build an adaptive bodyweight workout."});const edit=document.createElement("button");edit.className="btn";edit.type="button";edit.textContent=plan.length?"Edit Calisthenics Workout":"Build Calisthenics Workout";edit.addEventListener("click",()=>{calBuilderDate.value=selectedDateISO;showView("calisthenics",{preserveDate:true})});tbList.appendChild(edit);appendDayControls(session);return}
- if(session==="Class / Activity"){const activity=selectedClassForDate(selectedDateISO)||"Class / Activity",cls=classActivity(activity),meta=classScheduleMetaForDate(selectedDateISO);appendExerciseCard({exercise:activity,target:classScheduleLabel(meta)?("Scheduled "+classScheduleLabel(meta)):"Log after class",meta:"CLASS / ACTIVITY • PRIMARY WORKOUT",note:(cls?cls.note:"Log duration, difficulty/RPE, HR, and relevant metrics afterward.")+" This scheduled class replaces the day's adaptive/rest/conditioning workout."});appendDayControls(session);return}
+ if(session==="Class / Activity"){const activity=selectedClassForDate(selectedDateISO)||"Class / Activity",cls=classActivity(activity),meta=classScheduleMetaForDate(selectedDateISO),typeLabel=classActivityTypeLabel(activity);appendExerciseCard({exercise:activity,target:classScheduleLabel(meta)?("Scheduled "+classScheduleLabel(meta)):(classActivityType(activity)==="activity"?"Log after activity":"Log after class"),meta:typeLabel.toUpperCase()+" • PRIMARY WORKOUT",note:(cls?cls.note:"Log duration, difficulty/RPE, HR, and relevant metrics afterward.")+" This scheduled "+classActivityType(activity)+" replaces the day's adaptive/rest/conditioning workout."});appendDayControls(session);return}
  if(session==="Custom Workout"){
    const w=(state.settings.customDayWorkouts||{})[selectedDateISO];
    if(w&&Array.isArray(w.rows)&&w.rows.length)w.rows.forEach(r=>appendExerciseCard(r.conditioning?{exercise:r.exercise,target:r.plannedTarget||"Custom",meta:"CUSTOM • "+(w.type||"mixed"),note:"Manual/custom workout saved for this date."}:{exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.weight,meta:"CUSTOM • "+(w.type||"mixed"),note:"Manual/custom workout saved for this date."}));
@@ -10363,7 +10393,7 @@ function applyClassOverride(name){
    recordWorkoutIntent(dateISO,"Class / Activity","manual",name,"class");
  }
  save("class-scheduled");render();renderClassLibrary();
- classStatus.innerHTML='<strong>Scheduled ✓</strong> '+htmlSafe(name)+' for '+htmlSafe(d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}))+(classScheduleTime?.value?' at '+htmlSafe(formatClockDisplay(classScheduleTime.value)):'')+(Number(classScheduleDuration?.value)>0?' • '+Math.round(Number(classScheduleDuration.value))+' min':'')+(additional?' as a second workout alongside the fixed program anchor.':' as the primary workout for that day.');
+ const typeLabel=classActivityTypeLabel(name);classStatus.innerHTML='<strong>Scheduled ✓</strong> '+htmlSafe(name)+' ('+htmlSafe(typeLabel)+') for '+htmlSafe(d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"}))+(classScheduleTime?.value?' at '+htmlSafe(formatClockDisplay(classScheduleTime.value)):'')+(Number(classScheduleDuration?.value)>0?' • '+Math.round(Number(classScheduleDuration.value))+' min':'')+(additional?' as a second workout alongside the fixed program anchor.':' as the primary workout for that day.');
 }
 function clearClassOverride(dateISO){
  ensureWorkoutIntentStores();state.settings.classOverrides=state.settings.classOverrides||{};state.settings.classScheduleMeta=state.settings.classScheduleMeta||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};
@@ -10389,25 +10419,32 @@ function clearClassOverride(dateISO){
 function cancelScheduledClass(dateISO){
  const name=selectedClassForDate(dateISO);if(!name)return false;
  const d=parseLocalISO(dateISO),label=d.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
- if(!window.confirm('Cancel '+name+' on '+label+'?\n\nOnly this scheduled class will be removed. The underlying program/adaptive workout for the day will be restored.'))return false;
+ const typeLabel=classActivityTypeLabel(name).toLowerCase();if(!window.confirm('Cancel '+name+' on '+label+'?\n\nOnly this scheduled '+typeLabel+' will be removed. The underlying program/adaptive workout for the day will be restored.'))return false;
  const ok=clearClassOverride(dateISO);
- if(ok&&classStatus){classStatus.innerHTML='<strong>Class cancelled.</strong> '+htmlSafe(name)+' was removed from '+htmlSafe(label)+'. The underlying workout for that date has been restored.'}
+ if(ok&&classStatus){classStatus.innerHTML='<strong>'+htmlSafe(classActivityTypeLabel(name))+' cancelled.</strong> '+htmlSafe(name)+' was removed from '+htmlSafe(label)+'. The underlying workout for that date has been restored.'}
  return ok;
 }
 function renderScheduledClassList(){
  if(!scheduledClassList)return;const today=localISO(new Date()),entries=Object.entries(state.settings.classOverrides||{}).filter(([d])=>validIsoDateValue(d)).sort((a,b)=>a[0].localeCompare(b[0]));
  if(!entries.length){scheduledClassList.innerHTML='<div class="empty">No classes scheduled yet.</div>';return}
  const rows=entries.filter(([d])=>daysBetweenISO(d,today)<=14||d>=today).slice(0,30);
- scheduledClassList.innerHTML='<div class="tablewrap"><table><thead><tr><th>Date</th><th>Class</th><th>Role</th><th></th></tr></thead><tbody>'+rows.map(([date,name])=>{const meta=classScheduleMetaForDate(date),role=classIsAdditionalToPriorityDay(date)?"Second workout • fixed program remains":"Primary workout";return '<tr><td>'+htmlSafe(date)+(classScheduleLabel(meta)?' • '+htmlSafe(classScheduleLabel(meta)):'')+'</td><td>'+htmlSafe(name)+'</td><td>'+htmlSafe(role)+'</td><td><button class="btn clear-scheduled-class" type="button" data-date="'+attrSafe(date)+'">Cancel Class</button></td></tr>'}).join('')+'</tbody></table></div>';
+ scheduledClassList.innerHTML='<div class="tablewrap"><table><thead><tr><th>Date</th><th>Session</th><th>Type</th><th>Role</th><th></th></tr></thead><tbody>'+rows.map(([date,name])=>{const meta=classScheduleMetaForDate(date),role=classIsAdditionalToPriorityDay(date)?"Second workout • fixed program remains":"Primary workout",typeLabel=classActivityTypeLabel(name);return '<tr><td>'+htmlSafe(date)+(classScheduleLabel(meta)?' • '+htmlSafe(classScheduleLabel(meta)):'' )+'</td><td>'+htmlSafe(name)+'</td><td>'+htmlSafe(typeLabel)+'</td><td>'+htmlSafe(role)+'</td><td><button class="btn clear-scheduled-class" type="button" data-date="'+attrSafe(date)+'">Cancel</button></td></tr>'}).join('')+'</tbody></table></div>';
  scheduledClassList.querySelectorAll('.clear-scheduled-class').forEach(b=>b.addEventListener('click',()=>cancelScheduledClass(b.dataset.date)));
 }
 function renderClassLibrary(){
- if(document.querySelector(".view.active")?.id!=="classes")return;
+ if(!classLibraryGrid)return;
  if(classScheduleDate&&!classScheduleDate.value)classScheduleDate.value=selectedDateISO||localISO(new Date());
- const dateISO=classScheduleDate?.value||selectedDateISO||localISO(new Date()),scheduled=selectedClassForDate(dateISO),cat=classCategory.value,q=classSearch.value.trim().toLowerCase(),rows=classActivityLibrary.filter(x=>(cat==="all"||x.category===cat)&&(!q||x.name.toLowerCase().includes(q)||x.note.toLowerCase().includes(q)));
- classLibraryGrid.innerHTML=rows.map(x=>{const isScheduled=scheduled===x.name;return '<div class="conditioning-card"'+(isScheduled?' style="outline:2px solid var(--accent);outline-offset:-2px"':'')+'><div class="name">'+htmlSafe(x.name)+'</div><div class="meta">'+htmlSafe(x.category)+' • '+htmlSafe(classEffortMeta(x.name))+(isScheduled?' • SCHEDULED FOR '+htmlSafe(dateISO):'')+'</div><div class="desc">'+htmlSafe(x.note)+'</div><div class="actions">'+(isScheduled?'<button class="btn primary" type="button" disabled>Scheduled ✓</button><button class="btn cancel-class" type="button" data-date="'+attrSafe(dateISO)+'">Cancel Class</button>':'<button class="btn use-class" type="button" data-name="'+attrSafe(x.name)+'">Schedule class</button>')+'</div></div>'}).join("");
- renderScheduledClassList();
+ const dateISO=classScheduleDate?.value||selectedDateISO||localISO(new Date()),scheduled=selectedClassForDate(dateISO),cat=classCategory.value,type=classTypeFilter?.value||"all",q=classSearch.value.trim().toLowerCase();
+ const rows=classActivityLibrary.filter(x=>(type==="all"||classActivityType(x)===type)&&(cat==="all"||x.category===cat)&&(!q||x.name.toLowerCase().includes(q)||x.note.toLowerCase().includes(q)))
+   .slice().sort((a,b)=>{
+     const ta=classActivityType(a),tb=classActivityType(b);
+     if(type==="all"&&ta!==tb)return ta==="class"?-1:1;
+     return a.name.localeCompare(b.name);
+   });
+ classLibraryGrid.innerHTML=rows.map(x=>{const isScheduled=scheduled===x.name,typeLabel=classActivityTypeLabel(x),buttonLabel=typeLabel==="Activity"?"Schedule activity":"Schedule class";return '<div class="conditioning-card"'+(isScheduled?' style="outline:2px solid var(--accent);outline-offset:-2px"':'')+'><div class="name">'+htmlSafe(x.name)+'</div><div class="meta">'+htmlSafe(typeLabel)+' • '+htmlSafe(x.category)+' • '+htmlSafe(classEffortMeta(x.name))+(isScheduled?' • SCHEDULED FOR '+htmlSafe(dateISO):'')+'</div><div class="desc">'+htmlSafe(x.note)+'</div><div class="actions">'+(isScheduled?'<button class="btn primary" type="button" disabled>Scheduled ✓</button><button class="btn cancel-class" type="button" data-date="'+attrSafe(dateISO)+'">Cancel</button>':'<button class="btn use-class" type="button" data-name="'+attrSafe(x.name)+'">'+htmlSafe(buttonLabel)+'</button>')+'</div></div>'}).join("");
+ if(!rows.length)classLibraryGrid.innerHTML='<div class="notice">No classes or activities match the current filters.</div>';
 }
+
 
 function renderConditioningLibrary(){
  const cat=conditioningCategory.value,q=conditioningSearch.value.trim().toLowerCase();
@@ -11300,7 +11337,7 @@ function snapDateDrivenUiToToday(reason="day-rollover"){
  if(active==="recovery"&&!uiDraftDirty.recovery)loadRecoveryForm();
  if(active==="gymworkouts"&&!uiDraftDirty.gym){loadGymBuilder();wireGymMuscleSpecifics()}
  if(active==="calisthenics"&&!uiDraftDirty.cal)loadCalBuilder();
- if(active==="classes"){const meta=classScheduleMetaForDate(today);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";renderClassLibrary()}
+ if(active==="classes"){const meta=classScheduleMetaForDate(today);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";if(classStatus)classStatus.innerHTML=classActivityStatusHtml(today,classTypeFilter?.value||"all");renderClassLibrary()}
  renderWeek();renderSelectedWorkout();
  window.__hybridLastTodaySnap={date:today,reason,at:Date.now()};
  return today;
@@ -11379,7 +11416,7 @@ function snapNavigationContextToToday(id){
  const today=localISO(new Date());lastObservedLocalDate=today;selectedDateUserTouched=false;selectedDateISO=today;browseWeek=browseWeekForToday();
  if(id==="gymworkouts"&&!uiDraftDirty.gym)gymBuilderDate.value=today;
  if(id==="calisthenics"&&!uiDraftDirty.cal)calBuilderDate.value=today;
- if(id==="classes"&&classScheduleDate)classScheduleDate.value=today;
+ if(id==="classes"&&classScheduleDate)classScheduleDate.value=today;if(id==="classes"&&classTypeFilter&&!classTypeFilter.value)classTypeFilter.value="all";
  if(id==="recovery"&&!uiDraftDirty.recovery)recoveryDate.value=today;
  if(id==="bodyweight"&&bodyweightDate)bodyweightDate.value=today;
  // Preserve substantive unsaved Log work and explicit historical edit mode; otherwise
@@ -11390,7 +11427,7 @@ function snapNavigationContextToToday(id){
 function showView(id,options={}){
  if(!document.getElementById(id))id="dashboard";document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");syncNavigationState(id);setMobileMoreOpen(false);rememberLastView(id);
  if(!options.preserveDate&&!uiDraftRestoreInProgress)snapNavigationContextToToday(id);
- if(id==="dashboard"){renderWeek();renderSelectedWorkout()}if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}if(id==="log"&&!editingSessionId)restorePersistentLogWorkspace();if(id==="log"){renderWorkoutIntentUi();addControlsToAllLogCards()}if(id==="recovery"){if(!recoveryDate.value)recoveryDate.value=localISO(new Date());if(!restorePersistentRecoveryDraft())loadRecoveryForm()}if(id==="bodyweight"){if(!bodyweightDate.value)bodyweightDate.value=localISO(new Date());loadBodyweightForm(bodyweightDate.value)}if(id==="classes"){if(classScheduleDate)classScheduleDate.value=selectedDateISO||localISO(new Date());const meta=classScheduleMetaForDate(classScheduleDate?.value||selectedDateISO);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";renderClassLibrary()}renderActiveView(id);if(!uiDraftRestoreInProgress)queueUiDraftSave();
+ if(id==="dashboard"){renderWeek();renderSelectedWorkout()}if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}if(id==="log"&&!editingSessionId)restorePersistentLogWorkspace();if(id==="log"){renderWorkoutIntentUi();addControlsToAllLogCards()}if(id==="recovery"){if(!recoveryDate.value)recoveryDate.value=localISO(new Date());if(!restorePersistentRecoveryDraft())loadRecoveryForm()}if(id==="bodyweight"){if(!bodyweightDate.value)bodyweightDate.value=localISO(new Date());loadBodyweightForm(bodyweightDate.value)}if(id==="classes"){if(classScheduleDate)classScheduleDate.value=selectedDateISO||localISO(new Date());if(classTypeFilter&&!classTypeFilter.value)classTypeFilter.value="all";const viewDate=classScheduleDate?.value||selectedDateISO||localISO(new Date()),meta=classScheduleMetaForDate(viewDate);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";if(classStatus)classStatus.innerHTML=classActivityStatusHtml(viewDate,classTypeFilter?.value||"all");renderClassLibrary()}renderActiveView(id);if(!uiDraftRestoreInProgress)queueUiDraftSave();
 }
 function applyLogWeekOverrideUi(enabled){logWeek.readOnly=!enabled;logWeek.setAttribute("aria-readonly",enabled?"false":"true");const b=document.getElementById("toggleLogWeekOverride"),h=document.getElementById("logWeekDerivedHint");if(b)b.textContent=enabled?"Use derived":"Override";if(h)h.textContent=enabled?"Manual override enabled for this entry.":"Derived from the selected date."}
 function setLogWeekOverride(enabled){applyLogWeekOverrideUi(enabled);if(!enabled){const d=parseLocalISO(logDate.value),tw=!isNaN(d)?trainingWeekForDate(d):0;if(tw>=1)logWeek.value=tw}}
@@ -11430,7 +11467,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.65";
+const HYBRID_APP_BUILD="36.66";
 async function checkForDeployedBuild(){
  try{
   const r=await fetch("./version.json?_="+Date.now(),{cache:"no-store"});if(!r.ok)return;
@@ -11545,7 +11582,7 @@ calHasDipBars.addEventListener("change",()=>{state.settings.calHasDipBars=calHas
 calDurationRange.addEventListener("input",()=>calDuration.value=calDurationRange.value);calDuration.addEventListener("input",()=>calDurationRange.value=Math.max(20,Math.min(90,Number(calDuration.value)||45)));
 calSelectFullBody.addEventListener("click",()=>setCalFocus(["push","pull","legs","core","fullbody"]));calSelectUpper.addEventListener("click",()=>setCalFocus(["push","pull"]));calSelectLowerCore.addEventListener("click",()=>setCalFocus(["legs","core"]));calClearFocus.addEventListener("click",()=>setCalFocus([]));
 generateCalWorkout.addEventListener("click",generateCalFromSelections);recommendCalWorkout?.addEventListener("click",recommendCalFromModel);resetCalSelectionsBtn.addEventListener("click",resetCalSelectionsAction);addCalExercise.addEventListener("click",()=>addCalBuilderRow());saveCalWorkout.addEventListener("click",saveCalBuilder);clearCalWorkout.addEventListener("click",()=>{if(confirm("Clear the saved Calisthenics override for this date?"))clearCalBuilder()});
-classCategory.addEventListener("change",renderClassLibrary);classSearch.addEventListener("input",renderClassLibrary);classLibraryGrid?.addEventListener("click",e=>{const cancel=e.target.closest&&e.target.closest(".cancel-class");if(cancel){e.preventDefault();cancelScheduledClass(cancel.dataset.date);return}const btn=e.target.closest&&e.target.closest(".use-class");if(!btn)return;e.preventDefault();applyClassOverride(btn.dataset.name)});classScheduleDate?.addEventListener("change",()=>{selectedDateUserTouched=true;selectedDateISO=classScheduleDate.value||selectedDateISO;const meta=classScheduleMetaForDate(selectedDateISO),scheduled=selectedClassForDate(selectedDateISO);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";classStatus.innerHTML=scheduled?'<strong>Already scheduled:</strong> '+htmlSafe(scheduled)+' on '+htmlSafe(selectedDateISO)+'. Choose another class below to replace it, or use <strong>Cancel Class</strong> on the scheduled card/list.':'Choose a class below for '+htmlSafe(selectedDateISO)+'.';renderClassLibrary()});addLogExercise.addEventListener("click",()=>{logWorkspacePlanEdited=true;appendAdditionalLogExercise();renderWorkoutIntentUi()});
+classCategory.addEventListener("change",()=>{if(classStatus)classStatus.innerHTML=classActivityStatusHtml(classScheduleDate?.value||selectedDateISO||localISO(new Date()),classTypeFilter?.value||"all");renderClassLibrary()});classTypeFilter?.addEventListener("change",()=>{if(classStatus)classStatus.innerHTML=classActivityStatusHtml(classScheduleDate?.value||selectedDateISO||localISO(new Date()),classTypeFilter.value||"all");renderClassLibrary()});classSearch.addEventListener("input",renderClassLibrary);classLibraryGrid?.addEventListener("click",e=>{const cancel=e.target.closest&&e.target.closest(".cancel-class");if(cancel){e.preventDefault();cancelScheduledClass(cancel.dataset.date);return}const btn=e.target.closest&&e.target.closest(".use-class");if(!btn)return;e.preventDefault();applyClassOverride(btn.dataset.name)});classScheduleDate?.addEventListener("change",()=>{selectedDateUserTouched=true;selectedDateISO=classScheduleDate.value||selectedDateISO;const meta=classScheduleMetaForDate(selectedDateISO),scheduled=selectedClassForDate(selectedDateISO);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";classStatus.innerHTML=classActivityStatusHtml(selectedDateISO,classTypeFilter?.value||"all");renderClassLibrary()});addLogExercise.addEventListener("click",()=>{logWorkspacePlanEdited=true;appendAdditionalLogExercise();renderWorkoutIntentUi()});
 changeWorkoutIntent.addEventListener("click",()=>{workoutIntentPanel.classList.toggle("hidden");if(!workoutIntentPanel.classList.contains("hidden"))workoutIntentModes.classList.add("hidden")});
 workoutIntentPanel.addEventListener("click",e=>{
  const btn=e.target.closest("[data-intent]");if(!btn)return;const kind=btn.dataset.intent,date=logDate.value||localISO(new Date());
@@ -11824,7 +11861,7 @@ saveSettings.addEventListener("click",()=>{
 });
 const CURRENT_EXPORT_VERSION=40;
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.65",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.66",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:18,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","wearable VO2 trend is low weight","wearable calories are reference only"]},
