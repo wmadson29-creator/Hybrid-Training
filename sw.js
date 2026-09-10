@@ -1,9 +1,9 @@
-const BUILD="36.78";
-const CACHE="hybrid-training-v36-78";
-const FALLBACK="./index.html?v=36.78";
+const BUILD="36.79";
+const CACHE="hybrid-training-v36-79";
+const FALLBACK="./index.html?v=36.79";
 const PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.78",
+  "./manifest-v36.webmanifest?v=36.79",
   "./version.json",
   "./hybrid-training-v34-64.png",
   "./hybrid-training-v34-180.png",
