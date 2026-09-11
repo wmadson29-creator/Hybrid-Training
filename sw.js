@@ -1,9 +1,9 @@
-const BUILD="36.89";
-const CACHE="hybrid-training-v36-89";
-const FALLBACK="./index.html?v=36.89";
+const BUILD="36.90";
+const CACHE="hybrid-training-v36-90";
+const FALLBACK="./index.html?v=36.90";
 const PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.89",
+  "./manifest-v36.webmanifest?v=36.90",
   "./hybrid-training-v34-64.png",
   "./hybrid-training-v34-180.png",
   "./hybrid-training-v34-192.png",
@@ -22,7 +22,7 @@ self.addEventListener("install",event=>{
 self.addEventListener("activate",event=>{
   event.waitUntil(
     caches.keys()
-      .then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
+      .then(keys=>Promise.all(keys.filter(k=>k.startsWith("hybrid-training-")&&k!==CACHE).map(k=>caches.delete(k))))
       .then(()=>self.clients.claim())
   );
 });
