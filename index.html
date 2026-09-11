@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<style id="hybrid-boot-paint">html,body{margin:0;min-height:100%;background:#0b0f14;color:#f6f8fb}html{background:#0b0f14}</style>
 <title>Hybrid Training Dashboard</title>
 <meta name="theme-color" content="#0b0f14">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.79">
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.81">
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
@@ -1065,15 +1067,38 @@ select.v3677-inline-hidden{position:absolute!important;width:1px!important;heigh
         <div class="field"><label>Sleep duration (hours)</label><input id="recSleepHours" type="number" min="0" max="16" step=".1" placeholder="e.g. 7.4"></div>
         <div class="field"><label>Sleep HRV (ms)</label><input id="recHrv" type="number" min="0" step="1"></div>
         <div class="field"><label>Resting / sleep HR (bpm)</label><input id="recRestingHr" type="number" min="20" max="180" step="1"></div>
-        <div class="field"><label>How fatigued do you feel?</label>
-          <select id="recSubjectiveFatigue">
+        <div class="field"><label>Physical / body fatigue</label>
+          <select id="recPhysicalFatigue">
             <option value="">Not entered</option>
-            <option value="very_low">Very low fatigue / very fresh</option>
-            <option value="low">Low fatigue / fresh</option>
+            <option value="very_low">Very fresh</option>
+            <option value="low">Fresh</option>
             <option value="normal">Normal</option>
-            <option value="high">High fatigue</option>
-            <option value="very_high">Very high fatigue</option>
+            <option value="high">Fatigued</option>
+            <option value="very_high">Very fatigued</option>
           </select>
+          <div class="hint">How recovered your muscles/body feel. Keep this separate from being sleepy or low-energy.</div>
+        </div>
+        <div class="field"><label>Energy / sleepiness</label>
+          <select id="recEnergyLevel">
+            <option value="">Not entered</option>
+            <option value="very_alert">Very alert / high energy</option>
+            <option value="alert">Alert / good energy</option>
+            <option value="normal">Normal</option>
+            <option value="tired">Tired / sleepy</option>
+            <option value="very_tired">Very tired / very sleepy</option>
+          </select>
+          <div class="hint">Mental/overall alertness. Being tired here does not automatically mean your muscles are fatigued.</div>
+        </div>
+        <div class="field"><label>General soreness</label>
+          <select id="recSoreness">
+            <option value="">Not entered</option>
+            <option value="none">None</option>
+            <option value="mild">Mild</option>
+            <option value="moderate">Moderate</option>
+            <option value="high">High</option>
+            <option value="severe">Severe</option>
+          </select>
+          <div class="hint">Separate from both fatigue and sleepiness. Used as a tissue/recovery caution signal rather than proof of low energy.</div>
         </div>
         <div class="field"><label>Total daily steps</label><input id="recSteps" type="number" min="0" step="1"><div class="hint">Enter the full daily total from your watch. For step-bearing workouts, log exact <strong>Steps during activity</strong>. The app never estimates workout steps from distance, duration, pace or activity type.</div></div>
       </div>
@@ -1100,14 +1125,16 @@ select.v3677-inline-hidden{position:absolute!important;width:1px!important;heigh
       <div class="recovery-rule-grid">
         <div class="card"><div class="label">Direct performance</div><div class="value">Highest priority</div><div class="hint">Completion, actual set performance, broad effort, and technique drive progression. Exact RPE is optional and only strongly calibrates the model when you mark it confident.</div></div>
         <div class="card"><div class="label">Recovery metrics</div><div class="value">Recovery brake</div><div class="hint">Suppressed HRV, elevated resting HR, poor sleep, low BioCharge, or unusually high recent activity can hold optional progression or reduce session stress.</div></div>
-        <div class="card"><div class="label">Subjective fatigue</div><div class="value">Real model signal</div><div class="hint">How you actually feel can partially confirm or contradict the calculated fatigue estimate. Repeatedly tolerating high workload while feeling fresh teaches the app that your capacity is higher.</div></div>
-        <div class="card"><div class="label">Good wearable day</div><div class="value">Normal plan</div><div class="hint">A great wearable score plus low subjective fatigue can remove an overly conservative recovery brake, but neither creates aggressive bonus progression.</div></div>
+        <div class="card"><div class="label">Body fatigue</div><div class="value">Muscular recovery signal</div><div class="hint">Fresh versus physically fatigued primarily changes muscular/recovery interpretation. Repeatedly tolerating high workload while your body feels fresh can teach the app that your capacity is higher.</div></div>
+        <div class="card"><div class="label">Energy / sleepiness</div><div class="value">Alertness signal</div><div class="hint">Sleepy or low-energy is modeled separately from body fatigue. It has a smaller effect on muscular loading and a larger caution effect on very hard conditioning, power, and high-skill work.</div></div>
+        <div class="card"><div class="label">Soreness</div><div class="value">Tissue/recovery context</div><div class="hint">General soreness adds recovery caution without being treated as the same thing as sleepiness or systemic fatigue.</div></div>
+        <div class="card"><div class="label">Good wearable day</div><div class="value">Normal plan</div><div class="hint">Good wearable data plus a physically fresh report can remove an overly conservative recovery brake, but neither creates aggressive bonus progression.</div></div>
         <div class="card"><div class="label">SpO₂ / VO₂ max</div><div class="value">Context / trend</div><div class="hint">Stored for trend context rather than used as a single-day training trigger.</div></div>
       </div>
     </div>
     <div class="panel">
       <div class="panel-head"><div><div class="panel-title">Recent Daily Recovery</div><div class="panel-sub">Most recent 21 Helio entries. Bodyweight is tracked separately in its own tab. Tap Edit to reopen any saved day.</div></div></div>
-      <div class="tablewrap desktop-data-table"><table><thead><tr><th>Date</th><th>Sleep</th><th>HRV</th><th>Rest HR</th><th>BioCharge</th><th>Subjective fatigue</th><th>Stress</th><th>Steps</th><th>Readiness</th><th>Action</th></tr></thead><tbody id="recoveryHistoryBody"></tbody></table></div>
+      <div class="tablewrap desktop-data-table"><table><thead><tr><th>Date</th><th>Sleep</th><th>HRV</th><th>Rest HR</th><th>BioCharge</th><th>Body fatigue</th><th>Energy</th><th>Soreness</th><th>Stress</th><th>Steps</th><th>Readiness</th><th>Action</th></tr></thead><tbody id="recoveryHistoryBody"></tbody></table></div>
       <div class="mobile-card-list" id="recoveryMobileCards"></div>
     </div>
     <div class="panel">
@@ -1647,7 +1674,7 @@ select.v3677-inline-hidden{position:absolute!important;width:1px!important;heigh
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.79</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, smart complementary secondary work, Barbell Strength / KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.81</strong> • today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, smart complementary secondary work, Barbell Strength / KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -3546,9 +3573,9 @@ function utmFitnessFatigueState(dateISO=localISO(new Date())){
  const key=utmModelRevision+"|"+dateISO+"|"+modelAsOfTimestamp(dateISO);if(utmLatentCache.has(key))return utmLatentCache.get(key);
  const fitness=utmLongTermFitness(dateISO),fatigue=utmRecentFatigue(dateISO,10),priorDate=localISO(addDays(parseLocalISO(dateISO),-7)),prior=utmLongTermFitness(priorDate),
    muscleFatigue=Object.values(fatigue.muscles||{}).reduce((a,b)=>a+b,0),systemFatigue=Object.values(fatigue.fatigue||{}).reduce((a,b)=>a+b,0),fatigueIndex=muscleFatigue*.14+systemFatigue*.22,
-   subjective=subjectiveFatigueProfile(dateISO),fitnessTrendPct=prior.total>0?(fitness.total-prior.total)/prior.total*100:0,
-   rawPreparedness=utmClamp(1-fatigueIndex/Math.max(2,fitness.total*.18+2),0,1),preparedness=utmClamp(rawPreparedness+subjective.preparedness,0,1);
- const out={fitness,fatigue,fitnessIndex:fitness.total,fatigueIndex:Math.round(fatigueIndex*100)/100,rawPreparedness:Math.round(rawPreparedness*100)/100,preparedness:Math.round(preparedness*100)/100,subjectiveFatigue:subjective,fitnessTrendPct:Math.round(fitnessTrendPct*10)/10};
+   subjective=subjectiveFatigueProfile(dateISO),energy=subjectiveEnergyProfile(dateISO),soreness=subjectiveSorenessProfile(dateISO),fitnessTrendPct=prior.total>0?(fitness.total-prior.total)/prior.total*100:0,
+   rawPreparedness=utmClamp(1-fatigueIndex/Math.max(2,fitness.total*.18+2),0,1),preparedness=utmClamp(rawPreparedness+subjective.preparedness+energy.preparedness+soreness.preparedness,0,1);
+ const out={fitness,fatigue,fitnessIndex:fitness.total,fatigueIndex:Math.round(fatigueIndex*100)/100,rawPreparedness:Math.round(rawPreparedness*100)/100,preparedness:Math.round(preparedness*100)/100,subjectiveFatigue:subjective,energy,soreness,fitnessTrendPct:Math.round(fitnessTrendPct*10)/10};
  utmLatentCache.set(key,out);return out;
 }
 
@@ -4795,6 +4822,7 @@ function baseBuildingHicPick(day,gw,dateISO){
    const days=daysSinceConditioning(e.name,dateISO),trend=conditioningCapabilityState(e.name,dateISO),traits=conditioningTraits(e.name);let score=(days>=9999?32:Math.min(days,45));
    if(trend.direction==="up")score+=5;if(trend.direction==="down")score-=6;if(days<21)score-=30;
    if(readiness.lowerFatigue&&traits.sprint)score-=18;if(readiness.mileageSpike&&traits.run)score-=20;if(readiness.hrElevated&&traits.sprint)score-=10;
+   const energy=readiness.energy||subjectiveEnergyProfile(dateISO);if(traits.sprint&&energy.value==="tired")score-=4;if(traits.sprint&&energy.value==="very_tired")score-=8;
    // Recovery Guard does not silently rewrite the Base Building template. It keeps the
    // HIC slot visible but favors the least conflicting compatible #1–10 option and warns.
    if(readiness.recoveryGuard&&traits.sprint)score-=18;
@@ -6733,25 +6761,57 @@ function wearableRecoverySignals(dateISO){
  if(long.hrv7N>=4&&long.hrv28N>=8&&long.hrv7Cv>=Math.max(12,long.hrv28Cv*1.35)){add(.25,"recent HRV variability is elevated versus your longer baseline","hrv");}
  const rhr7=long.rhr7Mean,rhr28=long.rhr28Mean;if(long.rhr7N>=4&&long.rhr28N>=8&&rhr7>0&&rhr28>0&&long.rhrDelta>=4){add(.35,"the 7-day resting-HR mean is "+long.rhrDelta.toFixed(1)+" bpm above the 28-day mean","restingHr");}
  const sess=wearableSessionLoadSignals(dateISO);if(sess.loadSpike)add(.75,"Helio training load spiked above your recent weekly baseline");if(sess.recoveryFlag)add(.5,"the latest Helio workout still carried a long recovery-time recommendation");const hrr=normalizedHeartRateRecoveryTrend(dateISO);if(hrr.n>=6&&hrr.confidence>=.35&&hrr.trendPct<=-20)add(.20,"normalized heart-rate recovery has recently trended lower than its own prior baseline; this remains a low-weight longitudinal signal");
- const subjective=subjectiveFatigueProfile(dateISO),preSubjectiveScore=score;
+ const subjective=subjectiveFatigueProfile(dateISO),energy=subjectiveEnergyProfile(dateISO),soreness=subjectiveSorenessProfile(dateISO),preSubjectiveScore=score;
  if(subjective.value){
    score+=subjective.score;
-   if(subjective.score<0&&preSubjectiveScore>0)reasons.push("your reported "+subjective.label.toLowerCase()+" fatigue partially offsets the objective recovery warning");
-   else if(subjective.score>0)reasons.push("you reported "+subjective.label.toLowerCase()+" subjective fatigue");
+   if(subjective.score<0&&preSubjectiveScore>0)reasons.push("your physically "+subjective.label.toLowerCase()+" report partially offsets the objective recovery warning");
+   else if(subjective.score>0)reasons.push("you reported "+subjective.label.toLowerCase()+" body fatigue");
  }
- score=Math.max(0,score);return {current,baselines,score,preSubjectiveScore:Math.round(preSubjectiveScore*100)/100,subjective,level:score>=2?"guard":score>=1?"watch":"normal",reasons,available,sessionLoad:sess,learnedWeights,stepContext,longitudinal:long,heartRateRecovery:hrr};
+ if(energy.value){
+   score+=energy.score;
+   if(energy.value==="tired"||energy.value==="very_tired")reasons.push("you reported "+energy.label.toLowerCase()+"; this is treated mainly as alertness/readiness, not as muscular fatigue");
+ }
+ if(soreness.value){
+   score+=soreness.score;
+   if(["moderate","high","severe"].includes(soreness.value))reasons.push("you reported "+soreness.label.toLowerCase()+" general soreness; this adds tissue/recovery caution without being treated as sleepiness");
+ }
+ score=Math.max(0,score);return {current,baselines,score,preSubjectiveScore:Math.round(preSubjectiveScore*100)/100,subjective,energy,soreness,level:score>=2?"guard":score>=1?"watch":"normal",reasons,available,sessionLoad:sess,learnedWeights,stepContext,longitudinal:long,heartRateRecovery:hrr};
 }
 
 function subjectiveFatigueProfile(dateISO){
- const row=dailyRecoveryFor(dateISO)||{},value=String(row.subjectiveFatigue||"").toLowerCase();
+ // v36.81: this legacy-named function now represents PHYSICAL/BODY fatigue only.
+ // Old exports used subjectiveFatigue; physicalFatigue wins when present.
+ const row=dailyRecoveryFor(dateISO)||{},value=String(row.physicalFatigue||row.subjectiveFatigue||"").toLowerCase();
  const map={
-  very_low:{value:"very_low",label:"Very low",score:-.72,preparedness:+.12,capacityPenaltyScale:.72,tolerance:"high"},
-  low:{value:"low",label:"Low",score:-.42,preparedness:+.07,capacityPenaltyScale:.82,tolerance:"high"},
+  very_low:{value:"very_low",label:"Very fresh",score:-.72,preparedness:+.12,capacityPenaltyScale:.72,tolerance:"high"},
+  low:{value:"low",label:"Fresh",score:-.42,preparedness:+.07,capacityPenaltyScale:.82,tolerance:"high"},
   normal:{value:"normal",label:"Normal",score:0,preparedness:0,capacityPenaltyScale:1,tolerance:"normal"},
-  high:{value:"high",label:"High",score:+.78,preparedness:-.10,capacityPenaltyScale:1.10,tolerance:"low"},
-  very_high:{value:"very_high",label:"Very high",score:+1.40,preparedness:-.18,capacityPenaltyScale:1.22,tolerance:"low"}
+  high:{value:"high",label:"Fatigued",score:+.78,preparedness:-.10,capacityPenaltyScale:1.10,tolerance:"low"},
+  very_high:{value:"very_high",label:"Very fatigued",score:+1.40,preparedness:-.18,capacityPenaltyScale:1.22,tolerance:"low"}
  };
  return map[value]||{value:"",label:"Not entered",score:0,preparedness:0,capacityPenaltyScale:1,tolerance:"unknown"};
+}
+function subjectiveEnergyProfile(dateISO){
+ const row=dailyRecoveryFor(dateISO)||{},value=String(row.energyLevel||"").toLowerCase();
+ const map={
+  very_alert:{value:"very_alert",label:"Very alert",score:-.18,preparedness:+.04,tolerance:"high",hardWorkPenalty:-.10},
+  alert:{value:"alert",label:"Alert",score:-.08,preparedness:+.02,tolerance:"high",hardWorkPenalty:-.04},
+  normal:{value:"normal",label:"Normal",score:0,preparedness:0,tolerance:"normal",hardWorkPenalty:0},
+  tired:{value:"tired",label:"Tired / sleepy",score:+.18,preparedness:-.04,tolerance:"low",hardWorkPenalty:.18},
+  very_tired:{value:"very_tired",label:"Very tired / very sleepy",score:+.38,preparedness:-.08,tolerance:"low",hardWorkPenalty:.36}
+ };
+ return map[value]||{value:"",label:"Not entered",score:0,preparedness:0,tolerance:"unknown",hardWorkPenalty:0};
+}
+function subjectiveSorenessProfile(dateISO){
+ const row=dailyRecoveryFor(dateISO)||{},value=String(row.soreness||"").toLowerCase();
+ const map={
+  none:{value:"none",label:"None",score:0,preparedness:+.01,tolerance:"high"},
+  mild:{value:"mild",label:"Mild",score:+.05,preparedness:0,tolerance:"normal"},
+  moderate:{value:"moderate",label:"Moderate",score:+.22,preparedness:-.02,tolerance:"watch"},
+  high:{value:"high",label:"High",score:+.50,preparedness:-.05,tolerance:"low"},
+  severe:{value:"severe",label:"Severe",score:+.82,preparedness:-.08,tolerance:"low"}
+ };
+ return map[value]||{value:"",label:"Not entered",score:0,preparedness:0,tolerance:"unknown"};
 }
 function subjectiveFatigueIsFresh(dateISO){
  const v=subjectiveFatigueProfile(dateISO).value;return v==="low"||v==="very_low";
@@ -6760,23 +6820,26 @@ function subjectiveFatigueIsHigh(dateISO){
  const v=subjectiveFatigueProfile(dateISO).value;return v==="high"||v==="very_high";
 }
 function recoveryConcordanceState(dateISO){
- const subjective=subjectiveFatigueProfile(dateISO),objective=wearableRecoverySignals(dateISO),fresh=subjective.tolerance==="high",high=subjective.tolerance==="low",
+ const subjective=subjectiveFatigueProfile(dateISO),energy=subjectiveEnergyProfile(dateISO),soreness=subjectiveSorenessProfile(dateISO),objective=wearableRecoverySignals(dateISO),fresh=subjective.tolerance==="high",high=subjective.tolerance==="low",
    objectiveConcern=objective.score>=1,objectiveNormal=objective.score<1;
- let code="unknown",label="No subjective fatigue entered",capacitySignal=0;
+ let code="unknown",label="No body-fatigue rating entered",capacitySignal=0;
  if(subjective.value){
-   if(fresh&&objectiveNormal){code="fresh-concordant";label="Fresh + objective recovery looks normal";capacitySignal=1}
-   else if(fresh&&objectiveConcern){code="fresh-disagrees";label="You feel fresh despite objective caution";capacitySignal=.45}
-   else if(high&&objectiveConcern){code="fatigued-concordant";label="Subjective and objective fatigue agree";capacitySignal=-1}
-   else if(high&&objectiveNormal){code="fatigued-disagrees";label="You feel fatigued despite normal wearable data";capacitySignal=-.65}
-   else{code="normal";label="Subjective fatigue is normal";capacitySignal=0}
+   if(fresh&&objectiveNormal){code="fresh-concordant";label="Body feels fresh + objective recovery looks normal";capacitySignal=1}
+   else if(fresh&&objectiveConcern){code="fresh-disagrees";label="Body feels fresh despite objective caution";capacitySignal=.45}
+   else if(high&&objectiveConcern){code="fatigued-concordant";label="Body fatigue and objective recovery concern agree";capacitySignal=-1}
+   else if(high&&objectiveNormal){code="fatigued-disagrees";label="Body feels fatigued despite normal wearable data";capacitySignal=-.65}
+   else{code="normal";label="Body fatigue is normal";capacitySignal=0}
  }
- return {code,label,capacitySignal,subjective,objectiveScore:objective.score,objectiveLevel:objective.level};
+ let splitContext="";
+ if(fresh&&["tired","very_tired"].includes(energy.value))splitContext="Body feels fresh while energy is low; the model keeps muscular recovery and sleepiness separate.";
+ else if(high&&["alert","very_alert"].includes(energy.value))splitContext="Energy feels good while the body feels fatigued; muscular recovery remains the stronger loading signal.";
+ return {code,label,splitContext,capacitySignal,subjective,energy,soreness,objectiveScore:objective.score,objectiveLevel:objective.level};
 }
 function recoveryReadinessLabel(sig){if(!sig||!sig.current)return "No data";if(sig.level==="guard")return "Recovery constrained";if(sig.level==="watch")return "Watch recovery";return "Normal"}
-function recoveryAnalysisText(dateISO){const s=wearableRecoverySignals(dateISO),c=s.current;if(!c)return "<strong>No recovery entry for this date.</strong> Add today's recovery values and subjective fatigue to let the adaptive engine compare them with your rolling baseline.";const parts=[],metric=(label,key,unit="")=>{const v=numericOrNull(c[key]),base=s.baselines[key]?.value;if(v!==null)parts.push("<strong>"+label+":</strong> "+v+unit+(base!==null&&base!==undefined?" (baseline "+Math.round(base*10)/10+unit+")":""))};metric("Sleep","sleepHours"," h");metric("HRV","hrv"," ms");metric("Resting HR","restingHr"," bpm");metric("Wake BioCharge","wakeBio","");if(s.subjective?.value)parts.push("<strong>Subjective fatigue:</strong> "+htmlSafe(s.subjective.label));const concord=recoveryConcordanceState(dateISO);let text="<strong>"+recoveryReadinessLabel(s)+"</strong> • integrated fatigue score "+(Math.round(s.score*100)/100)+". "+parts.join(" • ");if(concord.code!=="unknown")text+="<br><strong>Signal agreement:</strong> "+htmlSafe(concord.label)+".";if(s.stepContext?.missingRows>0)text+="<br><strong>Daily steps:</strong> background-step load withheld because "+s.stepContext.missingRows+" step-bearing logged activit"+(s.stepContext.missingRows===1?"y is":"ies are")+" missing <em>Steps during activity</em>. Nothing was estimated.";if(s.reasons.length)text+="<br><strong>Recovery flags/context:</strong> "+s.reasons.join("; ")+".";else text+="<br>No meaningful recovery flags are active. Good recovery plus low subjective fatigue removes the brake but does not create bonus progression.";return text}
+function recoveryAnalysisText(dateISO){const s=wearableRecoverySignals(dateISO),c=s.current;if(!c)return "<strong>No recovery entry for this date.</strong> Add today's recovery values plus body fatigue, energy/sleepiness, and soreness so the adaptive engine can keep those signals separate.";const parts=[],metric=(label,key,unit="")=>{const v=numericOrNull(c[key]),base=s.baselines[key]?.value;if(v!==null)parts.push("<strong>"+label+":</strong> "+v+unit+(base!==null&&base!==undefined?" (baseline "+Math.round(base*10)/10+unit+")":""))};metric("Sleep","sleepHours"," h");metric("HRV","hrv"," ms");metric("Resting HR","restingHr"," bpm");metric("Wake BioCharge","wakeBio","");if(s.subjective?.value)parts.push("<strong>Body:</strong> "+htmlSafe(s.subjective.label));if(s.energy?.value)parts.push("<strong>Energy:</strong> "+htmlSafe(s.energy.label));if(s.soreness?.value)parts.push("<strong>Soreness:</strong> "+htmlSafe(s.soreness.label));const concord=recoveryConcordanceState(dateISO);let text="<strong>"+recoveryReadinessLabel(s)+"</strong> • integrated recovery-caution score "+(Math.round(s.score*100)/100)+". "+parts.join(" • ");if(concord.code!=="unknown")text+="<br><strong>Body vs objective recovery:</strong> "+htmlSafe(concord.label)+".";if(concord.splitContext)text+="<br><strong>Split signal:</strong> "+htmlSafe(concord.splitContext);if(s.stepContext?.missingRows>0)text+="<br><strong>Daily steps:</strong> background-step load withheld because "+s.stepContext.missingRows+" step-bearing logged activit"+(s.stepContext.missingRows===1?"y is":"ies are")+" missing <em>Steps during activity</em>. Nothing was estimated.";if(s.reasons.length)text+="<br><strong>Recovery flags/context:</strong> "+s.reasons.join("; ")+".";else text+="<br>No meaningful recovery flags are active. A physically fresh body can remove an overly conservative muscular-recovery brake even when energy is merely average; alertness never creates bonus progression.";return text}
 
 function adaptiveReadiness(dateISO){
- const s3=sessionSummariesBefore(dateISO,3),s7=sessionSummariesBefore(dateISO,7),load=conditioningLoadSignals(dateISO),wear=wearableRecoverySignals(dateISO),deload=utmDeloadSignal(dateISO),subjective=subjectiveFatigueProfile(dateISO),concord=recoveryConcordanceState(dateISO);
+ const s3=sessionSummariesBefore(dateISO,3),s7=sessionSummariesBefore(dateISO,7),load=conditioningLoadSignals(dateISO),wear=wearableRecoverySignals(dateISO),deload=utmDeloadSignal(dateISO),subjective=subjectiveFatigueProfile(dateISO),energy=subjectiveEnergyProfile(dateISO),soreness=subjectiveSorenessProfile(dateISO),concord=recoveryConcordanceState(dateISO);
  const roughCount=s3.filter(x=>x.sessionRough).length,
    veryRoughCount=s3.filter(x=>x.veryRough).length,
    qualityCount=s3.filter(x=>x.qualityIssue).length,
@@ -6808,7 +6871,10 @@ function adaptiveReadiness(dateISO){
    wear.score*.65+
    (deload.level==="recommend"?.90:deload.level==="watch"?.35:0)-
    Math.min(2,rests)*.75+
-   (subjective.value==="very_high"?1.0:subjective.value==="high"?.55:subjective.value==="very_low"?-.65:subjective.value==="low"?-.40:0);
+   // Physical fatigue is the dominant subjective loading signal. Energy and soreness are deliberately smaller/separate.
+   (subjective.value==="very_high"?1.0:subjective.value==="high"?.55:subjective.value==="very_low"?-.65:subjective.value==="low"?-.40:0)+
+   (energy.value==="very_tired"?.30:energy.value==="tired"?.12:energy.value==="very_alert"?-.08:energy.value==="alert"?-.03:0)+
+   (soreness.value==="severe"?.70:soreness.value==="high"?.40:soreness.value==="moderate"?.15:0);
 
  // A fresh subjective report is allowed to correct a conservative model, but cannot
  // erase a true multi-domain Guard on its own.
@@ -6829,7 +6895,7 @@ function adaptiveReadiness(dateISO){
    recentMinutes:load.recentMin,baselineWeeklyMinutes:load.baseWeeklyMin,
    recentMiles:load.recentMiles,baselineWeeklyMiles:load.baseWeeklyMiles,
    recentHr:load.recentHr,baselineHr:load.baseHr,
-   wearable:wear,wearableScore:wear.score,wearableLevel:wear.level,subjectiveFatigue:subjective,concordance:concord,deload
+   wearable:wear,wearableScore:wear.score,wearableLevel:wear.level,subjectiveFatigue:subjective,energy,soreness,concordance:concord,deload
  };
 }
 function allConditioningEntries(){return [...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary]}
@@ -9079,8 +9145,8 @@ function planFor(session,gw){
  return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"",conditioning:false}];
 }
 
-const recoveryFieldMap={sleepHours:"recSleepHours",sleepScore:"recSleepScore",hrv:"recHrv",restingHr:"recRestingHr",wakeBio:"recWakeBio",currentBio:"recCurrentBio",stress:"recStress",spo2:"recSpo2",steps:"recSteps",vo2:"recVo2",subjectiveFatigue:"recSubjectiveFatigue",notes:"recNotes"};
-const recoveryTextFields=new Set(["subjectiveFatigue","notes"]);
+const recoveryFieldMap={sleepHours:"recSleepHours",sleepScore:"recSleepScore",hrv:"recHrv",restingHr:"recRestingHr",wakeBio:"recWakeBio",currentBio:"recCurrentBio",stress:"recStress",spo2:"recSpo2",steps:"recSteps",vo2:"recVo2",physicalFatigue:"recPhysicalFatigue",energyLevel:"recEnergyLevel",soreness:"recSoreness",notes:"recNotes"};
+const recoveryTextFields=new Set(["physicalFatigue","energyLevel","soreness","notes"]);
 
 function bodyweightObservationContext(row){
  const time=String(row?.time||""),food=String(row?.foodState||""),bathroom=String(row?.bathroomState||""),exercise=String(row?.exerciseState||""),fluid=String(row?.fluidState||""),clothing=String(row?.clothingState||"");
@@ -9389,7 +9455,7 @@ function renderBodyweight(){
  if(rows.length>=2){const start=rows[0].date,end=rows.at(-1).date,days=Math.max(1,daysBetweenISO(start,end)),step=Math.max(1,Math.ceil(days/220)),points=[];for(let i=0;i<=days;i+=step){const d=localISO(addDays(parseLocalISO(start),i)),e=retrospectiveBodyweightForDate(d,10000);if(e)points.push({label:d,value:e.lb,uncertainty:e.uncertainty})}if(points.at(-1)?.label!==end){const e=retrospectiveBodyweightForDate(end,10000);if(e)points.push({label:end,value:e.lb,uncertainty:e.uncertainty})}bodyweightTrendChart.innerHTML=bodyweightTrendSvg(points,rows,520,180)}else if(rows.length===1)bodyweightTrendChart.innerHTML='<div class="notice"><strong>'+rows[0].lb.toFixed(1)+' lb</strong> measured '+htmlSafe(rows[0].date)+'. Add another weigh-in later and the latent trend will become more precise.</div>';else bodyweightTrendChart.innerHTML='<div class="empty">Not enough data yet.</div>';
  const hybrid=hybridAdaptationState(today,{includeHistorical:true}),hs=document.getElementById("bodyweightHybridSummary");if(hs){const cls=hybrid.severity==="good"?"trend-positive":hybrid.severity==="bad"?"trend-negative":hybrid.severity==="watch"?"trend-watch":"",pcls=hybrid.progress.severity==="good"?"trend-positive":hybrid.progress.severity==="bad"?"trend-negative":hybrid.progress.severity==="watch"?"trend-watch":"";hs.innerHTML='<div class="notice"><strong class="'+cls+'">Current recommendation view: '+htmlSafe(hybrid.label)+'</strong> • confidence '+Math.round(hybrid.confidence*100)+'%<br>'+htmlSafe(hybrid.action)+'</div><div class="notice" style="margin-top:8px"><strong class="'+pcls+'">Big-picture progress view: '+htmlSafe(hybrid.progress.label)+'</strong> • confidence '+Math.round(hybrid.progress.confidence*100)+'%<br>'+htmlSafe(hybrid.horizonPattern.label)+'.</div><div class="tablewrap" style="margin-top:8px"><table class="trend-table"><thead><tr><th>Horizon</th><th>Weight</th><th>Strength</th><th>Aerobic</th><th>Hard cond.</th></tr></thead><tbody>'+hybrid.horizons.map(h=>'<tr><td>'+htmlSafe(h.label)+' • '+h.days+'d</td><td>'+htmlSafe(h.state.weight.direction)+'</td><td>'+htmlSafe(h.state.strength.direction)+'</td><td>'+htmlSafe(h.state.cardio.aerobic.direction)+'</td><td>'+htmlSafe(h.state.cardio.conditioning.direction)+'</td></tr>').join("")+'</tbody></table></div>'+(hybrid.notes.length?'<div class="why-list" style="margin-top:8px">'+hybrid.notes.map(x=>'<div>• '+htmlSafe(x)+'</div>').join("")+'</div>':'<div class="muted" style="margin-top:8px">The model waits for enough weight, strength and cardio evidence before interpreting the direction of a weight change.</div>')}
 }
-function loadRecoveryForm(){const date=recoveryDate.value||localISO(new Date());recoveryDate.value=date;const row=dailyRecoveryFor(date)||{};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const el=document.getElementById(id);el.value=row[key]??""});recoveryAnalysis.innerHTML=recoveryAnalysisText(date)}
+function loadRecoveryForm(){const date=recoveryDate.value||localISO(new Date());recoveryDate.value=date;const row=dailyRecoveryFor(date)||{};Object.entries(recoveryFieldMap).forEach(([key,id])=>{const el=document.getElementById(id);if(!el)return;let value=row[key]??"";if(key==="physicalFatigue"&&!value)value=row.subjectiveFatigue??"";el.value=value});recoveryAnalysis.innerHTML=recoveryAnalysisText(date);try{v3677EnhanceInlineChoices(document)}catch(_){}}
 function openRecoveryForDate(dateISO){
  const date=validIsoDateValue(dateISO)?dateISO:localISO(new Date());
  showView("recovery");
@@ -9399,7 +9465,9 @@ function openRecoveryForDate(dateISO){
 }
 function saveRecoveryForm(){
  const date=recoveryDate.value||localISO(new Date()),row={_savedAt:Date.now()};
- Object.entries(recoveryFieldMap).forEach(([key,id])=>{const v=document.getElementById(id).value;if(recoveryTextFields.has(key)){if(v!=="")row[key]=String(v).trim()}else if(v!=="")row[key]=Number(v)});
+ Object.entries(recoveryFieldMap).forEach(([key,id])=>{const el=document.getElementById(id),v=el?.value??"";if(recoveryTextFields.has(key)){if(v!=="")row[key]=String(v).trim()}else if(v!=="")row[key]=Number(v)});
+ // Keep a legacy mirror so older builds/importers still understand the physical-fatigue answer.
+ if(row.physicalFatigue)row.subjectiveFatigue=row.physicalFatigue;
  state.dailyRecovery=state.dailyRecovery||{};state.dailyRecovery[date]=row;ensureTrackingStartDate(date);
  const journalOK=writeRecoveryJournalEntry(date,row),stateOK=save("recovery");
  if(!journalOK||!stateOK){alert("Recovery could not be verified in local storage. Keep the app open and export your data before refreshing.");return}
@@ -9413,14 +9481,14 @@ function renderRecoverySnapshot(){
  document.getElementById("recoverySnapshot")?.classList.toggle("empty-state",!c);
  recoveryReadiness.textContent=label;recoveryReadiness.className=sig.level==="guard"?"recovery-readiness-guard":sig.level==="watch"?"recovery-readiness-watch":"recovery-readiness-good";
  recoverySleep.textContent=c&&numericOrNull(c.sleepHours)!==null?Number(c.sleepHours).toFixed(1)+" h":"—";recoveryHrv.textContent=c&&numericOrNull(c.hrv)!==null?Math.round(Number(c.hrv))+" ms":"—";recoveryRhr.textContent=c&&numericOrNull(c.restingHr)!==null?Math.round(Number(c.restingHr))+" bpm":"—";recoveryBio.textContent=c&&numericOrNull(c.wakeBio)!==null?Math.round(Number(c.wakeBio)):"—";
- let text=!c?"No recovery data logged for today.":sig.reasons.length?sig.reasons.slice(0,2).join(" • "):"Today's recovery data is within your established range.";if(sig.subjective?.value)text+=" • Subjective fatigue: "+sig.subjective.label+".";
+ let text=!c?"No recovery data logged for today.":sig.reasons.length?sig.reasons.slice(0,2).join(" • "):"Today's recovery data is within your established range.";if(sig.subjective?.value)text+=" • Body: "+sig.subjective.label+".";if(sig.energy?.value)text+=" • Energy: "+sig.energy.label+".";if(sig.soreness?.value)text+=" • Soreness: "+sig.soreness.label+".";
  if(deload.level==="recommend")text+=" • DELOAD: "+deload.recommendation;
  else if(deload.level==="watch")text+=" • Deload watch: "+(deload.reasons[0]||deload.recommendation);
  recoverySnapshotSub.textContent=text;
 }
 function renderRecoveryHistory(){
- const rows=Object.entries(state.dailyRecovery||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,21);recoveryHistoryBody.innerHTML=rows.length?rows.map(([date,x])=>{const ss=wearableRecoverySignals(date),lbl=recoveryReadinessLabel(ss),sub=subjectiveFatigueProfile(date).label;return "<tr><td>"+htmlSafe(date)+"</td><td>"+htmlSafe(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+htmlSafe(x.hrv??"")+"</td><td>"+htmlSafe(x.restingHr??"")+"</td><td>"+htmlSafe(x.wakeBio??"")+"</td><td>"+htmlSafe(sub==="Not entered"?"—":sub)+"</td><td>"+htmlSafe(x.stress??"")+"</td><td>"+htmlSafe(x.steps??"")+"</td><td>"+htmlSafe(lbl)+"</td><td><button class=\"btn recovery-history-edit\" data-date=\""+attrSafe(date)+"\" type=\"button\">Edit</button></td></tr>"}).join(""):'<tr><td colspan="10"><div class="empty">No daily recovery entries yet.</div></td></tr>';recoveryHistoryBody.querySelectorAll(".recovery-history-edit").forEach(b=>b.addEventListener("click",()=>openRecoveryForDate(b.dataset.date)));
- const rm=document.getElementById("recoveryMobileCards");if(rm)rm.innerHTML=rows.length?rows.map(([date,x])=>{const lbl=recoveryReadinessLabel(wearableRecoverySignals(date)),sub=subjectiveFatigueProfile(date).label;return '<div class="mobile-data-card"><h4>'+htmlSafe(date)+' • '+htmlSafe(lbl)+'</h4><div class="mobile-data-meta">Sleep '+htmlSafe(x.sleepHours??"—")+' h • HRV '+htmlSafe(x.hrv??"—")+' • Rest HR '+htmlSafe(x.restingHr??"—")+' • Subjective '+htmlSafe(sub==="Not entered"?"—":sub)+' • Steps '+htmlSafe(x.steps??"—")+'</div><div class="inline-actions" style="margin-top:7px"><button class="btn recovery-mobile-edit" data-date="'+attrSafe(date)+'" type="button">Edit</button></div></div>'}).join(''):'<div class="empty">No daily recovery entries yet.</div>';if(rm)rm.querySelectorAll('.recovery-mobile-edit').forEach(b=>b.addEventListener('click',()=>openRecoveryForDate(b.dataset.date)));
+ const rows=Object.entries(state.dailyRecovery||{}).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,21);recoveryHistoryBody.innerHTML=rows.length?rows.map(([date,x])=>{const ss=wearableRecoverySignals(date),lbl=recoveryReadinessLabel(ss),body=subjectiveFatigueProfile(date).label,energy=subjectiveEnergyProfile(date).label,sore=subjectiveSorenessProfile(date).label;return "<tr><td>"+htmlSafe(date)+"</td><td>"+htmlSafe(x.sleepHours??"")+(x.sleepHours!==undefined?" h":"")+"</td><td>"+htmlSafe(x.hrv??"")+"</td><td>"+htmlSafe(x.restingHr??"")+"</td><td>"+htmlSafe(x.wakeBio??"")+"</td><td>"+htmlSafe(body==="Not entered"?"—":body)+"</td><td>"+htmlSafe(energy==="Not entered"?"—":energy)+"</td><td>"+htmlSafe(sore==="Not entered"?"—":sore)+"</td><td>"+htmlSafe(x.stress??"")+"</td><td>"+htmlSafe(x.steps??"")+"</td><td>"+htmlSafe(lbl)+"</td><td><button class=\"btn recovery-history-edit\" data-date=\""+attrSafe(date)+"\" type=\"button\">Edit</button></td></tr>"}).join(""):'<tr><td colspan="12"><div class="empty">No daily recovery entries yet.</div></td></tr>';recoveryHistoryBody.querySelectorAll(".recovery-history-edit").forEach(b=>b.addEventListener("click",()=>openRecoveryForDate(b.dataset.date)));
+ const rm=document.getElementById("recoveryMobileCards");if(rm)rm.innerHTML=rows.length?rows.map(([date,x])=>{const lbl=recoveryReadinessLabel(wearableRecoverySignals(date)),body=subjectiveFatigueProfile(date).label,energy=subjectiveEnergyProfile(date).label,sore=subjectiveSorenessProfile(date).label;return '<div class="mobile-data-card"><h4>'+htmlSafe(date)+' • '+htmlSafe(lbl)+'</h4><div class="mobile-data-meta">Sleep '+htmlSafe(x.sleepHours??"—")+' h • HRV '+htmlSafe(x.hrv??"—")+' • Rest HR '+htmlSafe(x.restingHr??"—")+' • Body '+htmlSafe(body==="Not entered"?"—":body)+' • Energy '+htmlSafe(energy==="Not entered"?"—":energy)+' • Soreness '+htmlSafe(sore==="Not entered"?"—":sore)+' • Steps '+htmlSafe(x.steps??"—")+'</div><div class="inline-actions" style="margin-top:7px"><button class="btn recovery-mobile-edit" data-date="'+attrSafe(date)+'" type="button">Edit</button></div></div>'}).join(''):'<div class="empty">No daily recovery entries yet.</div>';if(rm)rm.querySelectorAll('.recovery-mobile-edit').forEach(b=>b.addEventListener('click',()=>openRecoveryForDate(b.dataset.date)));
  const sessions=Object.values(state.wearableSessions||{}).filter(Boolean).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,20);wearableSessionHistoryBody.innerHTML=sessions.length?sessions.map(x=>"<tr><td>"+htmlSafe(x.date||"")+"</td><td>"+htmlSafe(x.session||"")+"</td><td>"+htmlSafe(x.duration||"")+(x.duration?" min":"")+"</td><td>"+htmlSafe(x.avgHr||"")+" / "+htmlSafe(x.maxHr||"")+"</td><td>"+htmlSafe(x.trainingLoad||"")+"</td><td>"+htmlSafe(x.aerobicTe||"")+" / "+htmlSafe(x.anaerobicTe||"")+"</td><td>"+htmlSafe(x.hrRecovery||"")+(x.hrRecovery?" bpm":"")+"</td><td>"+htmlSafe(x.recoveryHours||"")+(x.recoveryHours?" h":"")+"</td></tr>").join(""):'<tr><td colspan="8"><div class="empty">No Helio workout summaries logged yet.</div></td></tr>';
  const wm=document.getElementById("wearableSessionMobileCards");if(wm)wm.innerHTML=sessions.length?sessions.map(x=>'<div class="mobile-data-card"><h4>'+htmlSafe(x.date||"")+' • '+htmlSafe(x.session||"")+'</h4><div class="mobile-data-meta">'+htmlSafe(wearableHistorySummary(x)||"No optional wearable metrics")+'</div></div>').join(''):'<div class="empty">No Helio workout summaries logged yet.</div>';
 }
@@ -12314,7 +12382,7 @@ function restoreUiDraft(){
          selectedDateISO=d.selectedDateISO;
          browseWeek=Math.max(1,Number(d.browseWeek)||trainingWeekForDate(parseLocalISO(selectedDateISO))||1);
        }
-       renderWeek();renderSelectedWorkout();
+       if(!window.__hybridInitialRenderDeferred){renderWeek();renderSelectedWorkout()}
      }
    }catch(e){}
 
@@ -12365,7 +12433,7 @@ function snapNavigationContextToToday(id){
 function showView(id,options={}){
  if(!document.getElementById(id))id="dashboard";const previousId=document.querySelector(".view.active")?.id||"";document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");syncNavigationState(id);setMobileMoreOpen(false);rememberLastView(id);
  if(!options.preserveDate&&!uiDraftRestoreInProgress)snapNavigationContextToToday(id);
- if(id==="dashboard"&&!options.skipDashboardRefresh){renderWeek();renderSelectedWorkout()}if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}if(id==="log"&&!editingSessionId)restorePersistentLogWorkspace();if(id==="log"){renderWorkoutIntentUi();addControlsToAllLogCards()}if(id==="recovery"){if(!recoveryDate.value)recoveryDate.value=localISO(new Date());if(!restorePersistentRecoveryDraft())loadRecoveryForm()}if(id==="bodyweight"){if(!bodyweightDate.value)bodyweightDate.value=localISO(new Date());loadBodyweightForm(bodyweightDate.value)}if(id==="classes"){if(classScheduleDate)classScheduleDate.value=selectedDateISO||localISO(new Date());if(classTypeFilter)classTypeFilter.value=classActivityNavMode||"class";const viewDate=classScheduleDate?.value||selectedDateISO||localISO(new Date()),meta=classScheduleMetaForDate(viewDate);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";if(classStatus)classStatus.innerHTML=classActivityStatusHtml(viewDate,classTypeFilter?.value||"all");renderClassLibrary()}renderActiveView(id);if(previousId!==id&&options.keepScroll!==true)requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:"auto"}));if(!uiDraftRestoreInProgress)queueUiDraftSave();
+ if(id==="dashboard"&&!options.skipDashboardRefresh){renderWeek();renderSelectedWorkout()}if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}if(id==="log"&&!editingSessionId)restorePersistentLogWorkspace();if(id==="log"){renderWorkoutIntentUi();addControlsToAllLogCards()}if(id==="recovery"){if(!recoveryDate.value)recoveryDate.value=localISO(new Date());if(!restorePersistentRecoveryDraft())loadRecoveryForm()}if(id==="bodyweight"){if(!bodyweightDate.value)bodyweightDate.value=localISO(new Date());loadBodyweightForm(bodyweightDate.value)}if(id==="classes"){if(classScheduleDate)classScheduleDate.value=selectedDateISO||localISO(new Date());if(classTypeFilter)classTypeFilter.value=classActivityNavMode||"class";const viewDate=classScheduleDate?.value||selectedDateISO||localISO(new Date()),meta=classScheduleMetaForDate(viewDate);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";if(classStatus)classStatus.innerHTML=classActivityStatusHtml(viewDate,classTypeFilter?.value||"all");renderClassLibrary()}if(!window.__hybridInitialRenderDeferred)renderActiveView(id);if(previousId!==id&&options.keepScroll!==true)requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:"auto"}));if(!uiDraftRestoreInProgress)queueUiDraftSave();
 }
 function applyLogWeekOverrideUi(enabled){logWeek.readOnly=!enabled;logWeek.setAttribute("aria-readonly",enabled?"false":"true");const b=document.getElementById("toggleLogWeekOverride"),h=document.getElementById("logWeekDerivedHint");if(b)b.textContent=enabled?"Use derived":"Override";if(h)h.textContent=enabled?"Manual override enabled for this entry.":"Derived from the selected date."}
 function setLogWeekOverride(enabled){applyLogWeekOverrideUi(enabled);if(!enabled){const d=parseLocalISO(logDate.value),tw=!isNaN(d)?trainingWeekForDate(d):0;if(tw>=1)logWeek.value=tw}}
@@ -12405,7 +12473,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.79";
+const HYBRID_APP_BUILD="36.81";
 async function checkForDeployedBuild(){
  try{
   const r=await fetch("./version.json?_="+Date.now(),{cache:"no-store"});if(!r.ok)return;
@@ -12416,12 +12484,15 @@ async function checkForDeployedBuild(){
  }catch(_e){}
 }
 if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost")){
-  navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
-  navigator.serviceWorker.addEventListener("controllerchange",()=>{
-    if(sessionStorage.getItem("hybrid-controller-reload")!==HYBRID_APP_BUILD){sessionStorage.setItem("hybrid-controller-reload",HYBRID_APP_BUILD);location.reload()}
-  });
+  // Register immediately, but do not make startup wait on an update fetch or reload merely
+  // because a new worker took control. The visible app can paint from cache first.
+  navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"}).then(reg=>{
+    const refreshWorker=()=>reg.update().catch(()=>{});
+    if("requestIdleCallback" in window)requestIdleCallback(refreshWorker,{timeout:2800});else setTimeout(refreshWorker,1500);
+  }).catch(()=>{});
 }
-checkForDeployedBuild();
+const hybridCheckBuildWhenIdle=()=>checkForDeployedBuild();
+if("requestIdleCallback" in window)requestIdleCallback(hybridCheckBuildWhenIdle,{timeout:3500});else setTimeout(hybridCheckBuildWhenIdle,1800);
 if(navigator.storage&&navigator.storage.persist){
   navigator.storage.persist().catch(()=>{});
 }
@@ -12807,9 +12878,9 @@ saveSettings.addEventListener("click",()=>{
  };
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
-const CURRENT_EXPORT_VERSION=42;
+const CURRENT_EXPORT_VERSION=43;
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.79",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.81",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:19,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","intermittent activity dose can use active time plus low rest-load credit instead of elapsed time alone","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","wearable VO2 trend is low weight","wearable calories are reference only"]},
@@ -12820,7 +12891,7 @@ exportJson.addEventListener("click",()=>download("hybrid-training-export.json",J
   classes:{type:"evidence-weighted-class-adaptation",version:1,rules:["class-specific aerobic/anaerobic/strength/endurance/mobility/core/power priors","evidence-confidence caps prevent a class label from proving heavy compound strength","hot-class heart-rate inflation is discounted when HR is the only aerobic evidence","spin/row/run classes build modality-specific aerobic qualities","Pilates and yoga receive core/mobility/endurance credit without heavy-strength equivalence","BodyPump and circuit classes are modeled primarily as strength-endurance","TRX/suspension transfer is capped; EMG activation is not treated as longitudinal outcome proof","Lagree and barre use deliberately low-confidence priors because direct outcome evidence is sparse","aquatic and dance classes contribute aerobic fitness with modality-specific impact","pickleball match play and drilling are modeled separately: pro match work:rest/effective-play evidence informs match density, while drill type/active time/work-rest/shot volume controls practice load; drill physiology priors remain lower-confidence because direct pickleball drill research is sparse","mixed/HIIT studio classes use logged components as the stronger fingerprint when available","class fatigue remains separate from adaptation credit"]},
   blockTransition:{type:"adaptive-block-review",version:2,rules:["first app open in an unreviewed new block","recommend Barbell Strength, Barbell Strength + KB, conditioning emphasis, or rare Base Building","Base Building frequency guard","review each Barbell Strength training max","review pull-up progression","review KB plan","optional recovery/open pause week that does not consume a program week","8-week Base Building pauses the ordinary six-week timeline"]},baseBuilding:{type:"barbell-strength-standard-base-building",version:1,rules:["8-week Standard/SE-first template","Weeks 1-5 stable primary SE circuit","equipment-first mixed SE generator","one-day same-role substitutions","adaptive E modality selection","walking duration explicitly scaled upward","Weeks 6-8 HIC restricted to #1-10","rare recommendation frequency guard","manual override always allowed"]}
  },
- unifiedTrainingModel:{type:"latent-fitness-fatigue-adaptive-programming",version:24,rules:["bodyweight-performance coupling for concurrent strength + conditioning adaptation","mass change is neutral unless accompanied by meaningful performance change","noise- and uncertainty-gated productive gain/loss/tradeoff classification","hybrid trajectory can make only modest open-day goal corrections and never overrides fixed Barbell Strength / KB anchors","separate capacity, fatigue, efficiency and uncertainty states","session-time and same-day awareness","richer set/rep/RPE/duration stimulus estimation","slow fitness vs fast fatigue states","muscle-specific and stress-system-specific fatigue half-lives","recovery-constrained fatigue decay","directional multichannel relationship vectors: capability/strength, hypertrophy, fatigue, technique, tissue/mechanics and power","functional anatomy splits for hamstring knee-flexion vs hip-extension, gastrocnemius vs soleus, triceps long-head context, adductors, tibialis and serratus","fractional direct/indirect effective-set accounting with diminishing-return dose utility","directional strength transfer","weak learned personal transfer after sufficient paired history","localized conditioning overlap","richer effective muscle volume","continuous exercise capability estimates","capability-aware progression","planned-vs-performed RPE separation","per-exercise plus modality-level prediction-residual calibration","prediction error is a core personalization signal","three-exposure decline gate","reason-aware substitution learning","direct recommendation feedback learning","sparse dedicated bodyweight measurements modeled as noisy observations of a robust latent trend","bodyweight observation confidence uses time-of-day, food/fluid, bathroom, exercise and clothing context; raw scale values are never fake-corrected by an assumed number of pounds","standardized morning-after-bathroom pre-food/pre-exercise measurements get the highest trend weight while post-workout, fed, dehydrated or late-night observations get wider uncertainty","absolute plus bodyweight-allometric performance views","goal-aware priorities","adaptive rolling 7-day stress budgets without ACWR injury claims","stress-budget confidence reflects how many prior rolling windows exist; provisional budgets require recovery/performance corroboration before heavy suppression","single prior stress windows contribute conservatively instead of being ignored","repeated high-load windows followed by low subjective fatigue + normal recovery can raise learned capacity","subjective fatigue is a bounded recovery/capacity signal and disagreement with wearable stress reduces model confidence rather than being ignored","fixed Barbell Strength wave exercises require bad-session or prediction-error evidence before a raw trend alone is called a decline","future-schedule interference weighted by relationship-vector overlap, endurance dose, training status, same-session proximity and upcoming priority","whole-workout local optimization","evidence-gated dose-response learning","conditioning fitness-quality portfolio","modality-specific efficiency and repeatability trends","personal HR thresholds and evidence-gated critical speed/power","aerobic decoupling and environment normalization","training-intensity distribution by time as context only","interval volume/density/speed overlays","evidence-gated adaptive deload detection","counterfactual workout evaluation","personal recovery-signal weighting","longitudinal HRV/RHR statistics","personalized rest/active-recovery and exercise-spacing response learning","graduated background-step load with purposeful locomotion credit","modality-cost-adjusted aerobic dose and fatigue","walking aerobic dose is separated from recovery toll","easy LSS walking uses sublinear fatigue accumulation after 60 minutes while brisk/hilly/high-RPE walking can scale back upward","background steps are a low-weight recovery signal after purposeful locomotion is credited out","active recovery modeled separately from full rest","wearable VO2 and HR-recovery remain low-weight trend signals","wearable calorie estimates never drive training decisions","multi-signal bodyweight/performance/recovery watch is advisory and non-diagnostic","every learned estimate carries evidence-dependent confidence","empirical per-metric noise floors / minimum meaningful change","endurance durability / long-duration efficiency preservation","priority-first exercise ordering when the user specifies a target area","goal-specific RIR/failure and rest interpretation","personal execution-time calibration from completed set/rest timestamps","exercise-order and rest-density normalization","optional set-completion timestamps derive rest automatically","separate strength/hypertrophy/power/fatigue stimulus channels","HR sensor reliability weighting","normalized HR-recovery context","passive wearable respiration support","time-of-day response learning","altitude-context and decaying altitude acclimation","embedded neuromuscular readiness from ordinary training","regularized interaction learning","held-out shadow-model backtesting gates personalized feature weights","opportunistic core/grip accessory composition is driven by actual logged exposure, local fatigue, primary-session overlap, available equipment and near-term anchor interference; it is never a weekly quota","short complementary strength blocks can follow low-to-moderate conditioning when the primary modality leaves a fresh body region, cadence need exists, and near-term anchor interference remains acceptable; a next-day fixed anchor shrinks this to a 10–15 minute microdose instead of automatically banning it; these blocks provide partial—not full—Gym/Calisthenics cadence credit; smart secondary work is never added to Barbell Strength days; KB days may very rarely receive only a tiny low-intensity complementary block when recovery and need strongly support it"]},
+ unifiedTrainingModel:{type:"latent-fitness-fatigue-adaptive-programming",version:25,rules:["bodyweight-performance coupling for concurrent strength + conditioning adaptation","mass change is neutral unless accompanied by meaningful performance change","noise- and uncertainty-gated productive gain/loss/tradeoff classification","hybrid trajectory can make only modest open-day goal corrections and never overrides fixed Barbell Strength / KB anchors","separate capacity, fatigue, efficiency and uncertainty states","session-time and same-day awareness","richer set/rep/RPE/duration stimulus estimation","slow fitness vs fast fatigue states","muscle-specific and stress-system-specific fatigue half-lives","recovery-constrained fatigue decay","directional multichannel relationship vectors: capability/strength, hypertrophy, fatigue, technique, tissue/mechanics and power","functional anatomy splits for hamstring knee-flexion vs hip-extension, gastrocnemius vs soleus, triceps long-head context, adductors, tibialis and serratus","fractional direct/indirect effective-set accounting with diminishing-return dose utility","directional strength transfer","weak learned personal transfer after sufficient paired history","localized conditioning overlap","richer effective muscle volume","continuous exercise capability estimates","capability-aware progression","planned-vs-performed RPE separation","per-exercise plus modality-level prediction-residual calibration","prediction error is a core personalization signal","three-exposure decline gate","reason-aware substitution learning","direct recommendation feedback learning","sparse dedicated bodyweight measurements modeled as noisy observations of a robust latent trend","bodyweight observation confidence uses time-of-day, food/fluid, bathroom, exercise and clothing context; raw scale values are never fake-corrected by an assumed number of pounds","standardized morning-after-bathroom pre-food/pre-exercise measurements get the highest trend weight while post-workout, fed, dehydrated or late-night observations get wider uncertainty","absolute plus bodyweight-allometric performance views","goal-aware priorities","adaptive rolling 7-day stress budgets without ACWR injury claims","stress-budget confidence reflects how many prior rolling windows exist; provisional budgets require recovery/performance corroboration before heavy suppression","single prior stress windows contribute conservatively instead of being ignored","repeated high-load windows followed by physically fresh body-fatigue reports + normal recovery can raise learned capacity","physical/body fatigue, energy/sleepiness, and soreness are stored as separate recovery signals; body fatigue carries the strongest muscular-capacity weight, while low energy is a smaller alertness signal and soreness is tissue/recovery context","fixed Barbell Strength wave exercises require bad-session or prediction-error evidence before a raw trend alone is called a decline","future-schedule interference weighted by relationship-vector overlap, endurance dose, training status, same-session proximity and upcoming priority","whole-workout local optimization","evidence-gated dose-response learning","conditioning fitness-quality portfolio","modality-specific efficiency and repeatability trends","personal HR thresholds and evidence-gated critical speed/power","aerobic decoupling and environment normalization","training-intensity distribution by time as context only","interval volume/density/speed overlays","evidence-gated adaptive deload detection","counterfactual workout evaluation","personal recovery-signal weighting","longitudinal HRV/RHR statistics","personalized rest/active-recovery and exercise-spacing response learning","graduated background-step load with purposeful locomotion credit","modality-cost-adjusted aerobic dose and fatigue","walking aerobic dose is separated from recovery toll","easy LSS walking uses sublinear fatigue accumulation after 60 minutes while brisk/hilly/high-RPE walking can scale back upward","background steps are a low-weight recovery signal after purposeful locomotion is credited out","active recovery modeled separately from full rest","wearable VO2 and HR-recovery remain low-weight trend signals","wearable calorie estimates never drive training decisions","multi-signal bodyweight/performance/recovery watch is advisory and non-diagnostic","every learned estimate carries evidence-dependent confidence","empirical per-metric noise floors / minimum meaningful change","endurance durability / long-duration efficiency preservation","priority-first exercise ordering when the user specifies a target area","goal-specific RIR/failure and rest interpretation","personal execution-time calibration from completed set/rest timestamps","exercise-order and rest-density normalization","optional set-completion timestamps derive rest automatically","separate strength/hypertrophy/power/fatigue stimulus channels","HR sensor reliability weighting","normalized HR-recovery context","passive wearable respiration support","time-of-day response learning","altitude-context and decaying altitude acclimation","embedded neuromuscular readiness from ordinary training","regularized interaction learning","held-out shadow-model backtesting gates personalized feature weights","opportunistic core/grip accessory composition is driven by actual logged exposure, local fatigue, primary-session overlap, available equipment and near-term anchor interference; it is never a weekly quota","short complementary strength blocks can follow low-to-moderate conditioning when the primary modality leaves a fresh body region, cadence need exists, and near-term anchor interference remains acceptable; a next-day fixed anchor shrinks this to a 10–15 minute microdose instead of automatically banning it; these blocks provide partial—not full—Gym/Calisthenics cadence credit; smart secondary work is never added to Barbell Strength days; KB days may very rarely receive only a tiny low-intensity complementary block when recovery and need strongly support it"]},
   adaptiveProgramming:{type:"rolling-horizon-goal-stress-dose-counterfactual",version:10,rules:["hybrid trajectory balancing across bodyweight, absolute strength, relative strength, aerobic fitness and hard conditioning","automatic or user-selected goal profile","fixed Barbell Strength / KB anchors plus continuously re-scored open intervals","future user-scheduled rest/workouts/classes become planning constraints that trigger full need-based re-optimization of nearby flexible days rather than preserving the displaced session type","fixed six-week Barbell Strength prescriptions never adapt mid-block","Tuesday/Thursday retain moderate conditioning preferences in Barbell Strength only mode, but all flexible modes can win from stronger current need","rolling endurance recency/dose priority with no Monday reset","Full Rest has no weekly quota and competes from actual fatigue/recovery evidence","Active Recovery is separate from Full Rest","personalized historical Full Rest vs Active Recovery response is only a small tie-breaker","adaptive one-day Strength-Endurance uses a 16-step 2/3-circuit × 15–50-rep ladder driven by direct adaptive-SE performance, readiness and anchor proximity; higher reps/circuit count reduce load while fixed Base Building SE remains separate","priority-weighted optional training","rolling 7-day stress budgets learned from recent seven-day windows","productive-dose range requires dose diversity","counterfactual run/walk/cycle/swim/row/ruck/rest comparison","deload watch/recommend requires multiple independent warning domains","deload never inserts itself automatically","block review may preselect recovery week when strong deload recommendation exists","no ACWR injury-risk threshold","optional short core/grip finishers are composed only when useful capacity remains; projected accessories participate lightly in future rotation so the model does not repeatedly prescribe the same accessory; non-anchor smart secondary work is occasional rather than quota-driven, with recency preventing back-to-back use and prolonged absence making it more competitive; Barbell Strength days never receive smart secondary work and KB days are only rarely eligible","secondary work is bidirectional: short easy cardio can follow Gym, Calisthenics, or non-Base-Building SE when endurance need and lower-body freshness justify it; conditioning can receive complementary resistance; away-from-gym sessions never trigger a special trip for gym machines but can use bodyweight/bands or the user's always-available home kettlebells, while gym-based conditioning may use only enabled on-site gym equipment; automatic running strongly prefers outdoors unless travel/indoor fallback is explicitly selected","completed-day display is sourced from actual saved exercise rows rather than recomputing the original recommendation","past completed dates are log-locked for modeling; later builder edits are retained only as retrospective drafts unless the completed workout itself is explicitly edited","secondary learning stores opportunity → explicit decision → completed outcome rather than treating non-use as dislike"]},workoutIntentModel:{type:"planned-vs-actual-workout",version:6,rules:["planned rest vs confirmed rest","manual future schedule constraints trigger need-based flexible-horizon reflow; the displaced session type is context, not a relocation mandate","change workout directly from Log","adaptive or manual build mode","date-only custom plans","reusable workout templates","custom exercise stimulus definitions","planned-vs-actual session metadata","completed calendar/Today surfaces show actual completed exercises while preserving the original recommendation only as plan-vs-actual metadata","past completed dates use immutable completed-log truth for modeling and builders save retrospective drafts unless History Edit is used"]},tbDeadliftSchedule:{version:1,mode:"tb-only",days:["Monday","Friday"],workSetsPerDay:1,workSetsPerWeek:2,hybridDeadlift:false,note:"Barbell Strength only deadlift uses the current wave percentage/reps but exactly one work set on Monday and Friday; Wednesday has no deadlift. Hybrid has no Barbell Strength deadlift."},relationshipModel:{type:"directional-multichannel-stimulus-graph",version:8,note:"Exact performance is strongest. Relationships now use evidence-informed task-specific priors and transfer ceilings across gym implements/movement variants, calisthenics, kettlebells, and classes. Machine/free-weight strength remains task-specific; accessory work and class exposure can support but cannot prove heavy compound performance. Source-to-target transfer is directional; after enough paired direct history, a small confidence-shrunk personal correlation modifier can refine the prior. Unlike absolute loads are never directly converted."},
  tbEnduranceLibrary,tbHICLibrary,tbPowerLibrary,tbAccessoryLibrary,tbSEClusters,tbSEGuidance,logs:state.logs
 },null,2),"application/json"));
@@ -13279,17 +13350,23 @@ function v3677PostProcessToday(session,dateISO){
  v3677EnsureStores();v3677RemoveEmbeddedSecondary();tbList.querySelectorAll('[data-v3677]').forEach(x=>x.remove());tbList.querySelectorAll('.training-block-label[data-v3677]').forEach(x=>x.remove());const first=tbList.querySelector('.exercise');if(first){const h=document.createElement('div');h.className='training-block-label';h.dataset.v3677='primary';h.textContent='Primary';tbList.insertBefore(h,first)}
  const dayActions=tbList.querySelector('.day-actions-details'),insert=x=>dayActions?tbList.insertBefore(x,dayActions):tbList.appendChild(x);if(['Recovery / Rest','Active Recovery','Class / Activity','Custom Workout','Open Training','Other'].includes(session))return;insert(v3677ContextPanel(dateISO));const completed=completedPrimaryGroupForDate(dateISO,session),finalized=!!completed,primary=finalized?v3677GroupActualPrimaryPlan(completed,session,dateISO):v3677PlannedPrimaryFor(session,dateISO);if(primary)insert(v3677SecondaryPanel(session,dateISO,primary,finalized));
 }
-const v3677OriginalRenderSelectedWorkout=renderSelectedWorkout;renderSelectedWorkout=function(){window.__v3677SuppressEmbeddedSecondary=true;try{v3677OriginalRenderSelectedWorkout()}finally{window.__v3677SuppressEmbeddedSecondary=false}try{const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);if(gw>=1||baseBuildingForDate(selectedDateISO)){const session=expectedSession(d.toLocaleDateString('en-US',{weekday:'long'}),gw,selectedDateISO);v3677PostProcessToday(session,selectedDateISO)}}catch(e){console.warn('v36.79 secondary UI:',e)}v3677EnhanceInlineChoices(document);v3678RestoreBlockModeDropdown()};
+const v3677OriginalRenderSelectedWorkout=renderSelectedWorkout;renderSelectedWorkout=function(){window.__v3677SuppressEmbeddedSecondary=true;try{v3677OriginalRenderSelectedWorkout()}finally{window.__v3677SuppressEmbeddedSecondary=false}try{const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);if(gw>=1||baseBuildingForDate(selectedDateISO)){const session=expectedSession(d.toLocaleDateString('en-US',{weekday:'long'}),gw,selectedDateISO);v3677PostProcessToday(session,selectedDateISO)}}catch(e){console.warn('v36.81 secondary UI:',e)}v3677EnhanceInlineChoices(document);v3678RestoreBlockModeDropdown()};
 
 function v3677EnhanceOneSelect(sel){if(!sel||sel.options.length<2||sel.options.length>7||sel.closest('.field')?.querySelector('.effort-chips'))return;if(sel.dataset.v3677Inline==='1'){const host=sel.nextElementSibling;if(host?.classList?.contains('inline-choice-buttons'))[...host.children].forEach(b=>{const on=b.dataset.value===sel.value;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false')});return}sel.dataset.v3677Inline='1';sel.classList.add('v3677-inline-hidden');const host=document.createElement('div');host.className='inline-choice-buttons';host.setAttribute('role','group');host.setAttribute('aria-label',sel.getAttribute('aria-label')||sel.closest('.field')?.querySelector('label')?.textContent||'Choice');[...sel.options].forEach(opt=>{const b=document.createElement('button');b.type='button';b.className='btn inline-choice-chip';b.dataset.value=opt.value;b.textContent=(opt.textContent||'').trim()||'Not entered';b.addEventListener('click',()=>{sel.value=opt.value;sel.dispatchEvent(new Event('change',{bubbles:true}));});host.appendChild(b)});sel.insertAdjacentElement('afterend',host);const sync=()=>[...host.children].forEach(b=>{const on=b.dataset.value===sel.value;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false')});sel.addEventListener('change',sync);sync()}
-const V3677_INLINE_SELECTOR=['#manualWorkoutType','#customExerciseStrength','#logGuidedBuilderType','#logGymDifficulty','#logGymRepStyle','#logCalDifficulty','#sessionFeel','#recommendationFeedback','#recSubjectiveFatigue','#bodyweightFoodState','#bodyweightBathroomState','#bodyweightExerciseState','#bodyweightFluidState','#bodyweightClothingState','#kbBuilderSlot','#gymDifficulty','#gymRepStyle','#calDifficulty','#classTypeFilter','#adaptiveDeloadMode','#runningLocationPreference','#transitionMode','#transitionPullups','#transitionKbPlan','#transitionTiming','#transitionFocusType','#transitionFocusWeeks','#baseBuildingKbSetup','#adaptiveSEFreshness','select.le-rpe-confidence','select.le-tech','select.le-status','select.le-feel'].join(',');
+const V3677_INLINE_SELECTOR=['#manualWorkoutType','#customExerciseStrength','#logGuidedBuilderType','#logGymDifficulty','#logGymRepStyle','#logCalDifficulty','#sessionFeel','#recommendationFeedback','#recPhysicalFatigue','#recEnergyLevel','#recSoreness','#bodyweightFoodState','#bodyweightBathroomState','#bodyweightExerciseState','#bodyweightFluidState','#bodyweightClothingState','#kbBuilderSlot','#gymDifficulty','#gymRepStyle','#calDifficulty','#classTypeFilter','#adaptiveDeloadMode','#runningLocationPreference','#transitionMode','#transitionPullups','#transitionKbPlan','#transitionTiming','#transitionFocusType','#transitionFocusWeeks','#baseBuildingKbSetup','#adaptiveSEFreshness','select.le-rpe-confidence','select.le-tech','select.le-status','select.le-feel'].join(',');
 function v3677EnhanceInlineChoices(root=document){if(root?.matches?.(V3677_INLINE_SELECTOR))v3677EnhanceOneSelect(root);root.querySelectorAll?.(V3677_INLINE_SELECTOR).forEach(v3677EnhanceOneSelect)}
 function v3678RestoreBlockModeDropdown(){const sel=document.getElementById('blockModeSelect');if(!sel)return;sel.classList.remove('v3677-inline-hidden');delete sel.dataset.v3677Inline;const host=sel.nextElementSibling;if(host?.classList?.contains('inline-choice-buttons'))host.remove()}
 const v3677Observer=new MutationObserver(m=>{for(const x of m){for(const n of x.addedNodes){if(n.nodeType!==1)continue;if(n.matches?.(V3677_INLINE_SELECTOR)||n.querySelector?.('select'))v3677EnhanceInlineChoices(n)}}});v3677Observer.observe(document.body,{childList:true,subtree:true});document.addEventListener('click',()=>requestAnimationFrame(()=>v3677EnhanceInlineChoices(document)));
 
 v3677EnsureStores();
 
-calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;calHasLowRow.checked=!!state.settings.calHasLowRow;calHasDipBars.checked=!!state.settings.calHasDipBars;calHasAbWheel.checked=state.settings.calHasAbWheel!==false;recoveryDate.value=localISO(new Date());render();wireGymMuscleSpecifics();
+calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.checked=!!state.settings.calHasBands;calHasLowRow.checked=!!state.settings.calHasLowRow;calHasDipBars.checked=!!state.settings.calHasDipBars;calHasAbWheel.checked=state.settings.calHasAbWheel!==false;recoveryDate.value=localISO(new Date());
+// v36.81 startup: wait until the later integrity/model wrappers are installed so the
+// expensive dashboard/model render happens once instead of rendering an obsolete pass
+// and immediately rebuilding it. A fail-safe below still renders if a later patch errors.
+window.__hybridInitialRenderDeferred=true;
+setTimeout(()=>{if(window.__hybridInitialRenderDeferred){window.__hybridInitialRenderDeferred=false;try{render()}catch(e){console.warn('v36.81 deferred startup fallback:',e)}}},3500);
+wireGymMuscleSpecifics();
 
 function validateCriticalDomBindings(){
  const ids=["logDate","logWeek","logSession","plannedExercises","wearDuration","wearAvgHr","wearMaxHr","wearTrainingLoad","wearAerobicTe","wearAnaerobicTe","wearHrRecovery","wearRecoveryHours","wearCalories","wearWorkoutVo2"];
@@ -13321,7 +13398,7 @@ if(document.querySelector(".view.active")?.id!==authoritativeStartupView)showVie
 else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
 
 // -----------------------------------------------------------------------------
-// v36.79 — historical log truth, training-max-aware RPE prediction,
+// v36.81 — historical log truth, training-max-aware RPE prediction,
 // confidence-gated stress budgets, secondary opportunity/outcome learning,
 // compact context, calendar Primary/Optional separation, Plan→Actual history,
 // and one-tap wearable editing from completed sessions.
@@ -13425,7 +13502,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
  const v3679OriginalCandidateStressBudget=utmCandidateStressBudget;
  function v3679StressCorroboration(dateISO){
    const sub=subjectiveFatigueProfile(dateISO),con=recoveryConcordanceState(dateISO),recent=sessionSummariesBefore(dateISO,3);let score=0,reasons=[];
-   if(sub.value==='high'){score+=1;reasons.push('high subjective fatigue')}if(sub.value==='very_high'){score+=2;reasons.push('very high subjective fatigue')}
+   if(sub.value==='high'){score+=1;reasons.push('high body fatigue')}if(sub.value==='very_high'){score+=2;reasons.push('very high body fatigue')}
    if(con.objectiveLevel==='watch'){score+=.8;reasons.push('wearable recovery watch')}if(con.objectiveLevel==='guard'){score+=1.6;reasons.push('wearable recovery guard')}
    if(recent.some(x=>x.veryRough||x.missed)){score+=1.4;reasons.push('recent very-rough/missed session')}if(recent.some(x=>x.qualityIssue)){score+=.8;reasons.push('recent execution-quality warning')}
    return {score,reasons};
@@ -13455,7 +13532,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
    state.settings.secondaryOpportunityLog.forEach(o=>{const candidates=Object.entries(groups).filter(([,rs])=>rs[0]?.date===o.date),best=candidates.find(([,rs])=>rs.some(r=>String(r.secondaryTrainingType||'')===String(o.finalOffer?.type||o.tentativeOffer?.type||'')))||candidates[0],prior=JSON.stringify(o.completion||null);if(best){const [sessionId,rs]=best,usable=rs.filter(r=>!['skipped','missed'].includes(String(r.status||'').toLowerCase())),rpes=usable.map(effectiveEffortRpe).filter(x=>x>0),completion={completed:usable.length>0,sessionId,session:rs[0]?.session||'',completedAt:Math.max(...rs.map(r=>Number(r.completedAt)||0)),status:usable.length===rs.length?'complete':'partial',feel:String(rs[0]?.sessionFeel||usable[0]?.feel||''),maxRpe:rpes.length?Math.max(...rpes):0,exercises:usable.map(r=>r.exercise).filter(Boolean)};o.completion=completion}else if(o.completion?.completed){o.completion={completed:false,removedAt:Date.now()}}if(JSON.stringify(o.completion||null)!==prior)changed=true});return changed;
  }
  const v3679OriginalSave=save;
- save=function(reason='general'){v3679EnsureStores();try{v3679ReconcileSecondaryOutcomes()}catch(e){console.warn('v36.79 secondary reconcile:',e)}return v3679OriginalSave(reason)};
+ save=function(reason='general'){v3679EnsureStores();try{v3679ReconcileSecondaryOutcomes()}catch(e){console.warn('v36.81 secondary reconcile:',e)}return v3679OriginalSave(reason)};
  const v3679OriginalSecondaryAcceptanceBias=v3677SecondaryAcceptanceBias;
  v3677SecondaryAcceptanceBias=function(primarySession,type,dateISO){
    v3679EnsureStores();const resistance=type!=='conditioning',rows=state.settings.secondaryOpportunityLog.filter(o=>o&&o.primarySession===primarySession&&o.date<dateISO&&((resistance?(o.finalOffer?.type||o.tentativeOffer?.type)!=='conditioning':(o.finalOffer?.type||o.tentativeOffer?.type)==='conditioning'))).slice(-20),explicit=rows.filter(o=>o.latestDecision||o.completion?.completed);if(explicit.length<3)return {score:0,reasons:[]};let pos=0,neg=0;explicit.forEach(o=>{if(o.completion?.completed)pos+=1.25;else if(['accepted','later','harder','easier','swap'].includes(o.latestDecision))pos+=.65;else if(o.latestDecision==='skipped')neg+=1});const rate=pos/Math.max(.01,pos+neg),score=rate>=.72?4:rate<=.28?-4:0;return {score,reasons:score?[`Your explicit/completed history for this kind of secondary is ${Math.round(rate*100)}% positive across ${explicit.length} decided opportunities. Ignored offers are not counted as dislike, and this remains only a small tie-breaker.`]:[]};
@@ -13521,7 +13598,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
  try{v3678RestoreBlockModeDropdown()}catch(_){}
  try{v3679ReconcileSecondaryOutcomes()}catch(_){}
  try{utmInvalidateCaches()}catch(_){}
- try{render()}catch(e){console.warn('v36.79 post-patch render:',e)}
+ window.__hybridInitialRenderDeferred=false;try{render()}catch(e){console.warn('v36.81 post-patch render:',e)};window.__hybridBootRenderedAt=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now()
 })();
 
 })();
@@ -13588,7 +13665,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
 
 
 <style id="v3679-style">
-/* v36.79 — model integrity + compact context + plan/actual + direct wearable entry */
+/* v36.81 — split recovery signals (body fatigue vs energy/sleepiness vs soreness) + prior v36.80 performance/model/UI integrity */
 .v3679-context-details{border:1px solid var(--line);border-radius:16px;margin:12px 0;background:var(--panel);overflow:hidden}
 .v3679-context-details>summary{list-style:none;cursor:pointer;padding:11px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .v3679-context-details>summary::-webkit-details-marker{display:none}
