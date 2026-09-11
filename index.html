@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0b0f14">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.85">
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.86">
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
@@ -1685,12 +1685,14 @@ select.v3677-inline-hidden{position:absolute!important;width:1px!important;heigh
             </select>
           </div>
         </div>
+        <label class="toggle-line" style="margin-top:8px"><input id="reduceCalisthenicsRecommendations" type="checkbox"> <strong>Recommend Calisthenics less often automatically</strong></label>
+        <div class="muted" style="font-size:.69rem;margin-top:5px">This affects automatic flexible-day and smart-secondary ranking only. Calisthenics stays fully available through Switch to Calisthenics / the builder, and it can still win automatically when its need is clearly strongest.</div>
         <label class="toggle-line" style="margin-top:8px"><input id="homeKettlebellsSecondary" type="checkbox"> <strong>Home kettlebells are available for smart secondary work</strong></label>
         <div class="muted" style="font-size:.69rem;margin-top:5px">Outdoor-running preference affects automatic recommendations only; treadmill remains manually selectable. Home KB availability means the model may use your 1 × 40 lb + 2 × 70 lb adjustable bells for a sensible secondary block even when the primary session happened away from a gym.</div>
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.85</strong> • live Start/Pause/Resume workout persistence + actual session timing, today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, smart complementary secondary work, Barbell Strength / KB progression, rest-day handling, and an infinite training calendar.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.86</strong> • reduced automatic Calisthenics frequency preference + live Start/Pause/Resume workout persistence + actual session timing, today-snapping calendars, cancellable classes, guided gym workouts, exercise guides/visuals, cross-exercise progression relationships, adaptive block reviews, Base Building, conditioning, smart complementary secondary work, Barbell Strength / KB progression, rest-day handling, and an infinite training calendar.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -2110,6 +2112,7 @@ const saveSettings=document.getElementById("saveSettings");
 const trainingGoalProfile=document.getElementById("trainingGoalProfile");
 const adaptiveDeloadMode=document.getElementById("adaptiveDeloadMode");
 const runningLocationPreference=document.getElementById("runningLocationPreference");
+const reduceCalisthenicsRecommendations=document.getElementById("reduceCalisthenicsRecommendations");
 const homeKettlebellsSecondary=document.getElementById("homeKettlebellsSecondary");
 const trainingGoalSummary=document.getElementById("trainingGoalSummary");
 const saveTbMaxes=document.getElementById("saveTbMaxes");
@@ -2196,7 +2199,7 @@ saveSession.addEventListener("click",completeWorkout);
 
 
 const defaults={
- settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",trackingStartDate:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},conditioningSwapMeta:{},noRestAutoSuggestions:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},adaptiveSEWorkouts:{},adaptiveSELastEquipment:["bodyweight"],adaptiveSELastMinutes:45,adaptiveSELastFreshness:"auto",classOverrides:{},classScheduleMeta:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5,blockReviews:{},recoveryWeekStarts:{},programPauseWeeks:{},programDayMoves:{},calisthenicsWorkouts:{},calHasPullupBar:true,calHasBands:false,calHasLowRow:false,calHasDipBars:false,calHasAbWheel:true,workoutIntent:{},customDayWorkouts:{},customWorkoutTemplates:{},customExerciseDefinitions:{},trainingGoalProfile:"automatic",adaptiveDeloadMode:"suggest",runningLocationPreference:"outdoor",homeKettlebellsSecondary:true,dayTrainingContext:{},secondaryOverrides:{},secondaryDecisionLog:[],secondaryOpportunityLog:[],retrospectiveDraftPlans:{},baseBuildingHistory:[{completedAt:"2026-07-26",variant:"standard",source:"user",note:"Completed before app tracking; user reported finishing about five weeks before current Week 6."}],baseBuildingPlans:[],shortFocusBlocks:[]},
+ settings:{currentWeek:5,squatTm:275,rowTm:215,chestTm:175,inclineTm:150,deadliftTm:325,squatInc:10,otherInc:5,week1Monday:"",trackingStartDate:"",tbOverrides:{},blockModes:{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:{},conditioningSwapMeta:{},noRestAutoSuggestions:{},toolsHidden:true,adaptiveConditioning:true,adaptiveTbMaxes:true,pullupBlockPlan:{},kbCustomWorkouts:{},dayOverrides:{},noRestDates:{},genericGymWorkouts:{},adaptiveSEWorkouts:{},adaptiveSELastEquipment:["bodyweight"],adaptiveSELastMinutes:45,adaptiveSELastFreshness:"auto",classOverrides:{},classScheduleMeta:{},gymAvailability:{},gymDbMin:5,gymDbMax:100,gymDbIncrement:5,blockReviews:{},recoveryWeekStarts:{},programPauseWeeks:{},programDayMoves:{},calisthenicsWorkouts:{},calHasPullupBar:true,calHasBands:false,calHasLowRow:false,calHasDipBars:false,calHasAbWheel:true,workoutIntent:{},customDayWorkouts:{},customWorkoutTemplates:{},customExerciseDefinitions:{},trainingGoalProfile:"automatic",adaptiveDeloadMode:"suggest",runningLocationPreference:"outdoor",reduceCalisthenicsRecommendations:true,homeKettlebellsSecondary:true,dayTrainingContext:{},secondaryOverrides:{},secondaryDecisionLog:[],secondaryOpportunityLog:[],retrospectiveDraftPlans:{},baseBuildingHistory:[{completedAt:"2026-07-26",variant:"standard",source:"user",note:"Completed before app tracking; user reported finishing about five weeks before current Week 6."}],baseBuildingPlans:[],shortFocusBlocks:[]},
  logs:[],
  dailyRecovery:{},
  bodyweightMeasurements:{},
@@ -5290,7 +5293,7 @@ function migratePickleballActivitySplit(){
  Object.values(state.wearableSessions||{}).forEach(w=>{if(w&&typeof w==="object"&&w.exercise!==undefined)w.exercise=rename(w.exercise)});
 }
 migrateBarbellStrengthNaming();migratePickleballActivitySplit();
-state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.conditioningSwapMeta=state.settings.conditioningSwapMeta||{};state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};state.settings.workoutIntent=state.settings.workoutIntent||{};state.settings.customDayWorkouts=state.settings.customDayWorkouts||{};state.settings.customWorkoutTemplates=state.settings.customWorkoutTemplates||{};state.settings.customExerciseDefinitions=state.settings.customExerciseDefinitions||{};if(!["automatic","balanced","strength","kettlebell","aerobic","running","conditioning","calisthenics"].includes(state.settings.trainingGoalProfile))state.settings.trainingGoalProfile="automatic";if(!["suggest","off"].includes(state.settings.adaptiveDeloadMode))state.settings.adaptiveDeloadMode="suggest";if(!["outdoor","indoor"].includes(state.settings.runningLocationPreference))state.settings.runningLocationPreference="outdoor";if(state.settings.homeKettlebellsSecondary===undefined)state.settings.homeKettlebellsSecondary=true;if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.classScheduleMeta=state.settings.classScheduleMeta||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.programPauseWeeks=state.settings.programPauseWeeks||{};state.settings.programDayMoves=state.settings.programDayMoves||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(!Array.isArray(state.settings.baseBuildingHistory))state.settings.baseBuildingHistory=[{completedAt:"2026-07-26",variant:"standard",source:"user",note:"Completed before app tracking; user reported finishing about five weeks before current Week 6."}];if(!Array.isArray(state.settings.baseBuildingPlans))state.settings.baseBuildingPlans=[];if(!Array.isArray(state.settings.shortFocusBlocks))state.settings.shortFocusBlocks=[];if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.calHasLowRow===undefined)state.settings.calHasLowRow=false;if(state.settings.calHasDipBars===undefined)state.settings.calHasDipBars=false;if(state.settings.calHasAbWheel===undefined)state.settings.calHasAbWheel=true;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
+state.settings.tbOverrides=state.settings.tbOverrides||{};state.settings.blockModes=Object.assign({"1":"tb","2":"tb","3":"hybrid"},state.settings.blockModes||{});state.settings.conditioningOverrides=state.settings.conditioningOverrides||{};state.settings.conditioningSwapMeta=state.settings.conditioningSwapMeta||{};state.settings.noRestAutoSuggestions=state.settings.noRestAutoSuggestions||{};state.settings.workoutIntent=state.settings.workoutIntent||{};state.settings.customDayWorkouts=state.settings.customDayWorkouts||{};state.settings.customWorkoutTemplates=state.settings.customWorkoutTemplates||{};state.settings.customExerciseDefinitions=state.settings.customExerciseDefinitions||{};if(!["automatic","balanced","strength","kettlebell","aerobic","running","conditioning","calisthenics"].includes(state.settings.trainingGoalProfile))state.settings.trainingGoalProfile="automatic";if(!["suggest","off"].includes(state.settings.adaptiveDeloadMode))state.settings.adaptiveDeloadMode="suggest";if(!["outdoor","indoor"].includes(state.settings.runningLocationPreference))state.settings.runningLocationPreference="outdoor";if(state.settings.reduceCalisthenicsRecommendations===undefined)state.settings.reduceCalisthenicsRecommendations=true;if(state.settings.homeKettlebellsSecondary===undefined)state.settings.homeKettlebellsSecondary=true;if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;if(state.settings.adaptiveTbMaxes===undefined)state.settings.adaptiveTbMaxes=true;state.settings.pullupBlockPlan=state.settings.pullupBlockPlan||{};state.settings.kbCustomWorkouts=state.settings.kbCustomWorkouts||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};state.settings.genericGymWorkouts=state.settings.genericGymWorkouts||{};state.settings.classOverrides=state.settings.classOverrides||{};state.settings.classScheduleMeta=state.settings.classScheduleMeta||{};state.settings.gymAvailability=state.settings.gymAvailability||{};state.settings.blockReviews=state.settings.blockReviews||{};state.settings.recoveryWeekStarts=state.settings.recoveryWeekStarts||{};state.settings.programPauseWeeks=state.settings.programPauseWeeks||{};state.settings.programDayMoves=state.settings.programDayMoves||{};state.settings.calisthenicsWorkouts=state.settings.calisthenicsWorkouts||{};if(!Array.isArray(state.settings.baseBuildingHistory))state.settings.baseBuildingHistory=[{completedAt:"2026-07-26",variant:"standard",source:"user",note:"Completed before app tracking; user reported finishing about five weeks before current Week 6."}];if(!Array.isArray(state.settings.baseBuildingPlans))state.settings.baseBuildingPlans=[];if(!Array.isArray(state.settings.shortFocusBlocks))state.settings.shortFocusBlocks=[];if(state.settings.calHasPullupBar===undefined)state.settings.calHasPullupBar=true;if(state.settings.calHasBands===undefined)state.settings.calHasBands=false;if(state.settings.calHasLowRow===undefined)state.settings.calHasLowRow=false;if(state.settings.calHasDipBars===undefined)state.settings.calHasDipBars=false;if(state.settings.calHasAbWheel===undefined)state.settings.calHasAbWheel=true;if(state.settings.gymDbMin===undefined)state.settings.gymDbMin=5;if(state.settings.gymDbMax===undefined)state.settings.gymDbMax=100;if(state.settings.gymDbIncrement===undefined)state.settings.gymDbIncrement=5;
 
 // Recovery is also journaled independently. The journal wins on startup so a
 // generic app-state write cannot erase an explicitly saved Recovery entry.
@@ -5772,12 +5775,17 @@ function rollingStimulusState(dateISO){
 // v36.47 rolling six-lane cadence ---------------------------------------------------
 const ROLLING_CADENCE_LANES=['run','cardio','speed','gym','calisthenics','se'];
 const ROLLING_CADENCE_LABELS={run:'Run',cardio:'Other Cardio',speed:'Speed / HIC',gym:'Generic Gym',calisthenics:'Calisthenics',se:'Strength-Endurance'};
-// v36.59: Calisthenics and one-day SE remain normal rolling-cadence options, but the
-// user wants them only slightly less frequent. Stretch their soft spacing target 10%
-// and apply only a tiny -1 session-score bias. The urgency change is capped at 2 points
-// so crossing one bucket boundary cannot suddenly suppress either lane.
+// v36.86: Calisthenics remains a real rolling-cadence lane, but the user's personal
+// preference is to see it materially less often in AUTOMATIC recommendations. Manual
+// switching/building is untouched. Reduced mode widens its cadence spacing and adds a
+// moderate score penalty, while a small share of that opportunity is redistributed to
+// Conditioning, Gym, SE, and Active Recovery. Explicit Calisthenics priority overrides
+// the reduction because that is an intentional user-selected goal.
 const ROLLING_CADENCE_TARGET_MULTIPLIER={run:1,cardio:1,speed:1,gym:1,calisthenics:1.10,se:1.10};
 const ROLLING_CADENCE_SESSION_BIAS={run:0,cardio:0,speed:0,gym:0,calisthenics:-1,se:-1};
+function reducedCalisthenicsAutoPreference(){return state.settings.reduceCalisthenicsRecommendations!==false&&(state.settings.trainingGoalProfile||'automatic')!=='calisthenics'}
+function calisthenicsCadenceMultiplier(){return reducedCalisthenicsAutoPreference()?1.45:1.10}
+function calisthenicsAutoScoreAdjustment(){return reducedCalisthenicsAutoPreference()?{calisthenics:-3.5,conditioning:1,gym:1,se:.75,active:.5}:{calisthenics:0,conditioning:0,gym:0,se:0,active:0}}
 function conditioningCadenceLaneForActivity(name,row=null){
  const n=String(name||'').toLowerCase(),baseCls=classResearchProfile(name),cls=row?(pickleballSessionResearchProfile(row)||baseCls):baseCls,traits=conditioningTraits(name),cat=categoryForEntry(entryForName(name)),quality=conditioningQualityForName(name),kind=conditioningKind(name);
  // One session gets one primary conditioning lane. Hard/sprint work wins before the run
@@ -5854,7 +5862,7 @@ function rollingCadenceUrgency(days,targetDays){
 function rollingCadencePortfolio(dateISO){
  const capacity=rollingCadenceCapacity(dateISO,14),lanes={};
  ROLLING_CADENCE_LANES.forEach(lane=>{
-   const days=rollingCadenceDaysSince(dateISO,lane),mult=Number(ROLLING_CADENCE_TARGET_MULTIPLIER[lane])||1,targetDays=Math.round(capacity.targetDays*mult*10)/10,
+   const days=rollingCadenceDaysSince(dateISO,lane),mult=lane==='calisthenics'?calisthenicsCadenceMultiplier():(Number(ROLLING_CADENCE_TARGET_MULTIPLIER[lane])||1),targetDays=Math.round(capacity.targetDays*mult*10)/10,
      standardUrgency=rollingCadenceUrgency(days,capacity.targetDays),rawUrgency=rollingCadenceUrgency(days,targetDays),supplement=rollingSecondaryCadenceCredit(dateISO,lane),
      baseUrgency=mult>1?Math.max(rawUrgency,standardUrgency-2):rawUrgency,urgency=Math.round((baseUrgency-supplement.credit*7)*10)/10;
    lanes[lane]={lane,label:ROLLING_CADENCE_LABELS[lane],daysSince:days,targetDays,standardTargetDays:capacity.targetDays,urgency,ratio:days>=9999?99:Math.round(days/targetDays*100)/100,secondaryCredit:supplement.credit,secondaryDaysSince:supplement.daysSince};
@@ -6039,7 +6047,10 @@ function rollingOpenDayRecommendation(dateISO,options={}){
    why.Conditioning.push('If Conditioning wins, today targets the most overdue conditioning lane: '+cadence.conditioningLabel+'. An easy run does not erase Other Cardio or Speed / HIC debt.');
    scores['Strength-Endurance']+=5+((goal.workCapacity||.9)-.9)*8+seNeed.urgency+(ROLLING_CADENCE_SESSION_BIAS.se||0);why['Strength-Endurance'].push(cadenceReasonText(seNeed,cadence.capacity));why['Strength-Endurance'].push('One-day SE carries a tiny frequency tie-breaker so it appears slightly less often without becoming a low-priority mode.');
    scores['Generic Gym']+=5+(goal.strength-1)*8+gymNeed.urgency;why['Generic Gym'].push(cadenceReasonText(gymNeed,cadence.capacity));why['Generic Gym'].push('If Gym wins, its own builder targets the muscle groups and movement families currently most in need.');
-   scores.Calisthenics+=4+(goal.calisthenics-1)*8+calNeed.urgency+(ROLLING_CADENCE_SESSION_BIAS.calisthenics||0);why.Calisthenics.push(cadenceReasonText(calNeed,cadence.capacity));why.Calisthenics.push('Calisthenics carries a tiny frequency tie-breaker so it appears slightly less often while remaining available whenever bodyweight-strength need is clearly highest.');
+   scores.Calisthenics+=4+(goal.calisthenics-1)*8+calNeed.urgency+(ROLLING_CADENCE_SESSION_BIAS.calisthenics||0);why.Calisthenics.push(cadenceReasonText(calNeed,cadence.capacity));
+   const calPreference=calisthenicsAutoScoreAdjustment();scores.Calisthenics+=calPreference.calisthenics;scores.Conditioning+=calPreference.conditioning;scores['Generic Gym']+=calPreference.gym;scores['Strength-Endurance']+=calPreference.se;scores['Active Recovery']+=calPreference.active;
+   why.Calisthenics.push(reducedCalisthenicsAutoPreference()?'Your personal preference reduces automatic Calisthenics frequency. It remains eligible when bodyweight-strength need is clearly stronger, and manual switching is never restricted.':'Calisthenics uses the standard automatic recommendation frequency.');
+   if(reducedCalisthenicsAutoPreference()){why.Conditioning.push('A small share of de-emphasized Calisthenics opportunity is redistributed toward other suitable training modes.');why['Generic Gym'].push('A small share of de-emphasized Calisthenics opportunity is redistributed toward other suitable training modes.');why['Strength-Endurance'].push('A small share of de-emphasized Calisthenics opportunity is redistributed toward other suitable training modes.');}
 
    scores['Active Recovery']+=readiness.recoveryGuard?30:readiness.caution?13:Math.max(-5,(readiness.fatigueScore||0)*3-5);if(stim.recent3>=3)scores['Active Recovery']+=5;if(stim.daysSinceActive<=1)scores['Active Recovery']-=4;
    scores['Recovery / Rest']+=-10+(readiness.recoveryGuard?46:readiness.caution?13:Math.max(0,(readiness.fatigueScore||0)*3));if(stim.recent3>=3)scores['Recovery / Rest']+=5;if(stim.recent5>=5)scores['Recovery / Rest']+=5;if(stim.daysSinceFullRest<=3)scores['Recovery / Rest']-=8;if(noRest||options.suppressRest)scores['Recovery / Rest']=-999;
@@ -9008,7 +9019,7 @@ function buildLightSecondaryRows(region,dateISO,minutes=20,context={}){
  // Away from the gym, never manufacture a special gym trip: bodyweight/bands are first, with the
  // user's home kettlebells as a genuine alternative because they are available after any session.
  if(context.gymBased)return gym()||cal()||kb();
- const calBias=(context.preferCalisthenics?6:0)+(calUrg-gymUrg)*.35,kbRecent=rollingDaysSince(dateISO,r=>rollingCompletedRow(r)&&(/^KB /.test(r.session)||String(r.secondaryTrainingType||'')==='kettlebell'),14),kbBias=(state.settings.homeKettlebellsSecondary===false?-99:0)+(kbRecent<=1?-12:kbRecent<=3?-6:kbRecent>=7?3:0);
+ const calBias=(context.preferCalisthenics?6:0)+(calUrg-gymUrg)*.35+(reducedCalisthenicsAutoPreference()?-4:0),kbRecent=rollingDaysSince(dateISO,r=>rollingCompletedRow(r)&&(/^KB /.test(r.session)||String(r.secondaryTrainingType||'')==='kettlebell'),14),kbBias=(state.settings.homeKettlebellsSecondary===false?-99:0)+(kbRecent<=1?-12:kbRecent<=3?-6:kbRecent>=7?3:0);
  return calBias>=kbBias?(cal()||kb()):(kb()||cal());
 }
 function smartSecondaryStrengthBlockFor(session,dateISO,primaryPlan=null){
@@ -11907,8 +11918,9 @@ function syncSettings(){
  if(trainingGoalProfile)trainingGoalProfile.value=state.settings.trainingGoalProfile||"automatic";
  if(adaptiveDeloadMode)adaptiveDeloadMode.value=state.settings.adaptiveDeloadMode||"suggest";
  if(runningLocationPreference)runningLocationPreference.value=state.settings.runningLocationPreference||"outdoor";
+ if(reduceCalisthenicsRecommendations)reduceCalisthenicsRecommendations.checked=state.settings.reduceCalisthenicsRecommendations!==false;
  if(homeKettlebellsSecondary)homeKettlebellsSecondary.checked=state.settings.homeKettlebellsSecondary!==false;
- if(trainingGoalSummary&&typeof utmGoalWeights==="function"){const g=utmGoalWeights(localISO(new Date())),top=Object.entries(g.weights).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>k.replace(/([A-Z])/g," $1")+" "+v.toFixed(2)+"×").join(" • ");trainingGoalSummary.textContent=g.label+" • "+top}
+ if(trainingGoalSummary&&typeof utmGoalWeights==="function"){const g=utmGoalWeights(localISO(new Date())),top=Object.entries(g.weights).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>k.replace(/([A-Z])/g," $1")+" "+v.toFixed(2)+"×").join(" • ");trainingGoalSummary.textContent=g.label+" • "+top+(state.settings.reduceCalisthenicsRecommendations!==false?" • Calisthenics auto-frequency reduced":"")}
 }
 
 let logGuidedPlan=null;
@@ -12622,7 +12634,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.85";
+const HYBRID_APP_BUILD="36.86";
 async function checkForDeployedBuild(){
  try{
   const r=await fetch("./version.json?_="+Date.now(),{cache:"no-store"});if(!r.ok)return;
@@ -13010,6 +13022,7 @@ clearLog.addEventListener("click",()=>{if(confirm("Clear all workout history?"))
 trainingGoalProfile?.addEventListener("change",()=>{state.settings.trainingGoalProfile=trainingGoalProfile.value;utmInvalidateCaches();syncSettings()});
 adaptiveDeloadMode?.addEventListener("change",()=>{state.settings.adaptiveDeloadMode=adaptiveDeloadMode.value;utmInvalidateCaches();syncSettings()});
 runningLocationPreference?.addEventListener("change",()=>{state.settings.runningLocationPreference=runningLocationPreference.value;utmInvalidateCaches();});
+reduceCalisthenicsRecommendations?.addEventListener("change",()=>{state.settings.reduceCalisthenicsRecommendations=!!reduceCalisthenicsRecommendations.checked;utmInvalidateCaches();save("calisthenics-auto-frequency");render();});
 homeKettlebellsSecondary?.addEventListener("change",()=>{state.settings.homeKettlebellsSecondary=!!homeKettlebellsSecondary.checked;utmInvalidateCaches();});
 saveSettings.addEventListener("click",()=>{
  const previous=state.settings||{},newWeek=Math.max(1,Math.floor(Number(currentWeek.value)||1)),oldWeek=Math.max(1,Math.floor(Number(previous.currentWeek)||1)),weekChanged=newWeek!==oldWeek;
@@ -13029,6 +13042,7 @@ saveSettings.addEventListener("click",()=>{
    trainingGoalProfile:trainingGoalProfile?.value||previous.trainingGoalProfile||"automatic",
    adaptiveDeloadMode:adaptiveDeloadMode?.value||previous.adaptiveDeloadMode||"suggest",
    runningLocationPreference:runningLocationPreference?.value||previous.runningLocationPreference||"outdoor",
+   reduceCalisthenicsRecommendations:reduceCalisthenicsRecommendations?!!reduceCalisthenicsRecommendations.checked:previous.reduceCalisthenicsRecommendations!==false,
    homeKettlebellsSecondary:homeKettlebellsSecondary?!!homeKettlebellsSecondary.checked:previous.homeKettlebellsSecondary!==false,
    week1Monday,
    tbOverrides:previous.tbOverrides||{},blockModes:previous.blockModes||{"1":"tb","2":"tb","3":"hybrid"},conditioningOverrides:previous.conditioningOverrides||{},
@@ -13039,9 +13053,9 @@ saveSettings.addEventListener("click",()=>{
  };
  browseWeek=newWeek;selectedDateISO=localISO(new Date());save();render();logWeek.value=state.settings.currentWeek;loadPlannedSession();
 });
-const CURRENT_EXPORT_VERSION=45;
+const CURRENT_EXPORT_VERSION=46;
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.85",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.86",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:19,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","intermittent activity dose can use active time plus low rest-load credit instead of elapsed time alone","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","wearable VO2 trend is low weight","wearable calories are reference only"]},
@@ -13281,6 +13295,7 @@ function applyNormalizedImport(o){
  if(!["automatic","balanced","strength","kettlebell","aerobic","running","conditioning","calisthenics"].includes(state.settings.trainingGoalProfile))state.settings.trainingGoalProfile="automatic";
  if(!["suggest","off"].includes(state.settings.adaptiveDeloadMode))state.settings.adaptiveDeloadMode="suggest";
  if(!["outdoor","indoor"].includes(state.settings.runningLocationPreference))state.settings.runningLocationPreference="outdoor";
+ if(state.settings.reduceCalisthenicsRecommendations===undefined)state.settings.reduceCalisthenicsRecommendations=true;
  if(state.settings.homeKettlebellsSecondary===undefined)state.settings.homeKettlebellsSecondary=true;
  if(state.settings.toolsHidden===undefined)state.settings.toolsHidden=true;
  if(state.settings.adaptiveConditioning===undefined)state.settings.adaptiveConditioning=true;
@@ -13513,7 +13528,7 @@ function v3677PostProcessToday(session,dateISO){
  v3677EnsureStores();v3677RemoveEmbeddedSecondary();tbList.querySelectorAll('[data-v3677]').forEach(x=>x.remove());tbList.querySelectorAll('.training-block-label[data-v3677]').forEach(x=>x.remove());const first=tbList.querySelector('.exercise');if(first){const h=document.createElement('div');h.className='training-block-label';h.dataset.v3677='primary';h.textContent='Primary';tbList.insertBefore(h,first)}
  const dayActions=tbList.querySelector('.day-actions-details'),insert=x=>dayActions?tbList.insertBefore(x,dayActions):tbList.appendChild(x);if(['Recovery / Rest','Active Recovery','Class / Activity','Custom Workout','Open Training','Other'].includes(session))return;insert(v3677ContextPanel(dateISO));const completed=completedPrimaryGroupForDate(dateISO,session),finalized=!!completed,primary=finalized?v3677GroupActualPrimaryPlan(completed,session,dateISO):v3677PlannedPrimaryFor(session,dateISO);if(primary)insert(v3677SecondaryPanel(session,dateISO,primary,finalized));
 }
-const v3677OriginalRenderSelectedWorkout=renderSelectedWorkout;renderSelectedWorkout=function(){window.__v3677SuppressEmbeddedSecondary=true;try{v3677OriginalRenderSelectedWorkout()}finally{window.__v3677SuppressEmbeddedSecondary=false}try{const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);if(gw>=1||baseBuildingForDate(selectedDateISO)){const session=expectedSession(d.toLocaleDateString('en-US',{weekday:'long'}),gw,selectedDateISO);v3677PostProcessToday(session,selectedDateISO)}}catch(e){console.warn('v36.85 secondary UI:',e)}v3677EnhanceInlineChoices(document);v3678RestoreBlockModeDropdown()};
+const v3677OriginalRenderSelectedWorkout=renderSelectedWorkout;renderSelectedWorkout=function(){window.__v3677SuppressEmbeddedSecondary=true;try{v3677OriginalRenderSelectedWorkout()}finally{window.__v3677SuppressEmbeddedSecondary=false}try{const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);if(gw>=1||baseBuildingForDate(selectedDateISO)){const session=expectedSession(d.toLocaleDateString('en-US',{weekday:'long'}),gw,selectedDateISO);v3677PostProcessToday(session,selectedDateISO)}}catch(e){console.warn('v36.86 secondary UI:',e)}v3677EnhanceInlineChoices(document);v3678RestoreBlockModeDropdown()};
 
 function v3677EnhanceOneSelect(sel){if(!sel||sel.options.length<2||sel.options.length>7||sel.closest('.field')?.querySelector('.effort-chips'))return;if(sel.dataset.v3677Inline==='1'){const host=sel.nextElementSibling;if(host?.classList?.contains('inline-choice-buttons'))[...host.children].forEach(b=>{const on=b.dataset.value===sel.value;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false')});return}sel.dataset.v3677Inline='1';sel.classList.add('v3677-inline-hidden');const host=document.createElement('div');host.className='inline-choice-buttons';host.setAttribute('role','group');host.setAttribute('aria-label',sel.getAttribute('aria-label')||sel.closest('.field')?.querySelector('label')?.textContent||'Choice');[...sel.options].forEach(opt=>{const b=document.createElement('button');b.type='button';b.className='btn inline-choice-chip';b.dataset.value=opt.value;b.textContent=(opt.textContent||'').trim()||'Not entered';b.addEventListener('click',()=>{sel.value=opt.value;sel.dispatchEvent(new Event('change',{bubbles:true}));});host.appendChild(b)});sel.insertAdjacentElement('afterend',host);const sync=()=>[...host.children].forEach(b=>{const on=b.dataset.value===sel.value;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false')});sel.addEventListener('change',sync);sync()}
 const V3677_INLINE_SELECTOR=['#manualWorkoutType','#customExerciseStrength','#logGuidedBuilderType','#logGymDifficulty','#logGymRepStyle','#logCalDifficulty','#sessionFeel','#recommendationFeedback','#recPhysicalFatigue','#recEnergyLevel','#recSoreness','#bodyweightFoodState','#bodyweightBathroomState','#bodyweightExerciseState','#bodyweightFluidState','#bodyweightClothingState','#kbBuilderSlot','#gymDifficulty','#gymRepStyle','#calDifficulty','#classTypeFilter','#adaptiveDeloadMode','#runningLocationPreference','#transitionMode','#transitionPullups','#transitionKbPlan','#transitionTiming','#transitionFocusType','#transitionFocusWeeks','#baseBuildingKbSetup','#adaptiveSEFreshness','select.le-rpe-confidence','select.le-tech','select.le-status','select.le-feel'].join(',');
@@ -13528,7 +13543,7 @@ calHasPullupBar.checked=state.settings.calHasPullupBar!==false;calHasBands.check
 // expensive dashboard/model render happens once instead of rendering an obsolete pass
 // and immediately rebuilding it. A fail-safe below still renders if a later patch errors.
 window.__hybridInitialRenderDeferred=true;
-setTimeout(()=>{if(window.__hybridInitialRenderDeferred){window.__hybridInitialRenderDeferred=false;try{render()}catch(e){console.warn('v36.85 deferred startup fallback:',e)}}},3500);
+setTimeout(()=>{if(window.__hybridInitialRenderDeferred){window.__hybridInitialRenderDeferred=false;try{render()}catch(e){console.warn('v36.86 deferred startup fallback:',e)}}},3500);
 wireGymMuscleSpecifics();
 
 function validateCriticalDomBindings(){
@@ -13695,7 +13710,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
    state.settings.secondaryOpportunityLog.forEach(o=>{const candidates=Object.entries(groups).filter(([,rs])=>rs[0]?.date===o.date),best=candidates.find(([,rs])=>rs.some(r=>String(r.secondaryTrainingType||'')===String(o.finalOffer?.type||o.tentativeOffer?.type||'')))||candidates[0],prior=JSON.stringify(o.completion||null);if(best){const [sessionId,rs]=best,usable=rs.filter(r=>!['skipped','missed'].includes(String(r.status||'').toLowerCase())),rpes=usable.map(effectiveEffortRpe).filter(x=>x>0),completion={completed:usable.length>0,sessionId,session:rs[0]?.session||'',completedAt:Math.max(...rs.map(r=>Number(r.completedAt)||0)),status:usable.length===rs.length?'complete':'partial',feel:String(rs[0]?.sessionFeel||usable[0]?.feel||''),maxRpe:rpes.length?Math.max(...rpes):0,exercises:usable.map(r=>r.exercise).filter(Boolean)};o.completion=completion}else if(o.completion?.completed){o.completion={completed:false,removedAt:Date.now()}}if(JSON.stringify(o.completion||null)!==prior)changed=true});return changed;
  }
  const v3679OriginalSave=save;
- save=function(reason='general'){v3679EnsureStores();try{v3679ReconcileSecondaryOutcomes()}catch(e){console.warn('v36.85 secondary reconcile:',e)}return v3679OriginalSave(reason)};
+ save=function(reason='general'){v3679EnsureStores();try{v3679ReconcileSecondaryOutcomes()}catch(e){console.warn('v36.86 secondary reconcile:',e)}return v3679OriginalSave(reason)};
  const v3679OriginalSecondaryAcceptanceBias=v3677SecondaryAcceptanceBias;
  v3677SecondaryAcceptanceBias=function(primarySession,type,dateISO){
    v3679EnsureStores();const resistance=type!=='conditioning',rows=state.settings.secondaryOpportunityLog.filter(o=>o&&o.primarySession===primarySession&&o.date<dateISO&&((resistance?(o.finalOffer?.type||o.tentativeOffer?.type)!=='conditioning':(o.finalOffer?.type||o.tentativeOffer?.type)==='conditioning'))).slice(-20),explicit=rows.filter(o=>o.latestDecision||o.completion?.completed);if(explicit.length<3)return {score:0,reasons:[]};let pos=0,neg=0;explicit.forEach(o=>{if(o.completion?.completed)pos+=1.25;else if(['accepted','later','harder','easier','swap'].includes(o.latestDecision))pos+=.65;else if(o.latestDecision==='skipped')neg+=1});const rate=pos/Math.max(.01,pos+neg),score=rate>=.72?4:rate<=.28?-4:0;return {score,reasons:score?[`Your explicit/completed history for this kind of secondary is ${Math.round(rate*100)}% positive across ${explicit.length} decided opportunities. Ignored offers are not counted as dislike, and this remains only a small tie-breaker.`]:[]};
@@ -13975,7 +13990,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
 
  // Richer audit / Trends surface: distinguish current model calibration from legacy saved errors.
  const v3682ModelAudit=utmModelAudit;utmModelAudit=function(dateISO=localISO(new Date())){const out=v3682ModelAudit(dateISO),cal=v3682WeightedResidual(historyRowsBefore(dateISO,3650).filter(r=>r.exercise!=='Rest Day')),wear=wearableRecoverySignals(dateISO),stress=utmWeeklyStressBudget(dateISO);return {...out,calibration:{predictionVersion:V3682_PREDICTION_VERSION,usable:cal.n,effectiveN:cal.effectiveN,weightedMae:Math.round(cal.mae*100)/100,weightedBias:Math.round(cal.mean*100)/100,exact:cal.exact,effortBands:cal.bands,legacySavedErrorsIgnored:true},recoveryChannels:{objective:wear.objectiveScore||0,muscular:wear.muscularRecoveryScore||0,alertness:wear.alertnessScore||0,tissue:wear.tissueScore||0,body:wear.bodyScore||0},stressWindowEvidence:stress.historyWindows||null,guardrails:{...(out.guardrails||{}),predictionVersioning:true,categoricalEffortIntervalCalibration:true,splitRecoveryNoDoubleCount:true,dimensionSpecificRecoveryStressScaling:true,overlapAwareStressWindows:true,sessionContextSnapshot:true}}};
- const v3682RenderTrends=renderTrends;renderTrends=function(){v3682RenderTrends();try{const rows=state.logs.filter(r=>!['skipped','missed'].includes(String(r.status||'').toLowerCase())&&r.exercise!=='Rest Day'),cal=v3682WeightedResidual(rows),stats=document.getElementById('trendStats');if(stats){[...stats.querySelectorAll('.trend-stat')].forEach(card=>{const k=card.querySelector('.k'),v=card.querySelector('.v');if(k&&v&&k.textContent.trim()==='Model RPE error'){k.textContent='Current effort error';v.textContent=cal.n?cal.mae.toFixed(1):'—'}})}const box=document.getElementById('trendCalibration');if(box){[...box.querySelectorAll('.notice')].forEach(n=>{/Mean absolute RPE prediction error/i.test(n.textContent||'')&&n.remove()});const legacy=rows.filter(r=>Number(r.modelPredictionVersion)>0&&Number(r.modelPredictionVersion)<V3682_PREDICTION_VERSION&&Number.isFinite(Number(r.modelPredictionError))).length,head='<div class="notice"><strong>Current prediction model v'+V3682_PREDICTION_VERSION+':</strong> '+cal.n+' usable effort-calibration exposures ('+cal.exact+' exact RPE, '+cal.bands+' effort-band) • effective evidence '+cal.effectiveN.toFixed(1)+' • weighted error '+(cal.n?cal.mae.toFixed(2):'—')+'. '+legacy+' legacy saved point-errors are retained in History but ignored by current calibration.</div>';box.insertAdjacentHTML('afterbegin',head)}}catch(e){console.warn('v36.85 trend calibration:',e)}};
+ const v3682RenderTrends=renderTrends;renderTrends=function(){v3682RenderTrends();try{const rows=state.logs.filter(r=>!['skipped','missed'].includes(String(r.status||'').toLowerCase())&&r.exercise!=='Rest Day'),cal=v3682WeightedResidual(rows),stats=document.getElementById('trendStats');if(stats){[...stats.querySelectorAll('.trend-stat')].forEach(card=>{const k=card.querySelector('.k'),v=card.querySelector('.v');if(k&&v&&k.textContent.trim()==='Model RPE error'){k.textContent='Current effort error';v.textContent=cal.n?cal.mae.toFixed(1):'—'}})}const box=document.getElementById('trendCalibration');if(box){[...box.querySelectorAll('.notice')].forEach(n=>{/Mean absolute RPE prediction error/i.test(n.textContent||'')&&n.remove()});const legacy=rows.filter(r=>Number(r.modelPredictionVersion)>0&&Number(r.modelPredictionVersion)<V3682_PREDICTION_VERSION&&Number.isFinite(Number(r.modelPredictionError))).length,head='<div class="notice"><strong>Current prediction model v'+V3682_PREDICTION_VERSION+':</strong> '+cal.n+' usable effort-calibration exposures ('+cal.exact+' exact RPE, '+cal.bands+' effort-band) • effective evidence '+cal.effectiveN.toFixed(1)+' • weighted error '+(cal.n?cal.mae.toFixed(2):'—')+'. '+legacy+' legacy saved point-errors are retained in History but ignored by current calibration.</div>';box.insertAdjacentHTML('afterbegin',head)}}catch(e){console.warn('v36.86 trend calibration:',e)}};
 
  // Make the History model note honest about legacy predictions instead of presenting an
  // obsolete point-error as if it still drives the model.
@@ -13989,7 +14004,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
  const v3683OriginalRenderWeek=renderWeek;
  function v3683RenderWeekFallback(error){
    try{
-     console.warn('v36.85 calendar fallback:',error);
+     console.warn('v36.86 calendar fallback:',error);
      weekStrip.innerHTML='';
      const todayISO=localISO(new Date()),selected=parseLocalISO(selectedDateISO),start=mondayOf(selected),programWeek=Math.max(1,trainingWeekForDate(start)),dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
      let base=[];try{base=scheduleForWeek(programWeek)||[]}catch(_){base=[]}
@@ -13999,14 +14014,14 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
        const date=addDays(start,i),iso=localISO(date),row=base[i]||[day,'Open Training',''],override=(state.settings.dayOverrides||{})[iso],session=override||row[1]||'Open Training',actual=completedDayActualSummary(iso),focus=actual.label?('Completed: '+actual.label):(row[2]||'Open training');
        const completed=completedSessionGroupsForDate(iso),d=document.createElement('button');d.type='button';d.className='day-card'+(iso===todayISO?' today':'')+(iso===selectedDateISO?' selected':'');
        d.innerHTML='<div class="day-name">'+htmlSafe(day)+'</div><div class="day-date">'+htmlSafe(date.toLocaleDateString('en-US',{month:'short',day:'numeric'}))+'</div><div class="day-session">'+htmlSafe(session)+'</div><div class="day-focus">'+htmlSafe(focus)+'</div>'+(completed.length?'<div class="day-logged">'+completed.length+' completed session'+(completed.length===1?'':'s')+'</div>':'');
-       d.addEventListener('click',()=>{selectedDateUserTouched=true;selectedDateISO=iso;browseWeek=Math.max(1,trainingWeekForDate(date));renderWeek();try{renderSelectedWorkout()}catch(e){console.warn('v36.85 selected-workout render:',e)}});weekStrip.appendChild(d);
+       d.addEventListener('click',()=>{selectedDateUserTouched=true;selectedDateISO=iso;browseWeek=Math.max(1,trainingWeekForDate(date));renderWeek();try{renderSelectedWorkout()}catch(e){console.warn('v36.86 selected-workout render:',e)}});weekStrip.appendChild(d);
      });
      weekStrip.dataset.renderFallback='1';
-   }catch(fallbackError){console.warn('v36.85 calendar fallback failed:',fallbackError)}
+   }catch(fallbackError){console.warn('v36.86 calendar fallback failed:',fallbackError)}
  }
  renderWeek=function(){try{return v3683OriginalRenderWeek()}catch(e){v3683RenderWeekFallback(e)}};
 
- window.__hybridInitialRenderDeferred=false;try{render()}catch(e){console.warn('v36.85 post-patch render:',e)};window.__hybridBootRenderedAt=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now()
+ window.__hybridInitialRenderDeferred=false;try{render()}catch(e){console.warn('v36.86 post-patch render:',e)};window.__hybridBootRenderedAt=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now()
 })();
 
 })();
@@ -14073,7 +14088,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
 
 
 <style id="v3679-style">
-/* v36.85 — split recovery signals (body fatigue vs energy/sleepiness vs soreness) + prior v36.80 performance/model/UI integrity */
+/* v36.86 — user-preferred lower automatic Calisthenics frequency + v36.85 live-workout persistence + prior model/UI integrity */
 .v3679-context-details{border:1px solid var(--line);border-radius:16px;margin:12px 0;background:var(--panel);overflow:hidden}
 .v3679-context-details>summary{list-style:none;cursor:pointer;padding:11px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .v3679-context-details>summary::-webkit-details-marker{display:none}
