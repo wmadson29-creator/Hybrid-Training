@@ -1,0 +1,64 @@
+Hybrid Training v36.97 — Final QA/QC Report
+Date: 2026-09-12
+
+SCOPE
+v36.97 is a state-authority, rendering-cleanup, and mobile-usability QA release built on the validated v36.96 systems model. No training-model retune is included.
+
+USER-REPORTED BUGS
+PASS — Reproduced stale selector-only Log state that could reopen as Barbell Strength when direct Log should load today’s actual workout.
+PASS — Direct Log now resolves the same current Today plan as the Dashboard. In the saved-state regression fixture, both resolve Generic Gym on 2026-09-12.
+PASS — Selector-only Log workspace is cleared rather than persisted as workout progress.
+PASS — Stale selector state no longer contaminates the Dashboard recommendation.
+PASS — Active workout state remains authoritative when a real interrupted workout exists.
+PASS — Substantive unsaved performance state is still recovered/protected.
+PASS — Found root cause of the bottom-left `\\n\\n...` artifact: literal backslash-newline text inserted between late CSS blocks.
+PASS — Removed all such rendered-shell text. Parsed document body now contains zero stray top-level text nodes.
+
+LOG / STATE AUTHORITY
+PASS — Clean direct Log opens today’s date and current recommended/scheduled session.
+PASS — Dashboard Open Workout and direct Log agree on the authoritative session.
+PASS — `01 Choose / change workout` remains collapsed by default.
+PASS — `02 Today’s workout` remains the execution-first surface.
+PASS — Date and Session time remain vertically aligned when setup is opened.
+PASS — Blank exact-RPE disclosures remain closed by default; saved exact RPE remains recoverable.
+
+MODEL / PROGRAM REGRESSION
+PASS — 20 critical model/program functions are byte-for-byte identical to v36.96, including readiness, recent fatigue, cadence, conditioning, TB planning, pull-ups, SE dosing, active recovery, fueling/energy-availability guardrails, future interference, sleep context, concurrent-training context, smart add-ons, and conditioning-context adjustment.
+PASS — 35-date comparison from 2026-08-25 through 2026-09-28: 0 differences between v36.96 and v36.97 in expected session, adaptive winner/ranked scores, modeled muscle fatigue, or modeled systemic fatigue.
+PASS — Correct current weighted pull-up Block 2 sequence retained: W1 Overhand +25 3×5; W2 Side/Neutral +30 3×5; W3 Overhand +30 3×3; W4 Side/Neutral +30 3×5; W5 Overhand +30 3×5; W6 Side/Neutral +35 3×2.
+PASS — Existing researched fatigue threshold behavior retained: moderate residual local fatigue alone does not automatically suppress otherwise appropriate training; the explanatory warning is reserved for substantial overlap.
+
+RESPONSIVE / RUNTIME QA
+PASS — 15 major views × 4 widths (320, 390, 768, 1440 px) = 60 combinations.
+PASS — 0 document-level horizontal-overflow failures.
+PASS — 0 active-view horizontal-overflow failures.
+PASS — 0 runtime page errors.
+PASS — 0 console errors in the sweep.
+PASS — No visible NaN / undefined / Infinity placeholder leaks.
+PASS — No visible unlabeled form-control failures in the targeted accessibility sweep.
+
+MOBILE USABILITY
+PASS — Small disclosure rows receive larger tap areas without visibly increasing vertical layout height.
+PASS — Movement guide / Specifics / research source controls receive additional hit slop.
+PASS — Training Calendar visual styling remains unchanged in v36.97.
+
+STATIC / PACKAGE QA
+PASS — 420 static DOM IDs; no duplicates.
+PASS — Production inline JavaScript parses with node --check.
+PASS — sw.js parses with node --check.
+PASS — manifest-v36.webmanifest parses as valid JSON.
+PASS — Manifest start_url, version.json, service-worker BUILD/cache/fallback, visible app build, export build, and emergency-backup naming all resolve to v36.97.
+PASS — Literal `\\n` rendered-body regression check passes.
+PASS — PWA icon assets are present.
+
+LEGACY REGRESSION HARNESS NOTES
+The older deep QA harness was re-run far enough to identify several obsolete expectations rather than app defects:
+- moderate local fatigue was previously expected to always emit a warning; current research-calibrated logic intentionally warns only at substantial overlap;
+- the old harness expected an obsolete weighted-pull-up Block 2 sequence;
+- the old harness expected two easy endurance exposures to automatically progress duration, while the current model deliberately requires stronger repeated evidence.
+These old assertions were not used to force the model backward.
+
+LIMITATIONS
+- Browser QA was performed in headless Chromium and is not a physical Samsung/Android installed-PWA touch test.
+- A final installed-PWA sanity check on the user’s phone remains appropriate for OS-specific viewport, keyboard, and service-worker behavior.
+- Live third-party exercise-media availability depends on internet access and is outside the core offline app QA.

@@ -1,0 +1,49 @@
+Hybrid Training v36.91 — Final QA/QC Report
+
+MODEL REGRESSION
+- Final v36.90 ↔ v36.91 comparison: 35 dates, 0 recommendation/fatigue mismatches.
+- Seven-day rendered week output: identical.
+- Personal recovery learner on current data: bounded near 1.00x and not operationally changing prescriptions.
+
+STATE / PERSISTENCE
+- IndexedDB persistence tested with a deterministic in-memory IndexedDB harness. Full state: 85 log rows; recent boot journal: 65 log rows / ~81.5 KB; durable current snapshot retained all 85 rows.
+- Quick Complete persistence race test: PASS.
+  Six newly quick-logged Barbell Strength rows were durably saved, then a worker refresh was forced and persisted. All six rows remained present and retained quickLogged=true, sessionFeel=Good, and exercise feel="Not sure" rather than fabricated RPE.
+- IndexedDB-unavailable fallback test: PASS.
+  85 log rows recovered with 20 deliberately old rows outside the recent boot window; no page/console errors.
+- Destructive-history archive test: PASS. A 5-row new current state retained a restorable 85-row pre-clear snapshot.
+- Restore/snapshot architecture is documented in STORAGE_ARCHITECTURE_v36_91.md.
+
+LONG-HISTORY UI
+- Synthetic 435-date history test: PASS.
+- Initial History rendered 60 of 435 dates; one Load older history action expanded it to 120 of 435.
+- No page or console errors.
+
+RESPONSIVE UI
+- 60 combinations: 15 major views × 320 / 390 / 768 / 1440 px.
+- Horizontal overflow failures: 0.
+- Tested visible controls below 24 px: 0.
+- Visible unlabeled form controls: 0.
+- Runtime page errors: 0.
+- Console errors: 0.
+
+SELF-CHECK
+- State schema, unique IDs, fatigue bounds, fixed-anchor guard, deterministic recommendations, model worker, and personal-recovery guardrails pass in the data-injected browser harness.
+- IndexedDB cannot be opened from Playwright set_content's opaque origin, so that one self-check is expected to report unavailable there. IndexedDB behavior is covered separately by the storage harness and localhost/PWA test.
+
+PERFORMANCE
+- Warm repeated calendar renders remain effectively instantaneous (~0.1–0.3 ms in recent harness runs).
+- Same-week selection remains effectively instantaneous in the instrumented path.
+- History rendering is typically in the low tens of milliseconds for the current dataset.
+- Dashboard explanation rendering is typically ~150–180 ms once the underlying model state is warm.
+- Fully invalidated cold adaptive rendering remains the expensive path and is benchmark-noisy; interleaved v36.90/v36.91 runs place both in the same several-second class, with neither version consistently winning across repeated runs. No stable large regression was found.
+
+STATIC / PACKAGE CHECKS
+- Both production inline JavaScript blocks: node --check PASS.
+- Service worker: node --check PASS (after final packaging).
+- Duplicate DOM IDs: none in browser self-check.
+- Manifest/service-worker/version precache targets: verified in final package.
+- ZIP integrity and SHA-256 checksums: generated/verified in final packaging step.
+
+KNOWN LIMIT
+The full adaptive future-interference engine is still compute-heavy on a truly cold invalidated render. v36.91 moves history/recovery preprocessing off the main path, but intentionally does not trade correctness for more aggressive forecast memoization that could mix sequential forecast states.
