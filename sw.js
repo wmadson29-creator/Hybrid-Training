@@ -1,14 +1,16 @@
-const BUILD="36.100";
-const CACHE="hybrid-training-v36-100";
-const FALLBACK="./index.html?v=36.100";
+const BUILD="36.101";
+const CACHE="hybrid-training-v36-101";
+const FALLBACK="./index.html?v=36.101";
 const PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.100",
+  "./manifest-v36.webmanifest?v=36.101",
   "./hybrid-training-v34-64.png",
   "./hybrid-training-v34-180.png",
   "./hybrid-training-v34-192.png",
   "./hybrid-training-v34-512.png",
-  "./hybrid-training-v34-512-maskable.png"
+  "./hybrid-training-v34-512-maskable.png",
+  "./app-shell-v36.101.css?v=36.101",
+  "./app-shell-v36.101.js?v=36.101"
 ];
 
 self.addEventListener("install",event=>{

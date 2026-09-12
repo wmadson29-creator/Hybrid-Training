@@ -10,11 +10,12 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.100">
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.101">
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
 <meta name="apple-mobile-web-app-title" content="Hybrid Training">
+<link rel="stylesheet" href="app-shell-v36.101.css?v=36.101">
 <style>
 :root{
   --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
@@ -1918,7 +1919,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.100</strong> • durable IndexedDB history/snapshots + worker-backed history/recovery preprocessing + confidence-shrunk personal muscular-recovery learning + transparent recommendation comparisons + progressive History + one-tap session completion + permanent self-check/regression infrastructure, on top of the v36.90 performance/QA baseline and v36.89 research-calibrated fatigue model.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.101</strong> • durable IndexedDB history/snapshots + worker-backed history/recovery preprocessing + confidence-shrunk personal muscular-recovery learning + transparent recommendation comparisons + progressive History + one-tap session completion + permanent self-check/regression infrastructure, on top of the v36.90 performance/QA baseline and v36.89 research-calibrated fatigue model.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -6189,7 +6190,7 @@ function rollingDayPriors(mode,day){
 }
 function adaptiveSEPrescription(dateISO,options={}){
  const readiness=adaptiveReadiness(dateISO),stim=rollingStimulusState(dateISO),anchor=nextFixedTrainingAnchor(dateISO,3),history=adaptiveSESessionHistory(dateISO,30),last=history.length?history[history.length-1]:null,saved=(state.settings.adaptiveSEWorkouts||{})[dateISO]||null;
- const rawMinutes=Number(options.minutes??saved?.minutesAvailable??state.settings.adaptiveSELastMinutes??45),minutes=Math.max(15,Math.min(120,Number.isFinite(rawMinutes)?Math.round(rawMinutes/5)*5:45)),freshness=String(options.freshness??saved?.freshness??'auto');
+ const explicitBudget=Number(dayTrainingContextFor(dateISO).timeBudget)||0,rawMinutes=Number(options.minutes??saved?.minutesAvailable??state.settings.adaptiveSELastMinutes??45),budgetedMinutes=explicitBudget?Math.min(rawMinutes,explicitBudget):rawMinutes,minutes=Math.max(15,Math.min(120,Number.isFinite(budgetedMinutes)?Math.round(budgetedMinutes/5)*5:45)),freshness=String(options.freshness??saved?.freshness??'auto');
  let utilization=.90-Math.min(.24,(readiness.fatigueScore||0)*.07),why=['One-day SE has no progression ladder: today’s dose is selected fresh from available time and current readiness.','Available time: '+minutes+' min. Freshness input: '+adaptiveSEFreshnessLabel(freshness)+'.'];
  if(freshness==='fresh'){utilization=Math.max(utilization,.96);why.push('You marked yourself fresh, so the model can use more of the available session window.')}
  else if(freshness==='normal'){utilization=Math.min(utilization,.90)}
@@ -6632,6 +6633,7 @@ function gymAutomaticProfile(dateISO){
    const compoundFocus=focuses.some(f=>["chest","back","shoulders","quads","posterior"].includes(f));
    style=(strengthPriority>=1.18&&compoundFocus&&maxStress<.82)?"strength":"optimized";
  }
+ const explicitBudget=Number(dayTrainingContextFor(dateISO).timeBudget)||0;if(explicitBudget)duration=Math.min(duration,explicitBudget);
  return {profile:{focus:focuses,subfocus:[],difficulty,style,duration,equipment:[]},ranked,readiness,maxStress,goal};
 }
 function recommendedAdaptiveGymForDate(dateISO){
@@ -6647,7 +6649,7 @@ function recommendedAdaptiveGymForDate(dateISO){
 function recommendedAdaptiveCalisthenicsForDate(dateISO){
  const dayEquip=v3677CalEquipmentProfile(dateISO,{hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands,hasLowRow:!!state.settings.calHasLowRow,hasDipBars:!!state.settings.calHasDipBars,hasAbWheel:state.settings.calHasAbWheel!==false}),readiness=adaptiveReadiness(dateISO),rank=calisthenicsExerciseLibrary.filter(x=>x.auto!==false&&calExerciseAvailable(x,dayEquip)).map(ex=>{const ctx=utmBuilderContext(ex.name,dateISO),effect=calTrainingEffect(ex);return {ex,ctx,effect,score:ctx.score-(1-effect.strength)*22}}).sort((a,b)=>b.score-a.score).slice(0,10),focuses=[];
  rank.forEach(x=>{const f=x.ex.focus;if(f!=="fullbody"&&!focuses.includes(f)&&focuses.length<3)focuses.push(f)});
- const calFeedbackDose=recommendationDoseNudge("Calisthenics",dateISO,"session"),profile={focus:focuses.length?focuses:["push","pull","core"],difficulty:readiness.caution?"easy":(calFeedbackDose>.3?"hard":calFeedbackDose<-.3?"easy":"medium"),duration:readiness.caution?30:(calFeedbackDose>.3?45:calFeedbackDose<-.3?35:40),...dayEquip},plan=buildCalisthenicsWorkout(profile,dateISO);
+ const calFeedbackDose=recommendationDoseNudge("Calisthenics",dateISO,"session"),explicitBudget=Number(dayTrainingContextFor(dateISO).timeBudget)||0,baseDuration=readiness.caution?30:(calFeedbackDose>.3?45:calFeedbackDose<-.3?35:40),profile={focus:focuses.length?focuses:["push","pull","core"],difficulty:readiness.caution?"easy":(calFeedbackDose>.3?"hard":calFeedbackDose<-.3?"easy":"medium"),duration:explicitBudget?Math.min(baseDuration,explicitBudget):baseDuration,...dayEquip},plan=buildCalisthenicsWorkout(profile,dateISO);
  return {session:"Calisthenics",label:plan.name||"Adaptive Calisthenics",plan,why:uniqueConditioningReasons(["Built from today’s highest-scoring bodyweight movements.",...rank.slice(0,4).flatMap(x=>x.ctx.future?.reasons||[])])};
 }
 function recommendedAdaptiveConditioningForDate(dateISO){
@@ -7660,11 +7662,12 @@ function roundFive(n){return Math.max(5,Math.round(n/5)*5)}
 function adaptiveEnduranceDuration(name,day,dateISO,readiness,longer=false,addedRestDay=false){
  const learning=enduranceModalityLearning(name,dateISO);
  if(name==="Triples"){
-   const factors=[];
+   const factors=[],budget=Number(dayTrainingContextFor(dateISO).timeBudget)||0;
    if(readiness.recoveryGuard)factors.push("Recovery Guard keeps the mixed aerobic circuit short.");
    else if(longer&&!readiness.caution)factors.push("The longer slot can carry extra easy mixed volume.");
    else factors.push("Mixed easy work stays moderate because each circuit combines several modalities.");
-   const target=readiness.recoveryGuard?"1 easy circuit":(longer&&!readiness.caution?"2–3 easy circuits":"1–2 easy circuits");
+   if(budget)factors.push("Today’s explicit "+budget+"-minute time budget caps the mixed circuit dose.");
+   const target=(budget&&budget<=30)?"1 easy circuit":(readiness.recoveryGuard?"1 easy circuit":(longer&&!readiness.caution?"2–3 easy circuits":"1–2 easy circuits"));
    return {target,why:factors.join(" "),whyFactors:factors,learning};
  }
  let equivalent=45,weekend=day==="Saturday"||day==="Sunday",factors=[];
@@ -7695,6 +7698,7 @@ function adaptiveEnduranceDuration(name,day,dateISO,readiness,longer=false,added
  }else if(learning.factors.length)factors.push(...learning.factors);
  const caps={"LSS Walk":[35,180],"LSS Hike":[30,150],"LSS Cycle":[35,140],"LSS Stationary Bike":[30,140],"LSS Treadmill":[30,110],"LSS Elliptical":[30,120],"LSS Run":[30,(weekend&&longer&&!readiness.caution&&!readiness.recoveryGuard)?120:90],"LSS Swim":[25,90],"LSS Row":[30,95],"LSS Row Machine":[30,95],"Stair Climber":[25,90],"LSS Stair Stepper":[25,90],"Ruck Up":[30,110]},cap=[...(caps[name]||[30,90])];
  if(readiness.recoveryGuard){const guardCaps={"LSS Walk":75,"LSS Cycle":75,"LSS Stationary Bike":75,"LSS Treadmill":55,"LSS Elliptical":70,"LSS Run":45,"LSS Swim":50,"LSS Row":50,"LSS Row Machine":50,"Stair Climber":50,"LSS Stair Stepper":50,"Ruck Up":45};cap[1]=Math.min(cap[1],guardCaps[name]||60);}
+ const explicitBudget=Number(dayTrainingContextFor(dateISO).timeBudget)||0;if(explicitBudget){cap[0]=Math.min(cap[0],explicitBudget);cap[1]=Math.min(cap[1],explicitBudget);factors.push("Today’s explicit "+explicitBudget+"-minute time budget caps the endurance prescription.");}
  minutes=Math.max(cap[0],Math.min(cap[1],minutes));
  const spread=readiness.recoveryGuard?5:(longer?10:7.5),mid=roundFive(minutes);
  let low=roundFive(mid-spread),high=roundFive(mid+spread);
@@ -12998,12 +13002,13 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.100";
+const HYBRID_APP_BUILD="36.101";
 async function checkForDeployedBuild(){
  try{
   const r=await fetch("./version.json?_="+Date.now(),{cache:"no-store"});if(!r.ok)return;
   const v=await r.json(),latest=String(v?.build||"").replace(/^v/,"");
   if(latest&&latest!==HYBRID_APP_BUILD){
+   if(typeof window.HybridShell?.showUpdate==="function"){window.HybridShell.showUpdate(latest);return}
    const u=new URL(location.href);u.searchParams.set("v",latest);u.searchParams.set("refresh",Date.now());location.replace(u.href);
   }
  }catch(_e){}
@@ -13425,7 +13430,7 @@ saveSettings.addEventListener("click",()=>{
 });
 const CURRENT_EXPORT_VERSION=48;
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.100",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.101",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:20,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","intermittent activity dose can use active time plus low rest-load credit instead of elapsed time alone","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","recommendation feedback is confidence-shrunk so one subjective response nudges rather than dominates; repeated consistent feedback progressively gains authority","wearable VO2 trend is low weight","wearable calories are reference only"]},
@@ -13786,8 +13791,8 @@ function v3677EnsureStores(){
  if(!Array.isArray(state.settings.secondaryOpportunityLog))state.settings.secondaryOpportunityLog=[];
  state.settings.retrospectiveDraftPlans=state.settings.retrospectiveDraftPlans||{};
 }
-function v3677DayContextDefaults(){return {kbMode:state.settings.homeKettlebellsSecondary===false?'none':'all',gymAccess:'auto',poolAccess:'auto',pullupBar:state.settings.calHasPullupBar!==false?'yes':'no',bands:state.settings.calHasBands?'yes':'no',lowRow:state.settings.calHasLowRow?'yes':'no',dipBars:state.settings.calHasDipBars?'yes':'no',abWheel:state.settings.calHasAbWheel!==false?'yes':'no',timeOfDay:'auto',fedState:'auto',environment:'normal'}}
-function dayTrainingContextFor(dateISO){v3677EnsureStores();return Object.assign(v3677DayContextDefaults(),state.settings.dayTrainingContext[dateISO]||{})}
+function v3677DayContextDefaults(){return {kbMode:state.settings.homeKettlebellsSecondary===false?'none':'all',gymAccess:'auto',poolAccess:'auto',pullupBar:state.settings.calHasPullupBar!==false?'yes':'no',bands:state.settings.calHasBands?'yes':'no',lowRow:state.settings.calHasLowRow?'yes':'no',dipBars:state.settings.calHasDipBars?'yes':'no',abWheel:state.settings.calHasAbWheel!==false?'yes':'no',timeOfDay:'auto',fedState:'auto',environment:'normal',traveling:false,limitedEquipment:false,sickReturn:false,verySore:false,timeBudget:0}}
+function dayTrainingContextFor(dateISO){v3677EnsureStores();const c=Object.assign(v3677DayContextDefaults(),state.settings.dayTrainingContext[dateISO]||{});if(c.traveling){c.environment='travel_indoor';if(c.poolAccess==='auto')c.poolAccess='no'}if(c.limitedEquipment)c.gymAccess='no';return c}
 function v3677SetDayContext(dateISO,key,value){v3677EnsureStores();state.settings.dayTrainingContext[dateISO]=Object.assign({},state.settings.dayTrainingContext[dateISO]||{}, {[key]:value});rollingOpenDayCache?.clear?.();rollingForecastRecommendationCache?.clear?.();save('day-training-context');renderSelectedWorkout()}
 function v3677KbEquipment(dateISO){const m=dayTrainingContextFor(dateISO).kbMode;return m==='40single'?['kettlebells','kbSetup:40single']:m==='70pair'?['kettlebells','kbSetup:70pair']:m==='70single'?['kettlebells','kbSetup:70single']:m==='none'?[]:['kettlebells','kbSetup:all']}
 function v3677EnvironmentConditioningScore(name,dateISO){
@@ -13803,6 +13808,24 @@ function v3677DayContextSessionAdjustments(dateISO){
  if(c.fedState==='full'){scores['Strength-Endurance']-=2;scores.Conditioning-=1;reasons['Strength-Endurance'].push('Very recently full/fed context modestly discourages a demanding immediate session until digestion is comfortable.');}
  if(c.gymAccess==='no'){scores['Generic Gym']-=70;reasons['Generic Gym'].push('Gym access is marked unavailable today, so the automatic selector will not send you to the gym.');}else if(c.gymAccess==='on_site'){scores['Generic Gym']+=2;reasons['Generic Gym'].push('Gym equipment is already on-site today, so a small convenience tie-breaker applies.');}
  if(['extreme_heat','poor_air','storms','travel_indoor'].includes(c.environment)){scores.Conditioning+=1;reasons.Conditioning.push('Environment context is active. Conditioning remains eligible, but outdoor modalities receive a strong condition-specific penalty and indoor alternatives can win.');}
+ // v36.101 explicit today-only constraints. These are user-selected guardrails, not inferred diagnoses.
+ scores['Recovery / Rest']??=0;reasons['Recovery / Rest']??=[];
+ const nudge=(session,delta,text)=>{if(scores[session]===undefined)return;scores[session]+=delta;if(text)reasons[session].push(text)};
+ if(c.sickReturn){
+   ['Strength-Endurance','Generic Gym','Calisthenics'].forEach(x=>nudge(x,-9,'Sick / returning is marked for today, so optional demanding work is de-prioritized.'));
+   nudge('Conditioning',-5,'Sick / returning is marked; easy movement can still be chosen, but hard conditioning loses priority.');
+   nudge('Active Recovery',8,'Sick / returning is marked, so very easy movement receives priority.');
+   nudge('Recovery / Rest',8,'Sick / returning is marked, so full rest remains highly competitive.');
+ }
+ if(c.verySore){
+   ['Strength-Endurance','Generic Gym','Calisthenics'].forEach(x=>nudge(x,-6,'Very sore is marked today; repeated local loading is de-prioritized.'));
+   nudge('Active Recovery',5,'Very sore is marked, so low-strain movement gets a small advantage.');
+   nudge('Recovery / Rest',3,'Very sore is marked, so full rest receives a small advantage.');
+ }
+ if(Number(c.timeBudget)>0&&Number(c.timeBudget)<=30){
+   nudge('Generic Gym',-4,'A 30-minute time budget is active.');nudge('Calisthenics',-3,'A 30-minute time budget is active.');nudge('Strength-Endurance',-4,'A 30-minute time budget is active.');
+   nudge('Active Recovery',3,'A short time budget favors a compact recovery option when appropriate.');nudge('Conditioning',2,'A short time budget can be satisfied efficiently with a compact conditioning dose.');
+ }
  return {scores,reasons};
 }
 function v3677SecondaryEquipmentContext(primaryPlan,session,dateISO){
@@ -14536,7 +14559,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.100';
+const V3691_BUILD='36.101';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -14778,7 +14801,7 @@ async function v3691RefreshStorageUi(){const mode=document.getElementById('v3691
 async function v3691RunSelfCheck(){const host=document.getElementById('v3691SelfCheck');if(!host)return;host.innerHTML='<div class="muted">Running checks…</div>';const checks=[],add=(name,ok,detail='')=>checks.push({name,ok:!!ok,detail});try{add('State schema',!!state.settings&&Array.isArray(state.logs)&&!!state.dailyRecovery,'Core state containers are present.');const ids=[...document.querySelectorAll('[id]')].map(x=>x.id),dup=ids.filter((x,i)=>ids.indexOf(x)!==i);add('Unique DOM IDs',dup.length===0,dup.length?dup.join(', '):'No duplicate IDs.');const today=localISO(new Date()),fat=utmRecentFatigue(today,10),fatVals=[...Object.values(fat.muscles||{}),...Object.values(fat.fatigue||{})];add('Fatigue bounds',fatVals.every(v=>Number(v)>=0&&Number(v)<=4.5),'All current fatigue channels are within 0–4.5.');let fixedOk=true,fixedBad=[];for(let i=0;i<28;i++){const d=localISO(addDays(new Date(),i)),anchor=fixedAnchorBaseForDate(d),gw=Math.max(1,trainingWeekForDate(parseLocalISO(d))),s=expectedSession(dayNameFromDate(d),gw,d);if(anchor?.fixed&&anchor.session&&!['Recovery / Rest','Active Recovery'].includes(String(anchor.session))&&s==='Recovery / Rest'&&!isManualProgramPauseDate(d)){fixedOk=false;fixedBad.push(d+' ('+anchor.session+')')}}add('Fixed-anchor guard',fixedOk,fixedBad.length?'Anchor became rest: '+fixedBad.join(', '):'No fixed Barbell Strength / KB anchor became auto-rest in the next 28 days.');const base=programScheduledSessionForDate(today);if(rollingOpenDayEligible(today,base)){const a=rollingOpenDayRecommendation(today,{skipForecastProjection:true}),b=rollingOpenDayRecommendation(today,{skipForecastProjection:true});add('Recommendation determinism',a.session===b.session&&Math.abs(Number(a.score)-Number(b.score))<.001,a.session+' • '+a.score)}else add('Recommendation determinism',true,'Today is a fixed anchor; adaptive check skipped.');try{await v3691OpenDb();add('IndexedDB',true,'Database opened successfully.')}catch(e){add('IndexedDB',false,e.message)}add('Model worker',!!v3691EnsureWorker(),v3691WorkerReady?'Preprocessing ready':'Worker created; preprocessing may still be warming.');const profile=state.settings.learnedRecoveryProfile||{};add('Recovery-learning guardrails',Object.values(profile).every(x=>Number(x.multiplier)>=.84&&Number(x.multiplier)<=1.16&&Number(x.confidence)<=.62),'Personal multipliers are bounded and confidence-shrunk.')}catch(e){add('Self-check execution',false,e.message||String(e))}const pass=checks.filter(x=>x.ok).length;host.innerHTML='<div class="v3691-check-summary '+(pass===checks.length?'pass':'warn')+'"><strong>'+pass+'/'+checks.length+' checks passed</strong></div>'+checks.map(x=>'<div class="v3691-check '+(x.ok?'pass':'fail')+'"><strong>'+(x.ok?'✓':'✕')+' '+htmlSafe(x.name)+'</strong><span>'+htmlSafe(x.detail||'')+'</span></div>').join('')}
 
 // Emergency export/recovery now includes IndexedDB durable snapshots as well as the lightweight localStorage journal.
-window.hybridEmergencyExport=async function(){try{const all={exportedAt:new Date().toISOString(),location:location.href,storage:{},indexedDb:[]};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('hybridTraining'))all.storage[k]=localStorage.getItem(k)}try{all.indexedDb=(await v3691SnapshotList()).map(r=>({id:r.id,createdAt:r.createdAt,persistedAt:r.persistedAt,reason:r.reason,counts:r.counts,data:r.data}))}catch(e){all.indexedDbError=String(e.message||e)}const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='hybrid-training-emergency-storage-backup-v36.100.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){alert('Emergency backup failed: '+e.message)}};
+window.hybridEmergencyExport=async function(){try{const all={exportedAt:new Date().toISOString(),location:location.href,storage:{},indexedDb:[]};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('hybridTraining'))all.storage[k]=localStorage.getItem(k)}try{all.indexedDb=(await v3691SnapshotList()).map(r=>({id:r.id,createdAt:r.createdAt,persistedAt:r.persistedAt,reason:r.reason,counts:r.counts,data:r.data}))}catch(e){all.indexedDbError=String(e.message||e)}const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='hybrid-training-emergency-storage-backup-v36.101.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){alert('Emergency backup failed: '+e.message)}};
 window.hybridRecoverLocalData=async function(){try{const rows=await v3691SnapshotList(),current=rows.find(x=>x.id===V3691_CURRENT_ID),best=current||rows[0];if(best?.data){if(!confirm('Recover the latest durable IndexedDB training state? The current state will be archived first.'))return;await v3691PersistSnapshot(v3691NormalizeHydrated(v3691Clone(best.data)),'emergency-recover',true);v3691WriteBoot(best.data);alert('Durable training data recovered. The app will reload now.');location.reload();return}alert('No IndexedDB snapshot was found. Use Import Data or the migration safety copy if available.')}catch(e){alert('Recovery failed: '+e.message)}};
 
 async function v3691Init(){
@@ -14905,8 +14928,32 @@ v3691Init();
   document.getElementById('logSession')?.addEventListener('change',()=>setTimeout(syncAll,0));
   document.addEventListener('change',e=>{if(e.target?.classList?.contains('le-status'))setTimeout(syncLogActions,0)});
   setTimeout(syncAll,0);setTimeout(syncAll,500);
+
 })();
 
+// v36.101 — controlled bridge for modular UI/support code.
+// The training engine remains scoped inside this IIFE; the external shell only receives
+// the narrow operations it needs for presentation, undo, update UX, and comparisons.
+window.HybridCore=Object.freeze({
+ build:HYBRID_APP_BUILD,
+ localISO,addDays,parseLocalISO,daysBetweenISO,
+ getState:()=>state,
+ save:(reason)=>save(reason||'external-shell'),
+ render:()=>render(),
+ renderSelectedWorkout:()=>renderSelectedWorkout(),
+ getDayContext:(dateISO)=>dayTrainingContextFor(dateISO),
+ setDayContextPatch:(dateISO,patch)=>{v3677EnsureStores();state.settings.dayTrainingContext[dateISO]=Object.assign({},state.settings.dayTrainingContext[dateISO]||{},patch||{});rollingOpenDayCache?.clear?.();rollingForecastRecommendationCache?.clear?.();try{utmInvalidateCaches()}catch(_e){}save('day-training-context');render();return dayTrainingContextFor(dateISO)},
+ conditioningFitnessPortfolio:(dateISO)=>conditioningFitnessPortfolio(dateISO),
+ hybridAdaptationState:(dateISO,opts)=>hybridAdaptationState(dateISO,opts),
+ readActiveWorkout:()=>v3685ReadActiveWorkout(),
+ trackerMatchesLog:(active)=>v3685TrackerMatchesLog(active),
+ currentCardExercise:(card)=>currentCardExercise(card),
+ offerUndo:(message,cb,ms)=>offerUndo(message,cb,ms),
+ snapshotUndo:()=>({state:JSON.parse(JSON.stringify(state)),workspace:(()=>{try{return readLogWorkspace()}catch(_e){return null}})()}),
+ restoreUndo:(snap,reason)=>{if(!snap?.state)return false;const raw=JSON.parse(JSON.stringify(snap.state));state={...raw,settings:Object.assign({},defaults.settings,raw.settings||{}),logs:Array.isArray(raw.logs)?raw.logs:[],dailyRecovery:raw.dailyRecovery&&typeof raw.dailyRecovery==='object'?raw.dailyRecovery:{},bodyweightMeasurements:raw.bodyweightMeasurements&&typeof raw.bodyweightMeasurements==='object'?raw.bodyweightMeasurements:{},wearableSessions:raw.wearableSessions&&typeof raw.wearableSessions==='object'?raw.wearableSessions:{},restDays:raw.restDays&&typeof raw.restDays==='object'?raw.restDays:{},kb:Array.isArray(raw.kb)?raw.kb:JSON.parse(JSON.stringify(defaults.kb))};if(snap.workspace){try{localStorage.setItem(LOG_WORKSPACE_KEY,JSON.stringify(snap.workspace))}catch(_e){}}else{try{clearLogWorkspace()}catch(_e){}}save(reason||'undo');render();try{restorePersistentLogWorkspace()}catch(_e){}return true},
+ loadPlannedSession:()=>loadPlannedSession(),renderWorkoutIntentUi:()=>renderWorkoutIntentUi(),writeLogWorkspace:()=>writeLogWorkspace(),
+ historySessionGroups:()=>historySessionGroups(),completedUsableRows:(g)=>completedUsableRows(g),effectiveEffortRpe:(r)=>effectiveEffortRpe(r),rowIsAdaptiveSecondary:(r)=>rowIsAdaptiveSecondary(r),utmPlannedDemandIndex:(name,opts)=>utmPlannedDemandIndex(name,opts),utmRepAverage:(reps)=>utmRepAverage(reps)
+});
 
 })();
 
@@ -15200,7 +15247,7 @@ v3691Init();
 <style id="v3698-color-coherence">
 /* v36.98 — Clean Technical color-coherence pass.
    Preserve barbell plate colors while normalizing older feature-specific state colors.
-   The calendar is unified with the Clean Technical palette in v36.100. */
+   The calendar is unified with the Clean Technical palette in v36.101. */
 :root{
   --positive:#34c9b3;
   --positive-soft:#0d2424;
@@ -15255,7 +15302,7 @@ v3691Init();
 </style>
 
 <style id="v3699-calendar-color-unification">
-/* v36.100 — Calendar color unification.
+/* v36.101 — Calendar color unification.
    Preserve the calendar's information density, layout, scrolling and interaction;
    only align its visual palette with the Clean Technical system. */
 .calendar-panel{
@@ -15312,5 +15359,6 @@ v3691Init();
 .calendar-panel .day-session{color:var(--text)!important}
 .calendar-panel .day-logged{color:var(--positive)!important;border-top-color:#294157!important}
 </style>
+<script src="app-shell-v36.101.js?v=36.101"></script>
 </body>
 </html>
