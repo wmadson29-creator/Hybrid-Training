@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.96">
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.97">
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
@@ -1918,7 +1918,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.96</strong> • durable IndexedDB history/snapshots + worker-backed history/recovery preprocessing + confidence-shrunk personal muscular-recovery learning + transparent recommendation comparisons + progressive History + one-tap session completion + permanent self-check/regression infrastructure, on top of the v36.90 performance/QA baseline and v36.89 research-calibrated fatigue model.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.97</strong> • durable IndexedDB history/snapshots + worker-backed history/recovery preprocessing + confidence-shrunk personal muscular-recovery learning + transparent recommendation comparisons + progressive History + one-tap session completion + permanent self-check/regression infrastructure, on top of the v36.90 performance/QA baseline and v36.89 research-calibrated fatigue model.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -6536,7 +6536,18 @@ function saveCustomExerciseDefinitionFromUi(){
 }
 
 function activeUserLogDraftForDate(dateISO){
- try{const d=readLogWorkspace();if(!d||d.date!==dateISO||d.editingSessionId||d.blankNext)return null;return logWorkspaceHasUserWork(d)?d:null}catch(e){return null}
+ try{
+  const active=typeof v3685ReadActiveWorkout==="function"?v3685ReadActiveWorkout():null,d=readLogWorkspace();
+  // An actually started workout is authoritative for its date, even before any RPE/notes
+  // have been entered. A selector-only stored workspace is not: stale plan choices from an
+  // older Log visit must never rewrite Today or make direct Log navigation show the wrong day.
+  if(active&&active.date===dateISO){
+   if(d&&d.date===dateISO&&!d.editingSessionId&&!d.blankNext&&(!d._activeWorkoutId||d._activeWorkoutId===active.id))return d;
+   return {date:dateISO,session:active.session||"",cards:[]};
+  }
+  if(!d||d.date!==dateISO||d.editingSessionId||d.blankNext)return null;
+  return logWorkspaceHasSubstantiveWork(d)?d:null;
+ }catch(e){return null}
 }
 function draftExerciseName(card){
  const f=card?.fields||{},raw=f["le-ex"]||"";return raw==="__custom__"?(f["le-custom"]||"Other"):(raw||card?.plannedExercise||"");
@@ -12679,7 +12690,11 @@ function logWorkspaceHasIntentionalPlanChoice(d){
  return (d.cards||[]).some(c=>c&&c.userSubstituted===true);
 }
 function logWorkspaceHasUserWork(d){
- return !!(d&&(logWorkspaceHasSubstantiveWork(d)||logWorkspaceHasIntentionalPlanChoice(d)));
+ if(!d)return false;
+ const active=typeof v3685ReadActiveWorkout==="function"?v3685ReadActiveWorkout():null;
+ // Selector-only plan choices are disposable navigation state, not workout work.
+ // Protect actual entered performance/edit data and an explicitly started workout only.
+ return !!(logWorkspaceHasSubstantiveWork(d)||(active&&d._activeWorkoutId&&d._activeWorkoutId===active.id));
 }
 function scheduledLogStateForDate(dateISO){
  const parsed=parseLocalISO(dateISO),tw=!isNaN(parsed)?trainingWeekForDate(parsed):state.settings.currentWeek,
@@ -12741,10 +12756,10 @@ function restorePersistentLogWorkspace(){
          return true;
        }catch(e){window.__hybridLogRestoreError=String(e&&e.message||e)}
      }
-   }else if(!substantive&&!intentional){
-     // The current calendar/recovery model is authoritative for an untouched plan.
-     // This prevents a stale recommendation (for example yesterday's Triples choice)
-     // from surviving after Dashboard has recalculated today's conditioning.
+   }else if(!substantive){
+     // v36.97: selector-only/session-choice state is disposable. The current Today plan
+     // is authoritative until actual workout/performance data exists or Start Workout is pressed.
+     // This also retires stale pre-v36.96 plan choices that could reopen as Barbell Strength.
      clearLogWorkspace();
    }else{
      try{
@@ -12931,15 +12946,19 @@ function snapNavigationContextToToday(id){
  if(id==="classes"&&classScheduleDate)classScheduleDate.value=today;if(id==="classes"&&classTypeFilter)classTypeFilter.value=classActivityNavMode||"class";
  if(id==="recovery"&&!uiDraftDirty.recovery)recoveryDate.value=today;
  if(id==="bodyweight"&&bodyweightDate)bodyweightDate.value=today;
- // Preserve substantive unsaved Log work and explicit historical edit mode; otherwise
- // a normal page/tab navigation into Log defaults to today just like the calendar.
- if(id==="log"&&!editingSessionId){const ws=readLogWorkspace(),active=v3685ReadActiveWorkout(),preserve=!!active||!!(ws&&(logWorkspaceHasSubstantiveWork(ws)||logWorkspaceHasIntentionalPlanChoice(ws)));if(!preserve){logGuidedPlan=null;loadScheduledLogDate(today)}}
+ // v36.97: entering Log directly means "log today's current plan". An old selector-only
+ // choice is not workout progress and must never override a newly recalculated Today plan.
+ // Only real performance work, an active workout, or explicit History edit mode is protected.
+ if(id==="log"&&!editingSessionId){
+   const ws=readLogWorkspace(),active=v3685ReadActiveWorkout(),substantive=!!(ws&&logWorkspaceHasSubstantiveWork(ws));
+   if(!active&&!substantive){clearLogWorkspace();logGuidedPlan=null;loadScheduledLogDate(today)}
+ }
  return today;
 }
 function showView(id,options={}){
  if(!document.getElementById(id))id="dashboard";const previousId=document.querySelector(".view.active")?.id||"";if(previousId==="log"&&id!=="log"&&v3685ReadActiveWorkout())writeLogWorkspace(true);document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById(id).classList.add("active");syncNavigationState(id);setMobileMoreOpen(false);rememberLastView(id);
  if(!options.preserveDate&&!uiDraftRestoreInProgress)snapNavigationContextToToday(id);
- if(id==="dashboard"&&!options.skipDashboardRefresh){renderWeek();renderSelectedWorkout()}if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}if(id==="log"&&!editingSessionId)restorePersistentLogWorkspace();if(id==="log"){renderWorkoutIntentUi();addControlsToAllLogCards()}if(id==="recovery"){if(!recoveryDate.value)recoveryDate.value=localISO(new Date());if(!restorePersistentRecoveryDraft())loadRecoveryForm()}if(id==="bodyweight"){if(!bodyweightDate.value)bodyweightDate.value=localISO(new Date());loadBodyweightForm(bodyweightDate.value)}if(id==="classes"){if(classScheduleDate)classScheduleDate.value=selectedDateISO||localISO(new Date());if(classTypeFilter)classTypeFilter.value=classActivityNavMode||"class";const viewDate=classScheduleDate?.value||selectedDateISO||localISO(new Date()),meta=classScheduleMetaForDate(viewDate);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";if(classStatus)classStatus.innerHTML=classActivityStatusHtml(viewDate,classTypeFilter?.value||"all");renderClassLibrary()}if(!window.__hybridInitialRenderDeferred)renderActiveView(id);if(previousId!==id&&options.keepScroll!==true)requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:"auto"}));if(!uiDraftRestoreInProgress)queueUiDraftSave();v3685RenderWorkoutTracker();
+ if(id==="dashboard"&&!options.skipDashboardRefresh){renderWeek();renderSelectedWorkout()}if(id==="kbworkouts"){if(!kbBuilderBlock.value)kbBuilderBlock.value=blockInfo(currentTrainingWeek()).block;if(!kbBuilderSlot.value)kbBuilderSlot.value="KB Heavy";loadKbBuilder()}if(id==="gymworkouts"){if(!gymBuilderDate.value)gymBuilderDate.value=selectedDateISO||localISO(new Date());loadGymBuilder();wireGymMuscleSpecifics()}if(id==="calisthenics"){if(!calBuilderDate.value)calBuilderDate.value=selectedDateISO||localISO(new Date());loadCalBuilder()}if(id==="log"&&!editingSessionId){const live=v3685ReadActiveWorkout(),ws=readLogWorkspace();if(live||logWorkspaceHasSubstantiveWork(ws))restorePersistentLogWorkspace();else if(options.preserveDate){/* caller already loaded the intended date/session */}else loadScheduledLogDate(localISO(new Date()))}if(id==="log"){renderWorkoutIntentUi();addControlsToAllLogCards()}if(id==="recovery"){if(!recoveryDate.value)recoveryDate.value=localISO(new Date());if(!restorePersistentRecoveryDraft())loadRecoveryForm()}if(id==="bodyweight"){if(!bodyweightDate.value)bodyweightDate.value=localISO(new Date());loadBodyweightForm(bodyweightDate.value)}if(id==="classes"){if(classScheduleDate)classScheduleDate.value=selectedDateISO||localISO(new Date());if(classTypeFilter)classTypeFilter.value=classActivityNavMode||"class";const viewDate=classScheduleDate?.value||selectedDateISO||localISO(new Date()),meta=classScheduleMetaForDate(viewDate);if(classScheduleTime)classScheduleTime.value=meta.time||"";if(classScheduleDuration)classScheduleDuration.value=Number(meta.duration)||"";if(classStatus)classStatus.innerHTML=classActivityStatusHtml(viewDate,classTypeFilter?.value||"all");renderClassLibrary()}if(!window.__hybridInitialRenderDeferred)renderActiveView(id);if(previousId!==id&&options.keepScroll!==true)requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:"auto"}));if(!uiDraftRestoreInProgress)queueUiDraftSave();v3685RenderWorkoutTracker();
 }
 function applyLogWeekOverrideUi(enabled){logWeek.readOnly=!enabled;logWeek.setAttribute("aria-readonly",enabled?"false":"true");const b=document.getElementById("toggleLogWeekOverride"),h=document.getElementById("logWeekDerivedHint");if(b)b.textContent=enabled?"Use derived":"Override";if(h)h.textContent=enabled?"Manual override enabled for this entry.":"Derived from the selected date."}
 function setLogWeekOverride(enabled){applyLogWeekOverrideUi(enabled);if(!enabled){const d=parseLocalISO(logDate.value),tw=!isNaN(d)?trainingWeekForDate(d):0;if(tw>=1)logWeek.value=tw}}
@@ -12979,7 +12998,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.96";
+const HYBRID_APP_BUILD="36.97";
 async function checkForDeployedBuild(){
  try{
   const r=await fetch("./version.json?_="+Date.now(),{cache:"no-store"});if(!r.ok)return;
@@ -13406,7 +13425,7 @@ saveSettings.addEventListener("click",()=>{
 });
 const CURRENT_EXPORT_VERSION=48;
 exportJson.addEventListener("click",()=>download("hybrid-training-export.json",JSON.stringify({
- exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.96",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
+ exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.97",exportedAt:new Date().toISOString(),settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:bodyweightTrend(localISO(new Date())),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:utmModelAudit(localISO(new Date())),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:20,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","intermittent activity dose can use active time plus low rest-load credit instead of elapsed time alone","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","recommendation feedback is confidence-shrunk so one subjective response nudges rather than dominates; repeated consistent feedback progressively gains authority","wearable VO2 trend is low weight","wearable calories are reference only"]},
@@ -14517,7 +14536,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.96';
+const V3691_BUILD='36.97';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -14759,7 +14778,7 @@ async function v3691RefreshStorageUi(){const mode=document.getElementById('v3691
 async function v3691RunSelfCheck(){const host=document.getElementById('v3691SelfCheck');if(!host)return;host.innerHTML='<div class="muted">Running checks…</div>';const checks=[],add=(name,ok,detail='')=>checks.push({name,ok:!!ok,detail});try{add('State schema',!!state.settings&&Array.isArray(state.logs)&&!!state.dailyRecovery,'Core state containers are present.');const ids=[...document.querySelectorAll('[id]')].map(x=>x.id),dup=ids.filter((x,i)=>ids.indexOf(x)!==i);add('Unique DOM IDs',dup.length===0,dup.length?dup.join(', '):'No duplicate IDs.');const today=localISO(new Date()),fat=utmRecentFatigue(today,10),fatVals=[...Object.values(fat.muscles||{}),...Object.values(fat.fatigue||{})];add('Fatigue bounds',fatVals.every(v=>Number(v)>=0&&Number(v)<=4.5),'All current fatigue channels are within 0–4.5.');let fixedOk=true,fixedBad=[];for(let i=0;i<28;i++){const d=localISO(addDays(new Date(),i)),anchor=fixedAnchorBaseForDate(d),gw=Math.max(1,trainingWeekForDate(parseLocalISO(d))),s=expectedSession(dayNameFromDate(d),gw,d);if(anchor?.fixed&&anchor.session&&!['Recovery / Rest','Active Recovery'].includes(String(anchor.session))&&s==='Recovery / Rest'&&!isManualProgramPauseDate(d)){fixedOk=false;fixedBad.push(d+' ('+anchor.session+')')}}add('Fixed-anchor guard',fixedOk,fixedBad.length?'Anchor became rest: '+fixedBad.join(', '):'No fixed Barbell Strength / KB anchor became auto-rest in the next 28 days.');const base=programScheduledSessionForDate(today);if(rollingOpenDayEligible(today,base)){const a=rollingOpenDayRecommendation(today,{skipForecastProjection:true}),b=rollingOpenDayRecommendation(today,{skipForecastProjection:true});add('Recommendation determinism',a.session===b.session&&Math.abs(Number(a.score)-Number(b.score))<.001,a.session+' • '+a.score)}else add('Recommendation determinism',true,'Today is a fixed anchor; adaptive check skipped.');try{await v3691OpenDb();add('IndexedDB',true,'Database opened successfully.')}catch(e){add('IndexedDB',false,e.message)}add('Model worker',!!v3691EnsureWorker(),v3691WorkerReady?'Preprocessing ready':'Worker created; preprocessing may still be warming.');const profile=state.settings.learnedRecoveryProfile||{};add('Recovery-learning guardrails',Object.values(profile).every(x=>Number(x.multiplier)>=.84&&Number(x.multiplier)<=1.16&&Number(x.confidence)<=.62),'Personal multipliers are bounded and confidence-shrunk.')}catch(e){add('Self-check execution',false,e.message||String(e))}const pass=checks.filter(x=>x.ok).length;host.innerHTML='<div class="v3691-check-summary '+(pass===checks.length?'pass':'warn')+'"><strong>'+pass+'/'+checks.length+' checks passed</strong></div>'+checks.map(x=>'<div class="v3691-check '+(x.ok?'pass':'fail')+'"><strong>'+(x.ok?'✓':'✕')+' '+htmlSafe(x.name)+'</strong><span>'+htmlSafe(x.detail||'')+'</span></div>').join('')}
 
 // Emergency export/recovery now includes IndexedDB durable snapshots as well as the lightweight localStorage journal.
-window.hybridEmergencyExport=async function(){try{const all={exportedAt:new Date().toISOString(),location:location.href,storage:{},indexedDb:[]};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('hybridTraining'))all.storage[k]=localStorage.getItem(k)}try{all.indexedDb=(await v3691SnapshotList()).map(r=>({id:r.id,createdAt:r.createdAt,persistedAt:r.persistedAt,reason:r.reason,counts:r.counts,data:r.data}))}catch(e){all.indexedDbError=String(e.message||e)}const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='hybrid-training-emergency-storage-backup-v36.96.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){alert('Emergency backup failed: '+e.message)}};
+window.hybridEmergencyExport=async function(){try{const all={exportedAt:new Date().toISOString(),location:location.href,storage:{},indexedDb:[]};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('hybridTraining'))all.storage[k]=localStorage.getItem(k)}try{all.indexedDb=(await v3691SnapshotList()).map(r=>({id:r.id,createdAt:r.createdAt,persistedAt:r.persistedAt,reason:r.reason,counts:r.counts,data:r.data}))}catch(e){all.indexedDbError=String(e.message||e)}const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='hybrid-training-emergency-storage-backup-v36.97.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){alert('Emergency backup failed: '+e.message)}};
 window.hybridRecoverLocalData=async function(){try{const rows=await v3691SnapshotList(),current=rows.find(x=>x.id===V3691_CURRENT_ID),best=current||rows[0];if(best?.data){if(!confirm('Recover the latest durable IndexedDB training state? The current state will be archived first.'))return;await v3691PersistSnapshot(v3691NormalizeHydrated(v3691Clone(best.data)),'emergency-recover',true);v3691WriteBoot(best.data);alert('Durable training data recovered. The app will reload now.');location.reload();return}alert('No IndexedDB snapshot was found. Use Import Data or the migration safety copy if available.')}catch(e){alert('Recovery failed: '+e.message)}};
 
 async function v3691Init(){
@@ -14995,7 +15014,8 @@ v3691Init();
 @media(max-width:760px){.v3691-storage-grid{grid-template-columns:1fr 1fr}.v3691-check{grid-template-columns:1fr}.v3691-why-head{display:block}.v3691-confidence{margin-top:7px}}
 @media(max-width:420px){.v3691-storage-grid{grid-template-columns:1fr}.v3691-alt-chips .btn{flex:1 1 45%}}
 </style>
-\n<style id="v3693-qa-ux">
+
+<style id="v3693-qa-ux">
 /* v36.93 — QA/QC + usability refinement.
    Preserve information depth; reduce visual fragmentation and improve evidence weighting. */
 
@@ -15107,7 +15127,8 @@ v3691Init();
 #dashboard .v3693-why-more-body .v3691-change{border-top:1px dashed #223548;margin-top:6px;padding-top:8px}
 #dashboard .v3693-why-compare .v3691-alt-chips{margin-top:2px}
 
-</style>\n\n\n
+</style>
+
 <style id="v3694-readability">
 /* v36.94 — readability QA. Preserve the existing Training Calendar sizing; lift
    secondary research/diagnostic text that remained technically present but too small
@@ -15165,6 +15186,15 @@ v3691Init();
  #log .log-toolbar>.field:nth-child(1),#log .log-toolbar>.field:nth-child(2){grid-column:auto!important}
  #log .log-toolbar>.field:nth-child(1)>input,#log .log-toolbar>.field:nth-child(2)>input{min-height:48px}
 }
+</style>
+
+<style id="v3697-qa-fixes">
+/* v36.97 QA: compact controls keep their visual density but receive larger touch hit areas.
+   No calendar styling is changed in this release. */
+.view details:not(.rpe-details):not(.log-setup-details)>summary{padding-block:5px;margin-block:-5px;touch-action:manipulation}
+.movement-toggle,.muscle-specific-toggle{padding-top:6px!important;padding-bottom:6px!important;margin-top:-3px;margin-bottom:-3px;touch-action:manipulation}
+.muscle-specific-toggle,.research-source-title a{position:relative}
+.muscle-specific-toggle::after,.research-source-title a::after{content:'';position:absolute;inset:-6px -4px}
 </style>
 </body>
 </html>
