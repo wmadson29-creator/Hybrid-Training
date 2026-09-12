@@ -1,9 +1,9 @@
-const BUILD="36.90";
-const CACHE="hybrid-training-v36-90";
-const FALLBACK="./index.html?v=36.90";
+const BUILD="36.92";
+const CACHE="hybrid-training-v36-92";
+const FALLBACK="./index.html?v=36.92";
 const PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.90",
+  "./manifest-v36.webmanifest?v=36.92",
   "./hybrid-training-v34-64.png",
   "./hybrid-training-v34-180.png",
   "./hybrid-training-v34-192.png",
@@ -37,7 +37,6 @@ self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET")return;
   const url=new URL(event.request.url);
 
-  // Build detection must always see the deployed version rather than a cached copy.
   if(url.pathname.endsWith("/version.json")){
     event.respondWith(fetch(event.request,{cache:"no-store"}).catch(()=>caches.match(event.request)));
     return;
@@ -48,7 +47,6 @@ self.addEventListener("fetch",event=>{
       const cache=await caches.open(CACHE);
       const cached=await cache.match(FALLBACK);
       if(cached){
-        // Show the installed app immediately; refresh the cached HTML in the background.
         event.waitUntil(fetchAndCache(cache,"./index.html?v="+BUILD,{cache:"no-store"}).catch(()=>null));
         return cached;
       }
