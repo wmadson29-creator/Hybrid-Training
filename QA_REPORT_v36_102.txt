@@ -1,0 +1,35 @@
+Hybrid Training v36.102 — Deployment Resilience Hotfix QA/QC
+
+ROOT CAUSE CONFIRMED
+- Live GitHub repo was a mixed deployment: service worker at 36.101 while version.json and manifest remained at 36.100, and the new modular shell assets were not present.
+- v36.101 treated any deployed-version mismatch as an update and could fall back to a forced reload before the page finished hydrating on a slower installed-PWA boot.
+
+HOTFIX
+- Update detection is now monotonic: only a strictly newer deployed build is considered an update.
+- Older/stale version.json values are treated as deployment lag and never trigger reload.
+- Forced location.replace fallback was removed from deployed-build detection.
+- If the modular shell is unavailable, the core app keeps running and any truly newer update notice is deferred.
+- Shell assets renamed to app-shell-v36.102.js/css to avoid stale-cache ambiguity.
+
+QA RESULTS
+PASS — Static production/PWA QA completed.
+PASS — 431 DOM IDs; no duplicates.
+PASS — All production inline JS, modular shell JS, and sw.js parse successfully.
+PASS — version.json, HTML build marker, manifest start_url, service-worker build/cache, and shell asset names align to 36.102.
+PASS — No literal escaped-newline text leak.
+PASS — all app icon dimensions valid (64/180/192/512/512-maskable).
+PASS — no forced deployed-build location.replace path remains.
+PASS — newer-only build comparison present.
+PASS — deferred update fallback present when shell is unavailable.
+PASS — real-state interaction suite: 18/18.
+PASS — direct Log loads today's actual session and does not resurrect stale Barbell Strength.
+PASS — Workout Mode, progressive exercise disclosure, today-only context, History comparison, update banner, and responsive sweep.
+PASS — no uncaught browser errors or unexpected console warnings.
+PASS — pre-boot saved-state fixture hydrates normally: today's plan populated and 7 calendar days rendered.
+PASS — shell-missing degradation test: core still populated today's plan and 7 calendar days with zero errors.
+PASS — 21 critical training/model functions byte-for-byte unchanged from v36.101.
+PASS — 5-date v36.100 -> v36.102 no-context model spot-regression: 0 differences. (v36.101 already passed the complete 35-date regression before this hotfix; no model functions changed in v36.102.)
+
+USER DATA
+- No state reset, schema reset, or training-model retune is part of this hotfix.
+- Existing local workout/history data remains authoritative.
