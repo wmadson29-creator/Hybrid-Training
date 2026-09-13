@@ -1,0 +1,1 @@
+Hybrid Training v36.110 diagnostic export hotfix. Upload all deployment files together. Do not clear local app data. After load, reproduce the Today-screen problem once, then use More > Export Data and share the JSON for root-cause diagnosis.
