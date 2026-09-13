@@ -1,22 +1,29 @@
-const BUILD="36.105";
-const CACHE="hybrid-training-v36-105";
-const FALLBACK="./index.html?v=36.105";
-const PRECACHE=[
+const BUILD="36.106";
+const CACHE="hybrid-training-v36-106";
+const FALLBACK="./index.html?v=36.106";
+const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.105",
+  "./manifest-v36.webmanifest?v=36.106",
+  "./app-shell-v36.106.css?v=36.106",
+  "./app-shell-v36.106.js?v=36.106"
+];
+const OPTIONAL_PRECACHE=[
   "./hybrid-training-v34-64.png",
   "./hybrid-training-v34-180.png",
   "./hybrid-training-v34-192.png",
   "./hybrid-training-v34-512.png",
-  "./hybrid-training-v34-512-maskable.png",
-  "./app-shell-v36.105.css?v=36.105",
-  "./app-shell-v36.105.js?v=36.105"
+  "./hybrid-training-v34-512-maskable.png"
 ];
 
 self.addEventListener("install",event=>{
   event.waitUntil(
     caches.open(CACHE)
-      .then(cache=>Promise.all(PRECACHE.map(url=>cache.add(url).catch(()=>null))))
+      .then(async cache=>{
+        // Fail closed for the app shell: a partial deployment must not take over and
+        // delete the previous working cache. Icons are cosmetic and may fail independently.
+        await cache.addAll(REQUIRED_PRECACHE);
+        await Promise.all(OPTIONAL_PRECACHE.map(url=>cache.add(url).catch(()=>null)));
+      })
       .then(()=>self.skipWaiting())
   );
 });
@@ -38,12 +45,10 @@ async function fetchAndCache(cache,url,requestOptions={}){
 self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET")return;
   const url=new URL(event.request.url);
-
   if(url.pathname.endsWith("/version.json")){
     event.respondWith(fetch(event.request,{cache:"no-store"}).catch(()=>caches.match(event.request)));
     return;
   }
-
   if(event.request.mode==="navigate"){
     event.respondWith((async()=>{
       const cache=await caches.open(CACHE);
@@ -57,7 +62,6 @@ self.addEventListener("fetch",event=>{
     })());
     return;
   }
-
   event.respondWith((async()=>{
     const cache=await caches.open(CACHE),cached=await cache.match(event.request);
     if(cached){
@@ -71,5 +75,4 @@ self.addEventListener("fetch",event=>{
     }catch(_e){return cached||Response.error()}
   })());
 });
-
 self.addEventListener("message",event=>{if(event.data==="SKIP_WAITING")self.skipWaiting()});
