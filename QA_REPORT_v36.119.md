@@ -59,6 +59,19 @@ The QA-only accelerated timeout harness completed the four compatibility scenari
 - Release-document scan found no stale Sunday-owned allocator language other than statements explicitly explaining that the old forced-Sunday behavior was removed.
 - SHA-256 checksums were regenerated after the final source and documentation pass.
 
+## Standalone Stretching & Flexibility add-on
+
+This additive utility is deliberately isolated from HybridCore and the training-state write paths. It adds a More-menu/desktop navigation view that generates non-logged stretching routines from three explicit inputs: selected body regions, time available, and equipment available right now.
+
+- Granular region selection covers upper body, hips/torso, and lower body rather than broad limb-only categories.
+- Available equipment filters the candidate movement library; equipment-dependent movements are excluded unless the tool is selected.
+- Every generated card must directly target at least one selected region; secondary-target overlap can only improve ranking.
+- 5/10/15/20/30-minute routine generation, empty-state handling, equipment-specific scenarios, YouTube links, and 320 px horizontal-overflow behavior were tested in the standalone browser harness.
+- `stretching-flexibility-v36.119.js`, `app-shell-v36.119.js`, and `sw.js` pass syntax checks.
+- The feature does not log a session, write recovery, call recommendation/scheduling state mutations, or provide automatic recommendations.
+
+See `STRETCHING_FLEXIBILITY_RESEARCH_v36.119.md` and `STRETCHING_FLEXIBILITY_QA_v36.119.md` for the evidence basis and feature-specific test details.
+
 ## Important interpretation
 
 Future recommendations are forecasts, not commitments. They are recalculated from completed history, current recovery, tissue load, learned interference, and remaining development need. A future double-session slot can therefore move after real workouts are completed or skipped.

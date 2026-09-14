@@ -186,3 +186,11 @@ function boot(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
+
+// Standalone Stretching & Flexibility utility. This is intentionally loaded outside HybridCore
+// so it cannot participate in workout logging, recovery, scheduling, or adaptive recommendations.
+(function(){
+ 'use strict';
+ if(document.getElementById('stretchFlexModuleScript'))return;
+ const s=document.createElement('script');s.id='stretchFlexModuleScript';s.src='stretching-flexibility-v36.119.js?v=36.119-sf1';s.defer=true;document.body.appendChild(s);
+})();

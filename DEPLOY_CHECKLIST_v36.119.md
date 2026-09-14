@@ -8,3 +8,10 @@
 6. Spot-check a future weekend: only one of Saturday/Sunday should normally own the third main weekend workout, and that day may change when recovery/future-anchor context changes.
 7. In the future Hybrid phase, verify that occasional KB + aerobic weekday doubles appear without being attached to every KB day.
 8. Keep the packaged `SHA256SUMS_v36.119.txt` with the release artifacts so deployed files can be compared against the finalized package.
+
+
+## Stretching & Flexibility add-on
+- [ ] `stretching-flexibility-v36.119.js` is deployed beside the app shell.
+- [ ] `app-shell-v36.119.js` can load the standalone utility.
+- [ ] Service-worker cache key is `hybrid-training-v36-119-sf1` and the utility script is in required precache.
+- [ ] Confirm the More-menu entry opens the standalone utility and no workout/history entry is created.

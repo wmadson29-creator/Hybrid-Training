@@ -49,3 +49,12 @@ The existing calendar “Second main” treatment is reused; no new UI complexit
 - v36.116 effort-aware resistance stimulus remains intact.
 - Manual full-second-workout override remains available even when the automatic threshold is not met.
 - Existing export/import and stored-history schemas remain compatible.
+
+
+## Standalone Stretching & Flexibility utility
+
+A new **Stretching & Flexibility** utility is available from the More menu (and desktop navigation). It is intentionally outside the adaptive training model: it is never auto-recommended, never logged, and does not change recovery, fatigue, scheduling, cadence, progression, or workout recommendations.
+
+The user selects the specific areas that currently feel tight/sore, the available time (5/10/15/20/30 min), and equipment available right now. Equipment-aware options include a wall/doorway, chair/bench, pull-up or hanging bar, foam roller, stretch strap/towel/foot-loop strap, resistance band, PVC/yoga stick/dowel, slant board/calf stretcher, massage/lacrosse ball, and yoga block. The generator then builds an in-budget routine from a research-referenced stretch/mobility library.
+
+Routine cards show the target area, method (controlled mobility, static hold, foam rolling, or optional gentle contract-relax), exact dose, how to perform the movement, why it is included, cautions where relevant, and a direct YouTube search link. Slow controlled mobility is used instead of ballistic bouncing.
