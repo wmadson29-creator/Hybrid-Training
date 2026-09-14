@@ -1,11 +1,11 @@
-const BUILD="36.117";
-const CACHE="hybrid-training-v36-117";
-const FALLBACK="./index.html?v=36.117";
+const BUILD="36.119";
+const CACHE="hybrid-training-v36-119";
+const FALLBACK="./index.html?v=36.119";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.117",
-  "./app-shell-v36.117.css?v=36.117",
-  "./app-shell-v36.117.js?v=36.117"
+  "./manifest-v36.webmanifest?v=36.119",
+  "./app-shell-v36.119.css?v=36.119",
+  "./app-shell-v36.119.js?v=36.119"
 ];
 const OPTIONAL_PRECACHE=[
   "./hybrid-training-v34-64.png",
