@@ -6928,13 +6928,40 @@ function useRecommendedAdaptiveTraining(dateISO){
  ensureWorkoutIntentStores();const x=adaptiveModeSwitchBase(dateISO);clearDateProgrammingForIntent(dateISO,"");delete state.settings.workoutIntent[dateISO];delete state.settings.dayOverrides[dateISO];clearRestRecord(dateISO);delete state.settings.noRestAutoSuggestions[dateISO];
  save("adaptive-mode-recommended");refreshLogAfterAdaptiveModeChange(dateISO);renderWeek();renderSelectedWorkout();return true;
 }
+// v36.119 UI hardening: Conditioning is intentionally exposed as two primary-switch targets.
+// LSS/Aerobic chooses the more overdue easy-aerobic lane (running vs other cardio), while
+// Sprints/HIC forces the hard/speed lane. Both still pass through the normal recovery,
+// environment, tissue-load, equipment, and future-interference logic inside conditioningFor().
+function adaptiveConditioningSwitchFamily(dateISO){
+ const meta=(state.settings.conditioningSwapMeta||{})[dateISO]||{},activity=(state.settings.conditioningOverrides||{})[dateISO]||"";
+ if(meta.adaptiveFamily==="lss"||meta.adaptiveFamily==="speed")return meta.adaptiveFamily;
+ const lane=conditioningCadenceLaneForActivity(activity);return lane==="speed"?"speed":activity?"lss":"";
+}
+function adaptiveLssLaneForDate(dateISO){
+ const p=rollingCadencePortfolio(dateISO),run=p?.lanes?.run,cardio=p?.lanes?.cardio;
+ if(!run&&!cardio)return "run";if(!run)return "cardio";if(!cardio)return "run";
+ return Number(cardio.urgency||0)>Number(run.urgency||0)?"cardio":"run";
+}
+function switchAdaptiveConditioningFamily(dateISO,family){
+ if(!adaptiveModeSwitchEligible(dateISO))return false;if(!["lss","speed"].includes(family))return false;
+ if(!confirmAdaptiveModeDraftReplacement(dateISO))return false;
+ ensureWorkoutIntentStores();const x=adaptiveModeSwitchBase(dateISO);clearDateProgrammingForIntent(dateISO,"");clearRestRecord(dateISO);
+ if(x.base==="Recovery / Rest")state.settings.noRestDates[dateISO]=true;else delete state.settings.noRestDates[dateISO];
+ const lane=family==="speed"?"speed":adaptiveLssLaneForDate(dateISO),plan=conditioningFor(x.day,x.gw,dateISO,lane);
+ if(!plan?.activity)return false;
+ state.settings.conditioningOverrides[dateISO]=plan.activity;
+ state.settings.conditioningSwapMeta[dateISO]={from:x.base,to:plan.activity,mode:"adaptive-switch",adaptiveFamily:family,forcedCadenceLane:lane,unavailable:[],at:Date.now(),target:plan.target||"",rpe:plan.rpe||conditioningTargetRpe(plan.activity),whyFactors:uniqueConditioningReasons([family==="speed"?"You explicitly switched the primary to Sprints / HIC; the model still chose the specific hard session from recovery, tissue load, recent exposure, and future-interference context.":"You explicitly switched the primary to LSS / Aerobic; the model still chose the specific easy modality from run/cardio need, recovery, environment, availability, and future-interference context.",...(plan.whyFactors||[])])};
+ state.settings.dayOverrides[dateISO]="Conditioning";const familyLabel=family==="speed"?"Sprints / HIC":"LSS / Aerobic";recordWorkoutIntent(dateISO,"Conditioning","adaptive-switch",familyLabel+" • "+plan.activity,"mode-switch");
+ save("adaptive-conditioning-family-switch");refreshLogAfterAdaptiveModeChange(dateISO,"Conditioning");renderWeek();renderSelectedWorkout();return true;
+}
 function appendAdaptiveModeSwitcher(dateISO,session){
  if(!adaptiveModeSwitchEligible(dateISO))return;
- const recommended=recommendedAdaptiveSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),box=document.createElement("div");box.className="adaptive-mode-switcher";
- box.innerHTML='<div class="adaptive-mode-switcher-head"><div><div class="adaptive-mode-switcher-title">Switch training type</div><div class="adaptive-mode-switcher-copy">Choose another training type for this date. Every option remains recovery- and schedule-aware.<details class="micro-details"><summary>How switching is ranked</summary><div class="gym-step-sub">Non-anchor days are re-scored across Run, Other Cardio, Speed/HIC, Gym, Calisthenics, and Strength-Endurance. Spacing adapts when fixed workouts, rest, or classes reduce open slots.</div></details></div></div></div><div class="adaptive-mode-buttons"></div>';
+ const recommended=recommendedAdaptiveSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),conditioningFamily=adaptiveConditioningSwitchFamily(dateISO),box=document.createElement("div");box.className="adaptive-mode-switcher";
+ box.innerHTML='<div class="adaptive-mode-switcher-head"><div><div class="adaptive-mode-switcher-title">Switch training type</div><div class="adaptive-mode-switcher-copy">Choose another training type for this date. Every option remains recovery- and schedule-aware.<details class="micro-details"><summary>How switching is ranked</summary><div class="gym-step-sub">LSS / Aerobic and Sprints / HIC are separate choices. LSS chooses the best easy steady-state modality for the day; Sprints / HIC chooses from the hard-conditioning library. Gym, Calisthenics, SE, classes, activities, recovery and rest keep their existing switching logic.</div></details></div></div></div><div class="adaptive-mode-buttons"></div>';
  const host=box.querySelector(".adaptive-mode-buttons"),scheduledItem=selectedClassForDate(dateISO),scheduledType=scheduledItem?classActivityType(scheduledItem):"",defs=[
    {mode:"recommended",label:"Use Recommended",desc:"Rolling-horizon pick: "+recommended},
-   {mode:"Conditioning",label:"Conditioning",desc:"Today’s adaptive conditioning"},
+   {mode:"conditioning-lss",family:"lss",label:"LSS / Aerobic",desc:"Easy steady-state • adaptive run, swim, bike, row, etc."},
+   {mode:"conditioning-speed",family:"speed",label:"Sprints / HIC",desc:"Hard conditioning • hills, sprints, resets and similar work"},
    {mode:"Strength-Endurance",label:"SE Circuit",desc:"Choose equipment, then build today’s circuit"},
    {mode:"Calisthenics",label:"Calisthenics",desc:"Recommended bodyweight session"},
    {mode:"Generic Gym",label:"Generic Gym",desc:"Recommended weight session"},
@@ -6943,7 +6970,7 @@ function appendAdaptiveModeSwitcher(dateISO,session){
    {mode:"Active Recovery",label:"Active Recovery",desc:"Very easy aerobic recovery"},
    {mode:"Recovery / Rest",label:"Full Rest",desc:"No formal training"}
  ];
- defs.forEach(def=>{const b=document.createElement("button");b.type="button";b.className="btn adaptive-mode-btn";const current=def.mode==="recommended"?(!intent||intent.mode!=="adaptive-switch"):(def.mode==="class-picker"?scheduledType==="class":(def.mode==="activity-picker"?scheduledType==="activity":(session===def.mode&&intent?.mode==="adaptive-switch")));if(current)b.classList.add("current");b.innerHTML='<strong>'+htmlSafe(def.label)+'</strong><span>'+htmlSafe(def.desc)+'</span>';b.addEventListener("click",()=>{if(def.mode==="recommended")useRecommendedAdaptiveTraining(dateISO);else if(def.mode==="class-picker")openClassActivityPlanner(dateISO,"class");else if(def.mode==="activity-picker")openClassActivityPlanner(dateISO,"activity");else if(def.mode==="Active Recovery")markActiveRecoveryDay(dateISO);else if(def.mode==="Recovery / Rest")markRestDay(dateISO);else switchAdaptiveTrainingMode(dateISO,def.mode)});host.appendChild(b)});
+ defs.forEach(def=>{const b=document.createElement("button");b.type="button";b.className="btn adaptive-mode-btn";const current=def.mode==="recommended"?(!intent||intent.mode!=="adaptive-switch"):(def.family?(session==="Conditioning"&&intent?.mode==="adaptive-switch"&&conditioningFamily===def.family):(def.mode==="class-picker"?scheduledType==="class":(def.mode==="activity-picker"?scheduledType==="activity":(session===def.mode&&intent?.mode==="adaptive-switch"))));if(current)b.classList.add("current");b.innerHTML='<strong>'+htmlSafe(def.label)+'</strong><span>'+htmlSafe(def.desc)+'</span>';b.addEventListener("click",()=>{if(def.mode==="recommended")useRecommendedAdaptiveTraining(dateISO);else if(def.family)switchAdaptiveConditioningFamily(dateISO,def.family);else if(def.mode==="class-picker")openClassActivityPlanner(dateISO,"class");else if(def.mode==="activity-picker")openClassActivityPlanner(dateISO,"activity");else if(def.mode==="Active Recovery")markActiveRecoveryDay(dateISO);else if(def.mode==="Recovery / Rest")markRestDay(dateISO);else switchAdaptiveTrainingMode(dateISO,def.mode)});host.appendChild(b)});
  tbList.appendChild(box);
 }
 function noRestSuggestionForDate(dateISO){return adaptiveNoRestRecommendation(dateISO)}
@@ -16693,6 +16720,7 @@ window.__v36115={landmineSingleEnded:true,tbOnlyAutoKbSecondary:false};
 })();
 
 // v36.119 — unified Home secondary hub.
+// Hotfix 2026-09-15: split primary Conditioning switch into LSS/Aerobic vs Sprints/HIC; harden legacy secondary removal.
 // Primary recommendation/switching is intentionally untouched. This only consolidates the existing
 // full-second and short-secondary systems into one Home surface with explicit user overrides.
 (function(){
@@ -16795,6 +16823,9 @@ window.__v36115={landmineSingleEnded:true,tbOnlyAutoKbSecondary:false};
     if(!tbList)return;tbList.querySelectorAll('[data-v36121="secondary-hub"]').forEach(x=>x.remove());tbList.querySelectorAll('[data-v3677="secondary"]').forEach(x=>x.remove());tbList.querySelectorAll('.v36118-second-main-notice').forEach(x=>x.remove());
     const dateISO=selectedDateISO,d=parseLocalISO(dateISO),gw=trainingWeekForDate(d);if(!(gw>=1||baseBuildingForDate(dateISO)))return;const session=expectedSession(dayNameFromDate(dateISO),gw,dateISO);if(!session)return;
     const box=buildHub(dateISO,session),context=tbList.querySelector('[data-v3677="context"]'),actions=tbList.querySelector('.day-actions-details');if(context)tbList.insertBefore(box,context);else if(actions)tbList.insertBefore(box,actions);else tbList.appendChild(box);
+    // Legacy secondary panels are produced by older render wrappers earlier in the call chain.
+    // Remove them again after insertion so Primary -> unified Secondary is the only final Home layout.
+    tbList.querySelectorAll('[data-v3677="secondary"]').forEach(x=>x.remove());
   }
   const priorRenderSelected=renderSelectedWorkout;
   renderSelectedWorkout=function(){const out=priorRenderSelected.apply(this,arguments);try{renderHub()}catch(e){console.warn('v36.119 Home secondary hub:',e)}return out};
