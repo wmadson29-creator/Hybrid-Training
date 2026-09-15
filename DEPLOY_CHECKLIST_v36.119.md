@@ -13,3 +13,4 @@
 11. Keep `SHA256SUMS_v36.119.txt` with the release artifacts so deployed files can be compared with this package.
 
 12. Check a rolling week/calendar and confirm the Secondary line can visibly show **Short**, **Full**, and **None** when the model state supports them; weekday Short/Full are no longer structurally unreachable.
+- Service-worker cache revision for this follow-up: `hybrid-training-v36-119-weekend-history-gym-bb1`.

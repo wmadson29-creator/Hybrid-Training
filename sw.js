@@ -1,6 +1,6 @@
 const BUILD="36.119";
-const CACHE="hybrid-training-v36-119-secondary-frequency1";
-const FALLBACK="./index.html?v=36.119-conditioning-perf1";
+const CACHE="hybrid-training-v36-119-weekend-history-gym-bb1";
+const FALLBACK="./index.html?v=36.119-weekend-history-gym-bb1";
 const REQUIRED_PRECACHE=[
   FALLBACK,
   "./manifest-v36.webmanifest?v=36.119",

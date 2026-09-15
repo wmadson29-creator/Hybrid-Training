@@ -15,3 +15,9 @@ See UPDATE_NOTES_v36.119.md, QA_REPORT_v36.119.md, and CONDITIONING_FAMILY_PERFO
 
 SECONDARY FREQUENCY FOLLOW-UP
 The automatic model now has reachable weekday Short and weekday Full secondary outcomes under appropriate recovery/need conditions. Hard recovery, tissue, interference, and weekend-adjacency protections remain in force.
+
+WEEKEND / HISTORY / GYM-CONTEXT / BASE BUILDING FOLLOW-UP
+- Weekend planning now compares 2 full only, 2 full + 1 short, 2 full + 2 short, and 3 full as explicit two-day packages.
+- Past calendar dates show completed reality rather than regenerated recommendations, including actual Primary and actual Full/Short/None secondary status.
+- Barbell Strength now counts as already-at-gym for short-secondary equipment logic; low-overlap machine/cable accessories can compete with easy cardio. Rower and stair-stepper primaries also count as gym-on-site.
+- Base Building now presents conditioning explicitly as LSS / Aerobic versus Sprints / HIC while retaining the legacy internal Conditioning storage/session key for compatibility.

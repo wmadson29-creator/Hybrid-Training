@@ -50,3 +50,11 @@ The automatic secondary model was still too conservative in normal use even thou
 - A weekday full double is suppressed when it would directly crowd the weekend day already selected for the weekend double slot.
 
 Using the current-data regression fixture, the visible week contains weekday short secondaries and a real weekend full secondary, while many days still remain `None`. A longer prospective regression also produces both weekday Short and weekday Full outcomes rather than leaving either state practically unreachable.
+
+## Weekend package, historical-calendar truth, gym-on-site and Base Building follow-up
+- **Weekend density is now optimized as a two-day package.** The model explicitly compares `2 full only`, `2 full + 1 short`, `2 full + 2 short`, and `3 full`. A third full session is not automatically stacked with short secondaries; the model chooses the better weekend package from adaptation need, recovery, interference and microdose value.
+- **Past calendar dates are historical truth, not forecasts.** For dates before today, the card's Primary is replaced by the actual completed session/family and its completed exercises. Actual extra sessions are shown as Full or Short secondary; if nothing was logged, the card says so rather than displaying the old recommendation.
+- **Already-at-the-gym context is broader and consistent.** Barbell Strength is always gym-on-site. Rower/rowing-erg, stair-stepper/climber, stationary bike, treadmill, elliptical, SkiErg, VersaClimber and air-bike primaries can use enabled gym equipment for a low-friction short resistance secondary. Barbell Strength can now select low-overlap machine/cable accessories as an alternative to easy cardio. Automatic calf accessories remain deliberately de-prioritized.
+- **Base Building uses the conditioning-family split in presentation.** Weeks 1–5 endurance days are labeled LSS / Aerobic. Weeks 6–8 Tuesday/Friday HIC days are labeled Sprints / HIC, while Saturday remains LSS / Aerobic. The internal `Conditioning` key is intentionally retained for old-data and engine compatibility.
+- Newly saved workouts persist an explicit `primary` / `short` / `full` secondary-session role so future historical calendar reconstruction is exact; older history is inferred conservatively from the existing adaptive-secondary markers and completed session grouping.
+

@@ -108,3 +108,7 @@ The final packaged runtime additionally passed the v36.119 conditioning-family/p
 
 ## Secondary-frequency reachability follow-up
 A final practical-reachability regression was added after reports that Short appeared only occasionally on weekends and Full was never observed. The Barbell-day short-secondary hard gate was corrected, weekday full-double spacing was recalibrated, and modality-specific secondary eligibility now uses graded fatigue/interference scoring where appropriate rather than blanket label bans. The current-data fixture now shows a weekday Short and a weekend Full in the visible week, with longer prospective checks producing weekday Full outcomes as well. Multi-width browser QA remains clean at 320/390/768/1440 px with no overflow or runtime errors.
+
+## Weekend/history/gym/Base Building follow-up QA
+See `WEEKEND_HISTORY_GYM_BASEBUILDING_QA_v36.119.md`. Current-data browser regression verifies a reachable `2 full + 2 short` weekend, historical-calendar actuals, gym-on-site context for Barbell/rower/stair-stepper, split Base Building labels, the six-button Secondary matrix, no legacy secondary panel, zero horizontal overflow at 320/390/768/1440 px, and no page/console errors.
+
