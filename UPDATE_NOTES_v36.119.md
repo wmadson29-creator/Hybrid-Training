@@ -41,3 +41,12 @@ The bounded IndexedDB hydration/open fallback remains intact. Existing history i
 - Custom Short / Custom Full family selections persist their chosen family label for calendar display.
 - Conditioning-family comparison now exposes both **LSS / Aerobic** and **Sprints / HIC** in the recommendation comparison area; the currently selected family is visibly marked Current.
 - Legacy short-secondary text is no longer appended to the Primary calendar/Adaptive Pick label when the Secondary matrix owns that work.
+
+## Secondary-frequency calibration follow-up
+The automatic secondary model was still too conservative in normal use even though Full/Short/None were all technically supported. Two practical reachability problems were corrected:
+- **Weekday short secondaries are now reachable.** A whole-body Barbell Strength prescription previously saturated the overlap fingerprint and hit a hard upper-body rejection, making a short secondary effectively impossible on those weekdays. The hard rejection is now a graded interference penalty, while recovery/tissue/anchor safeguards remain authoritative.
+- **Weekday full secondaries are now genuinely reachable.** The rolling opportunity window and spacing were relaxed from the prior overly sparse behavior. Full secondaries remain selective and need/recovery driven; they are not attached to a fixed weekday.
+- Compact/moderate sprint sessions and KB Heavy/Power days can now earn a small complementary secondary when their actual fatigue/interference scores support it. KB Volume and severe/high-cost primary days remain strongly protected.
+- A weekday full double is suppressed when it would directly crowd the weekend day already selected for the weekend double slot.
+
+Using the current-data regression fixture, the visible week contains weekday short secondaries and a real weekend full secondary, while many days still remain `None`. A longer prospective regression also produces both weekday Short and weekday Full outcomes rather than leaving either state practically unreachable.

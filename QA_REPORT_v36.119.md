@@ -105,3 +105,6 @@ The final packaged runtime additionally passed the v36.119 conditioning-family/p
 - Headless current-data regression showed no page or console errors.
 - Tested day switches were in the millisecond range (about 4.3–97.5 ms on the measured visible days) and repeated full same-state renders were about 9.9–13.7 ms.
 - 320, 390, 768, and 1440 px viewports showed no document-level horizontal overflow.
+
+## Secondary-frequency reachability follow-up
+A final practical-reachability regression was added after reports that Short appeared only occasionally on weekends and Full was never observed. The Barbell-day short-secondary hard gate was corrected, weekday full-double spacing was recalibrated, and modality-specific secondary eligibility now uses graded fatigue/interference scoring where appropriate rather than blanket label bans. The current-data fixture now shows a weekday Short and a weekend Full in the visible week, with longer prospective checks producing weekday Full outcomes as well. Multi-width browser QA remains clean at 320/390/768/1440 px with no overflow or runtime errors.

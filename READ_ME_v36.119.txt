@@ -12,3 +12,6 @@ Key current behavior:
 Upload the runtime files together. Existing local workout/history data should be preserved; do not clear storage or re-import solely for this update.
 
 See UPDATE_NOTES_v36.119.md, QA_REPORT_v36.119.md, and CONDITIONING_FAMILY_PERFORMANCE_QA_v36.119.md.
+
+SECONDARY FREQUENCY FOLLOW-UP
+The automatic model now has reachable weekday Short and weekday Full secondary outcomes under appropriate recovery/need conditions. Hard recovery, tissue, interference, and weekend-adjacency protections remain in force.
