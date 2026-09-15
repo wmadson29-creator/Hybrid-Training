@@ -64,3 +64,8 @@ Routine cards show the target area, method (controlled mobility, static hold, fo
 Landmine movements now preserve single-ended loading through the Generic Gym plan-conversion path and again at final card rendering. The earlier metadata rule was correct but one Today-card path converted all barbell equipment to a generic two-sided boolean, which is why a 50-lb Half-Kneeling Landmine Press could still show 2.5 per side. The renderer now independently recognizes landmine metadata/name before drawing plates, so landmine exercises cannot fall back to the symmetric barbell helper even if an upstream plan row is too generic.
 
 Current convention remains: logged/displayed landmine weight is total implement weight, **45-lb bar + plates on one loaded end**. The anchored end receives no plates. Normal barbell lifts remain two-sided.
+
+## Sprint / hill research refinement
+- Sprint and hill conditioning sessions now use session-specific research-informed fatigue/tissue profiles instead of one generic hard-running bucket.
+- Hill sessions can log grade, including a Parking Garage preset (11% model default) plus exact percent override.
+- The same session-specific profile now informs difficulty, muscle/tissue fatigue, and conditioning context scoring.

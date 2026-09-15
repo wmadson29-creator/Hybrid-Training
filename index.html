@@ -9712,7 +9712,7 @@ function conditioningSummary(x){
   if(m.avgRep) bits.push("avg rep "+m.avgRep);
   if(m.avgHr) bits.push("avg HR "+m.avgHr);
   if(m.maxHr) bits.push("max HR "+m.maxHr);
-  if(m.elevation) bits.push(m.elevation+" ft gain");
+  if(m.elevation) bits.push(m.elevation+" ft gain");if(m.hillGradePct) bits.push(m.hillGradePct+"% hill");else if(m.hillGradeProfile==="parkingGarage") bits.push("parking-garage hill (~11%)");
   if(m.pace) bits.push(m.pace);
   if(m.speed) bits.push(m.speed+" mph");
   if(m.avgWatts) bits.push("avg "+m.avgWatts+" W");if(m.maxWatts) bits.push("max "+m.maxWatts+" W");if(m.cadence) bits.push(m.cadence+" rpm");if(m.strokeRate) bits.push(m.strokeRate+" spm");
@@ -9748,7 +9748,7 @@ function planFor(session,gw){
  if(session==="Open Training")return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"Open training day — add exercises as needed",conditioning:false}];
  if(session==="Recovery / Rest")return [{exercise:"Rest Day",sets:"",reps:"",weight:"",meta:"Recovery / Rest",conditioning:false}];
  if(session==="Active Recovery"){const c=activeRecoveryPick(logDate.value);return [{exercise:c.activity,plannedTarget:c.target,meta:c.detail+" • target RPE 2–3",conditioning:true}]}
- if(session==="Conditioning"){const day=dayNameFromDate(logDate.value),c=conditioningFor(day,gw,logDate.value),plan=[{exercise:c.activity,plannedTarget:c.target,meta:c.detail+" • target RPE "+c.rpe,conditioning:true}];return appendSmartAccessoryFinisherPlan("Conditioning",logDate.value,plan,c).filter(r=>!r.adaptiveSecondaryBlock)}
+ if(session==="Conditioning"){const day=dayNameFromDate(logDate.value),c=v36119CanonicalConditioningPlanForDate(logDate.value,day,gw),plan=[{exercise:c.activity,plannedTarget:c.target,meta:c.detail+" • target RPE "+c.rpe,conditioning:true}];return appendSmartAccessoryFinisherPlan("Conditioning",logDate.value,plan,c).filter(r=>!r.adaptiveSecondaryBlock)}
  return [{exercise:"Other",sets:"",reps:"",weight:"",meta:"",conditioning:false}];
 }
 
@@ -10386,7 +10386,7 @@ function renderWeek(){
  weekSchedule.forEach((x,i)=>{
    const date=addDays(start,i),iso=localISO(date),day=x[0],session=expectedSession(day,programWeek,iso);
    let focus=x[2];
-   if(session==="Conditioning"){const c=conditioningFor(day,programWeek,iso),acc=v3678CalendarSecondaryFor("Conditioning",iso);focus=c.activity+" • "+c.target+(acc?" + "+acc.label:"")}
+   if(session==="Conditioning"){const rec=v36119CanonicalOpenRecommendationForDate(iso,session),c=v36119CanonicalConditioningPlanForDate(iso,day,programWeek),acc=rec?.addOn||v3678CalendarSecondaryFor("Conditioning",iso);focus=v36119ConditioningDisplayLabel(c,acc)}
    else if(session==="Strength-Endurance"){const b=baseBuildingForDate(iso),w=b?null:adaptiveSEWorkoutFor(iso),rx=b?baseSEPrescription(b.week,b.dayIndex):(w?{circuits:w.circuits,reps:w.reps}:adaptiveSEPrescription(iso)),circuit=b?currentBaseCircuitForDate(iso):(w?.circuit||[]),acc=!b?v3678CalendarSecondaryFor("Strength-Endurance",iso):null;focus=(rx?rx.circuits+" circuits × "+rx.reps+" reps • ":"")+(circuit.length?circuit.slice(0,3).map(x=>x.exercise).join(" / ")+(circuit.length>3?" + more":""):"choose today's equipment")+(acc?" + "+acc.label:"")}
    else if(session.startsWith("KB ")){const acc=v3678CalendarSecondaryFor(session,iso);if(acc)focus+=(focus?" • ":"")+"+ "+acc.label}
    else if(session==="Generic Gym"){const g=genericGymWorkoutFor(iso),acc=v3678CalendarSecondaryFor("Generic Gym",iso);focus=(g.name||"Generic Gym")+" • "+g.rows.length+" exercises"+(acc?" + "+acc.label:"")}
@@ -10454,7 +10454,7 @@ function appendProgramExceptionNotice(dateISO){
  tbList.appendChild(box);
 }
 function dashboardExplanationHtml(title,items=[],extraHtml=""){const clean=(items||[]).map(x=>String(x||"").trim()).filter(Boolean);if(!clean.length&&!extraHtml)return "";return '<details class="dashboard-explanation"><summary>'+htmlSafe(title)+'</summary><div class="dashboard-explanation-body">'+(clean.length?'<ul>'+clean.map(x=>'<li>'+htmlSafe(x)+'</li>').join("")+'</ul>':'')+(extraHtml||'')+'</div></details>'}
-function appendAdaptiveOpenDayNotice(dateISO,session){const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=programScheduledSessionForDate(dateISO),moveFrom=programMoveFromDate(dateISO);if(completedSessionGroupsForDate(dateISO).length)return;if((baseBuildingForDate(dateISO)&&!moveFrom)||!rollingOpenDayEligible(dateISO,base))return;const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])}),box=document.createElement("div"),alternatives=(rec.options||[]).filter(x=>x.session!==rec.session).slice(0,3).map(x=>x.session+" ("+x.score+")").join(" • "),why=(rec.why||[]).slice(0,5),cadenceText=rec.cadence?rec.cadence.ordered.map(x=>x.label+": "+(x.daysSince>=9999?"no recent":x.daysSince+"d")).join(" • "):"",details=[];box.className="notice compact-recommendation";if(rec.cadence)details.push("Six-lane spacing target ≈ "+rec.cadence.capacity.targetDays+" days; Cal/SE ≈ "+rec.cadence.lanes.calisthenics.targetDays+" days. "+cadenceText);if(alternatives)details.push("Other scored modes: "+alternatives);if(rec.endurance)details.push("Endurance: "+(rec.endurance.daysSinceMeaningful>=9999?"no meaningful recent dose":rec.endurance.daysSinceMeaningful+" days since meaningful dose")+"; decayed dose "+rec.endurance.decayedEquivalentMinutes+" run-equivalent min.");if(rec.projectedForecast)details.push("Earlier future flexible recommendations are temporarily represented as projections so later dates respect the rotation; actual logs replace them.");if((rec.addOn||rec.accessory)?.label){const a=rec.addOn||rec.accessory;details.push((a.kind==='secondary'?"Secondary block: ":"Accessory: ")+a.label+" — "+(a.why||[]).slice(0,2).join(" "));}details.push(...why);box.innerHTML='<strong>Adaptive pick:</strong> '+htmlSafe(rec.session)+(rec.label&&rec.label!==rec.session?' • '+htmlSafe(rec.label):'')+dashboardExplanationHtml("Why this recommendation",details);tbList.appendChild(box)}
+function appendAdaptiveOpenDayNotice(dateISO,session){const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=programScheduledSessionForDate(dateISO),moveFrom=programMoveFromDate(dateISO);if(completedSessionGroupsForDate(dateISO).length)return;if((baseBuildingForDate(dateISO)&&!moveFrom)||!rollingOpenDayEligible(dateISO,base))return;const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])}),box=document.createElement("div"),alternatives=(rec.options||[]).filter(x=>x.session!==rec.session).slice(0,3).map(x=>x.session+" ("+x.score+")").join(" • "),why=(rec.why||[]).slice(0,5),cadenceText=rec.cadence?rec.cadence.ordered.map(x=>x.label+": "+(x.daysSince>=9999?"no recent":x.daysSince+"d")).join(" • "):"",details=[];box.className="notice compact-recommendation";if(rec.cadence)details.push("Six-lane spacing target ≈ "+rec.cadence.capacity.targetDays+" days; Cal/SE ≈ "+rec.cadence.lanes.calisthenics.targetDays+" days. "+cadenceText);if(alternatives)details.push("Other scored modes: "+alternatives);if(rec.endurance)details.push("Endurance: "+(rec.endurance.daysSinceMeaningful>=9999?"no meaningful recent dose":rec.endurance.daysSinceMeaningful+" days since meaningful dose")+"; decayed dose "+rec.endurance.decayedEquivalentMinutes+" run-equivalent min.");if(rec.projectedForecast)details.push("Earlier future flexible recommendations are temporarily represented as projections so later dates respect the rotation; actual logs replace them.");if((rec.addOn||rec.accessory)?.label){const a=rec.addOn||rec.accessory;details.push((a.kind==='secondary'?"Secondary block: ":"Accessory: ")+a.label+" — "+(a.why||[]).slice(0,2).join(" "));}details.push(...why);const displayLabel=v36119RecommendationDisplayLabel(rec);box.innerHTML='<strong>Adaptive pick:</strong> '+htmlSafe(rec.session)+(displayLabel&&displayLabel!==rec.session?' • '+htmlSafe(displayLabel):'')+dashboardExplanationHtml("Why this recommendation",details);tbList.appendChild(box)}
 function renderSelectedWorkout(){
  const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);
  if(gw<1&&!baseBuildingForDate(selectedDateISO)){if(document.getElementById("selectedWorkoutActions"))document.getElementById("selectedWorkoutActions").innerHTML="";tbList.innerHTML='<div class="empty">This date is before Training Week 1.</div>';workoutTitle.textContent="Workout Prescription";tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});selectedDateBadge.textContent="Before plan";plateLegend.classList.add("hidden");return}
@@ -10494,7 +10494,7 @@ function renderSelectedWorkout(){
  if(session==="Conditioning"){
    const manual=(state.settings.customDayWorkouts||{})[selectedDateISO];
    if(manual&&manual.session==="Conditioning"&&Array.isArray(manual.rows)&&manual.rows.length){manual.rows.forEach(r=>{if(r.conditioning)appendExerciseCard({exercise:r.exercise,target:r.plannedTarget||"Custom / manual conditioning",meta:r.meta||"MANUAL CONDITIONING",note:r.note||"Built directly in Log Workout."});else appendExerciseCard({exercise:r.exercise,sets:r.sets,reps:r.reps,weight:r.weight,meta:r.adaptiveSecondaryBlock?("SMART SECONDARY • "+String(r.secondaryFocus||"").toUpperCase()+" • LIGHT"):(r.meta||"MANUAL RESISTANCE ADD-ON"),note:r.note||"Resistance work attached to this conditioning day.",untimedCoreFinisher:!!r.untimedCoreFinisher,adaptiveAccessoryFinisher:!!r.adaptiveAccessoryFinisher,accessoryFinisherType:r.accessoryFinisherType||"",adaptiveSecondaryBlock:!!r.adaptiveSecondaryBlock,secondaryTrainingType:r.secondaryTrainingType||"",secondaryFocus:r.secondaryFocus||"",secondaryCadenceCredit:Number(r.secondaryCadenceCredit)||0})});appendDayControls(session);return}
-   const moveTarget=programMoveToDate(selectedDateISO),c=moveTarget?conditioningFor(dayNameFromDate(prescriptionDate),prescriptionGw,prescriptionDate):conditioningFor(day,gw,selectedDateISO),lib=[...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary].find(x=>x.name===c.activity),factors=uniqueConditioningReasons(c.whyFactors||[]);
+   const moveTarget=programMoveToDate(selectedDateISO),c=moveTarget?v36119CanonicalConditioningPlanForDate(prescriptionDate,dayNameFromDate(prescriptionDate),prescriptionGw):v36119CanonicalConditioningPlanForDate(selectedDateISO,day,gw),lib=[...tbEnduranceLibrary,...tbHICLibrary,...tbPowerLibrary].find(x=>x.name===c.activity),factors=uniqueConditioningReasons(c.whyFactors||[]);
    let note='<strong>Recommendation:</strong> '+htmlSafe(c.detail);
    if(factors.length)note+=dashboardExplanationHtml('Why this recommendation',factors.slice(0,5));
    else if(c.why)note+='<br><strong>Why today:</strong> '+htmlSafe(c.why);
@@ -12790,7 +12790,7 @@ const savedMetricClassMap={
  intervals:"le-intervals",workInterval:"le-work",restInterval:"le-rest",ruckWeight:"le-ruckweight",vestWeight:"le-vestweight",kbWeight:"le-kbweight",
  secondWeight:"le-secondweight",sledgeWeight:"le-sledgeweight",activities:"le-activities",circuitRest:"le-circuitrest",lowRung:"le-lowrung",
  sprintDistance:"le-sprintdistance",bestRep:"le-bestrep",avgRep:"le-avgrep",lastRep:"le-lastrep",sprint100:"le-sprint100",secondWork:"le-secondwork",
- clusterType:"le-clustertype",temperature:"le-temperature",environment:"le-environment",surface:"le-surface",altitudeFt:"le-altitude",avgWatts:"le-avgwatts",maxWatts:"le-maxwatts",cadence:"le-cadence",strokeRate:"le-strokerate",firstHalfAvgHr:"le-first-half-hr",secondHalfAvgHr:"le-second-half-hr",firstHalfPace:"le-first-half-pace",secondHalfPace:"le-second-half-pace",firstHalfWatts:"le-first-half-watts",secondHalfWatts:"le-second-half-watts",decouplingPct:"le-decoupling",humidity:"le-humidity",windMph:"le-wind",
+ clusterType:"le-clustertype",temperature:"le-temperature",environment:"le-environment",surface:"le-surface",altitudeFt:"le-altitude",avgWatts:"le-avgwatts",maxWatts:"le-maxwatts",cadence:"le-cadence",strokeRate:"le-strokerate",firstHalfAvgHr:"le-first-half-hr",secondHalfAvgHr:"le-second-half-hr",firstHalfPace:"le-first-half-pace",secondHalfPace:"le-second-half-pace",firstHalfWatts:"le-first-half-watts",secondHalfWatts:"le-second-half-watts",decouplingPct:"le-decoupling",humidity:"le-humidity",windMph:"le-wind",hillGradeProfile:"le-hillgradeprofile",hillGradePct:"le-hillgradepct",
  floors:"le-floors",runDistance:"le-rundistance",rowDistance:"le-rowdistance",activeTime:"le-activetime",gamesPlayed:"le-gamesplayed",playFormat:"le-playformat",courtType:"le-courttype",drillType:"le-drilltype",shotReps:"le-shotreps",matchContext:"le-matchcontext",activitySteps:"le-activitysteps"
 };
 function setExerciseSelectForSavedCard(card,exercise){
@@ -13576,7 +13576,7 @@ function completeWorkout(){
        lowRung:valueOf(c,".le-lowrung"),sprintDistance:valueOf(c,".le-sprintdistance"),bestRep:valueOf(c,".le-bestrep"),avgRep:valueOf(c,".le-avgrep"),
        lastRep:valueOf(c,".le-lastrep"),sprint100:valueOf(c,".le-sprint100"),secondWork:valueOf(c,".le-secondwork"),clusterType:valueOf(c,".le-clustertype"),
        temperature:valueOf(c,".le-temperature"),environment:valueOf(c,".le-environment"),surface:valueOf(c,".le-surface"),altitudeFt:valueOf(c,".le-altitude"),avgWatts:valueOf(c,".le-avgwatts"),maxWatts:valueOf(c,".le-maxwatts"),cadence:valueOf(c,".le-cadence"),
-       strokeRate:valueOf(c,".le-strokerate"),floors:valueOf(c,".le-floors"),runDistance:valueOf(c,".le-rundistance"),rowDistance:valueOf(c,".le-rowdistance"),activeTime:valueOf(c,".le-activetime"),gamesPlayed:valueOf(c,".le-gamesplayed"),playFormat:valueOf(c,".le-playformat"),courtType:valueOf(c,".le-courttype"),drillType:valueOf(c,".le-drilltype"),shotReps:valueOf(c,".le-shotreps"),matchContext:valueOf(c,".le-matchcontext"),activitySteps:valueOf(c,".le-activitysteps"),firstHalfAvgHr:valueOf(c,".le-first-half-hr"),secondHalfAvgHr:valueOf(c,".le-second-half-hr"),firstHalfPace:valueOf(c,".le-first-half-pace"),secondHalfPace:valueOf(c,".le-second-half-pace"),firstHalfWatts:valueOf(c,".le-first-half-watts"),secondHalfWatts:valueOf(c,".le-second-half-watts"),decouplingPct:valueOf(c,".le-decoupling"),humidity:valueOf(c,".le-humidity"),windMph:valueOf(c,".le-wind"),
+       strokeRate:valueOf(c,".le-strokerate"),floors:valueOf(c,".le-floors"),runDistance:valueOf(c,".le-rundistance"),rowDistance:valueOf(c,".le-rowdistance"),activeTime:valueOf(c,".le-activetime"),gamesPlayed:valueOf(c,".le-gamesplayed"),playFormat:valueOf(c,".le-playformat"),courtType:valueOf(c,".le-courttype"),drillType:valueOf(c,".le-drilltype"),shotReps:valueOf(c,".le-shotreps"),matchContext:valueOf(c,".le-matchcontext"),activitySteps:valueOf(c,".le-activitysteps"),firstHalfAvgHr:valueOf(c,".le-first-half-hr"),secondHalfAvgHr:valueOf(c,".le-second-half-hr"),firstHalfPace:valueOf(c,".le-first-half-pace"),secondHalfPace:valueOf(c,".le-second-half-pace"),firstHalfWatts:valueOf(c,".le-first-half-watts"),secondHalfWatts:valueOf(c,".le-second-half-watts"),decouplingPct:valueOf(c,".le-decoupling"),humidity:valueOf(c,".le-humidity"),windMph:valueOf(c,".le-wind"),hillGradeProfile:valueOf(c,".le-hillgradeprofile"),hillGradePct:valueOf(c,".le-hillgradepct"),
        components:collectConditioningComponents(c)
      };
      if(!notDone){
@@ -13760,12 +13760,12 @@ exportJson.addEventListener("click",()=>{
  }finally{setTimeout(()=>{if(btn){btn.disabled=false;btn.textContent=oldText}},900)}
 });
 exportCsv.addEventListener("click",()=>{
- const keys=["date","sessionTime","sessionTimestamp","sessionStartedAt","sessionEndedAt","sessionPausedMs","trackedSessionDurationMinutes","sessionDurationMinutes","completedAt","setDetails","components","untimedCoreFinisher","adaptiveAccessoryFinisher","accessoryFinisherType","adaptiveSecondaryBlock","secondaryTrainingType","secondaryFocus","secondaryCadenceCredit","modelExposureClass","contextTimeOfDay","contextFedState","contextEnvironment","contextKbMode","contextGymAccess","week","session","exercise","sets","reps","weight","modelPlannedExercise","modelPlannedSets","modelPlannedReps","modelPlannedWeight","modelExpectedRpe","modelPlannedExpectedRpe","modelPlannedRestSeconds","modelPredictionVersion","modelPredictionConfidence","modelPredictionError","modelPlannedPredictionError","rpeUnknown","rpeConfidence","modelExerciseOverride","modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType","recommendationFeedback","recommendationFeedbackTarget","recommendationFeedbackSession","recommendationFeedbackNote","changeReason","painLevel","painArea","sideBalance","leftReps","leftWeight","rightReps","rightWeight","distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","environment","surface","altitudeFt","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","activeTime","gamesPlayed","playFormat","courtType","drillType","shotReps","matchContext","activitySteps","firstHalfAvgHr","secondHalfAvgHr","firstHalfPace","secondHalfPace","firstHalfWatts","secondHalfWatts","decouplingPct","humidity","windMph","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
+ const keys=["date","sessionTime","sessionTimestamp","sessionStartedAt","sessionEndedAt","sessionPausedMs","trackedSessionDurationMinutes","sessionDurationMinutes","completedAt","setDetails","components","untimedCoreFinisher","adaptiveAccessoryFinisher","accessoryFinisherType","adaptiveSecondaryBlock","secondaryTrainingType","secondaryFocus","secondaryCadenceCredit","modelExposureClass","contextTimeOfDay","contextFedState","contextEnvironment","contextKbMode","contextGymAccess","week","session","exercise","sets","reps","weight","modelPlannedExercise","modelPlannedSets","modelPlannedReps","modelPlannedWeight","modelExpectedRpe","modelPlannedExpectedRpe","modelPlannedRestSeconds","modelPredictionVersion","modelPredictionConfidence","modelPredictionError","modelPlannedPredictionError","rpeUnknown","rpeConfidence","modelExerciseOverride","modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType","recommendationFeedback","recommendationFeedbackTarget","recommendationFeedbackSession","recommendationFeedbackNote","changeReason","painLevel","painArea","sideBalance","leftReps","leftWeight","rightReps","rightWeight","distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","environment","surface","altitudeFt","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","activeTime","gamesPlayed","playFormat","courtType","drillType","shotReps","matchContext","activitySteps","firstHalfAvgHr","secondHalfAvgHr","firstHalfPace","secondHalfPace","firstHalfWatts","secondHalfWatts","decouplingPct","humidity","windMph","hillGradeProfile","hillGradePct","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
  const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
  const row=x=>keys.map(k=>{
    if(k==="setDetails")return esc(Array.isArray(x.setDetails)?JSON.stringify(x.setDetails):"");
    if(k==="components")return esc(Array.isArray((x.metrics||{}).components)?JSON.stringify((x.metrics||{}).components):"");
-   if(["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","environment","surface","altitudeFt","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","activeTime","gamesPlayed","playFormat","courtType","drillType","shotReps","matchContext","activitySteps","firstHalfAvgHr","secondHalfAvgHr","firstHalfPace","secondHalfPace","firstHalfWatts","secondHalfWatts","decouplingPct","humidity","windMph"].includes(k)) return esc((x.metrics||{})[k]);
+   if(["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","environment","surface","altitudeFt","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","activeTime","gamesPlayed","playFormat","courtType","drillType","shotReps","matchContext","activitySteps","firstHalfAvgHr","secondHalfAvgHr","firstHalfPace","secondHalfPace","firstHalfWatts","secondHalfWatts","decouplingPct","humidity","windMph","hillGradeProfile","hillGradePct"].includes(k)) return esc((x.metrics||{})[k]);
    return esc(x[k]);
  }).join(",");
  const csv=[keys.join(","),...state.logs.map(row)].join("\n");
@@ -13870,7 +13870,7 @@ function normalizeImportedLog(row,index){
    const r=Number(row.rpe);if(!Number.isFinite(r)||r<1||r>10)throw new Error("Workout log row "+(index+1)+" has an invalid RPE.");
    out.rpe=r;
  }
- const metricKeys=["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","environment","surface","altitudeFt","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","activeTime","gamesPlayed","playFormat","courtType","drillType","shotReps","matchContext","activitySteps","firstHalfAvgHr","secondHalfAvgHr","firstHalfPace","secondHalfPace","firstHalfWatts","secondHalfWatts","decouplingPct","humidity","windMph"];
+ const metricKeys=["distance","distanceUnit","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","environment","surface","altitudeFt","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","activeTime","gamesPlayed","playFormat","courtType","drillType","shotReps","matchContext","activitySteps","firstHalfAvgHr","secondHalfAvgHr","firstHalfPace","secondHalfPace","firstHalfWatts","secondHalfWatts","decouplingPct","humidity","windMph","hillGradeProfile","hillGradePct"];
  if(isPlainRecord(row.metrics)){
    out.metrics={};
    metricKeys.forEach(k=>{if(row.metrics[k]!==undefined)out.metrics[k]=importedScalar(row.metrics[k],500)});
@@ -15134,8 +15134,8 @@ function v3691ChangedSinceYesterday(dateISO,rec){
 }
 function v3691AlternativeCopy(alt,rec){const gap=Math.round((Number(rec?.score||rec?.options?.[0]?.score||0)-Number(alt?.score||0))*10)/10,reason=(alt?.why||[]).filter(Boolean).slice(0,3);return '<strong>'+htmlSafe(alt.session)+'</strong> is '+Math.max(0,gap)+' points behind today’s winner.'+(reason.length?'<ul>'+reason.map(x=>'<li>'+htmlSafe(x)+'</li>').join('')+'</ul>':'')}
 function v3691RecommendationPanel(session,dateISO){
- const base=programScheduledSessionForDate(dateISO);if(!rollingOpenDayEligible(dateISO,base))return null;let rec;try{rec=rollingOpenDayRecommendation(dateISO)}catch(_e){return null}if(!rec||!rec.options?.length)return null;const conf=v3691Confidence(rec),box=document.createElement('div');box.className='v3691-why-panel';box.dataset.v3691='why';const reasons=(rec.why||[]).filter(Boolean).slice(0,5),alts=rec.options.filter(x=>x.session!==rec.session&&Number(x.score)>-900).slice(0,4);
- box.innerHTML='<div class="v3691-why-head"><div><div class="v3691-kicker">Why this today?</div><div class="v3691-why-title">'+htmlSafe(rec.label||rec.session)+'</div></div><span class="v3691-confidence '+conf.level+'">'+htmlSafe(conf.label)+' confidence • '+conf.margin+' pt margin</span></div><div class="v3691-why-reasons">'+reasons.map(x=>'<div>• '+htmlSafe(x)+'</div>').join('')+'</div><div class="v3691-change"><strong>What changed since yesterday:</strong> '+htmlSafe(v3691ChangedSinceYesterday(dateISO,rec))+'</div>'+(alts.length?'<div class="v3691-alt-label">Compare another mode</div><div class="v3691-alt-chips">'+alts.map((a,i)=>'<button class="btn v3691-alt" type="button" data-i="'+i+'">'+htmlSafe(a.session)+'</button>').join('')+'</div><div class="v3691-alt-detail" aria-live="polite"></div>':'');
+ const base=programScheduledSessionForDate(dateISO);if(!rollingOpenDayEligible(dateISO,base))return null;let rec;try{rec=rollingOpenDayRecommendation(dateISO)}catch(_e){return null}if(!rec||!rec.options?.length||rec.session!==session)return null;const conf=v3691Confidence(rec),box=document.createElement('div');box.className='v3691-why-panel';box.dataset.v3691='why';const reasons=(rec.why||[]).filter(Boolean).slice(0,5),alts=rec.options.filter(x=>x.session!==rec.session&&Number(x.score)>-900).slice(0,4),displayLabel=v36119RecommendationDisplayLabel(rec);
+ box.innerHTML='<div class="v3691-why-head"><div><div class="v3691-kicker">Why this today?</div><div class="v3691-why-title">'+htmlSafe(displayLabel||rec.session)+'</div></div><span class="v3691-confidence '+conf.level+'">'+htmlSafe(conf.label)+' confidence • '+conf.margin+' pt margin</span></div><div class="v3691-why-reasons">'+reasons.map(x=>'<div>• '+htmlSafe(x)+'</div>').join('')+'</div><div class="v3691-change"><strong>What changed since yesterday:</strong> '+htmlSafe(v3691ChangedSinceYesterday(dateISO,rec))+'</div>'+(alts.length?'<div class="v3691-alt-label">Compare another mode</div><div class="v3691-alt-chips">'+alts.map((a,i)=>'<button class="btn v3691-alt" type="button" data-i="'+i+'">'+htmlSafe(a.session)+'</button>').join('')+'</div><div class="v3691-alt-detail" aria-live="polite"></div>':'');
  box.querySelectorAll('.v3691-alt').forEach(b=>b.addEventListener('click',()=>{const alt=alts[Number(b.dataset.i)||0],detail=box.querySelector('.v3691-alt-detail');box.querySelectorAll('.v3691-alt').forEach(x=>x.classList.toggle('primary',x===b));if(detail)detail.innerHTML=v3691AlternativeCopy(alt,rec)}));return box;
 }
 const v3691OriginalRenderSelectedWorkout=renderSelectedWorkout;
@@ -16042,6 +16042,29 @@ rollingOpenDayRecommendation=function(dateISO,options={}){
  let base=v36119WeekendDay(dateISO)?v36119NeutralPrimaryRecommendation(dateISO,options):v36119PriorRollingOpenDayRecommendation(dateISO,options);if(!base||base.resilientFallback||baseBuildingForDate(dateISO))return base;if(v36119WeekendDay(dateISO)){const w=v36119WeekendAllocation(dateISO);if(w?.date===dateISO&&w.primary?.session&&w.primary.session!==base.session){const match=(base.options||[]).find(x=>x.session===w.primary.session);if(match)base=v36119BuildOpenRecommendation(base,match,dateISO,base.options)}}const second=v36119PlannedSecondMain(dateISO,base.session);if(!second)return {...base,weekendSecondMain:null,weekendStandard:false};const why=uniqueConditioningReasons([...(base.why||[]),...(second.why||[])]);return {...base,weekendSecondMain:second,weekendStandard:v36119WeekendDay(dateISO),weekdayDouble:!v36119WeekendDay(dateISO),why};
 };
 
+// v36.119 consistency hotfix — one resolved adaptive conditioning plan must drive every UI/log surface.
+// Previously the calendar, recommendation panel, selected-day prescription, and Log flow could
+// each call conditioningFor() independently. On forecasted open days that could resolve different
+// cadence lanes (for example Standard Issue Hills in the calendar vs LSS Run in Why-this-today).
+function v36119CanonicalOpenRecommendationForDate(dateISO,session=''){
+ try{
+  const base=programScheduledSessionForDate(dateISO);if(!rollingOpenDayEligible(dateISO,base))return null;
+  const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});
+  if(!rec||session&&rec.session!==session)return null;return rec;
+ }catch(_e){return null}
+}
+function v36119CanonicalConditioningPlanForDate(dateISO,day='',gw=0){
+ const rec=v36119CanonicalOpenRecommendationForDate(dateISO,'Conditioning');if(rec?.plan?.activity)return rec.plan;
+ const d=parseLocalISO(dateISO),resolvedDay=day||dayNameFromDate(dateISO),resolvedGw=Math.max(1,Number(gw)||trainingWeekForDate(d)||state.settings.currentWeek);
+ return conditioningFor(resolvedDay,resolvedGw,dateISO);
+}
+function v36119ConditioningDisplayLabel(plan,addOn=null){
+ if(!plan)return 'Conditioning';const primary=(plan.activity||'Conditioning')+(plan.target?' • '+plan.target:'');return primary+(addOn?.label?' + '+addOn.label:'');
+}
+function v36119RecommendationDisplayLabel(rec){
+ if(!rec)return '';if(rec.session==='Conditioning'&&rec.plan?.activity)return v36119ConditioningDisplayLabel(rec.plan,rec.addOn||null);return rec.label||rec.session||'';
+}
+
 // Fixed-KB forecast gate now uses the same high-threshold weekday allocator instead of
 // assuming every KB anchor should automatically carry aerobic work.
 v36118ShouldProjectKbSecond=function(dateISO,kbSession){if(blockModeForWeek(Math.max(1,trainingWeekForDate(parseLocalISO(dateISO))))!=='hybrid')return false;return !!v36119WeekdaySecond(dateISO,{session:kbSession,label:kbSession,plan:null})};
@@ -16544,6 +16567,120 @@ window.HybridCore=Object.freeze({
 <script id="v36116-build-note">
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.
 window.__v36115={landmineSingleEnded:true,tbOnlyAutoKbSecondary:false};
+</script>
+<script id="v36120-sprint-hill-research-model">
+// v36.119 research hardening — sprint / hill sessions are no longer one generic hard-run bucket.
+// Relative weights are intentionally bounded priors, not injury predictions or exact EMG percentages.
+// Evidence basis: graded-running biomechanics (PMID 27501719, 32396672, 34261421, 34727844, 36931595)
+// and repeated-sprint work/rest/distance meta-analysis (PMID 37222864).
+(function(){
+ const clamp=(x,a,b)=>Math.max(a,Math.min(b,Number(x)||0));
+ const gradePreset={parkingGarage:11,gentle5:5,moderate8:8,grade10:10,steep12:12,verySteep15:15};
+ const isHillSession=name=>/(hill|bloody lungs)/i.test(String(name||''));
+ function hillGradePct(name,metrics={}){
+  const exact=Number(metrics?.hillGradePct);if(exact>0)return clamp(exact,1,25);
+  const preset=String(metrics?.hillGradeProfile||'');if(gradePreset[preset])return gradePreset[preset];
+  return isHillSession(name)?11:0; // user default: typical parking-garage ramp
+ }
+ function baseProfile(name){
+  const n=String(name||'').toLowerCase();
+  const exact={
+   'short hills':{difficulty:8.25,label:'Acceleration / hill power',defaultReps:10,systemic:.60,anaerobic:.76,aerobic:.34,power:.94,impact:.64,speedExposure:.58,gradeSensitive:true,muscles:{quads:.72,hamstrings:.56,glutes:.92,calves:.80,adductors:.26,core:.18},tissue:{impact:.66,achillesCalf:.94,hamstringSpeed:.58,kneeQuad:.68,adductorGroin:.25}},
+   'standard issue hills':{difficulty:8.85,label:'Long hill sprint / speed endurance',defaultReps:7.5,systemic:.90,anaerobic:.94,aerobic:.58,power:.80,impact:.70,speedExposure:.52,gradeSensitive:true,muscles:{quads:.82,hamstrings:.58,glutes:.95,calves:.84,adductors:.30,core:.20},tissue:{impact:.78,achillesCalf:1.02,hamstringSpeed:.55,kneeQuad:.80,adductorGroin:.30}},
+   'apex hills':{difficulty:9.25,label:'Hill speed endurance + ballistic hinge',defaultReps:7.5,systemic:.97,anaerobic:.98,aerobic:.56,power:.90,impact:.69,speedExposure:.50,gradeSensitive:true,hinge:true,muscles:{quads:.82,hamstrings:.78,glutes:1.00,calves:.84,adductors:.30,core:.34},tissue:{impact:.78,achillesCalf:1.02,hamstringSpeed:.62,kneeQuad:.80,adductorGroin:.30}},
+   '600 meter resets':{difficulty:9.05,label:'Long speed-endurance / VO₂-heavy HIC',defaultReps:6,systemic:.95,anaerobic:.93,aerobic:.80,power:.58,impact:.88,speedExposure:.66,muscles:{quads:.80,hamstrings:.62,glutes:.70,calves:.78,adductors:.34,core:.18},tissue:{impact:1.02,achillesCalf:.92,hamstringSpeed:.66,kneeQuad:.74,adductorGroin:.34}},
+   'oxygen debt 101':{difficulty:9.45,label:'Repeated 200 m glycolytic speed endurance',defaultReps:4,systemic:1.00,anaerobic:1.00,aerobic:.68,power:.82,impact:.94,speedExposure:.91,muscles:{quads:.82,hamstrings:.86,glutes:.80,calves:.86,adductors:.42,core:.18},tissue:{impact:1.16,achillesCalf:1.00,hamstringSpeed:1.05,kneeQuad:.82,adductorGroin:.42}},
+   'speed-endurance ladders':{difficulty:9.65,label:'High-volume mixed-distance speed endurance',defaultReps:1,systemic:1.00,anaerobic:1.00,aerobic:.82,power:.78,impact:.97,speedExposure:.88,muscles:{quads:.86,hamstrings:.84,glutes:.80,calves:.88,adductors:.42,core:.18},tissue:{impact:1.22,achillesCalf:1.06,hamstringSpeed:1.00,kneeQuad:.88,adductorGroin:.42}},
+   'connaught range 10 to 1s':{difficulty:9.20,label:'Repeated 100 m sprint + burpee density',defaultReps:10,systemic:1.00,anaerobic:.98,aerobic:.66,power:.84,impact:.94,speedExposure:.92,muscles:{quads:.84,hamstrings:.84,glutes:.80,calves:.86,adductors:.38,core:.38,chest:.45,triceps:.40},tissue:{impact:1.18,achillesCalf:1.00,hamstringSpeed:1.05,kneeQuad:.84,adductorGroin:.38}},
+   'meat-eater':{difficulty:9.05,label:'100 m sprint + kettlebell hinge',defaultReps:10,systemic:.94,anaerobic:.96,aerobic:.54,power:.90,impact:.90,speedExposure:.88,hinge:true,muscles:{quads:.78,hamstrings:.88,glutes:.92,calves:.80,adductors:.34,core:.30},tissue:{impact:1.05,achillesCalf:.92,hamstringSpeed:.96,kneeQuad:.76,adductorGroin:.34}},
+   'anaerobic capacity':{difficulty:9.35,label:'Continuous 200–400 m speed endurance',defaultReps:4,systemic:1.00,anaerobic:.98,aerobic:.84,power:.66,impact:.94,speedExposure:.76,muscles:{quads:.84,hamstrings:.76,glutes:.76,calves:.84,adductors:.38,core:.28},tissue:{impact:1.16,achillesCalf:1.00,hamstringSpeed:.86,kneeQuad:.84,adductorGroin:.38}},
+   'meat-eater iii':{difficulty:9.55,label:'300 m sprint + clean/press + walking lunge',defaultReps:5,systemic:1.00,anaerobic:1.00,aerobic:.68,power:.86,impact:.90,speedExposure:.78,hinge:true,muscles:{quads:.94,hamstrings:.84,glutes:.96,calves:.80,adductors:.52,core:.46,shoulders:.48},tissue:{impact:1.12,achillesCalf:.94,hamstringSpeed:.86,kneeQuad:.98,adductorGroin:.54}}
+  };
+  if(exact[n])return {...exact[n],name};
+  if(/bloody lungs i/.test(n))return {difficulty:9.20,label:'Hill sprint + calisthenic density',defaultReps:5,systemic:.98,anaerobic:.96,aerobic:.56,power:.82,impact:.70,speedExposure:.50,gradeSensitive:true,muscles:{quads:.82,hamstrings:.58,glutes:.94,calves:.84,adductors:.30,core:.42,chest:.50,triceps:.46},tissue:{impact:.80,achillesCalf:1.00,hamstringSpeed:.55,kneeQuad:.82,adductorGroin:.30}};
+  if(/bloody lungs ii/.test(n))return {difficulty:9.45,label:'Hill sprint + burpee + snatch',defaultReps:7.5,systemic:1.00,anaerobic:1.00,aerobic:.56,power:.92,impact:.70,speedExposure:.50,gradeSensitive:true,hinge:true,muscles:{quads:.84,hamstrings:.76,glutes:.98,calves:.84,adductors:.32,core:.44,shoulders:.50},tissue:{impact:.82,achillesCalf:1.02,hamstringSpeed:.60,kneeQuad:.84,adductorGroin:.32}};
+  if(/hill/.test(n))return {difficulty:8.80,label:'Uphill sprint / acceleration-biased running',defaultReps:8,systemic:.82,anaerobic:.88,aerobic:.46,power:.88,impact:.68,speedExposure:.54,gradeSensitive:true,muscles:{quads:.78,hamstrings:.58,glutes:.94,calves:.82,adductors:.28,core:.18},tissue:{impact:.76,achillesCalf:1.00,hamstringSpeed:.58,kneeQuad:.78,adductorGroin:.28}};
+  if(/\bsprint\b|100 m|200 m|300 m|400 m/.test(n))return {difficulty:8.95,label:'Flat / near-flat sprint running',defaultReps:6,systemic:.86,anaerobic:.94,aerobic:.46,power:.92,impact:.94,speedExposure:.96,muscles:{quads:.78,hamstrings:.90,glutes:.82,calves:.84,adductors:.40,core:.16},tissue:{impact:1.10,achillesCalf:.96,hamstringSpeed:1.08,kneeQuad:.76,adductorGroin:.40}};
+  return null;
+ }
+ function profile(name,grade=0){
+  const p=baseProfile(name);if(!p)return null;const out=JSON.parse(JSON.stringify(p));
+  if(out.gradeSensitive){
+   const g=grade>0?clamp(grade,1,25):11,delta=g-8;
+   // Steeper uphill running shifts mechanics toward acceleration, raises positive work / energetic cost,
+   // and lowers absolute velocity. Values are bounded so grade refines rather than overwhelms the workout identity.
+   out.gradePct=g;out.muscles.glutes=clamp(out.muscles.glutes+delta*.010,.55,1);out.muscles.quads=clamp(out.muscles.quads+delta*.005,.45,1);out.muscles.calves=clamp(out.muscles.calves+delta*.006,.45,1);
+   out.systemic=clamp(out.systemic+Math.max(0,delta)*.006,.45,1);out.speedExposure=clamp(out.speedExposure-delta*.018,.30,.82);
+   out.tissue.hamstringSpeed=clamp(out.tissue.hamstringSpeed-delta*.018,.32,.80);out.tissue.achillesCalf=clamp(out.tissue.achillesCalf+delta*.010,.55,1.18);out.tissue.kneeQuad=clamp(out.tissue.kneeQuad+delta*.006,.45,1.06);
+   // Uphill normal loading rate can be lower, but internal tibial load rises at >=10% in some modeling work.
+   // Keep impact bounded rather than assuming hills are universally lower-impact.
+   out.tissue.impact=clamp(out.tissue.impact+(g>=10?(g-10)*.012:-.02),.50,1.12);
+  }
+  return out;
+ }
+ function actualVolumeScale(row,p){
+  const m=row?.metrics||{},n=String(row?.exercise||'').toLowerCase(),reps=Number(m.intervals)||0;let ratio=1;
+  if(reps>0&&p?.defaultReps){ratio=clamp(reps/p.defaultReps,.55,1.55)}
+  // Longer sprint reps and shorter rests raise acute metabolic demand / performance decrement.
+  let work=parseFlexibleSeconds?.(m.workInterval)||0,rest=parseFlexibleSeconds?.(m.restInterval)||0;
+  if(/oxygen debt/.test(n))work=0; // field stores reps-per-round, not seconds
+  if(work>=8&&rest>0){const density=work/(work+rest),baseline=/short hills/.test(n)?.22:/standard issue hills|apex hills/.test(n)?.30:.24;ratio*=clamp(1+(density-baseline)*.75,.82,1.20)}
+  return clamp(ratio,.50,1.65);
+ }
+ function hillGradeFieldsHTML(activity){
+  if(!isHillSession(activity))return '';
+  return '<div class="field"><label>Hill grade</label><select class="le-hillgradeprofile"><option value="parkingGarage" selected>Parking garage ramp (~10–12%; model 11%)</option><option value="gentle5">Gentle hill (~5%)</option><option value="moderate8">Moderate hill (~8%)</option><option value="grade10">10% grade</option><option value="steep12">Steep hill (~12%)</option><option value="verySteep15">Very steep hill (~15%)</option><option value="custom">Custom / measured</option></select><div class="hint">Parking-garage ramps commonly fall around the high-single-digits to low-teens; the model uses 11% unless you enter an exact grade.</div></div>'+
+   '<div class="field"><label>Exact grade (%)</label><input class="le-hillgradepct" type="number" min="1" max="25" step=".5" placeholder="optional — overrides preset"></div>';
+ }
+ const priorRunFields=runningConditionsFieldsHTML;
+ runningConditionsFieldsHTML=function(activity){let h=priorRunFields(activity);if(!isHillSession(activity))return h;h=h.replace('<option>Other</option></select></div>','<option>Parking Garage</option><option>Other</option></select></div>');return hillGradeFieldsHTML(activity)+h};
+
+ const priorDifficulty=conditioningDifficultyRating;
+ conditioningDifficultyRating=function(activity){const p=profile(activity,isHillSession(activity)?11:0);return p?Math.round(p.difficulty*20)/20:priorDifficulty(activity)};
+
+ const priorResearchProfile=conditioningResearchProfile;
+ conditioningResearchProfile=function(name){const b=priorResearchProfile(name),p=profile(name,isHillSession(name)?11:0);if(!p)return b;return {...b,modality:p.gradeSensitive?'run_hill_speed':'run_speed',aerobic:p.aerobic,anaerobic:p.anaerobic,power:p.power,impact:p.impact,systemic:p.systemic,specificity:.98,hard:true,sprintHillProfile:p.label}};
+
+ const priorFingerprint=utmFingerprint;
+ utmFingerprint=function(name){const f=priorFingerprint(name),p=profile(name,isHillSession(name)?11:0);if(!p)return f;f.type='conditioning';f.moves=f.moves||{};f.muscles=f.muscles||{};f.fatigue=f.fatigue||{};
+  f.moves.locomotion=1;f.moves.power=p.power;if(p.hinge)f.moves.hinge=Math.max(Number(f.moves.hinge)||0,.82);
+  for(const [k,v] of Object.entries(p.muscles||{}))f.muscles[k]=v;
+  f.fatigue.aerobic=p.aerobic;f.fatigue.anaerobic=p.anaerobic;f.fatigue.impact=p.impact;f.fatigue.systemic=p.systemic;f.powerDemand=p.power;
+  return f;
+ };
+ const priorRowFingerprint=utmRowFingerprint;
+ utmRowFingerprint=function(row){const f=priorRowFingerprint(row),g=hillGradePct(row?.exercise,row?.metrics||{}),p=profile(row?.exercise,g);if(!p)return f;const scale=actualVolumeScale(row,p);
+  f.moves=f.moves||{};f.muscles=f.muscles||{};f.fatigue=f.fatigue||{};f.moves.locomotion=1;f.moves.power=p.power;if(p.hinge)f.moves.hinge=Math.max(Number(f.moves.hinge)||0,.82);
+  for(const [k,v] of Object.entries(p.muscles||{}))f.muscles[k]=clamp(v*(.94+.06*scale),0,1);
+  f.fatigue.aerobic=clamp(p.aerobic*(.90+.10*scale),0,1);f.fatigue.anaerobic=clamp(p.anaerobic*(.88+.12*scale),0,1);f.fatigue.impact=clamp(p.impact*(.92+.08*scale),0,1);f.fatigue.systemic=clamp(p.systemic*(.86+.14*scale),0,1);f.powerDemand=p.power;
+  return f;
+ };
+
+ const priorTissueDose=v36118RowTissueDose;
+ v36118RowTissueDose=function(row){const g=hillGradePct(row?.exercise,row?.metrics||{}),p=profile(row?.exercise,g);if(!p)return priorTissueDose(row);const scale=actualVolumeScale(row,p)*clamp((utmRowConditioningRpe(row)||effectiveEffortRpe(row)||p.difficulty)/Math.max(7.5,p.difficulty),.72,1.22),t=p.tissue||{};let out={impact:(t.impact||0)*scale,achillesCalf:(t.achillesCalf||0)*scale,hamstringSpeed:(t.hamstringSpeed||0)*scale,kneeQuad:(t.kneeQuad||0)*scale,adductorGroin:(t.adductorGroin||0)*scale};
+  const surface=String(row?.metrics?.surface||'').toLowerCase();if(/concrete|road|pavement|parking garage/.test(surface)){out.impact*=1.06;out.achillesCalf*=1.04}else if(/treadmill/.test(surface)){out.impact*=.94}return out;
+ };
+
+ const priorContext=conditioningContextAdjustment;
+ conditioningContextAdjustment=function(name,day,gw,dateISO,readiness,options={}){const out=priorContext(name,day,gw,dateISO,readiness,options),p=profile(name,isHillSession(name)?11:0);if(!p||out.blocked)return out;let score=0,extra=[];
+  try{const t=v36118TissueStressState(dateISO),c=t.channels||{},ham=Number(c.hamstringSpeed)||0,calf=Number(c.achillesCalf)||0,knee=Number(c.kneeQuad)||0,impact=Number(c.impact)||0;
+   const pen=(load,exposure,threshold=1.25,mult=2.8)=>load>threshold?(load-threshold)*exposure*mult:0;
+   score-=pen(ham,p.speedExposure,1.20,3.4);score-=pen(calf,p.tissue?.achillesCalf||.6,1.30,2.1);score-=pen(knee,p.tissue?.kneeQuad||.6,1.30,1.9);score-=pen(impact,p.tissue?.impact||.6,1.45,1.6);
+   if(score<=-2.5)extra.push('Sprint/hill-specific tissue matching lowers this option because its actual hamstring-speed, calf/Achilles, knee/quad, or impact profile overlaps current residual load.');
+  }catch(_e){}
+  if(readiness?.caution&&p.systemic>=.94){score-=2.5;extra.push('This workout has unusually high repeated-sprint systemic/glycolytic demand, so Recovery Caution costs it more than a short power-oriented hill session.')}
+  if(/short hills/i.test(name)&&!readiness?.caution){score+=1.25;extra.push('Short hills retain a small power-quality advantage when recovery is normal because generous walk-back recovery creates less accumulated metabolic fatigue than long hill or short-rest speed-endurance sessions.')}
+  return {...out,score:(Number(out.score)||0)+score,reasons:uniqueConditioningReasons([...(out.reasons||[]),...extra]),sprintHillProfile:p};
+ };
+
+ const priorHelper=conditioningLogHelperHTML;
+ conditioningLogHelperHTML=function(activity){let h=priorHelper(activity),p=profile(activity,isHillSession(activity)?11:0);if(!p)return h;const muscles=Object.entries(p.muscles||{}).filter(([k,v])=>v>=.72&&['quads','hamstrings','glutes','calves','adductors'].includes(k)).sort((a,b)=>b[1]-a[1]).map(([k])=>k).join(', '),grade=p.gradeSensitive?' Parking-garage default = ~11% grade; exact logged grade overrides it.':'';const note='<div class="planned"><strong>Research load profile:</strong> '+htmlSafe(p.label)+' • dominant lower-body load: '+htmlSafe(muscles||'mixed')+' • systemic '+Math.round(p.systemic*100)+'% relative • high-speed hamstring exposure '+Math.round(p.speedExposure*100)+'% relative.'+htmlSafe(grade)+'</div>';return h.replace('<div class="planned"><strong>Equipment:</strong>',note+'<div class="planned"><strong>Equipment:</strong>')};
+
+ // Expose a small audit hook so QA can verify the same coefficients used by recommendation, fatigue, and logging.
+ window.__v36120SprintHillModel={version:1,defaultHillGrade:'parkingGarage',defaultHillGradePct:11,profile:(name,grade)=>profile(name,grade),hillGradePct};
+ try{utmInvalidateCaches()}catch(_e){}
+ setTimeout(()=>{try{if(typeof render==='function')render()}catch(_e){}},0);
+})();
 </script>
 </body>
 </html>
