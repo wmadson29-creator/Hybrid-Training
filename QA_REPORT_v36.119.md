@@ -75,3 +75,23 @@ See `STRETCHING_FLEXIBILITY_RESEARCH_v36.119.md` and `STRETCHING_FLEXIBILITY_QA_
 ## Important interpretation
 
 Future recommendations are forecasts, not commitments. They are recalculated from completed history, current recovery, tissue load, learned interference, and remaining development need. A future double-session slot can therefore move after real workouts are completed or skipped.
+
+## Landmine single-ended loading regression fix
+
+The recurring landmine loading defect was traced to the Generic Gym plan-conversion path, which was collapsing every `equipment:"Barbell"` exercise to the boolean `bar:true`. That bypassed the already-correct `plateVisual:"landmine"` metadata when Today cards were rendered, so a 50-lb Half-Kneeling Landmine Press could incorrectly display `2.5 / side`.
+
+The fix is now enforced at multiple levels rather than as an exercise-specific patch:
+
+- `isLandmineExercise()` is the single classification helper and recognizes both library metadata (`plateVisual:"landmine"`) and any exercise name containing `landmine` for custom/renamed variants.
+- Generic Gym plan conversion now preserves `bar:"landmine"` instead of reducing landmine movements to `bar:true`.
+- The universal core/gym plan row path uses the same classification.
+- `appendExerciseCard()` passes the exercise name into the plate renderer, and `visualLoad()` independently re-resolves landmine status before rendering. This is the final UI invariant, so an upstream boolean-bar regression cannot make a landmine card symmetric again.
+- Log-view plate helpers continue to label landmine load as total implement weight: 45-lb bar plus plates on the single loaded end.
+
+Regression checks against the exact release helper functions pass:
+
+- Half-Kneeling Landmine Press, 50 total -> **5 on loaded end**, **1×5**, anchored end **no plates**, and no `/ side` text.
+- Landmine Row, 70 total -> **25 on loaded end**, no `/ side` text.
+- Custom Rotational Landmine Press, 50 total -> caught by the name fallback and rendered single-ended.
+- Barbell Bench Press, 95 total -> remains **25 / side**, confirming ordinary barbells are unchanged.
+- Every executable inline script in both packaged `index.html` and the self-contained HTML passes `node --check` after the patch.

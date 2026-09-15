@@ -58,3 +58,9 @@ A new **Stretching & Flexibility** utility is available from the More menu (and 
 The user selects the specific areas that currently feel tight/sore, the available time (5/10/15/20/30 min), and equipment available right now. Equipment-aware options include a wall/doorway, chair/bench, pull-up or hanging bar, foam roller, stretch strap/towel/foot-loop strap, resistance band, PVC/yoga stick/dowel, slant board/calf stretcher, massage/lacrosse ball, and yoga block. The generator then builds an in-budget routine from a research-referenced stretch/mobility library.
 
 Routine cards show the target area, method (controlled mobility, static hold, foam rolling, or optional gentle contract-relax), exact dose, how to perform the movement, why it is included, cautions where relevant, and a direct YouTube search link. Slow controlled mobility is used instead of ballistic bouncing.
+
+## Landmine loading invariant hardening
+
+Landmine movements now preserve single-ended loading through the Generic Gym plan-conversion path and again at final card rendering. The earlier metadata rule was correct but one Today-card path converted all barbell equipment to a generic two-sided boolean, which is why a 50-lb Half-Kneeling Landmine Press could still show 2.5 per side. The renderer now independently recognizes landmine metadata/name before drawing plates, so landmine exercises cannot fall back to the symmetric barbell helper even if an upstream plan row is too generic.
+
+Current convention remains: logged/displayed landmine weight is total implement weight, **45-lb bar + plates on one loaded end**. The anchored end receives no plates. Normal barbell lifts remain two-sided.

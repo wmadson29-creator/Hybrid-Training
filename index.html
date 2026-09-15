@@ -5848,7 +5848,16 @@ function currentTM(base,inc,b){return base+(b-1)*inc}
 function plates(side){let rem=side,out={45:0,25:0,10:0,5:0,2.5:0};[45,25,10,5,2.5].forEach(p=>{let n=Math.floor((rem+1e-9)/p);out[p]=n;rem-=n*p});return out}
 function plateSpans(c,rev){let a=[];[45,25,10,5,2.5].forEach(p=>{for(let i=0;i<c[p];i++)a.push('<i class="plate '+(p===2.5?'p2':'p'+p)+'"></i>')});if(rev)a.reverse();return a.join("")}
 function plateText(c){let a=[];[45,25,10,5,2.5].forEach(p=>{if(c[p])a.push(c[p]+"×"+p)});return a.join(" + ")||"0"}
-function visualLoad(total,bar){
+function isLandmineExercise(exercise){
+ const name=String(exercise||"").trim(),gx=typeof gymExercise==="function"?gymExercise(name):null;
+ return gx?.plateVisual==="landmine"||/\blandmine\b/i.test(name);
+}
+function resolvedPlateVisualMode(exercise,requestedBar){
+ if(isLandmineExercise(exercise))return "landmine";
+ return requestedBar;
+}
+function visualLoad(total,bar,exercise=""){
+ bar=resolvedPlateVisualMode(exercise,bar);
  if(bar==="machine"){
    const side=total/2,c=plates(side),cap='<div class="load-caption"><strong>'+side+' / side</strong><span>'+plateText(c)+'</span></div>';
    return '<div class="load-helper">'+cap+'<div class="machine"><div class="machine-side">'+plateSpans(c,true)+'</div><div class="no-bar">plate-loaded<br>machine</div><div class="machine-side">'+plateSpans(c,false)+'</div></div></div>';
@@ -5862,7 +5871,7 @@ function visualLoad(total,bar){
  return '<div class="load-helper">'+cap+'<div class="barbell"><div class="bar-side left">'+plateSpans(c,true)+'</div><div class="bar"></div><div class="bar-side right">'+plateSpans(c,false)+'</div></div></div>';
 }
 function strengthVisualInfo(exercise,weightText,plannedNumeric=null,plannedBar=null){
- const name=String(exercise||"").trim(),plateMachine=name==="Chest Machine"||name==="Incline Chest Machine",gx=typeof gymExercise==="function" ? gymExercise(name) : null,isLandmine=gx?.plateVisual==="landmine"||/\blandmine\b/i.test(name);
+ const name=String(exercise||"").trim(),plateMachine=name==="Chest Machine"||name==="Incline Chest Machine",gx=typeof gymExercise==="function" ? gymExercise(name) : null,isLandmine=isLandmineExercise(name);
  const plannedNum=Number(plannedNumeric);
  if(Number.isFinite(plannedNum)&&plannedNum>0){
    if(plateMachine)return {numeric:plannedNum,bar:"machine"};
@@ -5880,14 +5889,14 @@ function strengthVisualInfo(exercise,weightText,plannedNumeric=null,plannedBar=n
 }
 function logPlateVisualHtml(exercise,weightText,plannedNumeric=null,plannedBar=null){
  const info=strengthVisualInfo(exercise,weightText,plannedNumeric,plannedBar);
- return info ? '<div class="log-visual">'+visualLoad(info.numeric,info.bar)+'</div>' : "";
+ return info ? '<div class="log-visual">'+visualLoad(info.numeric,info.bar,exercise)+'</div>' : "";
 }
 function updateLogPlateVisual(card){
  if(!card)return;
  const holder=card.querySelector(".log-visual-host");
  if(!holder)return;
  const exSel=card.querySelector(".le-ex"),custom=card.querySelector(".le-custom"),weight=card.querySelector(".le-weight");
- const exercise=exSel ? (exSel.value==="__custom__" ? (custom ? custom.value.trim() : "") : exSel.value) : "",gx=typeof gymExercise==="function"?gymExercise(exercise):null,isLandmine=gx?.plateVisual==="landmine"||/\blandmine\b/i.test(exercise);
+ const exercise=exSel ? (exSel.value==="__custom__" ? (custom ? custom.value.trim() : "") : exSel.value) : "",isLandmine=isLandmineExercise(exercise);
  const weightText=weight ? weight.value.trim() : "",weightLabel=weight?.closest(".field")?.querySelector("label");
  if(weightLabel)weightLabel.textContent=isLandmine?"Total weight (45 bar + loaded end)":"Weight";
  const sameAsPlanned=exercise===String(card.dataset.plannedExercise||"").trim(),
@@ -9451,7 +9460,7 @@ function universalCoreFinisherPlanRow(session,dateISO,existingPlan=[],profile={}
  if(g){
    const a=raw.exercise==="Ab Crunch Machine"?adaptiveAbCrunchPrescription(dateISO):adaptiveGymTarget(raw.exercise,dateISO,"");
    const lb=raw.exercise==="Ab Crunch Machine"?a.lb:gymClampLoad(g,a.lb);
-   return {exercise:raw.exercise,sets:raw.sets,reps:raw.reps,weight:formatGymWeight(raw.exercise,lb),numeric:g.equipment==="Barbell"?lb:null,bar:g.equipment==="Barbell",restSeconds:60,meta:"CORE FINISHER • outside requested time",note:raw.coreFinisherWhy||a.why,conditioning:false,untimedCoreFinisher:true};
+   return {exercise:raw.exercise,sets:raw.sets,reps:raw.reps,weight:formatGymWeight(raw.exercise,lb),numeric:g.equipment==="Barbell"?lb:null,bar:isLandmineExercise(raw.exercise)?"landmine":g.equipment==="Barbell",restSeconds:60,meta:"CORE FINISHER • outside requested time",note:raw.coreFinisherWhy||a.why,conditioning:false,untimedCoreFinisher:true};
  }
  const a=adaptiveCalisthenicsTarget(raw.exercise,dateISO,profile?.difficulty||"medium");
  return {exercise:raw.exercise,sets:raw.sets,reps:raw.reps,weight:raw.resistance||(c?.requiresBands?"Exercise band":"Bodyweight"),restSeconds:60,meta:"CORE FINISHER • outside requested time",note:raw.coreFinisherWhy||a.why,conditioning:false,untimedCoreFinisher:true};
@@ -9677,7 +9686,7 @@ function genericGymPlanFromWorkout(w,dateISO){
      a=isAbFinisher?adaptiveAbCrunchPrescription(dateISO):adaptiveGymTarget(r.exercise,dateISO,r.manualLb,w?.profile||{}),
      scale=(r.manualLb?1:(Number(r.loadScale)||1)),appliedScale=isAbFinisher?1:(a.applyScale===false?1:scale),shown=ex?gymClampLoad(ex,a.lb*appliedScale):a.lb,
      reps=r.adaptiveRepManaged&&!isAbFinisher?String(a.repTarget||exactRepPrescription(r.reps)):exactRepPrescription(r.reps);
-   return {exercise:r.exercise,sets:r.sets,reps,weight:ex?formatGymWeight(r.exercise,shown):displayWeightText(r.weight||"Bodyweight"),numeric:(ex&&ex.equipment==="Barbell")?shown:null,bar:!!(ex&&ex.equipment==="Barbell"),restSeconds:Number(r.restSeconds)||gymRestSeconds(ex,w?.profile||{}),meta:r.untimedCoreFinisher?"CORE FINISHER • outside requested time":((a.manual?"MANUAL":"ADAPTIVE")+" • "+(ex?.equipment||"Gym")),note:r.coreFinisherWhy||a.why,conditioning:false,untimedCoreFinisher:!!r.untimedCoreFinisher};
+   return {exercise:r.exercise,sets:r.sets,reps,weight:ex?formatGymWeight(r.exercise,shown):displayWeightText(r.weight||"Bodyweight"),numeric:(ex&&ex.equipment==="Barbell")?shown:null,bar:isLandmineExercise(r.exercise)?"landmine":!!(ex&&ex.equipment==="Barbell"),restSeconds:Number(r.restSeconds)||gymRestSeconds(ex,w?.profile||{}),meta:r.untimedCoreFinisher?"CORE FINISHER • outside requested time":((a.manual?"MANUAL":"ADAPTIVE")+" • "+(ex?.equipment||"Gym")),note:r.coreFinisherWhy||a.why,conditioning:false,untimedCoreFinisher:!!r.untimedCoreFinisher};
  });
  return ensureUniversalCoreFinisherPlan("Generic Gym",plan,dateISO,w?.profile||{});
 }
@@ -10400,7 +10409,7 @@ function renderWeek(){
 function appendExerciseCard(x){
  const d=document.createElement("div");d.className="exercise";
  const setsReps=x.sets!==undefined&&x.sets!==""?htmlSafe(x.sets)+" × "+htmlSafe(x.reps):htmlSafe(x.target||""),noteContent=x.noteHtml?String(x.note||""):htmlSafe(x.note||"");
- d.innerHTML='<div class="exercise-top"><div><div class="exercise-name">'+htmlSafe(x.exercise)+'</div><div class="exercise-meta">'+htmlSafe(x.meta||"")+'</div></div><div class="exercise-sr">'+setsReps+'</div><div class="exercise-weight">'+htmlSafe(displayWeightText(x.weight||""))+'</div></div>'+(x.numeric?visualLoad(x.numeric,x.bar):"")+(x.note?'<div class="prescription-note">'+noteContent+'</div>':"")+movementGuideHtml(x.exercise);
+ d.innerHTML='<div class="exercise-top"><div><div class="exercise-name">'+htmlSafe(x.exercise)+'</div><div class="exercise-meta">'+htmlSafe(x.meta||"")+'</div></div><div class="exercise-sr">'+setsReps+'</div><div class="exercise-weight">'+htmlSafe(displayWeightText(x.weight||""))+'</div></div>'+(x.numeric?visualLoad(x.numeric,x.bar,x.exercise):"")+(x.note?'<div class="prescription-note">'+noteContent+'</div>':"")+movementGuideHtml(x.exercise);
  tbList.appendChild(d);
 }
 function renderTB(gw){
@@ -10886,7 +10895,7 @@ function loadPlannedSession(){
       '</div>';
   }else{
     d.dataset.plannedNumeric=(x.numeric!==undefined&&x.numeric!==null&&x.numeric!=="")?String(x.numeric):"";
-    d.dataset.plannedBar=x.bar?"1":"0";
+    d.dataset.plannedBar=x.bar?"1":"0";d.dataset.plannedBarMode=x.bar==="landmine"?"landmine":x.bar==="machine"?"machine":x.bar?"barbell":"";
     d.innerHTML='<div class="log-title"><div><strong>'+htmlSafe(x.exercise)+'</strong>'+planLine+'</div></div>'+
       '<div class="log-grid">'+
       '<div class="field"><label>Exercise</label><select class="le-ex">'+buildExerciseSelect(x.exercise,logDate.value,session)+'</select><input class="le-custom hidden" placeholder="Custom exercise"></div>'+
