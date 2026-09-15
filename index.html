@@ -16137,6 +16137,290 @@ v36118Idle(()=>{try{v36118UpdateAdaptiveStability(localISO(new Date()))}catch(_e
 // Keep model metadata truthful after the architecture change.
 try{window.__hybridRuntimeDiagnostics=window.__hybridRuntimeDiagnostics||[]}catch(_e){}
 
+
+// v36.119 — activate the sprint/hill research model inside the engine scope.
+
+// v36.119 research hardening — sprint / hill sessions are no longer one generic hard-run bucket.
+// Relative weights are intentionally bounded priors, not injury predictions or exact EMG percentages.
+// Evidence basis: graded-running biomechanics (PMID 27501719, 32396672, 34261421, 34727844, 36931595)
+// and repeated-sprint work/rest/distance meta-analysis (PMID 37222864).
+(function(){
+ const clamp=(x,a,b)=>Math.max(a,Math.min(b,Number(x)||0));
+ const gradePreset={parkingGarage:11,gentle5:5,moderate8:8,grade10:10,steep12:12,verySteep15:15};
+ const isHillSession=name=>/(hill|bloody lungs)/i.test(String(name||''));
+ function hillGradePct(name,metrics={}){
+  const exact=Number(metrics?.hillGradePct);if(exact>0)return clamp(exact,1,25);
+  const preset=String(metrics?.hillGradeProfile||'');if(gradePreset[preset])return gradePreset[preset];
+  return isHillSession(name)?11:0; // user default: typical parking-garage ramp
+ }
+ function baseProfile(name){
+  const n=String(name||'').toLowerCase();
+  const exact={
+   'short hills':{difficulty:8.25,label:'Acceleration / hill power',defaultReps:10,systemic:.60,anaerobic:.76,aerobic:.34,power:.94,impact:.64,speedExposure:.58,gradeSensitive:true,muscles:{quads:.72,hamstrings:.56,glutes:.92,calves:.80,adductors:.26,core:.18},tissue:{impact:.66,achillesCalf:.94,hamstringSpeed:.58,kneeQuad:.68,adductorGroin:.25}},
+   'standard issue hills':{difficulty:8.85,label:'Long hill sprint / speed endurance',defaultReps:7.5,systemic:.90,anaerobic:.94,aerobic:.58,power:.80,impact:.70,speedExposure:.52,gradeSensitive:true,muscles:{quads:.82,hamstrings:.58,glutes:.95,calves:.84,adductors:.30,core:.20},tissue:{impact:.78,achillesCalf:1.02,hamstringSpeed:.55,kneeQuad:.80,adductorGroin:.30}},
+   'apex hills':{difficulty:9.25,label:'Hill speed endurance + ballistic hinge',defaultReps:7.5,systemic:.97,anaerobic:.98,aerobic:.56,power:.90,impact:.69,speedExposure:.50,gradeSensitive:true,hinge:true,muscles:{quads:.82,hamstrings:.78,glutes:1.00,calves:.84,adductors:.30,core:.34},tissue:{impact:.78,achillesCalf:1.02,hamstringSpeed:.62,kneeQuad:.80,adductorGroin:.30}},
+   '600 meter resets':{difficulty:9.05,label:'Long speed-endurance / VO₂-heavy HIC',defaultReps:6,systemic:.95,anaerobic:.93,aerobic:.80,power:.58,impact:.88,speedExposure:.66,muscles:{quads:.80,hamstrings:.62,glutes:.70,calves:.78,adductors:.34,core:.18},tissue:{impact:1.02,achillesCalf:.92,hamstringSpeed:.66,kneeQuad:.74,adductorGroin:.34}},
+   'oxygen debt 101':{difficulty:9.45,label:'Repeated 200 m glycolytic speed endurance',defaultReps:4,systemic:1.00,anaerobic:1.00,aerobic:.68,power:.82,impact:.94,speedExposure:.91,muscles:{quads:.82,hamstrings:.86,glutes:.80,calves:.86,adductors:.42,core:.18},tissue:{impact:1.16,achillesCalf:1.00,hamstringSpeed:1.05,kneeQuad:.82,adductorGroin:.42}},
+   'speed-endurance ladders':{difficulty:9.65,label:'High-volume mixed-distance speed endurance',defaultReps:1,systemic:1.00,anaerobic:1.00,aerobic:.82,power:.78,impact:.97,speedExposure:.88,muscles:{quads:.86,hamstrings:.84,glutes:.80,calves:.88,adductors:.42,core:.18},tissue:{impact:1.22,achillesCalf:1.06,hamstringSpeed:1.00,kneeQuad:.88,adductorGroin:.42}},
+   'connaught range 10 to 1s':{difficulty:9.20,label:'Repeated 100 m sprint + burpee density',defaultReps:10,systemic:1.00,anaerobic:.98,aerobic:.66,power:.84,impact:.94,speedExposure:.92,muscles:{quads:.84,hamstrings:.84,glutes:.80,calves:.86,adductors:.38,core:.38,chest:.45,triceps:.40},tissue:{impact:1.18,achillesCalf:1.00,hamstringSpeed:1.05,kneeQuad:.84,adductorGroin:.38}},
+   'meat-eater':{difficulty:9.05,label:'100 m sprint + kettlebell hinge',defaultReps:10,systemic:.94,anaerobic:.96,aerobic:.54,power:.90,impact:.90,speedExposure:.88,hinge:true,muscles:{quads:.78,hamstrings:.88,glutes:.92,calves:.80,adductors:.34,core:.30},tissue:{impact:1.05,achillesCalf:.92,hamstringSpeed:.96,kneeQuad:.76,adductorGroin:.34}},
+   'anaerobic capacity':{difficulty:9.35,label:'Continuous 200–400 m speed endurance',defaultReps:4,systemic:1.00,anaerobic:.98,aerobic:.84,power:.66,impact:.94,speedExposure:.76,muscles:{quads:.84,hamstrings:.76,glutes:.76,calves:.84,adductors:.38,core:.28},tissue:{impact:1.16,achillesCalf:1.00,hamstringSpeed:.86,kneeQuad:.84,adductorGroin:.38}},
+   'meat-eater iii':{difficulty:9.55,label:'300 m sprint + clean/press + walking lunge',defaultReps:5,systemic:1.00,anaerobic:1.00,aerobic:.68,power:.86,impact:.90,speedExposure:.78,hinge:true,muscles:{quads:.94,hamstrings:.84,glutes:.96,calves:.80,adductors:.52,core:.46,shoulders:.48},tissue:{impact:1.12,achillesCalf:.94,hamstringSpeed:.86,kneeQuad:.98,adductorGroin:.54}}
+  };
+  if(exact[n])return {...exact[n],name};
+  if(/bloody lungs i/.test(n))return {difficulty:9.20,label:'Hill sprint + calisthenic density',defaultReps:5,systemic:.98,anaerobic:.96,aerobic:.56,power:.82,impact:.70,speedExposure:.50,gradeSensitive:true,muscles:{quads:.82,hamstrings:.58,glutes:.94,calves:.84,adductors:.30,core:.42,chest:.50,triceps:.46},tissue:{impact:.80,achillesCalf:1.00,hamstringSpeed:.55,kneeQuad:.82,adductorGroin:.30}};
+  if(/bloody lungs ii/.test(n))return {difficulty:9.45,label:'Hill sprint + burpee + snatch',defaultReps:7.5,systemic:1.00,anaerobic:1.00,aerobic:.56,power:.92,impact:.70,speedExposure:.50,gradeSensitive:true,hinge:true,muscles:{quads:.84,hamstrings:.76,glutes:.98,calves:.84,adductors:.32,core:.44,shoulders:.50},tissue:{impact:.82,achillesCalf:1.02,hamstringSpeed:.60,kneeQuad:.84,adductorGroin:.32}};
+  if(/hill/.test(n))return {difficulty:8.80,label:'Uphill sprint / acceleration-biased running',defaultReps:8,systemic:.82,anaerobic:.88,aerobic:.46,power:.88,impact:.68,speedExposure:.54,gradeSensitive:true,muscles:{quads:.78,hamstrings:.58,glutes:.94,calves:.82,adductors:.28,core:.18},tissue:{impact:.76,achillesCalf:1.00,hamstringSpeed:.58,kneeQuad:.78,adductorGroin:.28}};
+  if(/\bsprint\b|100 m|200 m|300 m|400 m/.test(n))return {difficulty:8.95,label:'Flat / near-flat sprint running',defaultReps:6,systemic:.86,anaerobic:.94,aerobic:.46,power:.92,impact:.94,speedExposure:.96,muscles:{quads:.78,hamstrings:.90,glutes:.82,calves:.84,adductors:.40,core:.16},tissue:{impact:1.10,achillesCalf:.96,hamstringSpeed:1.08,kneeQuad:.76,adductorGroin:.40}};
+  return null;
+ }
+ function profile(name,grade=0){
+  const p=baseProfile(name);if(!p)return null;const out=JSON.parse(JSON.stringify(p));
+  if(out.gradeSensitive){
+   const g=grade>0?clamp(grade,1,25):11,delta=g-8;
+   // Steeper uphill running shifts mechanics toward acceleration, raises positive work / energetic cost,
+   // and lowers absolute velocity. Values are bounded so grade refines rather than overwhelms the workout identity.
+   out.gradePct=g;out.muscles.glutes=clamp(out.muscles.glutes+delta*.010,.55,1);out.muscles.quads=clamp(out.muscles.quads+delta*.005,.45,1);out.muscles.calves=clamp(out.muscles.calves+delta*.006,.45,1);
+   out.systemic=clamp(out.systemic+Math.max(0,delta)*.006,.45,1);out.speedExposure=clamp(out.speedExposure-delta*.018,.30,.82);
+   out.tissue.hamstringSpeed=clamp(out.tissue.hamstringSpeed-delta*.018,.32,.80);out.tissue.achillesCalf=clamp(out.tissue.achillesCalf+delta*.010,.55,1.18);out.tissue.kneeQuad=clamp(out.tissue.kneeQuad+delta*.006,.45,1.06);
+   // Uphill normal loading rate can be lower, but internal tibial load rises at >=10% in some modeling work.
+   // Keep impact bounded rather than assuming hills are universally lower-impact.
+   out.tissue.impact=clamp(out.tissue.impact+(g>=10?(g-10)*.012:-.02),.50,1.12);
+  }
+  return out;
+ }
+ function actualVolumeScale(row,p){
+  const m=row?.metrics||{},n=String(row?.exercise||'').toLowerCase(),reps=Number(m.intervals)||0;let ratio=1;
+  if(reps>0&&p?.defaultReps){ratio=clamp(reps/p.defaultReps,.55,1.55)}
+  // Longer sprint reps and shorter rests raise acute metabolic demand / performance decrement.
+  let work=parseFlexibleSeconds?.(m.workInterval)||0,rest=parseFlexibleSeconds?.(m.restInterval)||0;
+  if(/oxygen debt/.test(n))work=0; // field stores reps-per-round, not seconds
+  if(work>=8&&rest>0){const density=work/(work+rest),baseline=/short hills/.test(n)?.22:/standard issue hills|apex hills/.test(n)?.30:.24;ratio*=clamp(1+(density-baseline)*.75,.82,1.20)}
+  return clamp(ratio,.50,1.65);
+ }
+ function hillGradeFieldsHTML(activity){
+  if(!isHillSession(activity))return '';
+  return '<div class="field"><label>Hill grade</label><select class="le-hillgradeprofile"><option value="parkingGarage" selected>Parking garage ramp (~10–12%; model 11%)</option><option value="gentle5">Gentle hill (~5%)</option><option value="moderate8">Moderate hill (~8%)</option><option value="grade10">10% grade</option><option value="steep12">Steep hill (~12%)</option><option value="verySteep15">Very steep hill (~15%)</option><option value="custom">Custom / measured</option></select><div class="hint">Parking-garage ramps commonly fall around the high-single-digits to low-teens; the model uses 11% unless you enter an exact grade.</div></div>'+
+   '<div class="field"><label>Exact grade (%)</label><input class="le-hillgradepct" type="number" min="1" max="25" step=".5" placeholder="optional — overrides preset"></div>';
+ }
+ const priorRunFields=runningConditionsFieldsHTML;
+ runningConditionsFieldsHTML=function(activity){let h=priorRunFields(activity);if(!isHillSession(activity))return h;h=h.replace('<option>Other</option></select></div>','<option>Parking Garage</option><option>Other</option></select></div>');return hillGradeFieldsHTML(activity)+h};
+
+ const priorDifficulty=conditioningDifficultyRating;
+ conditioningDifficultyRating=function(activity){const p=profile(activity,isHillSession(activity)?11:0);return p?Math.round(p.difficulty*20)/20:priorDifficulty(activity)};
+
+ const priorResearchProfile=conditioningResearchProfile;
+ conditioningResearchProfile=function(name){const b=priorResearchProfile(name),p=profile(name,isHillSession(name)?11:0);if(!p)return b;return {...b,modality:p.gradeSensitive?'run_hill_speed':'run_speed',aerobic:p.aerobic,anaerobic:p.anaerobic,power:p.power,impact:p.impact,systemic:p.systemic,specificity:.98,hard:true,sprintHillProfile:p.label}};
+
+ const priorFingerprint=utmFingerprint;
+ utmFingerprint=function(name){const f=priorFingerprint(name),p=profile(name,isHillSession(name)?11:0);if(!p)return f;f.type='conditioning';f.moves=f.moves||{};f.muscles=f.muscles||{};f.fatigue=f.fatigue||{};
+  f.moves.locomotion=1;f.moves.power=p.power;if(p.hinge)f.moves.hinge=Math.max(Number(f.moves.hinge)||0,.82);
+  for(const [k,v] of Object.entries(p.muscles||{}))f.muscles[k]=v;
+  f.fatigue.aerobic=p.aerobic;f.fatigue.anaerobic=p.anaerobic;f.fatigue.impact=p.impact;f.fatigue.systemic=p.systemic;f.powerDemand=p.power;
+  return f;
+ };
+ const priorRowFingerprint=utmRowFingerprint;
+ utmRowFingerprint=function(row){const f=priorRowFingerprint(row),g=hillGradePct(row?.exercise,row?.metrics||{}),p=profile(row?.exercise,g);if(!p)return f;const scale=actualVolumeScale(row,p);
+  f.moves=f.moves||{};f.muscles=f.muscles||{};f.fatigue=f.fatigue||{};f.moves.locomotion=1;f.moves.power=p.power;if(p.hinge)f.moves.hinge=Math.max(Number(f.moves.hinge)||0,.82);
+  for(const [k,v] of Object.entries(p.muscles||{}))f.muscles[k]=clamp(v*(.94+.06*scale),0,1);
+  f.fatigue.aerobic=clamp(p.aerobic*(.90+.10*scale),0,1);f.fatigue.anaerobic=clamp(p.anaerobic*(.88+.12*scale),0,1);f.fatigue.impact=clamp(p.impact*(.92+.08*scale),0,1);f.fatigue.systemic=clamp(p.systemic*(.86+.14*scale),0,1);f.powerDemand=p.power;
+  return f;
+ };
+
+ const priorTissueDose=v36118RowTissueDose;
+ v36118RowTissueDose=function(row){const g=hillGradePct(row?.exercise,row?.metrics||{}),p=profile(row?.exercise,g);if(!p)return priorTissueDose(row);const scale=actualVolumeScale(row,p)*clamp((utmRowConditioningRpe(row)||effectiveEffortRpe(row)||p.difficulty)/Math.max(7.5,p.difficulty),.72,1.22),t=p.tissue||{};let out={impact:(t.impact||0)*scale,achillesCalf:(t.achillesCalf||0)*scale,hamstringSpeed:(t.hamstringSpeed||0)*scale,kneeQuad:(t.kneeQuad||0)*scale,adductorGroin:(t.adductorGroin||0)*scale};
+  const surface=String(row?.metrics?.surface||'').toLowerCase();if(/concrete|road|pavement|parking garage/.test(surface)){out.impact*=1.06;out.achillesCalf*=1.04}else if(/treadmill/.test(surface)){out.impact*=.94}return out;
+ };
+
+ const priorContext=conditioningContextAdjustment;
+ conditioningContextAdjustment=function(name,day,gw,dateISO,readiness,options={}){const out=priorContext(name,day,gw,dateISO,readiness,options),p=profile(name,isHillSession(name)?11:0);if(!p||out.blocked)return out;let score=0,extra=[];
+  try{const t=v36118TissueStressState(dateISO),c=t.channels||{},ham=Number(c.hamstringSpeed)||0,calf=Number(c.achillesCalf)||0,knee=Number(c.kneeQuad)||0,impact=Number(c.impact)||0;
+   const pen=(load,exposure,threshold=1.25,mult=2.8)=>load>threshold?(load-threshold)*exposure*mult:0;
+   score-=pen(ham,p.speedExposure,1.20,3.4);score-=pen(calf,p.tissue?.achillesCalf||.6,1.30,2.1);score-=pen(knee,p.tissue?.kneeQuad||.6,1.30,1.9);score-=pen(impact,p.tissue?.impact||.6,1.45,1.6);
+   if(score<=-2.5)extra.push('Sprint/hill-specific tissue matching lowers this option because its actual hamstring-speed, calf/Achilles, knee/quad, or impact profile overlaps current residual load.');
+  }catch(_e){}
+  if(readiness?.caution&&p.systemic>=.94){score-=2.5;extra.push('This workout has unusually high repeated-sprint systemic/glycolytic demand, so Recovery Caution costs it more than a short power-oriented hill session.')}
+  if(/short hills/i.test(name)&&!readiness?.caution){score+=1.25;extra.push('Short hills retain a small power-quality advantage when recovery is normal because generous walk-back recovery creates less accumulated metabolic fatigue than long hill or short-rest speed-endurance sessions.')}
+  return {...out,score:(Number(out.score)||0)+score,reasons:uniqueConditioningReasons([...(out.reasons||[]),...extra]),sprintHillProfile:p};
+ };
+
+ const priorHelper=conditioningLogHelperHTML;
+ conditioningLogHelperHTML=function(activity){let h=priorHelper(activity),p=profile(activity,isHillSession(activity)?11:0);if(!p)return h;const muscles=Object.entries(p.muscles||{}).filter(([k,v])=>v>=.72&&['quads','hamstrings','glutes','calves','adductors'].includes(k)).sort((a,b)=>b[1]-a[1]).map(([k])=>k).join(', '),grade=p.gradeSensitive?' Parking-garage default = ~11% grade; exact logged grade overrides it.':'';const note='<div class="planned"><strong>Research load profile:</strong> '+htmlSafe(p.label)+' • dominant lower-body load: '+htmlSafe(muscles||'mixed')+' • systemic '+Math.round(p.systemic*100)+'% relative • high-speed hamstring exposure '+Math.round(p.speedExposure*100)+'% relative.'+htmlSafe(grade)+'</div>';return h.replace('<div class="planned"><strong>Equipment:</strong>',note+'<div class="planned"><strong>Equipment:</strong>')};
+
+ // Expose a small audit hook so QA can verify the same coefficients used by recommendation, fatigue, and logging.
+ window.__v36120SprintHillModel={version:1,defaultHillGrade:'parkingGarage',defaultHillGradePct:11,profile:(name,grade)=>profile(name,grade),hillGradePct};
+ try{utmInvalidateCaches()}catch(_e){}
+ setTimeout(()=>{try{if(typeof render==='function')render()}catch(_e){}},0);
+})();
+
+// v36.119 secondary intent matrix hotfix — 2026-09-15.
+// The model-wide secondary decision and the user's requested secondary size/type are separate.
+// Home always exposes: Model recommended, Recommended short, Custom short,
+// Recommended full, Custom full, and No secondary. Custom modes expand into family choices.
+(function(){
+  const KEY='homeSecondaryChoiceV2';
+  function ensure(){state.settings[KEY]=state.settings[KEY]||{}}
+  function legacyChoice(dateISO){
+    const old=state.settings.homeSecondaryChoice?.[dateISO];
+    return ({recommended:'model',short:'rec-short',full:'rec-full',custom:'custom-full',none:'none'})[old]||'';
+  }
+  function choice(dateISO){ensure();return state.settings[KEY][dateISO]?.mode||legacyChoice(dateISO)||'model'}
+  function setChoice(dateISO,mode){ensure();state.settings[KEY][dateISO]={mode};save('home-secondary-matrix');renderSelectedWorkout()}
+  function primaryState(dateISO,session){
+    const completed=completedPrimaryGroupForDate(dateISO,session),finalized=!!completed;
+    const plan=finalized?v3677GroupActualPrimaryPlan(completed,session,dateISO):v3677PlannedPrimaryFor(session,dateISO);
+    return {completed,finalized,plan};
+  }
+  function advisedShort(session,dateISO,primary,finalized){
+    if(!primary)return null;
+    try{
+      const fn=typeof v36113BaseSecondaryForDisplay==='function'?v36113BaseSecondaryForDisplay:v3677SecondaryForDisplay;
+      const x=fn(session,dateISO,primary,finalized);
+      if(!x?.rows?.length||x.skipped||x.userOverride===true||x.modelAdvised===false)return null;
+      return x;
+    }catch(_e){return null}
+  }
+  function bestShort(session,dateISO,primary,finalized){
+    const auto=advisedShort(session,dateISO,primary,finalized);if(auto)return {plan:auto,auto:true};
+    if(!primary)return {plan:null,auto:false};
+    try{const forced=v36113ForcedSecondaryFor(session,dateISO,primary,finalized);return {plan:forced?.rows?.length?forced:null,auto:false}}catch(_e){return {plan:null,auto:false}}
+  }
+  function fullState(session,dateISO,primary,finalized){
+    if(finalized){
+      try{const rec=fullSecondWorkoutRecommendation(dateISO),top=rec?.top?.rows?.length?rec.top:null;return {auto:rec?.recommended?top:null,candidate:top,rec,score:top?.score??null}}catch(_e){return {auto:null,candidate:null,rec:null,score:null}}
+    }
+    let auto=null,candidate=null,evald=null;
+    try{auto=v36119PlannedSecondMain(dateISO,session)}catch(_e){}
+    try{candidate=auto||v36119CandidateForPrimary(dateISO,{session,label:session,plan:primary},v36119WeekendDay(dateISO))}catch(_e){}
+    try{if(candidate)evald=v36119CandidateScore(dateISO,{session,label:session,plan:primary},candidate,v36119WeekendDay(dateISO))}catch(_e){}
+    return {auto:auto?.rows?.length?auto:null,candidate:candidate?.rows?.length?candidate:null,rec:null,score:auto?.autoDoubleScore??evald?.score??null};
+  }
+  function stateFor(dateISO,session){
+    const p=primaryState(dateISO,session),short=bestShort(session,dateISO,p.plan,p.finalized),full=fullState(session,dateISO,p.plan,p.finalized),model=full.auto?'full':short.auto?'short':'none';
+    return {...p,short,full,model,requested:choice(dateISO)};
+  }
+  function familyLabelFromRow(row){
+    const n=String(row?.exercise||'');const lane=conditioningCadenceLaneForActivity(n,row||null);
+    if(lane==='speed')return 'Sprints / HIC';if(lane==='run'||lane==='cardio')return 'LSS / Aerobic';
+    return row?.secondaryTrainingType==='calisthenics'?'Calisthenics':row?.secondaryTrainingType==='kettlebell'?'Kettlebell':'Strength';
+  }
+  function rowsHtml(rows,limit=4){return (rows||[]).slice(0,limit).map(r=>{const rx=r.conditioning?(r.plannedTarget||r.target||'Conditioning'):[r.sets&&r.reps?`${r.sets} × ${r.reps}`:'',r.weight||''].filter(Boolean).join(' • ');return '<div class="v36123-row"><strong>'+htmlSafe(r.exercise||'Secondary')+'</strong><span>'+htmlSafe(rx)+'</span></div>'}).join('')}
+  function loadRows(dateISO,session,rows,name,note,kind){
+    if(!rows?.length)return false;
+    const short=kind==='short',clean=JSON.parse(JSON.stringify(rows));
+    if(short)clean.forEach(r=>{r.adaptiveSecondaryBlock=true;r.secondaryTrainingType=r.secondaryTrainingType||(session==='Conditioning'?'conditioning':session==='Calisthenics'?'calisthenics':/^KB /.test(session)?'kettlebell':'gym');r.secondaryCadenceCredit=Number(r.secondaryCadenceCredit)||.15});
+    logGuidedPlan={date:dateISO,session,rows:clean,name,createdAt:Date.now(),v36123:true,secondaryOnly:short,manualShortSecondary:short,secondFullWorkout:!short,secondFullWorkoutOverride:true};
+    showView('log',{preserveDate:true});logDate.value=dateISO;const tw=trainingWeekForDate(parseLocalISO(dateISO));logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value=session;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():'';blankNextWorkout=false;loadPlannedSession();if(sessionNotes&&!String(sessionNotes.value||'').trim())sessionNotes.value=note||'';renderWorkoutIntentUi();try{v3685RenderWorkoutTracker()}catch(_e){}try{writeLogWorkspace()}catch(_e){}window.scrollTo({top:0,behavior:'smooth'});return true;
+  }
+  function openRecommendedShort(dateISO,primarySession,st){
+    const p=st.short?.plan;if(!p?.rows?.length)return false;const type=p.secondaryTrainingType||p.rows[0]?.secondaryTrainingType||'conditioning',session=type==='conditioning'?'Conditioning':type==='calisthenics'?'Calisthenics':type==='kettlebell'?'Custom Workout':'Generic Gym';
+    if(st.short.auto)try{v3677RecordSecondaryDecision(dateISO,primarySession,p,'accepted')}catch(_e){}
+    return loadRows(dateISO,session,p.rows,'Recommended Short • '+(p.label||session),(st.short.auto?'Model-advised':'Best model-built')+' short secondary after '+primarySession+'.','short');
+  }
+  function openRecommendedFull(dateISO,primarySession,st){
+    const p=st.full?.candidate;if(!p?.rows?.length)return false;
+    if(st.finalized){try{return openFullSecondWorkout(p.session,dateISO,!st.full.auto)}catch(_e){}}
+    return loadRows(dateISO,p.session,p.rows,'Recommended Full • '+(p.label||p.session),(st.full.auto?'Model-advised':'Best model-ranked')+' full second workout after '+primarySession+'.','full');
+  }
+  function cloneShortRows(rows,maxRows=2){
+    return (rows||[]).filter(r=>!r.adaptiveSecondaryBlock).slice(0,maxRows).map(r=>{const x=JSON.parse(JSON.stringify(r));if(x.sets)x.sets=Math.min(2,Number(x.sets)||2);if(x.circuits)x.circuits=1;x.note=(x.note?x.note+' ':'')+'User-selected short secondary: keep this as a brief complementary dose, not a full workout.';return x});
+  }
+  function customLss(dateISO,kind){
+    const x=adaptiveModeSwitchBase(dateISO),lane=adaptiveLssLaneForDate(dateISO),p=conditioningFor(x.day,x.gw,dateISO,lane);if(!p?.activity)return false;
+    const mins=kind==='short'?(nextFixedTrainingAnchor(dateISO,2)?.days===1?10:15):null,target=kind==='short'?mins+' min easy / conversational':(p.target||'Easy steady-state');
+    return loadRows(dateISO,'Conditioning',[{exercise:p.activity,plannedTarget:target,conditioning:true,meta:(p.detail||'LSS / AEROBIC')+(p.rpe?' • target RPE '+p.rpe:''),note:'User chose the LSS / Aerobic secondary family.'}],(kind==='short'?'Custom Short':'Custom Full')+' • LSS / Aerobic • '+p.activity,'User-selected '+kind+' LSS / Aerobic secondary. ',kind);
+  }
+  function customSpeed(dateISO,kind){
+    if(kind==='short'){
+      const row={exercise:'Short Hills',plannedTarget:'6 × 10 sec • full walk-back recovery • Parking Garage (~11%)',conditioning:true,meta:'SPRINT MICRODOSE • POWER / ACCELERATION',note:'User-selected short Sprints / HIC secondary. Keep every rep crisp; stop if speed drops. Parking-garage grade defaults to ~11% unless an exact grade is logged.'};
+      return loadRows(dateISO,'Conditioning',[row],'Custom Short • Sprints / HIC • Short Hills','User-selected short sprint microdose.','short');
+    }
+    const x=adaptiveModeSwitchBase(dateISO),p=conditioningFor(x.day,x.gw,dateISO,'speed');if(!p?.activity)return false;
+    return loadRows(dateISO,'Conditioning',[{exercise:p.activity,plannedTarget:p.target||'Hard conditioning',conditioning:true,meta:(p.detail||'SPRINTS / HIC')+(p.rpe?' • target RPE '+p.rpe:''),note:'User chose the Sprints / HIC full-secondary family.'}],'Custom Full • Sprints / HIC • '+p.activity,'User-selected full Sprints / HIC secondary.','full');
+  }
+  function customStrength(dateISO,kind,family){
+    let session='',rows=[],label=family;
+    if(family==='gym'){const p=recommendedAdaptiveGymForDate(dateISO);session='Generic Gym';rows=p?.plan?.rows||[];label=p?.label||'Generic Gym'}
+    else if(family==='cal'){const p=recommendedAdaptiveCalisthenicsForDate(dateISO);session='Calisthenics';rows=p?.plan?.rows||[];label=p?.label||'Calisthenics'}
+    else if(family==='se'){session='Strength-Endurance';rows=adaptiveSEPlanForDate(dateISO)||[];label='Strength-Endurance'}
+    else if(family==='kb-heavy'||family==='kb-power'||family==='kb-volume'){session=family==='kb-heavy'?'KB Heavy':family==='kb-power'?'KB Power':'KB Volume';const pd=programPrescriptionDate(dateISO),pg=programPrescriptionWeek(dateISO);rows=getKbPlan(session,pg,pd)||[];label=session}
+    else if(family==='kb-short'){session='KB Power';const pd=programPrescriptionDate(dateISO),pg=programPrescriptionWeek(dateISO);rows=getKbPlan(session,pg,pd)||[];label='Kettlebell microdose'}
+    if(kind==='short')rows=cloneShortRows(rows,family==='se'?3:2);else rows=(rows||[]).filter(r=>!r.adaptiveSecondaryBlock);
+    if(!rows.length)return false;
+    return loadRows(dateISO,session,rows,(kind==='short'?'Custom Short • ':'Custom Full • ')+label,'User-selected '+kind+' '+label+' secondary.',kind);
+  }
+  function customBlank(dateISO,kind){
+    v36114StartCustomWorkout(dateISO);const short=kind==='short',name=short?'Custom Short Secondary':'Custom Full Secondary';
+    logGuidedPlan={date:dateISO,session:'Custom Workout',rows:[],name,createdAt:Date.now(),v36123:true,secondaryOnly:short,manualShortSecondary:short,secondFullWorkout:!short,secondFullWorkoutOverride:true};
+    const n=document.getElementById('manualWorkoutName');if(n)n.value=name;const t=document.getElementById('manualWorkoutType');if(t)t.value='mixed';if(sessionNotes)sessionNotes.value=short?'Custom short secondary. Keep it brief; it is not counted as a full second workout.':'Custom full secondary. This counts as a separate complete workout.';try{writeLogWorkspace()}catch(_e){}return true;
+  }
+  function addMode(host,label,sub,active,fn){const b=document.createElement('button');b.type='button';b.className='btn v36123-btn'+(active?' active':'');b.innerHTML='<strong>'+htmlSafe(label)+'</strong><span>'+htmlSafe(sub)+'</span>';b.addEventListener('click',fn);host.appendChild(b)}
+  function addFamily(host,label,sub,fn){const b=document.createElement('button');b.type='button';b.className='btn';b.innerHTML='<strong>'+htmlSafe(label)+'</strong><span>'+htmlSafe(sub)+'</span>';b.addEventListener('click',fn);host.appendChild(b)}
+  function preview(box,st,dateISO,session){
+    const mode=st.requested,card=document.createElement('div');card.className='v36123-preview';
+    let title='',type='',copy='',rows=[],stateLabel='User selected',stateCls='override',action=null;
+    if(mode==='model'){
+      stateLabel='Model choice';stateCls='model';
+      if(st.model==='full'){const p=st.full.auto;type='Model recommended • Full secondary';title=p?.label||p?.session||'Full secondary';copy='The model currently recommends a complete second workout.';rows=p?.rows||[];action=()=>openRecommendedFull(dateISO,session,st)}
+      else if(st.model==='short'){const p=st.short.plan;type='Model recommended • Short secondary';title=p?.label||'Short secondary';copy='The model currently recommends a brief complementary add-on.';rows=p?.rows||[];action=()=>openRecommendedShort(dateISO,session,st)}
+      else{type='Model recommended';title='No secondary';copy='The model currently recommends stopping after the primary. The other five choices remain available as deliberate overrides.'}
+    }else if(mode==='rec-short'){const p=st.short.plan;type='Recommended short';title=p?.label||'No compatible short plan';copy=st.short.auto?'This is also the model-wide recommendation.':'This is the model’s best short secondary if you specifically want a short add-on, even though it did not win the overall secondary decision.';rows=p?.rows||[];action=p?()=>openRecommendedShort(dateISO,session,st):null}
+    else if(mode==='rec-full'){const p=st.full.candidate;type='Recommended full second';title=p?.label||p?.session||'No compatible full plan';copy=st.full.auto?'This is also the model-wide recommendation.':'This is the model’s best complete second workout if you specifically want a full second session, even though it did not win the overall secondary decision.';rows=p?.rows||[];action=p?()=>openRecommendedFull(dateISO,session,st):null}
+    else if(mode==='custom-short'){type='Custom short';title='Choose the short-secondary family below';copy='You choose the training family. The app keeps the result tagged as a short secondary so it does not count as a full second workout.'}
+    else if(mode==='custom-full'){type='Custom full second';title='Choose the full-secondary family below';copy='You choose the training family. The result is treated as a separate complete workout.'}
+    else{type='No secondary';title='Stop after the primary';copy='No secondary will be loaded for this date unless you choose another option.'}
+    card.innerHTML='<div class="v36123-preview-top"><div><div class="v36123-preview-type">'+htmlSafe(type)+'</div><strong>'+htmlSafe(title)+'</strong></div><span class="v36123-state '+stateCls+'">'+htmlSafe(stateLabel)+'</span></div><div class="v36123-preview-copy">'+htmlSafe(copy)+'</div>'+rowsHtml(rows);
+    if(action){const a=document.createElement('div');a.className='v36123-actions';const b=document.createElement('button');b.type='button';b.className='btn primary';b.textContent=mode==='rec-full'||(mode==='model'&&st.model==='full')?'Open full secondary':'Open short secondary';b.addEventListener('click',action);a.appendChild(b);card.appendChild(a)}
+    box.appendChild(card);
+  }
+  function familyChooser(box,st,dateISO){
+    if(!['custom-short','custom-full'].includes(st.requested))return;const kind=st.requested==='custom-short'?'short':'full',wrap=document.createElement('div');wrap.className='v36123-family-wrap';wrap.innerHTML='<div class="v36123-family-title">Choose '+(kind==='short'?'short-secondary':'full-secondary')+' type</div><div class="v36123-family-copy">This changes only the secondary. Your primary stays exactly as selected above.</div><div class="v36123-family-grid"></div>';const g=wrap.querySelector('.v36123-family-grid');
+    addFamily(g,'LSS / Aerobic',kind==='short'?'Brief easy aerobic dose':'Full steady-state endurance session',()=>customLss(dateISO,kind));
+    addFamily(g,'Sprints / HIC',kind==='short'?'Short speed/power microdose':'Full hard-conditioning session',()=>customSpeed(dateISO,kind));
+    addFamily(g,'Generic Gym',kind==='short'?'Brief resistance block':'Full adaptive gym session',()=>customStrength(dateISO,kind,'gym'));
+    addFamily(g,'Calisthenics',kind==='short'?'Brief bodyweight block':'Full bodyweight session',()=>customStrength(dateISO,kind,'cal'));
+    if(kind==='short'){
+      addFamily(g,'SE microdose','Brief circuit dose',()=>customStrength(dateISO,'short','se'));
+      addFamily(g,'Kettlebell','Brief KB power-oriented block',()=>customStrength(dateISO,'short','kb-short'));
+    }else{
+      addFamily(g,'SE Circuit','Full strength-endurance circuit',()=>customStrength(dateISO,'full','se'));
+      addFamily(g,'KB Heavy','Full kettlebell heavy session',()=>customStrength(dateISO,'full','kb-heavy'));
+      addFamily(g,'KB Power','Full kettlebell power session',()=>customStrength(dateISO,'full','kb-power'));
+      addFamily(g,'KB Volume','Full kettlebell volume session',()=>customStrength(dateISO,'full','kb-volume'));
+    }
+    addFamily(g,'Blank custom','Start empty and build it yourself',()=>customBlank(dateISO,kind));box.appendChild(wrap);
+  }
+  function build(dateISO,session){
+    const st=stateFor(dateISO,session),box=document.createElement('section');box.className='v36123-secondary-matrix';box.dataset.v36123='secondary-matrix';
+    const modelText=st.model==='full'?'Full second':st.model==='short'?'Short':'None';
+    box.innerHTML='<div class="v36123-head"><div><div class="v36123-kicker">Secondary</div><h3>Secondary workout</h3></div><span class="v36123-badge">Model: '+htmlSafe(modelText)+'</span></div><div class="v36123-copy">Choose what you want to do after the primary. “Model recommended” follows the model’s overall decision. “Recommended short” and “Recommended full” ask the model for its best workout at that specific size. Custom choices let you choose the training family yourself.</div>';
+    const g=document.createElement('div');g.className='v36123-grid';
+    addMode(g,'Model recommended','Use the model’s current Full / Short / None decision',st.requested==='model',()=>setChoice(dateISO,'model'));
+    addMode(g,'Recommended short','Best short add-on if you want a short secondary',st.requested==='rec-short',()=>setChoice(dateISO,'rec-short'));
+    addMode(g,'Custom short','Choose LSS, sprints, Gym, Calisthenics, KB, etc.',st.requested==='custom-short',()=>setChoice(dateISO,'custom-short'));
+    addMode(g,'Recommended full','Best complete second workout if you want one',st.requested==='rec-full',()=>setChoice(dateISO,'rec-full'));
+    addMode(g,'Custom full','Choose the full second-workout family yourself',st.requested==='custom-full',()=>setChoice(dateISO,'custom-full'));
+    addMode(g,'No secondary','Stop after the primary',st.requested==='none',()=>setChoice(dateISO,'none'));
+    box.appendChild(g);familyChooser(box,st,dateISO);preview(box,st,dateISO,session);return box;
+  }
+  function cleanup(){
+    if(!tbList)return;
+    tbList.querySelectorAll('[data-v3677="secondary"],.v3677-secondary,[data-v36121="secondary-hub"],.v36121-secondary-hub,[data-v36123="secondary-matrix"],.v36118-second-main-notice').forEach(x=>x.remove());
+  }
+  function renderMatrix(){
+    if(!tbList||!selectedDateISO)return;cleanup();
+    const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);if(!(gw>=1||baseBuildingForDate(selectedDateISO)))return;const session=expectedSession(dayNameFromDate(selectedDateISO),Math.max(1,gw),selectedDateISO);
+    if(['Recovery / Rest','Active Recovery','Class / Activity','Custom Workout','Open Training','Other'].includes(session))return;
+    const p=primaryState(selectedDateISO,session);if(!p.plan)return;
+    const box=build(selectedDateISO,session),context=tbList.querySelector('[data-v3677="context"]'),actions=tbList.querySelector('.day-actions-details');
+    if(context)tbList.insertBefore(box,context);else if(actions)tbList.insertBefore(box,actions);else tbList.appendChild(box);
+  }
+  const prior=renderSelectedWorkout;
+  renderSelectedWorkout=function(){const out=prior.apply(this,arguments);try{renderMatrix();requestAnimationFrame(()=>{try{renderMatrix()}catch(_e){}})}catch(e){console.warn('v36.119 secondary intent matrix:',e)}return out};
+  window.__v36123SecondaryMatrix={state:stateFor,setChoice,render:renderMatrix};
+  try{renderMatrix()}catch(_e){}
+})();
+
 // v36.107 — controlled bridge for modular UI/support code.
 // The training engine remains scoped inside this IIFE; the external shell only receives
 // the narrow operations it needs for presentation, undo, update UX, and comparisons.
@@ -16609,6 +16893,14 @@ window.HybridCore=Object.freeze({
  #log .v36114-full-option .btn{width:100%}
  .v36114-conditioning-family{grid-template-columns:1fr}
 }
+
+/* v36.119 secondary intent matrix hotfix — 2026-09-15 */
+.v36123-secondary-matrix{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:18px;padding:15px;margin:14px 0;background:var(--panel)}
+.v36123-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v36123-kicker{font-size:.68rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:var(--accent2)}.v36123-head h3{margin:3px 0 0;font-size:1.16rem}.v36123-badge{font-size:.65rem;font-weight:900;border:1px solid var(--line);border-radius:999px;padding:6px 9px;color:var(--muted)}
+.v36123-copy{font-size:.74rem;line-height:1.48;color:var(--muted);margin:9px 0 12px}.v36123-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.v36123-btn{min-height:62px;text-align:left;display:flex!important;flex-direction:column;align-items:flex-start!important;justify-content:center}.v36123-btn strong{font-size:.77rem}.v36123-btn span{font-size:.61rem;line-height:1.35;color:var(--muted);margin-top:3px}.v36123-btn.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+.v36123-family-wrap{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}.v36123-family-title{font-size:.72rem;font-weight:900;margin-bottom:7px}.v36123-family-copy{font-size:.65rem;line-height:1.4;color:var(--muted);margin-bottom:9px}.v36123-family-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.v36123-family-grid .btn{min-height:48px;text-align:left;white-space:normal}.v36123-family-grid .btn strong{display:block;font-size:.72rem}.v36123-family-grid .btn span{display:block;font-size:.59rem;line-height:1.3;color:var(--muted);margin-top:2px}
+.v36123-preview{margin-top:12px;border:1px solid var(--line);border-radius:15px;padding:12px;background:color-mix(in srgb,var(--panel) 86%,#000)}.v36123-preview-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.v36123-preview-type{font-size:.62rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.v36123-preview strong{font-size:.92rem}.v36123-state{font-size:.6rem;font-weight:900;border:1px solid var(--line);border-radius:999px;padding:5px 8px}.v36123-state.model{color:var(--accent2)}.v36123-state.override{color:#d8b85a}.v36123-preview-copy{font-size:.7rem;line-height:1.45;color:var(--muted);margin:8px 0}.v36123-row{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding:7px 0;font-size:.69rem}.v36123-row span{color:var(--muted);text-align:right}.v36123-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+@media(max-width:650px){.v36123-secondary-matrix{padding:12px}.v36123-grid,.v36123-family-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v36123-btn{min-height:66px;padding-left:10px;padding-right:10px}}
 </style>
 <script src="app-shell-v36.119.js?v=36.119"></script>
 
@@ -16616,240 +16908,6 @@ window.HybridCore=Object.freeze({
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.
 window.__v36115={landmineSingleEnded:true,tbOnlyAutoKbSecondary:false};
 </script>
-<script id="v36120-sprint-hill-research-model">
-// v36.119 research hardening — sprint / hill sessions are no longer one generic hard-run bucket.
-// Relative weights are intentionally bounded priors, not injury predictions or exact EMG percentages.
-// Evidence basis: graded-running biomechanics (PMID 27501719, 32396672, 34261421, 34727844, 36931595)
-// and repeated-sprint work/rest/distance meta-analysis (PMID 37222864).
-(function(){
- const clamp=(x,a,b)=>Math.max(a,Math.min(b,Number(x)||0));
- const gradePreset={parkingGarage:11,gentle5:5,moderate8:8,grade10:10,steep12:12,verySteep15:15};
- const isHillSession=name=>/(hill|bloody lungs)/i.test(String(name||''));
- function hillGradePct(name,metrics={}){
-  const exact=Number(metrics?.hillGradePct);if(exact>0)return clamp(exact,1,25);
-  const preset=String(metrics?.hillGradeProfile||'');if(gradePreset[preset])return gradePreset[preset];
-  return isHillSession(name)?11:0; // user default: typical parking-garage ramp
- }
- function baseProfile(name){
-  const n=String(name||'').toLowerCase();
-  const exact={
-   'short hills':{difficulty:8.25,label:'Acceleration / hill power',defaultReps:10,systemic:.60,anaerobic:.76,aerobic:.34,power:.94,impact:.64,speedExposure:.58,gradeSensitive:true,muscles:{quads:.72,hamstrings:.56,glutes:.92,calves:.80,adductors:.26,core:.18},tissue:{impact:.66,achillesCalf:.94,hamstringSpeed:.58,kneeQuad:.68,adductorGroin:.25}},
-   'standard issue hills':{difficulty:8.85,label:'Long hill sprint / speed endurance',defaultReps:7.5,systemic:.90,anaerobic:.94,aerobic:.58,power:.80,impact:.70,speedExposure:.52,gradeSensitive:true,muscles:{quads:.82,hamstrings:.58,glutes:.95,calves:.84,adductors:.30,core:.20},tissue:{impact:.78,achillesCalf:1.02,hamstringSpeed:.55,kneeQuad:.80,adductorGroin:.30}},
-   'apex hills':{difficulty:9.25,label:'Hill speed endurance + ballistic hinge',defaultReps:7.5,systemic:.97,anaerobic:.98,aerobic:.56,power:.90,impact:.69,speedExposure:.50,gradeSensitive:true,hinge:true,muscles:{quads:.82,hamstrings:.78,glutes:1.00,calves:.84,adductors:.30,core:.34},tissue:{impact:.78,achillesCalf:1.02,hamstringSpeed:.62,kneeQuad:.80,adductorGroin:.30}},
-   '600 meter resets':{difficulty:9.05,label:'Long speed-endurance / VO₂-heavy HIC',defaultReps:6,systemic:.95,anaerobic:.93,aerobic:.80,power:.58,impact:.88,speedExposure:.66,muscles:{quads:.80,hamstrings:.62,glutes:.70,calves:.78,adductors:.34,core:.18},tissue:{impact:1.02,achillesCalf:.92,hamstringSpeed:.66,kneeQuad:.74,adductorGroin:.34}},
-   'oxygen debt 101':{difficulty:9.45,label:'Repeated 200 m glycolytic speed endurance',defaultReps:4,systemic:1.00,anaerobic:1.00,aerobic:.68,power:.82,impact:.94,speedExposure:.91,muscles:{quads:.82,hamstrings:.86,glutes:.80,calves:.86,adductors:.42,core:.18},tissue:{impact:1.16,achillesCalf:1.00,hamstringSpeed:1.05,kneeQuad:.82,adductorGroin:.42}},
-   'speed-endurance ladders':{difficulty:9.65,label:'High-volume mixed-distance speed endurance',defaultReps:1,systemic:1.00,anaerobic:1.00,aerobic:.82,power:.78,impact:.97,speedExposure:.88,muscles:{quads:.86,hamstrings:.84,glutes:.80,calves:.88,adductors:.42,core:.18},tissue:{impact:1.22,achillesCalf:1.06,hamstringSpeed:1.00,kneeQuad:.88,adductorGroin:.42}},
-   'connaught range 10 to 1s':{difficulty:9.20,label:'Repeated 100 m sprint + burpee density',defaultReps:10,systemic:1.00,anaerobic:.98,aerobic:.66,power:.84,impact:.94,speedExposure:.92,muscles:{quads:.84,hamstrings:.84,glutes:.80,calves:.86,adductors:.38,core:.38,chest:.45,triceps:.40},tissue:{impact:1.18,achillesCalf:1.00,hamstringSpeed:1.05,kneeQuad:.84,adductorGroin:.38}},
-   'meat-eater':{difficulty:9.05,label:'100 m sprint + kettlebell hinge',defaultReps:10,systemic:.94,anaerobic:.96,aerobic:.54,power:.90,impact:.90,speedExposure:.88,hinge:true,muscles:{quads:.78,hamstrings:.88,glutes:.92,calves:.80,adductors:.34,core:.30},tissue:{impact:1.05,achillesCalf:.92,hamstringSpeed:.96,kneeQuad:.76,adductorGroin:.34}},
-   'anaerobic capacity':{difficulty:9.35,label:'Continuous 200–400 m speed endurance',defaultReps:4,systemic:1.00,anaerobic:.98,aerobic:.84,power:.66,impact:.94,speedExposure:.76,muscles:{quads:.84,hamstrings:.76,glutes:.76,calves:.84,adductors:.38,core:.28},tissue:{impact:1.16,achillesCalf:1.00,hamstringSpeed:.86,kneeQuad:.84,adductorGroin:.38}},
-   'meat-eater iii':{difficulty:9.55,label:'300 m sprint + clean/press + walking lunge',defaultReps:5,systemic:1.00,anaerobic:1.00,aerobic:.68,power:.86,impact:.90,speedExposure:.78,hinge:true,muscles:{quads:.94,hamstrings:.84,glutes:.96,calves:.80,adductors:.52,core:.46,shoulders:.48},tissue:{impact:1.12,achillesCalf:.94,hamstringSpeed:.86,kneeQuad:.98,adductorGroin:.54}}
-  };
-  if(exact[n])return {...exact[n],name};
-  if(/bloody lungs i/.test(n))return {difficulty:9.20,label:'Hill sprint + calisthenic density',defaultReps:5,systemic:.98,anaerobic:.96,aerobic:.56,power:.82,impact:.70,speedExposure:.50,gradeSensitive:true,muscles:{quads:.82,hamstrings:.58,glutes:.94,calves:.84,adductors:.30,core:.42,chest:.50,triceps:.46},tissue:{impact:.80,achillesCalf:1.00,hamstringSpeed:.55,kneeQuad:.82,adductorGroin:.30}};
-  if(/bloody lungs ii/.test(n))return {difficulty:9.45,label:'Hill sprint + burpee + snatch',defaultReps:7.5,systemic:1.00,anaerobic:1.00,aerobic:.56,power:.92,impact:.70,speedExposure:.50,gradeSensitive:true,hinge:true,muscles:{quads:.84,hamstrings:.76,glutes:.98,calves:.84,adductors:.32,core:.44,shoulders:.50},tissue:{impact:.82,achillesCalf:1.02,hamstringSpeed:.60,kneeQuad:.84,adductorGroin:.32}};
-  if(/hill/.test(n))return {difficulty:8.80,label:'Uphill sprint / acceleration-biased running',defaultReps:8,systemic:.82,anaerobic:.88,aerobic:.46,power:.88,impact:.68,speedExposure:.54,gradeSensitive:true,muscles:{quads:.78,hamstrings:.58,glutes:.94,calves:.82,adductors:.28,core:.18},tissue:{impact:.76,achillesCalf:1.00,hamstringSpeed:.58,kneeQuad:.78,adductorGroin:.28}};
-  if(/\bsprint\b|100 m|200 m|300 m|400 m/.test(n))return {difficulty:8.95,label:'Flat / near-flat sprint running',defaultReps:6,systemic:.86,anaerobic:.94,aerobic:.46,power:.92,impact:.94,speedExposure:.96,muscles:{quads:.78,hamstrings:.90,glutes:.82,calves:.84,adductors:.40,core:.16},tissue:{impact:1.10,achillesCalf:.96,hamstringSpeed:1.08,kneeQuad:.76,adductorGroin:.40}};
-  return null;
- }
- function profile(name,grade=0){
-  const p=baseProfile(name);if(!p)return null;const out=JSON.parse(JSON.stringify(p));
-  if(out.gradeSensitive){
-   const g=grade>0?clamp(grade,1,25):11,delta=g-8;
-   // Steeper uphill running shifts mechanics toward acceleration, raises positive work / energetic cost,
-   // and lowers absolute velocity. Values are bounded so grade refines rather than overwhelms the workout identity.
-   out.gradePct=g;out.muscles.glutes=clamp(out.muscles.glutes+delta*.010,.55,1);out.muscles.quads=clamp(out.muscles.quads+delta*.005,.45,1);out.muscles.calves=clamp(out.muscles.calves+delta*.006,.45,1);
-   out.systemic=clamp(out.systemic+Math.max(0,delta)*.006,.45,1);out.speedExposure=clamp(out.speedExposure-delta*.018,.30,.82);
-   out.tissue.hamstringSpeed=clamp(out.tissue.hamstringSpeed-delta*.018,.32,.80);out.tissue.achillesCalf=clamp(out.tissue.achillesCalf+delta*.010,.55,1.18);out.tissue.kneeQuad=clamp(out.tissue.kneeQuad+delta*.006,.45,1.06);
-   // Uphill normal loading rate can be lower, but internal tibial load rises at >=10% in some modeling work.
-   // Keep impact bounded rather than assuming hills are universally lower-impact.
-   out.tissue.impact=clamp(out.tissue.impact+(g>=10?(g-10)*.012:-.02),.50,1.12);
-  }
-  return out;
- }
- function actualVolumeScale(row,p){
-  const m=row?.metrics||{},n=String(row?.exercise||'').toLowerCase(),reps=Number(m.intervals)||0;let ratio=1;
-  if(reps>0&&p?.defaultReps){ratio=clamp(reps/p.defaultReps,.55,1.55)}
-  // Longer sprint reps and shorter rests raise acute metabolic demand / performance decrement.
-  let work=parseFlexibleSeconds?.(m.workInterval)||0,rest=parseFlexibleSeconds?.(m.restInterval)||0;
-  if(/oxygen debt/.test(n))work=0; // field stores reps-per-round, not seconds
-  if(work>=8&&rest>0){const density=work/(work+rest),baseline=/short hills/.test(n)?.22:/standard issue hills|apex hills/.test(n)?.30:.24;ratio*=clamp(1+(density-baseline)*.75,.82,1.20)}
-  return clamp(ratio,.50,1.65);
- }
- function hillGradeFieldsHTML(activity){
-  if(!isHillSession(activity))return '';
-  return '<div class="field"><label>Hill grade</label><select class="le-hillgradeprofile"><option value="parkingGarage" selected>Parking garage ramp (~10–12%; model 11%)</option><option value="gentle5">Gentle hill (~5%)</option><option value="moderate8">Moderate hill (~8%)</option><option value="grade10">10% grade</option><option value="steep12">Steep hill (~12%)</option><option value="verySteep15">Very steep hill (~15%)</option><option value="custom">Custom / measured</option></select><div class="hint">Parking-garage ramps commonly fall around the high-single-digits to low-teens; the model uses 11% unless you enter an exact grade.</div></div>'+
-   '<div class="field"><label>Exact grade (%)</label><input class="le-hillgradepct" type="number" min="1" max="25" step=".5" placeholder="optional — overrides preset"></div>';
- }
- const priorRunFields=runningConditionsFieldsHTML;
- runningConditionsFieldsHTML=function(activity){let h=priorRunFields(activity);if(!isHillSession(activity))return h;h=h.replace('<option>Other</option></select></div>','<option>Parking Garage</option><option>Other</option></select></div>');return hillGradeFieldsHTML(activity)+h};
 
- const priorDifficulty=conditioningDifficultyRating;
- conditioningDifficultyRating=function(activity){const p=profile(activity,isHillSession(activity)?11:0);return p?Math.round(p.difficulty*20)/20:priorDifficulty(activity)};
-
- const priorResearchProfile=conditioningResearchProfile;
- conditioningResearchProfile=function(name){const b=priorResearchProfile(name),p=profile(name,isHillSession(name)?11:0);if(!p)return b;return {...b,modality:p.gradeSensitive?'run_hill_speed':'run_speed',aerobic:p.aerobic,anaerobic:p.anaerobic,power:p.power,impact:p.impact,systemic:p.systemic,specificity:.98,hard:true,sprintHillProfile:p.label}};
-
- const priorFingerprint=utmFingerprint;
- utmFingerprint=function(name){const f=priorFingerprint(name),p=profile(name,isHillSession(name)?11:0);if(!p)return f;f.type='conditioning';f.moves=f.moves||{};f.muscles=f.muscles||{};f.fatigue=f.fatigue||{};
-  f.moves.locomotion=1;f.moves.power=p.power;if(p.hinge)f.moves.hinge=Math.max(Number(f.moves.hinge)||0,.82);
-  for(const [k,v] of Object.entries(p.muscles||{}))f.muscles[k]=v;
-  f.fatigue.aerobic=p.aerobic;f.fatigue.anaerobic=p.anaerobic;f.fatigue.impact=p.impact;f.fatigue.systemic=p.systemic;f.powerDemand=p.power;
-  return f;
- };
- const priorRowFingerprint=utmRowFingerprint;
- utmRowFingerprint=function(row){const f=priorRowFingerprint(row),g=hillGradePct(row?.exercise,row?.metrics||{}),p=profile(row?.exercise,g);if(!p)return f;const scale=actualVolumeScale(row,p);
-  f.moves=f.moves||{};f.muscles=f.muscles||{};f.fatigue=f.fatigue||{};f.moves.locomotion=1;f.moves.power=p.power;if(p.hinge)f.moves.hinge=Math.max(Number(f.moves.hinge)||0,.82);
-  for(const [k,v] of Object.entries(p.muscles||{}))f.muscles[k]=clamp(v*(.94+.06*scale),0,1);
-  f.fatigue.aerobic=clamp(p.aerobic*(.90+.10*scale),0,1);f.fatigue.anaerobic=clamp(p.anaerobic*(.88+.12*scale),0,1);f.fatigue.impact=clamp(p.impact*(.92+.08*scale),0,1);f.fatigue.systemic=clamp(p.systemic*(.86+.14*scale),0,1);f.powerDemand=p.power;
-  return f;
- };
-
- const priorTissueDose=v36118RowTissueDose;
- v36118RowTissueDose=function(row){const g=hillGradePct(row?.exercise,row?.metrics||{}),p=profile(row?.exercise,g);if(!p)return priorTissueDose(row);const scale=actualVolumeScale(row,p)*clamp((utmRowConditioningRpe(row)||effectiveEffortRpe(row)||p.difficulty)/Math.max(7.5,p.difficulty),.72,1.22),t=p.tissue||{};let out={impact:(t.impact||0)*scale,achillesCalf:(t.achillesCalf||0)*scale,hamstringSpeed:(t.hamstringSpeed||0)*scale,kneeQuad:(t.kneeQuad||0)*scale,adductorGroin:(t.adductorGroin||0)*scale};
-  const surface=String(row?.metrics?.surface||'').toLowerCase();if(/concrete|road|pavement|parking garage/.test(surface)){out.impact*=1.06;out.achillesCalf*=1.04}else if(/treadmill/.test(surface)){out.impact*=.94}return out;
- };
-
- const priorContext=conditioningContextAdjustment;
- conditioningContextAdjustment=function(name,day,gw,dateISO,readiness,options={}){const out=priorContext(name,day,gw,dateISO,readiness,options),p=profile(name,isHillSession(name)?11:0);if(!p||out.blocked)return out;let score=0,extra=[];
-  try{const t=v36118TissueStressState(dateISO),c=t.channels||{},ham=Number(c.hamstringSpeed)||0,calf=Number(c.achillesCalf)||0,knee=Number(c.kneeQuad)||0,impact=Number(c.impact)||0;
-   const pen=(load,exposure,threshold=1.25,mult=2.8)=>load>threshold?(load-threshold)*exposure*mult:0;
-   score-=pen(ham,p.speedExposure,1.20,3.4);score-=pen(calf,p.tissue?.achillesCalf||.6,1.30,2.1);score-=pen(knee,p.tissue?.kneeQuad||.6,1.30,1.9);score-=pen(impact,p.tissue?.impact||.6,1.45,1.6);
-   if(score<=-2.5)extra.push('Sprint/hill-specific tissue matching lowers this option because its actual hamstring-speed, calf/Achilles, knee/quad, or impact profile overlaps current residual load.');
-  }catch(_e){}
-  if(readiness?.caution&&p.systemic>=.94){score-=2.5;extra.push('This workout has unusually high repeated-sprint systemic/glycolytic demand, so Recovery Caution costs it more than a short power-oriented hill session.')}
-  if(/short hills/i.test(name)&&!readiness?.caution){score+=1.25;extra.push('Short hills retain a small power-quality advantage when recovery is normal because generous walk-back recovery creates less accumulated metabolic fatigue than long hill or short-rest speed-endurance sessions.')}
-  return {...out,score:(Number(out.score)||0)+score,reasons:uniqueConditioningReasons([...(out.reasons||[]),...extra]),sprintHillProfile:p};
- };
-
- const priorHelper=conditioningLogHelperHTML;
- conditioningLogHelperHTML=function(activity){let h=priorHelper(activity),p=profile(activity,isHillSession(activity)?11:0);if(!p)return h;const muscles=Object.entries(p.muscles||{}).filter(([k,v])=>v>=.72&&['quads','hamstrings','glutes','calves','adductors'].includes(k)).sort((a,b)=>b[1]-a[1]).map(([k])=>k).join(', '),grade=p.gradeSensitive?' Parking-garage default = ~11% grade; exact logged grade overrides it.':'';const note='<div class="planned"><strong>Research load profile:</strong> '+htmlSafe(p.label)+' • dominant lower-body load: '+htmlSafe(muscles||'mixed')+' • systemic '+Math.round(p.systemic*100)+'% relative • high-speed hamstring exposure '+Math.round(p.speedExposure*100)+'% relative.'+htmlSafe(grade)+'</div>';return h.replace('<div class="planned"><strong>Equipment:</strong>',note+'<div class="planned"><strong>Equipment:</strong>')};
-
- // Expose a small audit hook so QA can verify the same coefficients used by recommendation, fatigue, and logging.
- window.__v36120SprintHillModel={version:1,defaultHillGrade:'parkingGarage',defaultHillGradePct:11,profile:(name,grade)=>profile(name,grade),hillGradePct};
- try{utmInvalidateCaches()}catch(_e){}
- setTimeout(()=>{try{if(typeof render==='function')render()}catch(_e){}},0);
-})();
-
-// v36.119 — unified Home secondary hub.
-// Hotfix 2026-09-15b: recommended Conditioning now names LSS/Aerobic vs Sprints/HIC; Secondary is rendered in-place as Recommended / Full / Short / Custom.
-// Primary recommendation/switching is intentionally untouched. This only consolidates the existing
-// full-second and short-secondary systems into one Home surface with explicit user overrides.
-(function(){
-  const V36121_KEY='homeSecondaryChoice';
-  function ensureStore(){state.settings[V36121_KEY]=state.settings[V36121_KEY]||{}}
-  function setChoice(dateISO,mode){ensureStore();state.settings[V36121_KEY][dateISO]=mode;save('home-secondary-choice');renderSelectedWorkout()}
-  function choiceFor(dateISO){ensureStore();const saved=state.settings[V36121_KEY][dateISO];if(saved)return saved;try{const legacy=v3677SecondaryOverride(dateISO);if(legacy?.force)return 'short';if(legacy?.skipped)return 'none'}catch(_e){}return 'recommended'}
-  function primaryState(dateISO,session){
-    const completed=completedPrimaryGroupForDate(dateISO,session),finalized=!!completed;
-    const plan=finalized?v3677GroupActualPrimaryPlan(completed,session,dateISO):v3677PlannedPrimaryFor(session,dateISO);
-    return {completed,finalized,plan};
-  }
-  function normalShort(session,dateISO,primary,finalized){
-    if(!primary)return null;
-    try{
-      const fn=typeof v36113BaseSecondaryForDisplay==='function'?v36113BaseSecondaryForDisplay:v3677SecondaryForDisplay;
-      const x=fn(session,dateISO,primary,finalized);
-      if(!x?.rows?.length||x.skipped||x.userOverride===true||x.modelAdvised===false)return null;
-      return x;
-    }catch(_e){return null}
-  }
-  function anyShort(session,dateISO,primary,finalized){
-    const normal=normalShort(session,dateISO,primary,finalized);if(normal)return {plan:normal,recommended:true};
-    if(!primary)return {plan:null,recommended:false};
-    try{const forced=v36113ForcedSecondaryFor(session,dateISO,primary,finalized);return {plan:forced?.rows?.length?forced:null,recommended:false}}catch(_e){return {plan:null,recommended:false}}
-  }
-  function fullState(session,dateISO,primary,finalized){
-    if(finalized){
-      try{const rec=fullSecondWorkoutRecommendation(dateISO),top=rec?.top?.rows?.length?rec.top:null;return {auto:rec?.recommended?top:null,candidate:top,rec,score:top?.score??null,threshold:null}}catch(_e){return {auto:null,candidate:null,rec:null}}
-    }
-    let auto=null,candidate=null,evald=null;
-    try{auto=v36119PlannedSecondMain(dateISO,session)}catch(_e){}
-    try{candidate=auto||v36119CandidateForPrimary(dateISO,{session,label:session,plan:primary},v36119WeekendDay(dateISO))}catch(_e){}
-    try{if(candidate)evald=v36119CandidateScore(dateISO,{session,label:session,plan:primary},candidate,v36119WeekendDay(dateISO))}catch(_e){}
-    return {auto:auto?.rows?.length?auto:null,candidate:candidate?.rows?.length?candidate:null,rec:null,score:auto?.autoDoubleScore??evald?.score??null,threshold:auto?.autoDoubleThreshold??null,evald};
-  }
-  function secondaryState(dateISO,session){
-    const p=primaryState(dateISO,session),short=anyShort(session,dateISO,p.plan,p.finalized),full=fullState(session,dateISO,p.plan,p.finalized);
-    const recMode=full.auto?'full':short.recommended?'short':'none',requested=choiceFor(dateISO),mode=requested==='recommended'?recMode:requested;
-    return {...p,short,full,recMode,requested,mode};
-  }
-  function shortRowsHtml(addOn){
-    return (addOn?.rows||[]).slice(0,4).map(r=>{const rx=r.conditioning?(r.plannedTarget||'Very easy'):[r.sets&&r.reps?`${r.sets} × ${r.reps}`:'',r.weight||''].filter(Boolean).join(' • ');return '<div class="v36121-row"><strong>'+htmlSafe(r.exercise||'Secondary')+'</strong><span>'+htmlSafe(rx)+'</span></div>'}).join('');
-  }
-  function fullRowsHtml(plan){
-    return (plan?.rows||[]).slice(0,4).map(r=>{const rx=r.conditioning?(r.plannedTarget||plan.label||'Conditioning'):[r.sets&&r.reps?`${r.sets} × ${r.reps}`:'',r.weight||''].filter(Boolean).join(' • ');return '<div class="v36121-row"><strong>'+htmlSafe(r.exercise||plan.session||'Workout')+'</strong><span>'+htmlSafe(rx)+'</span></div>'}).join('');
-  }
-  function loadRows(dateISO,session,rows,name,note,flags={}){
-    if(!rows?.length)return false;
-    logGuidedPlan={date:dateISO,session,rows:JSON.parse(JSON.stringify(rows)),name,createdAt:Date.now(),v36121:true,...flags};
-    showView('log',{preserveDate:true});logDate.value=dateISO;const tw=trainingWeekForDate(parseLocalISO(dateISO));logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value=session;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():'';blankNextWorkout=false;loadPlannedSession();
-    if(sessionNotes&&!String(sessionNotes.value||'').trim())sessionNotes.value=note||'';renderWorkoutIntentUi();try{v3685RenderWorkoutTracker()}catch(_e){}try{writeLogWorkspace()}catch(_e){}window.scrollTo({top:0,behavior:'smooth'});return true;
-  }
-  function openShort(dateISO,primarySession,st){
-    const addOn=st.short?.plan;if(!addOn?.rows?.length)return false;const recommended=!!st.short.recommended,type=addOn.secondaryTrainingType||addOn.rows[0]?.secondaryTrainingType||'conditioning',session=type==='conditioning'?'Conditioning':type==='calisthenics'?'Calisthenics':type==='kettlebell'?'Custom Workout':'Generic Gym';
-    if(recommended)try{v3677RecordSecondaryDecision(dateISO,primarySession,addOn,'accepted')}catch(_e){}
-    return loadRows(dateISO,session,addOn.rows,(recommended?'Short Secondary • ':'Short Secondary • User Choice • ')+(addOn.label||session),(recommended?'Model-recommended':'User-selected')+' short complementary secondary after '+primarySession+'.',{secondaryOnly:true,secondaryOverride:!recommended});
-  }
-  function openFull(dateISO,primarySession,st){
-    const p=st.full?.candidate;if(!p?.rows?.length)return false;
-    if(st.finalized){try{return openFullSecondWorkout(p.session,dateISO,!st.full.auto)}catch(_e){}}
-    const recommended=!!st.full.auto;return loadRows(dateISO,p.session,p.rows,(recommended?'Full Secondary • ':'Full Secondary • User Choice • ')+(p.label||p.session),(recommended?'Model-recommended':'User-selected')+' full secondary after '+primarySession+'.',{secondFullWorkout:true,secondFullWorkoutOverride:!recommended});
-  }
-  function markManualShortCards(){
-    if(!logGuidedPlan?.manualShortSecondary)return;[...plannedExercises.querySelectorAll('.log-exercise')].forEach(c=>{c.dataset.adaptiveSecondaryBlock='1';c.dataset.secondaryTrainingType='manual';c.dataset.secondaryFocus='manual';c.dataset.secondaryCadenceCredit='0'})
-  }
-  const priorAppendAdditional=appendAdditionalLogExercise;
-  appendAdditionalLogExercise=function(){const out=priorAppendAdditional.apply(this,arguments);markManualShortCards();return out};
-  function openManual(dateISO,kind){
-    v36114StartCustomWorkout(dateISO);const isShort=kind==='short',name=isShort?'Manual Short Secondary':'Manual Full Secondary';
-    logGuidedPlan={date:dateISO,session:'Custom Workout',rows:[],name,createdAt:Date.now(),v36121:true,secondaryOnly:isShort,manualShortSecondary:isShort,secondFullWorkout:!isShort,secondFullWorkoutOverride:true};
-    const n=document.getElementById('manualWorkoutName');if(n)n.value=name;const t=document.getElementById('manualWorkoutType');if(t)t.value='mixed';if(sessionNotes)sessionNotes.value=isShort?'Manual short secondary. Keep this as a brief complementary add-on; it is intentionally not a full second session.':'Manual full secondary. This is a separate complete workout chosen by you.';if(isShort)markManualShortCards();try{writeLogWorkspace()}catch(_e){}return true;
-  }
-  function addButton(host,label,active,fn,sub=''){
-    const b=document.createElement('button');b.type='button';b.className='btn v36121-mode'+(active?' active':'');b.innerHTML='<strong>'+htmlSafe(label)+'</strong>'+(sub?'<span>'+htmlSafe(sub)+'</span>':'');b.addEventListener('click',fn);host.appendChild(b);return b;
-  }
-  function buildHub(dateISO,session){
-    const st=secondaryState(dateISO,session),box=document.createElement('section');box.className='v36121-secondary-hub';box.dataset.v36121='secondary-hub';
-    const autoLabel=st.recMode==='full'?'Full secondary':st.recMode==='short'?'Short secondary':'None',autoDetail=st.recMode==='full'?(st.full?.auto?.label||st.full?.candidate?.label||'Complete second workout'):st.recMode==='short'?(st.short?.plan?.label||'Brief complementary add-on'):'One workout only';
-    box.innerHTML='<div class="v36121-head"><div><div class="v36121-kicker">Secondary</div><h3>Secondary workout</h3></div><span class="v36121-rec-badge">Model: '+htmlSafe(autoLabel)+'</span></div><div class="v36121-copy">The model recommends the secondary size independently of the primary. Switch between a full second workout, a short complementary add-on, or a completely custom secondary without changing the primary recommendation.</div>';
-    const modes=document.createElement('div');modes.className='v36121-mode-row';
-    addButton(modes,'Recommended',st.requested==='recommended',()=>setChoice(dateISO,'recommended'),autoLabel+' • '+autoDetail);
-    addButton(modes,'Full secondary',st.requested==='full',()=>setChoice(dateISO,'full'),'Complete second workout');
-    addButton(modes,'Short secondary',st.requested==='short',()=>setChoice(dateISO,'short'),'Brief complementary add-on');
-    addButton(modes,'Custom',st.requested==='custom',()=>setChoice(dateISO,'custom'),'Build it yourself');box.appendChild(modes);
-    const card=document.createElement('div');card.className='v36121-selected';
-    if(st.mode==='full'){
-      const p=st.full.candidate,recommended=(st.recMode==='full'&&st.requested==='recommended')||(!!st.full.auto&&st.requested==='full');
-      if(p){const score=st.full.score!==null&&st.full.score!==undefined?' • score '+st.full.score:'';card.innerHTML='<div class="v36121-selected-top"><div><span class="v36121-type">Full secondary</span><strong>'+htmlSafe(p.label||p.session||'Full second workout')+'</strong></div><span class="v36121-state '+(recommended?'recommended':'override')+'">'+(recommended?'Recommended':'User selected')+'</span></div><div class="v36121-selected-copy">'+htmlSafe(recommended?'A complete second session cleared the model’s automatic double-session logic.':'A complete second session is available as a deliberate override even though the model did not choose it automatically.')+htmlSafe(score)+'</div>'+fullRowsHtml(p);const a=document.createElement('div');a.className='v36121-actions';const start=document.createElement('button');start.type='button';start.className='btn primary';start.textContent='Open full secondary';start.addEventListener('click',()=>openFull(dateISO,session,st));a.appendChild(start);const none=document.createElement('button');none.type='button';none.className='btn';none.textContent='No secondary';none.addEventListener('click',()=>setChoice(dateISO,'none'));a.appendChild(none);card.appendChild(a)}else card.innerHTML='<div class="v36121-empty"><strong>No compatible full secondary could be built from the current primary/context.</strong><span>You can still use Custom to build one manually.</span></div>';
-    }else if(st.mode==='short'){
-      const p=st.short.plan,recommended=!!(st.short.recommended&&((st.recMode==='short'&&st.requested==='recommended')||st.requested==='short'));
-      if(p){card.innerHTML='<div class="v36121-selected-top"><div><span class="v36121-type">Short secondary</span><strong>'+htmlSafe(p.label||'Complementary add-on')+'</strong></div><span class="v36121-state '+(recommended?'recommended':'override')+'">'+(recommended?'Recommended':'User selected')+'</span></div><div class="v36121-selected-copy">'+htmlSafe(recommended?'This is the model’s smaller complementary dose for the day.':'This keeps a small complementary option even though the model preferred a full secondary or no secondary.')+'</div>'+shortRowsHtml(p);const a=document.createElement('div');a.className='v36121-actions';const start=document.createElement('button');start.type='button';start.className='btn primary';start.textContent='Open short secondary';start.addEventListener('click',()=>openShort(dateISO,session,st));a.appendChild(start);const ov=v3677SecondaryOverride(dateISO),easier=document.createElement('button');easier.type='button';easier.className='btn';easier.textContent='Easier';easier.addEventListener('click',()=>v3677SetSecondaryOverride(dateISO,{tune:'easier',skipped:false,deferred:false,force:false}));a.appendChild(easier);if(p.alternatives?.length){const swap=document.createElement('button');swap.type='button';swap.className='btn';swap.textContent='Swap';swap.addEventListener('click',()=>v3677SetSecondaryOverride(dateISO,{swapIndex:(Number(ov.swapIndex)||0)+1,skipped:false,deferred:false}));a.appendChild(swap)}const none=document.createElement('button');none.type='button';none.className='btn';none.textContent='No secondary';none.addEventListener('click',()=>setChoice(dateISO,'none'));a.appendChild(none);card.appendChild(a)}else card.innerHTML='<div class="v36121-empty"><strong>No compatible short secondary could be built.</strong><span>You can still use Custom to build one manually.</span></div>';
-    }else if(st.mode==='custom'){
-      card.innerHTML='<div class="v36121-selected-top"><div><span class="v36121-type">Custom secondary</span><strong>Build your own secondary</strong></div><span class="v36121-state override">Manual</span></div><div class="v36121-selected-copy">Choose whether your custom work should count as a full second workout or as a short complementary add-on. The distinction stays intact in fatigue and frequency accounting.</div>';
-      const a=document.createElement('div');a.className='v36121-actions';const full=document.createElement('button');full.type='button';full.className='btn primary';full.textContent='Custom full';full.addEventListener('click',()=>openManual(dateISO,'full'));const short=document.createElement('button');short.type='button';short.className='btn';short.textContent='Custom short';short.addEventListener('click',()=>openManual(dateISO,'short'));a.append(full,short);card.appendChild(a);
-    }else{
-      card.innerHTML='<div class="v36121-selected-top"><div><span class="v36121-type">Secondary</span><strong>No secondary today</strong></div><span class="v36121-state '+(st.requested==='none'?'override':'recommended')+'">'+(st.requested==='none'?'User selected':'Model choice')+'</span></div><div class="v36121-selected-copy">'+htmlSafe(st.requested==='none'?'You deliberately chose to stop after the primary. Full, short, and custom options remain available above.':'The model currently prefers one full workout only. Full, short, and custom overrides remain available above.')+'</div>';
-    }
-    box.appendChild(card);return box;
-  }
-  const v36122PriorPostProcessToday=v3677PostProcessToday;
-  v3677PostProcessToday=function(session,dateISO){
-    v3677EnsureStores();v3677RemoveEmbeddedSecondary();tbList.querySelectorAll('[data-v3677]').forEach(x=>x.remove());tbList.querySelectorAll('[data-v36121="secondary-hub"]').forEach(x=>x.remove());tbList.querySelectorAll('.training-block-label[data-v3677]').forEach(x=>x.remove());tbList.querySelectorAll('.v36118-second-main-notice').forEach(x=>x.remove());
-    const first=tbList.querySelector('.exercise');if(first){const h=document.createElement('div');h.className='training-block-label';h.dataset.v3677='primary';h.textContent='Primary';tbList.insertBefore(h,first)}
-    const dayActions=tbList.querySelector('.day-actions-details'),insert=x=>dayActions?tbList.insertBefore(x,dayActions):tbList.appendChild(x);if(['Recovery / Rest','Active Recovery','Class / Activity','Custom Workout','Open Training','Other'].includes(session))return;
-    const completed=completedPrimaryGroupForDate(dateISO,session),finalized=!!completed,primary=finalized?v3677GroupActualPrimaryPlan(completed,session,dateISO):v3677PlannedPrimaryFor(session,dateISO);
-    if(primary)insert(buildHub(dateISO,session));insert(v3677ContextPanel(dateISO));
-  };
-  function renderHub(){
-    if(!tbList)return;tbList.querySelectorAll('[data-v3677="secondary"]').forEach(x=>x.remove());tbList.querySelectorAll('.v36118-second-main-notice').forEach(x=>x.remove());
-    const hub=tbList.querySelector('[data-v36121="secondary-hub"]'),context=tbList.querySelector('[data-v3677="context"]');if(hub&&context&&hub.nextElementSibling!==context)tbList.insertBefore(hub,context);
-  }
-  const priorRenderSelected=renderSelectedWorkout;
-  renderSelectedWorkout=function(){const out=priorRenderSelected.apply(this,arguments);try{renderHub()}catch(e){console.warn('v36.119 Home secondary hub:',e)}return out};
-  window.__v36121HomeSecondary={state:secondaryState,setChoice,openManual,openShort,openFull};
-  try{renderSelectedWorkout()}catch(_e){}
-})();
-
-</script>
 </body>
 </html>
