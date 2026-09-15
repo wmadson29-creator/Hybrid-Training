@@ -69,3 +69,8 @@ Current convention remains: logged/displayed landmine weight is total implement 
 - Sprint and hill conditioning sessions now use session-specific research-informed fatigue/tissue profiles instead of one generic hard-running bucket.
 - Hill sessions can log grade, including a Parking Garage preset (11% model default) plus exact percent override.
 - The same session-specific profile now informs difficulty, muscle/tissue fatigue, and conditioning context scoring.
+
+
+## Secondary controls hotfix
+- Recommended Conditioning now identifies LSS / Aerobic vs Sprints / HIC.
+- Today Secondary now uses Recommended / Full / Short / Custom controls and replaces the legacy Optional Secondary panel.
