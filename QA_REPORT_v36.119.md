@@ -95,3 +95,13 @@ Regression checks against the exact release helper functions pass:
 - Custom Rotational Landmine Press, 50 total -> caught by the name fallback and rendered single-ended.
 - Barbell Bench Press, 95 total -> remains **25 / side**, confirming ordinary barbells are unchanged.
 - Every executable inline script in both packaged `index.html` and the self-contained HTML passes `node --check` after the patch.
+
+---
+
+## Final conditioning-family/performance addendum
+The final packaged runtime additionally passed the v36.119 conditioning-family/performance audit documented in `CONDITIONING_FAMILY_PERFORMANCE_QA_v36.119.md`:
+- LSS / Aerobic and Sprints / HIC are split across the current user-facing planning/log/history/trends surfaces while legacy stored `Conditioning` values remain compatible.
+- The six-choice Home Secondary matrix replaces the legacy Optional Secondary/final-second-panel UI.
+- Headless current-data regression showed no page or console errors.
+- Tested day switches were in the millisecond range (about 4.3–97.5 ms on the measured visible days) and repeated full same-state renders were about 9.9–13.7 ms.
+- 320, 390, 768, and 1440 px viewports showed no document-level horizontal overflow.

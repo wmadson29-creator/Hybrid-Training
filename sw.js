@@ -1,6 +1,6 @@
 const BUILD="36.119";
-const CACHE="hybrid-training-v36-119-secondary-matrix1";
-const FALLBACK="./index.html?v=36.119-secondary-matrix1";
+const CACHE="hybrid-training-v36-119-conditioning-perf1";
+const FALLBACK="./index.html?v=36.119-conditioning-perf1";
 const REQUIRED_PRECACHE=[
   FALLBACK,
   "./manifest-v36.webmanifest?v=36.119",
@@ -15,20 +15,16 @@ const OPTIONAL_PRECACHE=[
   "./hybrid-training-v34-512.png",
   "./hybrid-training-v34-512-maskable.png"
 ];
-
 self.addEventListener("install",event=>{
   event.waitUntil(
     caches.open(CACHE)
       .then(async cache=>{
-        // Fail closed for the app shell: a partial deployment must not take over and
-        // delete the previous working cache. Icons are cosmetic and may fail independently.
         await cache.addAll(REQUIRED_PRECACHE);
         await Promise.all(OPTIONAL_PRECACHE.map(url=>cache.add(url).catch(()=>null)));
       })
       .then(()=>self.skipWaiting())
   );
 });
-
 self.addEventListener("activate",event=>{
   event.waitUntil(
     caches.keys()
@@ -36,13 +32,11 @@ self.addEventListener("activate",event=>{
       .then(()=>self.clients.claim())
   );
 });
-
 async function fetchAndCache(cache,url,requestOptions={}){
   const response=await fetch(url,requestOptions);
   if(response&&response.ok)await cache.put(FALLBACK,response.clone());
   return response;
 }
-
 self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET")return;
   const url=new URL(event.request.url);

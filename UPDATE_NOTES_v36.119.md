@@ -1,76 +1,35 @@
-# Hybrid Training v36.119 — Update Notes
+# Hybrid Training v36.119 — Final cumulative update notes
 
-## Dynamic multi-session allocation
+## LSS / Aerobic and Sprints / HIC are now distinct throughout the app
+The UI no longer treats every conditioning session as one ambiguous `Conditioning` category. The actual session resolves to **LSS / Aerobic** or **Sprints / HIC** across Today, the calendar, primary switching, Log Workout, History/wearable presentation, conditioning prescriptions, secondary choices, Trends, and other relevant planning/settings surfaces.
 
-v36.119 removes the remaining hard-coded Sunday ownership of the weekend double-session slot.
+Backward compatibility is preserved: legacy stored records may still use the internal `Conditioning` type, but presentation and current planning infer the correct family from the actual workout.
 
-The planner now evaluates Saturday and Sunday together and chooses where the third main weekend workout belongs. It compares both days and compatible orderings such as:
+## Home primary + secondary hierarchy
+Primary-workout switching keeps the existing adaptive logic. Beneath the primary, the Secondary section always exposes six deliberate choices:
+- **Model recommended** — follows the model's Full / Short / None decision.
+- **Recommended short** — best short complementary add-on if the user wants one.
+- **Custom short** — user chooses the short-secondary family.
+- **Recommended full** — best legitimate full second workout if the user wants one.
+- **Custom full** — user chooses the full second-workout family.
+- **No secondary** — stop after the primary.
 
-- Conditioning / endurance first + full Gym second
-- Full Gym first + a substantial low-impact aerobic second session
-- Fixed KB work + compatible aerobic work in Hybrid phases
+Custom short/full then exposes appropriate families such as LSS / Aerobic, Sprints / HIC, Gym, Calisthenics, SE, and kettlebell choices. A custom short remains tagged as a short secondary; a custom full remains a true second workout. The old Optional Secondary and separate legacy second-main panels are not the final Home UI.
 
-The choice is based on current athletic-development deficits, recovery state, separate mechanical/tissue load, same-day compatibility, learned interference, and the next fixed Barbell/KB anchor. Saturday and Sunday receive the same weekend-capacity treatment; neither day gets an arbitrary bonus simply for being Saturday or Sunday.
-
-## Weekday doubles are possible, but intentionally uncommon
-
-Two full workouts can now be automatically planned on weekdays when the evidence is strong enough. This is deliberately harder to trigger than weekend stacking.
-
-The automatic weekday gate considers:
-
-- rolling running/aerobic/strength-development need
-- current recovery and caution/guard status
-- mechanical/tissue stress
-- the next fixed training anchor
-- primary/secondary session compatibility
-- learned personal interference when enough evidence exists
-- recent weekday double-session history
-
-The planner uses a rolling spacing window rather than assigning a fixed weekday. In the future 2-Barbell + 3-KB phase, KB + easy run/swim doubles can therefore appear without becoming an every-KB-day rule.
-
-Only completed work earns development dose. If a planned second workout is skipped, there is no punishment or fake completion credit; the missing dose remains outstanding and the later calendar is recalculated, allowing the extra session to migrate to a better day.
-
-## Startup / migration hardening
-
-The v36.91 storage architecture is preserved: IndexedDB remains the durable full-history store while localStorage keeps a compact recent boot journal and a migration safety copy.
-
-v36.119 adds a bounded startup fallback so a browser that leaves an IndexedDB request pending cannot hold the app behind the hydration gate indefinitely. The first authoritative render waits up to 2.4 seconds for durable hydration; if that request stalls or fails, the app reconstructs from the recent boot journal plus the migration safety copy and continues loading. Raw IndexedDB opens also have a 3.5-second upper bound so restore/self-check/background calls cannot hang forever.
-
-This is a resilience guard, not a storage reset. Existing history remains compatible; do not clear app data and do not re-import solely for this update.
-
-## Forecast and UI behavior
-
-The existing calendar “Second main” treatment is reused; no new UI complexity was added. The legacy internal `weekendSecondMain` field remains for backward-compatible forecast plumbing even when a planned double occurs on a weekday.
-
-## Preserved behavior
-
-- Fixed Barbell Strength and KB anchors remain authoritative.
-- v36.118 tissue-stress, physiology-based endurance prescription, personal interference learning, backtesting, and hysteresis remain intact.
-- v36.116 effort-aware resistance stimulus remains intact.
-- Manual full-second-workout override remains available even when the automatic threshold is not met.
-- Existing export/import and stored-history schemas remain compatible.
-
-
-## Standalone Stretching & Flexibility utility
-
-A new **Stretching & Flexibility** utility is available from the More menu (and desktop navigation). It is intentionally outside the adaptive training model: it is never auto-recommended, never logged, and does not change recovery, fatigue, scheduling, cadence, progression, or workout recommendations.
-
-The user selects the specific areas that currently feel tight/sore, the available time (5/10/15/20/30 min), and equipment available right now. Equipment-aware options include a wall/doorway, chair/bench, pull-up or hanging bar, foam roller, stretch strap/towel/foot-loop strap, resistance band, PVC/yoga stick/dowel, slant board/calf stretcher, massage/lacrosse ball, and yoga block. The generator then builds an in-budget routine from a research-referenced stretch/mobility library.
-
-Routine cards show the target area, method (controlled mobility, static hold, foam rolling, or optional gentle contract-relax), exact dose, how to perform the movement, why it is included, cautions where relevant, and a direct YouTube search link. Slow controlled mobility is used instead of ballistic bouncing.
-
-## Landmine loading invariant hardening
-
-Landmine movements now preserve single-ended loading through the Generic Gym plan-conversion path and again at final card rendering. The earlier metadata rule was correct but one Today-card path converted all barbell equipment to a generic two-sided boolean, which is why a 50-lb Half-Kneeling Landmine Press could still show 2.5 per side. The renderer now independently recognizes landmine metadata/name before drawing plates, so landmine exercises cannot fall back to the symmetric barbell helper even if an upstream plan row is too generic.
-
-Current convention remains: logged/displayed landmine weight is total implement weight, **45-lb bar + plates on one loaded end**. The anchored end receives no plates. Normal barbell lifts remain two-sided.
+## Performance pass
+The secondary-matrix rollout exposed repeated post-render work that made the app feel extremely slow. v36.119 now avoids or caches superseded secondary/full-second calculations, model/history/tissue lookups, and excessive DOM-observer rescans. Calendar-day switching is back in the millisecond range in the current-data regression fixture instead of the prior multi-second regression.
 
 ## Sprint / hill research refinement
-- Sprint and hill conditioning sessions now use session-specific research-informed fatigue/tissue profiles instead of one generic hard-running bucket.
-- Hill sessions can log grade, including a Parking Garage preset (11% model default) plus exact percent override.
-- The same session-specific profile now informs difficulty, muscle/tissue fatigue, and conditioning context scoring.
+Sprint and hill conditioning sessions use session-specific research-informed fatigue/tissue profiles rather than one generic hard-running bucket. Hill sessions support grade, including a **Parking Garage** preset (11% modeling default) plus exact-percent override. Grade influences muscular/tissue and high-speed exposure modeling.
 
+## Landmine loading invariant
+Anything identified as a landmine movement is single-end loaded through planning and final rendering. Displayed/logged landmine weight follows the existing convention of 45-lb bar plus plates on the one loaded end; the anchored end receives no plates. Normal barbells remain symmetric.
 
-## Secondary controls hotfix
-- Recommended Conditioning now identifies LSS / Aerobic vs Sprints / HIC.
-- Today Secondary now uses Recommended / Full / Short / Custom controls and replaces the legacy Optional Secondary panel.
+## Standalone Stretching & Flexibility
+The More-tab utility remains fully standalone: it is not automatically recommended, not logged, and does not alter fatigue/recovery/scheduling. It builds time-, body-area-, and equipment-aware routines from the researched mobility/stretch library.
+
+## Dynamic full-second-session allocation
+Weekend and rarer weekday full doubles remain model-driven rather than hard-coded to Sunday. Recovery, adaptation need, tissue load, compatibility, future anchors, and learned interference influence whether and where a full second session appears. Short secondary work remains a separate concept.
+
+## Startup / migration hardening
+The bounded IndexedDB hydration/open fallback remains intact. Existing history is compatible and there is no reason to clear data or re-import just for this release.
