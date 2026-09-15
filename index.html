@@ -995,6 +995,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
 .calendar-panel .day-name{font-size:.72rem!important;color:#98a6b7!important;text-transform:uppercase;font-weight:900!important}
 .calendar-panel .day-session{font-weight:950!important;color:#f6f8fb!important}
 .calendar-panel .day-focus{font-size:.75rem!important;color:#98a6b7!important;line-height:1.25!important}
+.calendar-panel .v36128-primary-tag{margin-top:7px;font-size:.56rem;line-height:1;text-transform:uppercase;letter-spacing:.09em;font-weight:950;color:#7f90a4}.calendar-panel .v36128-secondary-line{margin-top:8px;padding-top:7px;border-top:1px solid rgba(120,145,170,.20);display:flex;flex-direction:column;gap:2px;min-width:0}.calendar-panel .v36128-secondary-line span{font-size:.56rem;text-transform:uppercase;letter-spacing:.09em;font-weight:950;color:#7f90a4}.calendar-panel .v36128-secondary-line strong{font-size:.68rem;line-height:1.25;color:#c7d4e2;overflow-wrap:anywhere}.calendar-panel .v36128-secondary-line.full strong{color:#61d6c1}.calendar-panel .v36128-secondary-line.short strong{color:#a8c9ff}.calendar-panel .v36128-secondary-line.none strong{color:#7f90a4;font-weight:800}.calendar-panel .v36128-secondary-line em{font-size:.58rem;color:#8fa0b2;font-style:normal}
 @media(max-width:720px){
   .calendar-panel{padding:10px!important;border-radius:14px!important}
   .calendar-panel .day-card{padding:8px!important;border-radius:14px!important}
@@ -10435,7 +10436,7 @@ function renderWeek(){
  weekSchedule.forEach((x,i)=>{
    const date=addDays(start,i),iso=localISO(date),day=x[0],session=expectedSession(day,programWeek,iso);
    let focus=x[2],conditioningPlan=null;
-   if(session==="Conditioning"){const rec=v36119CanonicalOpenRecommendationForDate(iso,session);conditioningPlan=v36119CanonicalConditioningPlanForDate(iso,day,programWeek);const acc=rec?.addOn||(!window.__v36123UseSecondaryMatrix?v3678CalendarSecondaryFor("Conditioning",iso):null);focus=v36119ConditioningDisplayLabel(conditioningPlan,acc)}
+   if(session==="Conditioning"){const rec=v36119CanonicalOpenRecommendationForDate(iso,session);conditioningPlan=v36119CanonicalConditioningPlanForDate(iso,day,programWeek);const acc=window.__v36123UseSecondaryMatrix?(rec?.addOn?.kind==='accessory'?rec.addOn:null):(rec?.addOn||v3678CalendarSecondaryFor("Conditioning",iso));focus=v36119ConditioningDisplayLabel(conditioningPlan,acc)}
    else if(session==="Strength-Endurance"){const b=baseBuildingForDate(iso),w=b?null:adaptiveSEWorkoutFor(iso),rx=b?baseSEPrescription(b.week,b.dayIndex):(w?{circuits:w.circuits,reps:w.reps}:adaptiveSEPrescription(iso)),circuit=b?currentBaseCircuitForDate(iso):(w?.circuit||[]),acc=!b&&!window.__v36123UseSecondaryMatrix?v3678CalendarSecondaryFor("Strength-Endurance",iso):null;focus=(rx?rx.circuits+" circuits × "+rx.reps+" reps • ":"")+(circuit.length?circuit.slice(0,3).map(x=>x.exercise).join(" / ")+(circuit.length>3?" + more":""):"choose today's equipment")+(acc?" + "+acc.label:"")}
    else if(session.startsWith("KB ")){const acc=window.__v36123UseSecondaryMatrix?null:v3678CalendarSecondaryFor(session,iso);if(acc)focus+=(focus?" • ":"")+"+ "+acc.label}
    else if(session==="Generic Gym"){const g=genericGymWorkoutFor(iso),acc=window.__v36123UseSecondaryMatrix?null:v3678CalendarSecondaryFor("Generic Gym",iso);focus=(g.name||"Generic Gym")+" • "+g.rows.length+" exercises"+(acc?" + "+acc.label:"")}
@@ -10503,7 +10504,7 @@ function appendProgramExceptionNotice(dateISO){
  tbList.appendChild(box);
 }
 function dashboardExplanationHtml(title,items=[],extraHtml=""){const clean=(items||[]).map(x=>String(x||"").trim()).filter(Boolean);if(!clean.length&&!extraHtml)return "";return '<details class="dashboard-explanation"><summary>'+htmlSafe(title)+'</summary><div class="dashboard-explanation-body">'+(clean.length?'<ul>'+clean.map(x=>'<li>'+htmlSafe(x)+'</li>').join("")+'</ul>':'')+(extraHtml||'')+'</div></details>'}
-function appendAdaptiveOpenDayNotice(dateISO,session){const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=programScheduledSessionForDate(dateISO),moveFrom=programMoveFromDate(dateISO);if(completedSessionGroupsForDate(dateISO).length)return;if((baseBuildingForDate(dateISO)&&!moveFrom)||!rollingOpenDayEligible(dateISO,base))return;const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])}),box=document.createElement("div"),alternatives=(rec.options||[]).filter(x=>x.session!==rec.session).slice(0,3).map(x=>v36124DisplaySessionForDate(x.session,dateISO,x.plan||null)+" ("+x.score+")").join(" • "),why=(rec.why||[]).slice(0,5),cadenceText=rec.cadence?rec.cadence.ordered.map(x=>x.label+": "+(x.daysSince>=9999?"no recent":x.daysSince+"d")).join(" • "):"",details=[];box.className="notice compact-recommendation";if(rec.cadence){const capDays=Number(rec.cadence.capacity?.targetDays),calDays=Number(rec.cadence.lanes?.calisthenics?.targetDays),seDays=Number(rec.cadence.lanes?.se?.targetDays),spacingBits=[];if(Number.isFinite(capDays)&&capDays>0)spacingBits.push("general capacity ≈ "+capDays+"d");if(Number.isFinite(calDays)&&calDays>0)spacingBits.push("Cal ≈ "+calDays+"d");if(Number.isFinite(seDays)&&seDays>0)spacingBits.push("SE ≈ "+seDays+"d");details.push((spacingBits.length?"Flexible spacing targets: "+spacingBits.join(" • ")+". ":"Flexible conditioning cadence is need-driven rather than quota-based. ")+cadenceText)}if(alternatives)details.push("Other scored modes: "+alternatives);if(rec.endurance)details.push("Endurance: "+(rec.endurance.daysSinceMeaningful>=9999?"no meaningful recent dose":rec.endurance.daysSinceMeaningful+" days since meaningful dose")+"; decayed dose "+rec.endurance.decayedEquivalentMinutes+" run-equivalent min.");if(rec.projectedForecast)details.push("Earlier future flexible recommendations are temporarily represented as projections so later dates respect the rotation; actual logs replace them.");if((rec.addOn||rec.accessory)?.label){const a=rec.addOn||rec.accessory;details.push((a.kind==='secondary'?"Secondary block: ":"Accessory: ")+a.label+" — "+(a.why||[]).slice(0,2).join(" "));}details.push(...why);const displayLabel=v36119RecommendationDisplayLabel(rec),displaySession=rec.session==='Conditioning'?v36119ConditioningFamilyLabel(rec.plan):rec.session;box.innerHTML='<strong>Adaptive pick:</strong> '+htmlSafe(displaySession)+(displayLabel&&displayLabel!==displaySession?' • '+htmlSafe(displayLabel):'')+dashboardExplanationHtml("Why this recommendation",details);tbList.appendChild(box)}
+function appendAdaptiveOpenDayNotice(dateISO,session){const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=programScheduledSessionForDate(dateISO),moveFrom=programMoveFromDate(dateISO);if(completedSessionGroupsForDate(dateISO).length)return;if((baseBuildingForDate(dateISO)&&!moveFrom)||!rollingOpenDayEligible(dateISO,base))return;const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])}),box=document.createElement("div"),alternatives=(rec.options||[]).filter(x=>x.session!==rec.session).slice(0,3).map(x=>v36124DisplaySessionForDate(x.session,dateISO,x.plan||null)+" ("+x.score+")").join(" • "),why=(rec.why||[]).slice(0,5),cadenceText=rec.cadence?rec.cadence.ordered.map(x=>x.label+": "+(x.daysSince>=9999?"no recent":x.daysSince+"d")).join(" • "):"",details=[];box.className="notice compact-recommendation";if(rec.cadence){const capDays=Number(rec.cadence.capacity?.targetDays),calDays=Number(rec.cadence.lanes?.calisthenics?.targetDays),seDays=Number(rec.cadence.lanes?.se?.targetDays),spacingBits=[];if(Number.isFinite(capDays)&&capDays>0)spacingBits.push("general capacity ≈ "+capDays+"d");if(Number.isFinite(calDays)&&calDays>0)spacingBits.push("Cal ≈ "+calDays+"d");if(Number.isFinite(seDays)&&seDays>0)spacingBits.push("SE ≈ "+seDays+"d");details.push((spacingBits.length?"Flexible spacing targets: "+spacingBits.join(" • ")+". ":"Flexible conditioning cadence is need-driven rather than quota-based. ")+cadenceText)}if(alternatives)details.push("Other scored modes: "+alternatives);if(rec.endurance)details.push("Endurance: "+(rec.endurance.daysSinceMeaningful>=9999?"no meaningful recent dose":rec.endurance.daysSinceMeaningful+" days since meaningful dose")+"; decayed dose "+rec.endurance.decayedEquivalentMinutes+" run-equivalent min.");if(rec.projectedForecast)details.push("Earlier future flexible recommendations are temporarily represented as projections so later dates respect the rotation; actual logs replace them.");if((rec.addOn||rec.accessory)?.label){const a=rec.addOn||rec.accessory;if(!(window.__v36123UseSecondaryMatrix&&a.kind==='secondary'))details.push((a.kind==='secondary'?"Secondary block: ":"Accessory: ")+a.label+" — "+(a.why||[]).slice(0,2).join(" "));}details.push(...why);const displayLabel=v36119RecommendationDisplayLabel(rec),displaySession=rec.session==='Conditioning'?v36119ConditioningFamilyLabel(rec.plan):rec.session;box.innerHTML='<strong>Adaptive pick:</strong> '+htmlSafe(displaySession)+(displayLabel&&displayLabel!==displaySession?' • '+htmlSafe(displayLabel):'')+dashboardExplanationHtml("Why this recommendation",details);tbList.appendChild(box)}
 function renderSelectedWorkout(){
  const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);
  if(gw<1&&!baseBuildingForDate(selectedDateISO)){if(document.getElementById("selectedWorkoutActions"))document.getElementById("selectedWorkoutActions").innerHTML="";tbList.innerHTML='<div class="empty">This date is before Training Week 1.</div>';workoutTitle.textContent="Workout Prescription";tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});selectedDateBadge.textContent="Before plan";plateLegend.classList.add("hidden");return}
@@ -15185,10 +15186,43 @@ function v3691Confidence(rec){const opts=rec?.options||[],margin=opts.length>1?N
 function v3691ChangedSinceYesterday(dateISO,rec){
  const prev=localISO(addDays(parseLocalISO(dateISO),-1));try{const d=parseLocalISO(prev),gw=Math.max(1,trainingWeekForDate(d)),base=programScheduledSessionForDate(prev);if(!rollingOpenDayEligible(prev,base))return 'Yesterday was a fixed '+v36124DisplaySessionForDate(expectedSession(dayNameFromDate(prev),gw,prev),prev)+' day, so there is no directly comparable adaptive ranking.';const p=rollingOpenDayRecommendation(prev,{skipForecastProjection:true}),nowScore=Number((rec.options||[]).find(x=>x.session===rec.session)?.score||rec.score||0),oldScore=Number((p.options||[]).find(x=>x.session===rec.session)?.score||p.score||0),delta=Math.round((nowScore-oldScore)*10)/10,prevLabel=v36124DisplaySessionForDate(p.session,prev,p.plan||null),nowLabel=v36124DisplaySessionForDate(rec.session,dateISO,rec.plan||null);if(p.session!==rec.session)return 'The adaptive winner changed from '+prevLabel+' yesterday to '+nowLabel+' today; '+nowLabel+' moved '+(delta>=0?'+':'')+delta+' points in the current ranking.';return nowLabel+' remains the adaptive winner; its score moved '+(delta>=0?'+':'')+delta+' points since yesterday.'}catch(_e){return 'Today’s ranking uses the latest recovery, cadence, fatigue, and fixed-anchor context.'}
 }
-function v3691AlternativeCopy(alt,rec,dateISO=''){const gap=Math.round((Number(rec?.score||rec?.options?.[0]?.score||0)-Number(alt?.score||0))*10)/10,reason=(alt?.why||[]).filter(Boolean).slice(0,3),label=v36124DisplaySessionForDate(alt?.session,dateISO,alt?.plan||null);return '<strong>'+htmlSafe(label)+'</strong> is '+Math.max(0,gap)+' points behind today’s winner.'+(reason.length?'<ul>'+reason.map(x=>'<li>'+htmlSafe(x)+'</li>').join('')+'</ul>':'')}
+function v36127ConditioningComparisonPlan(dateISO,family){
+ try{
+  const d=parseLocalISO(dateISO),day=dayNameFromDate(dateISO),gw=Math.max(1,trainingWeekForDate(d)),readiness=adaptiveReadiness(dateISO),slot=conditioningSlot(day,gw);
+  if(family==='speed'){
+   const plan=hardAdaptivePick(day,gw,dateISO,readiness,{preferredLane:'speed',cadence:true});
+   return plan&&typeof plan==='object'?plan:null;
+  }
+  const lane=adaptiveLssLaneForDate(dateISO);
+  const plan=easyAdaptivePick(day,gw,dateISO,readiness,slot==='easy-long','Family comparison: evaluate the best LSS / Aerobic option for this date while retaining current recovery, environment, availability, tissue-load, and future-interference checks.',{preferredLane:lane});
+  return plan&&typeof plan==='object'?plan:null;
+ }catch(_e){return null}
+}
+function v36127RecommendationComparisonAlternatives(rec,dateISO){
+ const out=[],currentFamily=rec?.session==='Conditioning'?v36119ConditioningFamilyLabel(rec.plan||null):'';
+ const addFamily=(family,label)=>{
+  const plan=currentFamily===label?(rec?.plan||v36127ConditioningComparisonPlan(dateISO,family)):v36127ConditioningComparisonPlan(dateISO,family),reasons=uniqueConditioningReasons([
+   label+' is evaluated as its own conditioning family here rather than being hidden inside one generic Conditioning option.',
+   ...(plan?.whyFactors||[plan?.why||'']).filter(Boolean)
+  ]);
+  out.push({session:'Conditioning',plan,comparisonFamily:family,comparisonLabel:label,comparisonFamilyOnly:true,comparisonCurrent:currentFamily===label,why:reasons});
+ };
+ addFamily('lss','LSS / Aerobic');addFamily('speed','Sprints / HIC');
+ (rec?.options||[]).filter(x=>x.session!==rec.session&&x.session!=='Conditioning'&&Number(x.score)>-900).forEach(x=>out.push(x));
+ return out.slice(0,8);
+}
+function v3691AlternativeCopy(alt,rec,dateISO=''){
+ const reason=(alt?.why||[]).filter(Boolean).slice(0,3),label=alt?.comparisonLabel||v36124DisplaySessionForDate(alt?.session,dateISO,alt?.plan||null);
+ if(alt?.comparisonFamilyOnly){
+  const activity=String(alt?.plan?.activity||''),target=String(alt?.plan?.target||''),best=activity?(' Best current option: '+activity+(target?' • '+target:'')+'.'):'';
+  return '<strong>'+htmlSafe(label)+'</strong> is a separate conditioning-family comparison.'+htmlSafe(best)+(reason.length?'<ul>'+reason.map(x=>'<li>'+htmlSafe(x)+'</li>').join('')+'</ul>':'');
+ }
+ const gap=Math.round((Number(rec?.score||rec?.options?.[0]?.score||0)-Number(alt?.score||0))*10)/10;
+ return '<strong>'+htmlSafe(label)+'</strong> is '+Math.max(0,gap)+' points behind today’s winner.'+(reason.length?'<ul>'+reason.map(x=>'<li>'+htmlSafe(x)+'</li>').join('')+'</ul>':'')
+}
 function v3691RecommendationPanel(session,dateISO){
- const base=programScheduledSessionForDate(dateISO);if(!rollingOpenDayEligible(dateISO,base))return null;let rec;try{rec=rollingOpenDayRecommendation(dateISO)}catch(_e){return null}if(!rec||!rec.options?.length||rec.session!==session)return null;const conf=v3691Confidence(rec),box=document.createElement('div');box.className='v3691-why-panel';box.dataset.v3691='why';const reasons=(rec.why||[]).filter(Boolean).slice(0,5),alts=rec.options.filter(x=>x.session!==rec.session&&Number(x.score)>-900).slice(0,4),displayLabel=v36119RecommendationDisplayLabel(rec);
- box.innerHTML='<div class="v3691-why-head"><div><div class="v3691-kicker">Why this today?</div><div class="v3691-why-title">'+htmlSafe(displayLabel||rec.session)+'</div></div><span class="v3691-confidence '+conf.level+'">'+htmlSafe(conf.label)+' confidence • '+conf.margin+' pt margin</span></div><div class="v3691-why-reasons">'+reasons.map(x=>'<div>• '+htmlSafe(x)+'</div>').join('')+'</div><div class="v3691-change"><strong>What changed since yesterday:</strong> '+htmlSafe(v3691ChangedSinceYesterday(dateISO,rec))+'</div>'+(alts.length?'<div class="v3691-alt-label">Compare another mode</div><div class="v3691-alt-chips">'+alts.map((a,i)=>'<button class="btn v3691-alt" type="button" data-i="'+i+'">'+htmlSafe(v36124DisplaySessionForDate(a.session,dateISO,a.plan||null))+'</button>').join('')+'</div><div class="v3691-alt-detail" aria-live="polite"></div>':'');
+ const base=programScheduledSessionForDate(dateISO);if(!rollingOpenDayEligible(dateISO,base))return null;let rec;try{rec=rollingOpenDayRecommendation(dateISO)}catch(_e){return null}if(!rec||!rec.options?.length||rec.session!==session)return null;const conf=v3691Confidence(rec),box=document.createElement('div');box.className='v3691-why-panel';box.dataset.v3691='why';const reasons=(rec.why||[]).filter(Boolean).slice(0,5),alts=v36127RecommendationComparisonAlternatives(rec,dateISO),displayLabel=v36119RecommendationDisplayLabel(rec);
+ box.innerHTML='<div class="v3691-why-head"><div><div class="v3691-kicker">Why this today?</div><div class="v3691-why-title">'+htmlSafe(displayLabel||rec.session)+'</div></div><span class="v3691-confidence '+conf.level+'">'+htmlSafe(conf.label)+' confidence • '+conf.margin+' pt margin</span></div><div class="v3691-why-reasons">'+reasons.map(x=>'<div>• '+htmlSafe(x)+'</div>').join('')+'</div><div class="v3691-change"><strong>What changed since yesterday:</strong> '+htmlSafe(v3691ChangedSinceYesterday(dateISO,rec))+'</div>'+(alts.length?'<div class="v3691-alt-label">Compare training modes</div><div class="v3691-alt-chips">'+alts.map((a,i)=>'<button class="btn v3691-alt'+(a.comparisonCurrent?' primary':'')+'" type="button" data-i="'+i+'"'+(a.comparisonCurrent?' disabled aria-current="true"':'')+'>'+htmlSafe((a.comparisonLabel||v36124DisplaySessionForDate(a.session,dateISO,a.plan||null))+(a.comparisonCurrent?' • Current':''))+'</button>').join('')+'</div><div class="v3691-alt-detail" aria-live="polite"></div>':'');
  box.querySelectorAll('.v3691-alt').forEach(b=>b.addEventListener('click',()=>{const alt=alts[Number(b.dataset.i)||0],detail=box.querySelector('.v3691-alt-detail');box.querySelectorAll('.v3691-alt').forEach(x=>x.classList.toggle('primary',x===b));if(detail)detail.innerHTML=v3691AlternativeCopy(alt,rec,dateISO)}));return box;
 }
 const v3691OriginalRenderSelectedWorkout=renderSelectedWorkout;
@@ -15357,7 +15391,7 @@ v3691Init();
     }
     if(altLabel||chips){
       const compare=document.createElement('details');compare.className='v3693-why-compare';
-      const summary=document.createElement('summary');summary.textContent='Compare other training modes';compare.appendChild(summary);
+      const summary=document.createElement('summary');summary.textContent='Compare training modes';compare.appendChild(summary);
       const body=document.createElement('div');body.className='v3693-why-compare-body';if(chips)body.appendChild(chips);if(altDetail)body.appendChild(altDetail);compare.appendChild(body);
       const more=panel.querySelector('.v3693-why-more');(more||reasons||panel.querySelector('.v3691-why-head')).after(compare);if(altLabel)altLabel.remove();
     }
@@ -16146,7 +16180,7 @@ function v36119ConditioningFamilyLabel(plan){
  const activity=plan?.activity||'';if(!activity)return 'LSS / Aerobic or Sprints / HIC';const lane=conditioningCadenceLaneForActivity(activity,plan||null);return lane==='speed'?'Sprints / HIC':'LSS / Aerobic';
 }
 function v36119RecommendationDisplayLabel(rec){
- if(!rec)return '';if(rec.session==='Conditioning'&&rec.plan?.activity)return v36119ConditioningDisplayLabel(rec.plan,rec.addOn||null);return rec.label||rec.session||'';
+ if(!rec)return '';const addOn=window.__v36123UseSecondaryMatrix&&rec?.addOn?.kind==='secondary'?null:(rec.addOn||null);if(rec.session==='Conditioning'&&rec.plan?.activity)return v36119ConditioningDisplayLabel(rec.plan,addOn);let label=rec.label||rec.session||'';if(window.__v36123UseSecondaryMatrix&&rec?.addOn?.kind==='secondary'&&rec.addOn?.label)label=String(label).replace(' + '+rec.addOn.label,'');return label;
 }
 function v36124ConditioningActivityFromRows(rows=[]){const list=Array.isArray(rows)?rows:[];const row=list.find(r=>String(r?.session||'')==='Conditioning'&&!rowIsAdaptiveSecondary(r))||list.find(r=>String(r?.session||'')==='Conditioning')||list[0];return String(row?.exercise||'')}
 function v36124DisplaySessionLabel(session,payload=null){if(String(session)!=='Conditioning')return String(session||'');let activity='';if(Array.isArray(payload))activity=v36124ConditioningActivityFromRows(payload);else activity=String(payload?.activity||payload?.exercise||'');return activity?v36114ConditioningFamilyLabel(activity):'LSS / Aerobic or Sprints / HIC'}
@@ -16341,8 +16375,12 @@ expectedSession=function(day,gw,dateISO=""){
     const old=state.settings.homeSecondaryChoice?.[dateISO];
     return ({recommended:'model',short:'rec-short',full:'rec-full',custom:'custom-full',none:'none'})[old]||'';
   }
-  function choice(dateISO){ensure();return state.settings[KEY][dateISO]?.mode||legacyChoice(dateISO)||'model'}
-  function setChoice(dateISO,mode){ensure();state.settings[KEY][dateISO]={mode};try{window.__hybridPersistUiOnly?.('home-secondary-matrix')}catch(_e){}renderMatrix()}
+  function choiceRecord(dateISO){ensure();return state.settings[KEY][dateISO]||null}
+  function choice(dateISO){return choiceRecord(dateISO)?.mode||legacyChoice(dateISO)||'model'}
+  function persistChoice(reason='home-secondary-matrix'){try{window.__hybridPersistUiOnly?.(reason)}catch(_e){}}
+  function refreshCalendar(){try{window.__v36128RefreshCalendar?.()}catch(_e){}}
+  function setChoice(dateISO,mode){ensure();state.settings[KEY][dateISO]={mode};persistChoice();renderMatrix();refreshCalendar()}
+  function rememberCustom(dateISO,mode,family,label,session){ensure();state.settings[KEY][dateISO]={mode,family,label,session,selectedAt:Date.now()};persistChoice('home-secondary-custom');refreshCalendar()}
   function primaryState(dateISO,session){
     const completed=completedPrimaryGroupForDate(dateISO,session),finalized=!!completed;
     const plan=finalized?v3677GroupActualPrimaryPlan(completed,session,dateISO):v3677PlannedPrimaryFor(session,dateISO);
@@ -16375,6 +16413,19 @@ expectedSession=function(day,gw,dateISO=""){
     if(!core){const p=primaryState(dateISO,session),shortAuto=advisedShort(session,dateISO,p.plan,p.finalized),short={plan:shortAuto,auto:!!shortAuto},full=fullAutoState(session,dateISO,p.plan,p.finalized),model=full.auto?'full':short.auto?'short':'none';core={...p,short,full,model};modelCache.set(stamp,core);if(modelCache.size>18)modelCache.delete(modelCache.keys().next().value)}
     const requested=choice(dateISO);let short=core.short,full=core.full;if(requested==='rec-short'&&!short?.plan)short=bestShort(session,dateISO,core.plan,core.finalized);if(requested==='rec-full'&&!full?.candidate)full=fullCandidateState(session,dateISO,core.plan,core.finalized,full);return {...core,short,full,requested};
   }
+  function secondaryCalendarStatus(dateISO,session){
+    const st=stateFor(dateISO,session),mode=st.requested,rec=choiceRecord(dateISO)||{},none={kind:'none',label:'No secondary',detail:'No secondary scheduled'};
+    const full=x=>x?.rows?.length?{kind:'full',label:x.label||x.session||'Full second workout',detail:'Full secondary'}:none;
+    const short=x=>x?.rows?.length?{kind:'short',label:x.label||'Short secondary',detail:'Short secondary'}:none;
+    if(mode==='none')return {...none,source:'user'};
+    if(mode==='rec-short')return {...short(st.short?.plan),source:'recommended-short'};
+    if(mode==='rec-full')return {...full(st.full?.candidate),source:'recommended-full'};
+    if(mode==='custom-short')return {kind:'short',label:rec.label||'Custom short',detail:'Custom short',source:'custom-short',pending:!rec.label};
+    if(mode==='custom-full')return {kind:'full',label:rec.label||'Custom full',detail:'Custom full secondary',source:'custom-full',pending:!rec.label};
+    if(st.model==='full')return {...full(st.full?.auto||st.full?.candidate),source:'model'};
+    if(st.model==='short')return {...short(st.short?.plan),source:'model'};
+    return {...none,source:'model'};
+  }
   function familyLabelFromRow(row){
     const n=String(row?.exercise||'');const lane=conditioningCadenceLaneForActivity(n,row||null);
     if(lane==='speed')return 'Sprints / HIC';if(lane==='run'||lane==='cardio')return 'LSS / Aerobic';
@@ -16404,15 +16455,15 @@ expectedSession=function(day,gw,dateISO=""){
   function customLss(dateISO,kind){
     const x=adaptiveModeSwitchBase(dateISO),lane=adaptiveLssLaneForDate(dateISO),p=conditioningFor(x.day,x.gw,dateISO,lane);if(!p?.activity)return false;
     const mins=kind==='short'?(nextFixedTrainingAnchor(dateISO,2)?.days===1?10:15):null,target=kind==='short'?mins+' min easy / conversational':(p.target||'Easy steady-state');
-    return loadRows(dateISO,'Conditioning',[{exercise:p.activity,plannedTarget:target,conditioning:true,meta:(p.detail||'LSS / AEROBIC')+(p.rpe?' • target RPE '+p.rpe:''),note:'User chose the LSS / Aerobic secondary family.'}],(kind==='short'?'Custom Short':'Custom Full')+' • LSS / Aerobic • '+p.activity,'User-selected '+kind+' LSS / Aerobic secondary. ',kind);
+    rememberCustom(dateISO,kind==='short'?'custom-short':'custom-full','LSS / Aerobic','LSS / Aerobic • '+p.activity,'Conditioning');return loadRows(dateISO,'Conditioning',[{exercise:p.activity,plannedTarget:target,conditioning:true,meta:(p.detail||'LSS / AEROBIC')+(p.rpe?' • target RPE '+p.rpe:''),note:'User chose the LSS / Aerobic secondary family.'}],(kind==='short'?'Custom Short':'Custom Full')+' • LSS / Aerobic • '+p.activity,'User-selected '+kind+' LSS / Aerobic secondary. ',kind);
   }
   function customSpeed(dateISO,kind){
     if(kind==='short'){
       const row={exercise:'Short Hills',plannedTarget:'6 × 10 sec • full walk-back recovery • Parking Garage (~11%)',conditioning:true,meta:'SPRINT MICRODOSE • POWER / ACCELERATION',note:'User-selected short Sprints / HIC secondary. Keep every rep crisp; stop if speed drops. Parking-garage grade defaults to ~11% unless an exact grade is logged.'};
-      return loadRows(dateISO,'Conditioning',[row],'Custom Short • Sprints / HIC • Short Hills','User-selected short sprint microdose.','short');
+      rememberCustom(dateISO,'custom-short','Sprints / HIC','Sprints / HIC • Short Hills','Conditioning');return loadRows(dateISO,'Conditioning',[row],'Custom Short • Sprints / HIC • Short Hills','User-selected short sprint microdose.','short');
     }
     const x=adaptiveModeSwitchBase(dateISO),p=conditioningFor(x.day,x.gw,dateISO,'speed');if(!p?.activity)return false;
-    return loadRows(dateISO,'Conditioning',[{exercise:p.activity,plannedTarget:p.target||'Hard conditioning',conditioning:true,meta:(p.detail||'SPRINTS / HIC')+(p.rpe?' • target RPE '+p.rpe:''),note:'User chose the Sprints / HIC full-secondary family.'}],'Custom Full • Sprints / HIC • '+p.activity,'User-selected full Sprints / HIC secondary.','full');
+    rememberCustom(dateISO,'custom-full','Sprints / HIC','Sprints / HIC • '+p.activity,'Conditioning');return loadRows(dateISO,'Conditioning',[{exercise:p.activity,plannedTarget:p.target||'Hard conditioning',conditioning:true,meta:(p.detail||'SPRINTS / HIC')+(p.rpe?' • target RPE '+p.rpe:''),note:'User chose the Sprints / HIC full-secondary family.'}],'Custom Full • Sprints / HIC • '+p.activity,'User-selected full Sprints / HIC secondary.','full');
   }
   function customStrength(dateISO,kind,family){
     let session='',rows=[],label=family;
@@ -16423,11 +16474,11 @@ expectedSession=function(day,gw,dateISO=""){
     else if(family==='kb-short'){session='KB Power';const pd=programPrescriptionDate(dateISO),pg=programPrescriptionWeek(dateISO);rows=getKbPlan(session,pg,pd)||[];label='Kettlebell microdose'}
     if(kind==='short')rows=cloneShortRows(rows,family==='se'?3:2);else rows=(rows||[]).filter(r=>!r.adaptiveSecondaryBlock);
     if(!rows.length)return false;
-    return loadRows(dateISO,session,rows,(kind==='short'?'Custom Short • ':'Custom Full • ')+label,'User-selected '+kind+' '+label+' secondary.',kind);
+    rememberCustom(dateISO,kind==='short'?'custom-short':'custom-full',label,label,session);return loadRows(dateISO,session,rows,(kind==='short'?'Custom Short • ':'Custom Full • ')+label,'User-selected '+kind+' '+label+' secondary.',kind);
   }
   function customBlank(dateISO,kind){
     v36114StartCustomWorkout(dateISO);const short=kind==='short',name=short?'Custom Short Secondary':'Custom Full Secondary';
-    logGuidedPlan={date:dateISO,session:'Custom Workout',rows:[],name,createdAt:Date.now(),v36123:true,secondaryOnly:short,manualShortSecondary:short,secondFullWorkout:!short,secondFullWorkoutOverride:true};
+    rememberCustom(dateISO,short?'custom-short':'custom-full','Blank custom','Blank custom','Custom Workout');logGuidedPlan={date:dateISO,session:'Custom Workout',rows:[],name,createdAt:Date.now(),v36123:true,secondaryOnly:short,manualShortSecondary:short,secondFullWorkout:!short,secondFullWorkoutOverride:true};
     const n=document.getElementById('manualWorkoutName');if(n)n.value=name;const t=document.getElementById('manualWorkoutType');if(t)t.value='mixed';if(sessionNotes)sessionNotes.value=short?'Custom short secondary. Keep it brief; it is not counted as a full second workout.':'Custom full secondary. This counts as a separate complete workout.';try{writeLogWorkspace()}catch(_e){}return true;
   }
   function addMode(host,label,sub,active,fn){const b=document.createElement('button');b.type='button';b.className='btn v36123-btn'+(active?' active':'');b.innerHTML='<strong>'+htmlSafe(label)+'</strong><span>'+htmlSafe(sub)+'</span>';b.addEventListener('click',fn);host.appendChild(b)}
@@ -16493,7 +16544,7 @@ expectedSession=function(day,gw,dateISO=""){
   }
   const prior=renderSelectedWorkout;
   renderSelectedWorkout=function(){const out=prior.apply(this,arguments);try{renderMatrix()}catch(e){console.warn('v36.119 secondary intent matrix:',e)}return out};
-  window.__v36123SecondaryMatrix={state:stateFor,setChoice,render:renderMatrix};
+  window.__v36123SecondaryMatrix={state:stateFor,setChoice,render:renderMatrix,calendarStatus:secondaryCalendarStatus};
   try{renderMatrix()}catch(_e){}
 })();
 
@@ -16527,6 +16578,38 @@ expectedSession=function(day,gw,dateISO=""){
   const priorInvalidate=utmInvalidateCaches;
   utmInvalidateCaches=function(){selectedRenderStamp='';return priorInvalidate.apply(this,arguments)};
   window.__v36125InvalidateSelected=()=>{selectedRenderStamp=''};
+})();
+
+
+// v36.119 — calendar primary + secondary schedule visibility.
+// Every visible day shows the primary plus the current secondary intent (full, short, or none).
+// The weekend allocator remains authoritative; exposing its full-secondary result here restores
+// the visible three-session weekend forecast when one of Saturday/Sunday wins the double slot.
+(function(){
+  function compactSecondaryLabel(x){
+    const raw=String(x?.label||'').replace(/^Full Second Workout\s*[•:-]?\s*/i,'').replace(/^Recommended (Short|Full)\s*[•:-]?\s*/i,'').trim();
+    return raw||((x?.kind==='full')?'Full second workout':(x?.kind==='short')?'Short secondary':'No secondary');
+  }
+  function scheduledSecondary(dateISO,session){
+    try{return window.__v36123SecondaryMatrix?.calendarStatus?.(dateISO,session)||{kind:'none',label:'No secondary'}}catch(_e){return {kind:'none',label:'No secondary'}}
+  }
+  function annotate(){
+    if(!weekStrip||!selectedDateISO)return;const start=mondayOf(parseLocalISO(selectedDateISO)),cards=[...weekStrip.querySelectorAll('.day-card')];
+    cards.forEach((card,i)=>{
+      const iso=localISO(addDays(start,i)),d=parseLocalISO(iso),gw=Math.max(1,trainingWeekForDate(d)),session=expectedSession(dayNameFromDate(iso),gw,iso);
+      card.querySelectorAll('.v36128-primary-tag,.v36128-secondary-line').forEach(x=>x.remove());
+      const sessionEl=card.querySelector('.day-session'),focus=card.querySelector('.day-focus');if(!sessionEl||!focus)return;
+      if(!card.querySelector('.day-primary-kicker')){const primary=document.createElement('div');primary.className='v36128-primary-tag';primary.textContent='Primary';sessionEl.insertAdjacentElement('beforebegin',primary)}
+      const sec=scheduledSecondary(iso,session),line=document.createElement('div');line.className='v36128-secondary-line '+(sec.kind||'none');
+      const kind=sec.kind==='full'?'Full':sec.kind==='short'?'Short':'None',label=compactSecondaryLabel(sec);
+      line.innerHTML='<span>Secondary</span><strong>'+htmlSafe(kind)+(sec.kind==='none'?'':' • '+label)+'</strong>'+(sec.pending?'<em>Choose type</em>':'');
+      focus.insertAdjacentElement('afterend',line);
+    });
+  }
+  const prior=renderWeek;
+  renderWeek=function(){const out=prior.apply(this,arguments);try{annotate()}catch(e){console.warn('v36.119 calendar secondary schedule:',e)}return out};
+  window.__v36128RefreshCalendar=annotate;
+  try{annotate()}catch(_e){}
 })();
 
 // v36.107 — controlled bridge for modular UI/support code.

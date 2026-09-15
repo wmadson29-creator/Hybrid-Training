@@ -33,3 +33,11 @@ Weekend and rarer weekday full doubles remain model-driven rather than hard-code
 
 ## Startup / migration hardening
 The bounded IndexedDB hydration/open fallback remains intact. Existing history is compatible and there is no reason to clear data or re-import just for this release.
+
+
+## Calendar secondary visibility + conditioning comparison follow-up
+- Calendar cards now always show **Primary** plus **Secondary** status. Secondary is explicit as **Full**, **Short**, or **None** and reflects the current Home secondary choice/model plan.
+- A model-selected weekend full secondary is visible directly in the calendar again, so three-workout weekends (two primaries + one full secondary) are no longer hidden by the new Secondary matrix.
+- Custom Short / Custom Full family selections persist their chosen family label for calendar display.
+- Conditioning-family comparison now exposes both **LSS / Aerobic** and **Sprints / HIC** in the recommendation comparison area; the currently selected family is visibly marked Current.
+- Legacy short-secondary text is no longer appended to the Primary calendar/Adaptive Pick label when the Secondary matrix owns that work.

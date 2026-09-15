@@ -1,5 +1,5 @@
 const BUILD="36.119";
-const CACHE="hybrid-training-v36-119-conditioning-perf1";
+const CACHE="hybrid-training-v36-119-calendar-secondary1";
 const FALLBACK="./index.html?v=36.119-conditioning-perf1";
 const REQUIRED_PRECACHE=[
   FALLBACK,
