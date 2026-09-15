@@ -1004,6 +1004,16 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
 </style>
 
 
+<style>
+/* v36.119 — Home primary/secondary hierarchy */
+.v36121-secondary-hub{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:18px;padding:15px;margin:14px 0;background:var(--panel)}
+.v36121-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.v36121-kicker{font-size:.68rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:var(--accent2)}.v36121-head h3{margin:3px 0 0;font-size:1.16rem}.v36121-rec-badge{font-size:.66rem;font-weight:900;border:1px solid var(--line);border-radius:999px;padding:6px 9px;color:var(--muted)}
+.v36121-copy{font-size:.76rem;line-height:1.48;color:var(--muted);margin:9px 0 12px}.v36121-mode-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.v36121-mode{min-height:58px;text-align:left;display:flex!important;flex-direction:column;align-items:flex-start!important;justify-content:center}.v36121-mode strong{font-size:.78rem}.v36121-mode span{font-size:.62rem;color:var(--muted);margin-top:2px}.v36121-mode.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+.v36121-selected{margin-top:11px;border:1px solid var(--line);border-radius:15px;padding:12px;background:color-mix(in srgb,var(--panel) 86%,#000)}.v36121-selected-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.v36121-selected-top>div{display:flex;flex-direction:column;gap:2px}.v36121-type{font-size:.63rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.v36121-selected-top strong{font-size:.94rem}.v36121-state{font-size:.62rem;font-weight:900;border-radius:999px;padding:5px 8px;border:1px solid var(--line)}.v36121-state.recommended{color:var(--accent2);border-color:color-mix(in srgb,var(--accent2) 55%,var(--line))}.v36121-state.override{color:#d8b85a}.v36121-selected-copy{font-size:.72rem;line-height:1.45;color:var(--muted);margin:8px 0}.v36121-row{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding:7px 0;font-size:.7rem}.v36121-row strong{font-size:.72rem}.v36121-row span{color:var(--muted);text-align:right}.v36121-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}.v36121-empty{display:flex;flex-direction:column;gap:4px;font-size:.75rem}.v36121-empty span{color:var(--muted);font-size:.68rem}
+.v36121-manual{display:flex;justify-content:space-between;gap:12px;align-items:center;border-top:1px solid var(--line);margin-top:12px;padding-top:12px}.v36121-manual>div:first-child{display:flex;flex-direction:column;gap:2px}.v36121-manual>div:first-child strong{font-size:.76rem}.v36121-manual>div:first-child span{font-size:.65rem;line-height:1.4;color:var(--muted)}.v36121-manual-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.v36121-manual-actions .btn{white-space:nowrap}
+@media(max-width:650px){.v36121-secondary-hub{padding:12px}.v36121-mode-row{grid-template-columns:1fr}.v36121-mode{min-height:50px}.v36121-manual{align-items:stretch;flex-direction:column}.v36121-manual-actions{justify-content:stretch}.v36121-manual-actions .btn{flex:1}.v36121-row{align-items:flex-start}.v36121-row span{max-width:54%}}
+
+</style>
 </head>
 <body>
 <div class="shell">
@@ -16681,6 +16691,117 @@ window.__v36115={landmineSingleEnded:true,tbOnlyAutoKbSecondary:false};
  try{utmInvalidateCaches()}catch(_e){}
  setTimeout(()=>{try{if(typeof render==='function')render()}catch(_e){}},0);
 })();
+
+// v36.119 — unified Home secondary hub.
+// Primary recommendation/switching is intentionally untouched. This only consolidates the existing
+// full-second and short-secondary systems into one Home surface with explicit user overrides.
+(function(){
+  const V36121_KEY='homeSecondaryChoice';
+  function ensureStore(){state.settings[V36121_KEY]=state.settings[V36121_KEY]||{}}
+  function setChoice(dateISO,mode){ensureStore();state.settings[V36121_KEY][dateISO]=mode;save('home-secondary-choice');renderSelectedWorkout()}
+  function choiceFor(dateISO){ensureStore();return state.settings[V36121_KEY][dateISO]||'recommended'}
+  function primaryState(dateISO,session){
+    const completed=completedPrimaryGroupForDate(dateISO,session),finalized=!!completed;
+    const plan=finalized?v3677GroupActualPrimaryPlan(completed,session,dateISO):v3677PlannedPrimaryFor(session,dateISO);
+    return {completed,finalized,plan};
+  }
+  function normalShort(session,dateISO,primary,finalized){
+    if(!primary)return null;
+    try{
+      const fn=typeof v36113BaseSecondaryForDisplay==='function'?v36113BaseSecondaryForDisplay:v3677SecondaryForDisplay;
+      const x=fn(session,dateISO,primary,finalized);
+      if(!x?.rows?.length||x.skipped||x.userOverride===true||x.modelAdvised===false)return null;
+      return x;
+    }catch(_e){return null}
+  }
+  function anyShort(session,dateISO,primary,finalized){
+    const normal=normalShort(session,dateISO,primary,finalized);if(normal)return {plan:normal,recommended:true};
+    if(!primary)return {plan:null,recommended:false};
+    try{const forced=v36113ForcedSecondaryFor(session,dateISO,primary,finalized);return {plan:forced?.rows?.length?forced:null,recommended:false}}catch(_e){return {plan:null,recommended:false}}
+  }
+  function fullState(session,dateISO,primary,finalized){
+    if(finalized){
+      try{const rec=fullSecondWorkoutRecommendation(dateISO),top=rec?.top?.rows?.length?rec.top:null;return {auto:rec?.recommended?top:null,candidate:top,rec,score:top?.score??null,threshold:null}}catch(_e){return {auto:null,candidate:null,rec:null}}
+    }
+    let auto=null,candidate=null,evald=null;
+    try{auto=v36119PlannedSecondMain(dateISO,session)}catch(_e){}
+    try{candidate=auto||v36119CandidateForPrimary(dateISO,{session,label:session,plan:primary},v36119WeekendDay(dateISO))}catch(_e){}
+    try{if(candidate)evald=v36119CandidateScore(dateISO,{session,label:session,plan:primary},candidate,v36119WeekendDay(dateISO))}catch(_e){}
+    return {auto:auto?.rows?.length?auto:null,candidate:candidate?.rows?.length?candidate:null,rec:null,score:auto?.autoDoubleScore??evald?.score??null,threshold:auto?.autoDoubleThreshold??null,evald};
+  }
+  function secondaryState(dateISO,session){
+    const p=primaryState(dateISO,session),short=anyShort(session,dateISO,p.plan,p.finalized),full=fullState(session,dateISO,p.plan,p.finalized);
+    const recMode=full.auto?'full':short.recommended?'short':'none',requested=choiceFor(dateISO),mode=requested==='recommended'?recMode:requested;
+    return {...p,short,full,recMode,requested,mode};
+  }
+  function shortRowsHtml(addOn){
+    return (addOn?.rows||[]).slice(0,4).map(r=>{const rx=r.conditioning?(r.plannedTarget||'Very easy'):[r.sets&&r.reps?`${r.sets} × ${r.reps}`:'',r.weight||''].filter(Boolean).join(' • ');return '<div class="v36121-row"><strong>'+htmlSafe(r.exercise||'Secondary')+'</strong><span>'+htmlSafe(rx)+'</span></div>'}).join('');
+  }
+  function fullRowsHtml(plan){
+    return (plan?.rows||[]).slice(0,4).map(r=>{const rx=r.conditioning?(r.plannedTarget||plan.label||'Conditioning'):[r.sets&&r.reps?`${r.sets} × ${r.reps}`:'',r.weight||''].filter(Boolean).join(' • ');return '<div class="v36121-row"><strong>'+htmlSafe(r.exercise||plan.session||'Workout')+'</strong><span>'+htmlSafe(rx)+'</span></div>'}).join('');
+  }
+  function loadRows(dateISO,session,rows,name,note,flags={}){
+    if(!rows?.length)return false;
+    logGuidedPlan={date:dateISO,session,rows:JSON.parse(JSON.stringify(rows)),name,createdAt:Date.now(),v36121:true,...flags};
+    showView('log',{preserveDate:true});logDate.value=dateISO;const tw=trainingWeekForDate(parseLocalISO(dateISO));logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value=session;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():'';blankNextWorkout=false;loadPlannedSession();
+    if(sessionNotes&&!String(sessionNotes.value||'').trim())sessionNotes.value=note||'';renderWorkoutIntentUi();try{v3685RenderWorkoutTracker()}catch(_e){}try{writeLogWorkspace()}catch(_e){}window.scrollTo({top:0,behavior:'smooth'});return true;
+  }
+  function openShort(dateISO,primarySession,st){
+    const addOn=st.short?.plan;if(!addOn?.rows?.length)return false;const recommended=!!st.short.recommended,type=addOn.secondaryTrainingType||addOn.rows[0]?.secondaryTrainingType||'conditioning',session=type==='conditioning'?'Conditioning':type==='calisthenics'?'Calisthenics':type==='kettlebell'?'Custom Workout':'Generic Gym';
+    if(recommended)try{v3677RecordSecondaryDecision(dateISO,primarySession,addOn,'accepted')}catch(_e){}
+    return loadRows(dateISO,session,addOn.rows,(recommended?'Short Secondary • ':'Short Secondary • User Choice • ')+(addOn.label||session),(recommended?'Model-recommended':'User-selected')+' short complementary secondary after '+primarySession+'.',{secondaryOnly:true,secondaryOverride:!recommended});
+  }
+  function openFull(dateISO,primarySession,st){
+    const p=st.full?.candidate;if(!p?.rows?.length)return false;
+    if(st.finalized){try{return openFullSecondWorkout(p.session,dateISO,!st.full.auto)}catch(_e){}}
+    const recommended=!!st.full.auto;return loadRows(dateISO,p.session,p.rows,(recommended?'Full Secondary • ':'Full Secondary • User Choice • ')+(p.label||p.session),(recommended?'Model-recommended':'User-selected')+' full secondary after '+primarySession+'.',{secondFullWorkout:true,secondFullWorkoutOverride:!recommended});
+  }
+  function markManualShortCards(){
+    if(!logGuidedPlan?.manualShortSecondary)return;[...plannedExercises.querySelectorAll('.log-exercise')].forEach(c=>{c.dataset.adaptiveSecondaryBlock='1';c.dataset.secondaryTrainingType='manual';c.dataset.secondaryFocus='manual';c.dataset.secondaryCadenceCredit='0'})
+  }
+  const priorAppendAdditional=appendAdditionalLogExercise;
+  appendAdditionalLogExercise=function(){const out=priorAppendAdditional.apply(this,arguments);markManualShortCards();return out};
+  function openManual(dateISO,kind){
+    v36114StartCustomWorkout(dateISO);const isShort=kind==='short',name=isShort?'Manual Short Secondary':'Manual Full Secondary';
+    logGuidedPlan={date:dateISO,session:'Custom Workout',rows:[],name,createdAt:Date.now(),v36121:true,secondaryOnly:isShort,manualShortSecondary:isShort,secondFullWorkout:!isShort,secondFullWorkoutOverride:true};
+    const n=document.getElementById('manualWorkoutName');if(n)n.value=name;const t=document.getElementById('manualWorkoutType');if(t)t.value='mixed';if(sessionNotes)sessionNotes.value=isShort?'Manual short secondary. Keep this as a brief complementary add-on; it is intentionally not a full second session.':'Manual full secondary. This is a separate complete workout chosen by you.';if(isShort)markManualShortCards();try{writeLogWorkspace()}catch(_e){}return true;
+  }
+  function addButton(host,label,active,fn,sub=''){
+    const b=document.createElement('button');b.type='button';b.className='btn v36121-mode'+(active?' active':'');b.innerHTML='<strong>'+htmlSafe(label)+'</strong>'+(sub?'<span>'+htmlSafe(sub)+'</span>':'');b.addEventListener('click',fn);host.appendChild(b);return b;
+  }
+  function buildHub(dateISO,session){
+    const st=secondaryState(dateISO,session),box=document.createElement('section');box.className='v36121-secondary-hub';box.dataset.v36121='secondary-hub';
+    const autoLabel=st.recMode==='full'?'Full secondary':st.recMode==='short'?'Short secondary':'None';
+    box.innerHTML='<div class="v36121-head"><div><div class="v36121-kicker">Secondary</div><h3>Secondary workout</h3></div><span class="v36121-rec-badge">Model: '+htmlSafe(autoLabel)+'</span></div><div class="v36121-copy">The model recommends one secondary state for the day. You can switch between a full second workout and a short complementary add-on without changing the primary recommendation.</div>';
+    const modes=document.createElement('div');modes.className='v36121-mode-row';
+    addButton(modes,'Recommended',st.requested==='recommended',()=>setChoice(dateISO,'recommended'),autoLabel);
+    addButton(modes,'Full secondary',st.requested==='full',()=>setChoice(dateISO,'full'),'Complete second workout');
+    addButton(modes,'Short secondary',st.requested==='short',()=>setChoice(dateISO,'short'),'Brief complementary add-on');box.appendChild(modes);
+    const card=document.createElement('div');card.className='v36121-selected';
+    if(st.mode==='full'){
+      const p=st.full.candidate,recommended=st.recMode==='full'&&st.requested==='recommended'||!!st.full.auto&&st.requested==='full';
+      if(p){const score=st.full.score!==null&&st.full.score!==undefined?' • score '+st.full.score:'';card.innerHTML='<div class="v36121-selected-top"><div><span class="v36121-type">Full secondary</span><strong>'+htmlSafe(p.label||p.session||'Full second workout')+'</strong></div><span class="v36121-state '+(recommended?'recommended':'override')+'">'+(recommended?'Recommended':'User selected')+'</span></div><div class="v36121-selected-copy">'+htmlSafe(recommended?'A complete second session cleared the model’s automatic double-session logic.':'A complete second session is available as an override even though the model did not choose it automatically.')+htmlSafe(score)+'</div>'+fullRowsHtml(p);const a=document.createElement('div');a.className='v36121-actions';const start=document.createElement('button');start.type='button';start.className='btn primary';start.textContent='Open full secondary';start.addEventListener('click',()=>openFull(dateISO,session,st));a.appendChild(start);card.appendChild(a)}else card.innerHTML='<div class="v36121-empty"><strong>No compatible full secondary could be built from the current primary/context.</strong><span>You can still build one manually below.</span></div>';
+    }else if(st.mode==='short'){
+      const p=st.short.plan,recommended=st.short.recommended&&st.recMode==='short'&&st.requested==='recommended'||st.short.recommended&&st.requested==='short';
+      if(p){card.innerHTML='<div class="v36121-selected-top"><div><span class="v36121-type">Short secondary</span><strong>'+htmlSafe(p.label||'Complementary add-on')+'</strong></div><span class="v36121-state '+(recommended?'recommended':'override')+'">'+(recommended?'Recommended':'User selected')+'</span></div><div class="v36121-selected-copy">'+htmlSafe(recommended?'This is the model’s smaller complementary dose for the day.':'This keeps a small complementary option even though the model preferred a full secondary or no secondary.')+'</div>'+shortRowsHtml(p);const a=document.createElement('div');a.className='v36121-actions';const start=document.createElement('button');start.type='button';start.className='btn primary';start.textContent='Open short secondary';start.addEventListener('click',()=>openShort(dateISO,session,st));a.appendChild(start);card.appendChild(a)}else card.innerHTML='<div class="v36121-empty"><strong>No compatible short secondary could be built.</strong><span>You can still make a manual short secondary below.</span></div>';
+    }else{
+      card.innerHTML='<div class="v36121-selected-top"><div><span class="v36121-type">Secondary</span><strong>No secondary recommended today</strong></div><span class="v36121-state recommended">Model choice</span></div><div class="v36121-selected-copy">The model currently prefers one full workout only. Full and short overrides remain available above.</div>';
+    }
+    box.appendChild(card);
+    const manual=document.createElement('div');manual.className='v36121-manual';manual.innerHTML='<div><strong>Completely manual</strong><span>Start blank and choose every exercise yourself. Manual short is kept separate from full-workout frequency/fatigue accounting.</span></div>';const buttons=document.createElement('div');buttons.className='v36121-manual-actions';const mf=document.createElement('button');mf.type='button';mf.className='btn';mf.textContent='Manual full';mf.addEventListener('click',()=>openManual(dateISO,'full'));const ms=document.createElement('button');ms.type='button';ms.className='btn';ms.textContent='Manual short';ms.addEventListener('click',()=>openManual(dateISO,'short'));buttons.append(mf,ms);manual.appendChild(buttons);box.appendChild(manual);
+    return box;
+  }
+  function renderHub(){
+    if(!tbList)return;tbList.querySelectorAll('[data-v36121="secondary-hub"]').forEach(x=>x.remove());tbList.querySelectorAll('[data-v3677="secondary"]').forEach(x=>x.remove());tbList.querySelectorAll('.v36118-second-main-notice').forEach(x=>x.remove());
+    const dateISO=selectedDateISO,d=parseLocalISO(dateISO),gw=trainingWeekForDate(d);if(!(gw>=1||baseBuildingForDate(dateISO)))return;const session=expectedSession(dayNameFromDate(dateISO),gw,dateISO);if(!session)return;
+    const box=buildHub(dateISO,session),context=tbList.querySelector('[data-v3677="context"]'),actions=tbList.querySelector('.day-actions-details');if(context)tbList.insertBefore(box,context);else if(actions)tbList.insertBefore(box,actions);else tbList.appendChild(box);
+  }
+  const priorRenderSelected=renderSelectedWorkout;
+  renderSelectedWorkout=function(){const out=priorRenderSelected.apply(this,arguments);try{renderHub()}catch(e){console.warn('v36.119 Home secondary hub:',e)}return out};
+  window.__v36121HomeSecondary={state:secondaryState,setChoice,openManual,openShort,openFull};
+  try{renderSelectedWorkout()}catch(_e){}
+})();
+
 </script>
 </body>
 </html>

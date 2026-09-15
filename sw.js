@@ -1,6 +1,6 @@
 const BUILD="36.119";
-const CACHE="hybrid-training-v36-119-sprint-hill1";
-const FALLBACK="./index.html?v=36.119-sprint-hill1";
+const CACHE="hybrid-training-v36-119-home-secondary1";
+const FALLBACK="./index.html?v=36.119-home-secondary1";
 const REQUIRED_PRECACHE=[
   FALLBACK,
   "./manifest-v36.webmanifest?v=36.119",
