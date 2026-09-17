@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.119">
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.121">
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
@@ -1078,7 +1078,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
       <div class="recovery-mini-grid">
         <div><span>Readiness</span><strong id="recoveryReadiness">No data</strong></div>
         <div><span>Sleep</span><strong id="recoverySleep">—</strong></div>
-        <div><span>HRV</span><strong id="recoveryHrv">—</strong></div>
+        <div><span>Steps</span><strong id="recoverySteps">—</strong></div>
         <div><span>Resting HR</span><strong id="recoveryRhr">—</strong></div>
         <div><span>Wake BioCharge</span><strong id="recoveryBio">—</strong></div>
       </div>
@@ -1937,7 +1937,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.119</strong> • durable IndexedDB history/snapshots + worker-backed history/recovery preprocessing + confidence-shrunk personal muscular-recovery learning + transparent recommendation comparisons + progressive History + one-tap session completion + permanent self-check/regression infrastructure, on top of the v36.90 performance/QA baseline and v36.89 research-calibrated fatigue model.<br></div>
+      <div class="notice"><strong>Adaptive Engine v36.121</strong> • unique displaced-session reflow + Steps-first Home recovery summary + durable IndexedDB history/snapshots + worker-backed history/recovery preprocessing + confidence-shrunk personal muscular-recovery learning + transparent recommendation comparisons + progressive History + one-tap session completion + permanent self-check/regression infrastructure.<br></div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -2332,7 +2332,7 @@ const recoveryAnalysis=document.getElementById("recoveryAnalysis");
 const recoveryBio=document.getElementById("recoveryBio");
 const recoveryDate=document.getElementById("recoveryDate");
 const recoveryHistoryBody=document.getElementById("recoveryHistoryBody");
-const recoveryHrv=document.getElementById("recoveryHrv");
+const recoverySteps=document.getElementById("recoverySteps");
 const recoveryReadiness=document.getElementById("recoveryReadiness");
 const recoveryRhr=document.getElementById("recoveryRhr");
 const recoverySleep=document.getElementById("recoverySleep");
@@ -6066,7 +6066,8 @@ function moveProgramDayOnce(sourceDate){
  const map={active:"Active Recovery",open:"Open Training",rest:"Recovery / Rest",conditioning:"Conditioning"};if(!map[replacement]){alert("Use active, open, rest, or conditioning.");return}replacement=map[replacement];
  const sourceBB=baseBuildingForDate(sourceDate),sourceGw=Math.max(1,trainingWeekForDate(parseLocalISO(sourceDate)));
  clearDateProgrammingForIntent(sourceDate,"");clearDateProgrammingForIntent(targetDate,"");clearRestRecord(sourceDate);clearRestRecord(targetDate);
- state.settings.programDayMoves[sourceDate]={targetDate,sourceSession,replacement,sourceTrainingWeek:sourceGw,sourceDay:dayNameFromDate(sourceDate),sourceBaseBuildingPlanId:sourceBB?.plan?.id||"",sourceBaseBuildingWeek:sourceBB?.week||0,sourceBaseBuildingDayIndex:sourceBB?.dayIndex??-1,targetOriginalSession:targetRaw,createdAt:Date.now()};
+ const displacedFlexibleSession=['Conditioning','Strength-Endurance','Generic Gym','Calisthenics','Active Recovery'].includes(targetRaw)?targetRaw:'',reflowClaimId=displacedFlexibleSession?(sourceDate+"->"+targetDate):"";
+ state.settings.programDayMoves[sourceDate]={targetDate,sourceSession,replacement,sourceTrainingWeek:sourceGw,sourceDay:dayNameFromDate(sourceDate),sourceBaseBuildingPlanId:sourceBB?.plan?.id||"",sourceBaseBuildingWeek:sourceBB?.week||0,sourceBaseBuildingDayIndex:sourceBB?.dayIndex??-1,targetOriginalSession:targetRaw,displacedFlexibleSession,reflowClaimId,reflowPolicy:displacedFlexibleSession?"adaptive-unique-nearby-open-day":"none",createdAt:Date.now()};
  if(replacement==="Recovery / Rest"){state.settings.dayOverrides[sourceDate]="Recovery / Rest";delete state.settings.noRestDates[sourceDate]}else if(replacement==="Active Recovery"){state.settings.dayOverrides[sourceDate]="Active Recovery";state.settings.noRestDates[sourceDate]=true}else if(replacement==="Conditioning"){state.settings.dayOverrides[sourceDate]="Conditioning";state.settings.noRestDates[sourceDate]=true}else{delete state.settings.dayOverrides[sourceDate];delete state.settings.noRestDates[sourceDate]}
  delete state.settings.dayOverrides[targetDate];delete state.settings.noRestDates[targetDate];recordWorkoutIntent(sourceDate,replacement,"program-move-source","Moved "+sourceSession+" to "+targetDate,"schedule-exception");recordWorkoutIntent(targetDate,sourceSession,"program-move-target","Moved from "+sourceDate,"schedule-exception");utmInvalidateCaches();save("program-day-move");selectedDateISO=targetDate;render();
 }
@@ -6376,32 +6377,60 @@ function adaptiveSEPlanForDate(dateISO){const w=adaptiveSEWorkoutFor(dateISO);if
 // re-optimized across every flexible mode from current recency, goals, adaptation gaps,
 // readiness, recent load, feedback, and future interference. Recovery Guard still wins.
 function manualScheduleConstraintForDate(dateISO){
- const base=programScheduledSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),override=(state.settings.dayOverrides||{})[dateISO]||'',rest=restRecord(dateISO),scheduledClass=selectedClassForDate(dateISO);
- if(rest?.source==='manual'&&['planned','confirmed'].includes(rest.status)&&override==='Recovery / Rest')return {date:dateISO,session:'Recovery / Rest',originalSession:intent?.originalSession||base,kind:'rest',label:'Manually scheduled rest'};
- if(scheduledClass){const meta=(state.settings.classScheduleMeta||{})[dateISO]||{};return {date:dateISO,session:'Class / Activity',originalSession:intent?.originalSession||base,kind:'class',label:scheduledClass,additional:!!meta.additional};}
- if(intent&&intent.selectedSession&&intent.selectedSession!==intent.originalSession){return {date:dateISO,session:intent.selectedSession,originalSession:intent.originalSession||base,kind:'workout',label:intent.label||intent.selectedSession,mode:intent.mode||'',source:intent.source||''};}
+ const base=programScheduledSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),override=(state.settings.dayOverrides||{})[dateISO]||'',rest=restRecord(dateISO),scheduledClass=selectedClassForDate(dateISO),movedFrom=programMoveFromDate(dateISO),reflowEligible=!movedFrom;
+ if(rest?.source==='manual'&&['planned','confirmed'].includes(rest.status)&&override==='Recovery / Rest')return {date:dateISO,session:'Recovery / Rest',originalSession:intent?.originalSession||base,kind:'rest',label:'Manually scheduled rest',reflowEligible};
+ if(scheduledClass){const meta=(state.settings.classScheduleMeta||{})[dateISO]||{};return {date:dateISO,session:'Class / Activity',originalSession:intent?.originalSession||base,kind:'class',label:scheduledClass,additional:!!meta.additional,reflowEligible};}
+ if(intent&&intent.selectedSession&&intent.selectedSession!==intent.originalSession){return {date:dateISO,session:intent.selectedSession,originalSession:intent.originalSession||base,kind:'workout',label:intent.label||intent.selectedSession,mode:intent.mode||'',source:intent.source||'',reflowEligible};}
  const manualSaved=(state.settings.customDayWorkouts||{})[dateISO]||(state.settings.genericGymWorkouts||{})[dateISO]||(state.settings.calisthenicsWorkouts||{})[dateISO]||(state.settings.adaptiveSEWorkouts||{})[dateISO];
- if(manualSaved&&override&&override!==base)return {date:dateISO,session:override,originalSession:base,kind:'workout',label:manualSaved.name||override};
+ if(manualSaved&&override&&override!==base)return {date:dateISO,session:override,originalSession:base,kind:'workout',label:manualSaved.name||override,reflowEligible};
+ if(movedFrom&&movedFrom.replacement&&movedFrom.replacement!=='Open Training')return {date:dateISO,session:movedFrom.replacement,originalSession:movedFrom.sourceSession||base,kind:movedFrom.replacement==='Recovery / Rest'?'rest':'workout',label:'Replacement for '+(movedFrom.sourceSession||'moved program day'),mode:'program-move-source',source:'schedule-exception',reflowEligible:false};
  return null;
-}
-function nearbyManualScheduleConstraints(dateISO,maxDays=5){
- const out=[];for(let i=-maxDays;i<=maxDays;i++){if(!i)continue;const iso=localISO(addDays(parseLocalISO(dateISO),i)),c=manualScheduleConstraintForDate(iso);if(c)out.push({...c,days:Math.abs(i),signedDays:i,direction:i<0?'past':'future'})}return out;
 }
 function reflowFlexibleSessionName(session){return ['Conditioning','Strength-Endurance','Generic Gym','Calisthenics','Active Recovery','Recovery / Rest'].includes(session)?session:''}
 const REFLOW_TRAINING_MODES=['Conditioning','Strength-Endurance','Generic Gym','Calisthenics'];
+const PROGRAM_MOVE_REFLOW_WINDOW_DAYS=7;
+function programMoveDisplacementConstraintForDate(dateISO){
+ const moved=programMoveToDate(dateISO);if(!moved)return null;
+ const original=reflowFlexibleSessionName(moved.displacedFlexibleSession||moved.targetOriginalSession||'');
+ if(![...REFLOW_TRAINING_MODES,'Active Recovery'].includes(original))return null;
+ const claimKey=moved.reflowClaimId||(moved.sourceDate+'->'+moved.targetDate);
+ return {date:dateISO,targetDate:dateISO,sourceDate:moved.sourceDate,session:moved.sourceSession||'Program anchor',originalSession:original,kind:'program-move-displacement',label:(moved.sourceSession||'Program anchor')+' moved from '+moved.sourceDate,claimKey};
+}
+function nearbyManualScheduleConstraints(dateISO,maxDays=5,programMoveMaxDays=PROGRAM_MOVE_REFLOW_WINDOW_DAYS){
+ const out=[],radius=Math.max(maxDays,programMoveMaxDays);for(let i=-radius;i<=radius;i++){if(!i)continue;const iso=localISO(addDays(parseLocalISO(dateISO),i)),meta={days:Math.abs(i),signedDays:i,direction:i<0?'past':'future'};if(Math.abs(i)<=maxDays){const manual=manualScheduleConstraintForDate(iso);if(manual)out.push({...manual,...meta})}if(Math.abs(i)<=programMoveMaxDays){const displaced=programMoveDisplacementConstraintForDate(iso);if(displaced)out.push({...displaced,...meta})}}return out;
+}
 function bestFlexibleTrainingMode(scores,exclude=[]){
  const blocked=new Set(exclude.filter(Boolean));return REFLOW_TRAINING_MODES.filter(x=>!blocked.has(x)).map(session=>({session,score:Number(scores[session])||0})).sort((a,b)=>b.score-a.score||a.session.localeCompare(b.session))[0]?.session||'Conditioning';
 }
-function scheduleReflowCandidateDate(constraint,maxDays=5){
- if(!constraint?.date)return '';
- const today=localISO(new Date()),center=parseLocalISO(constraint.date);
+function orderedReflowCandidateDates(centerDate,maxDays=PROGRAM_MOVE_REFLOW_WINDOW_DAYS){
+ const center=parseLocalISO(centerDate),out=[];
  // Earlier equally-close open days win so an explicit future constraint can influence
  // today rather than unnecessarily pushing flexible training deeper into the week.
- for(let dist=1;dist<=maxDays;dist++){
-   for(const delta of [-dist,dist]){
-     const iso=localISO(addDays(center,delta));if(iso<today)continue;if(manualScheduleConstraintForDate(iso))continue;
-     const base=programScheduledSessionForDate(iso);if(rollingOpenDayEligible(iso,base))return iso;
+ for(let dist=1;dist<=maxDays;dist++)for(const delta of [-dist,dist])out.push(localISO(addDays(center,delta)));
+ return out;
+}
+function programMoveReflowAssignments(maxDays=PROGRAM_MOVE_REFLOW_WINDOW_DAYS){
+ const today=localISO(new Date()),claimed=new Set(),assignments=new Map(),constraints=Object.entries(state.settings.programDayMoves||{}).map(([sourceDate,m])=>programMoveDisplacementConstraintForDate(m?.targetDate)||null).filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date)||Number((state.settings.programDayMoves||{})[a.sourceDate]?.createdAt||0)-Number((state.settings.programDayMoves||{})[b.sourceDate]?.createdAt||0)||a.sourceDate.localeCompare(b.sourceDate));
+ constraints.forEach(c=>{
+   for(const iso of orderedReflowCandidateDates(c.date,maxDays)){
+     if(iso<today||claimed.has(iso)||programMoveToDate(iso)||manualScheduleConstraintForDate(iso))continue;
+     const movedFrom=programMoveFromDate(iso);if(movedFrom&&movedFrom.replacement!=='Open Training')continue;
+     const base=programScheduledSessionForDate(iso);if(!rollingOpenDayEligible(iso,base))continue;
+     assignments.set(c.claimKey,iso);claimed.add(iso);break;
    }
+ });
+ return assignments;
+}
+function scheduleReflowCandidateDate(constraint,maxDays=PROGRAM_MOVE_REFLOW_WINDOW_DAYS){
+ if(!constraint?.date)return '';
+ if(constraint.reflowEligible===false)return '';
+ const assignments=programMoveReflowAssignments(PROGRAM_MOVE_REFLOW_WINDOW_DAYS);
+ if(constraint.kind==='program-move-displacement')return assignments.get(constraint.claimKey)||'';
+ const today=localISO(new Date()),reserved=new Set(assignments.values());
+ for(const iso of orderedReflowCandidateDates(constraint.date,maxDays)){
+   if(iso<today||reserved.has(iso)||manualScheduleConstraintForDate(iso))continue;
+   const movedFrom=programMoveFromDate(iso);if(movedFrom&&movedFrom.replacement!=='Open Training')continue;
+   const base=programScheduledSessionForDate(iso);if(rollingOpenDayEligible(iso,base))return iso;
  }
  return '';
 }
@@ -6415,9 +6444,18 @@ function futureClassOverlapPenalties(c,scores,why,dateISO=''){
  if((p.core||0)>=.70){scores.Calisthenics-=2;why.Calisthenics.push(tag+' It already has a large trunk/body-control component, which modestly reduces duplicate bodyweight volume.');}
 }
 function applyFutureScheduleReflow(dateISO,scores,why,readiness){
- const constraints=nearbyManualScheduleConstraints(dateISO,5);if(!constraints.length)return constraints;
+ const constraints=nearbyManualScheduleConstraints(dateISO,5,PROGRAM_MOVE_REFLOW_WINDOW_DAYS);if(!constraints.length)return constraints;
  constraints.forEach(c=>{
-   const selected=reflowFlexibleSessionName(c.session),near=c.days<=2,mid=c.days<=4,candidate=scheduleReflowCandidateDate(c,5),isCandidate=candidate===dateISO;
+   const selected=reflowFlexibleSessionName(c.session),near=c.days<=2,mid=c.days<=4,reflowWindow=c.kind==='program-move-displacement'?PROGRAM_MOVE_REFLOW_WINDOW_DAYS:5,candidate=scheduleReflowCandidateDate(c,reflowWindow),isCandidate=candidate===dateISO;
+   if(c.kind==='program-move-displacement'){
+     if(!isCandidate)return;
+     const movedLabel=c.session||'Program anchor',displacedLabel=c.originalSession==='Conditioning'?'the prior LSS / Sprints opportunity':c.originalSession;
+     if(readiness.recoveryGuard){why['Recovery / Rest'].push('Moving '+movedLabel+' onto '+c.date+' displaced '+displacedLabel+'. This is its unique nearby reflow slot, but Recovery Guard remains authoritative today.');return}
+     const chosen=bestFlexibleTrainingMode(scores),boost=near?15:mid?11:8;scores[chosen]+=boost;
+     const chosenDisplay=chosen==='Conditioning'?'LSS / Aerobic or Sprints / HIC':chosen;
+     why[chosen].push('Moving '+movedLabel+' onto '+c.date+' displaced '+displacedLabel+'. This date is the distinct nearby reflow slot reserved for that lost flexible opportunity; '+chosenDisplay+' wins from current recovery, cadence, goals, fatigue, feedback, and upcoming-anchor context rather than copying the old workout type.');
+     return;
+   }
    if(c.kind==='rest'){
      const when=c.direction==='past'?'was '+c.days+' day'+(c.days===1?'':'s')+' ago':'is '+c.days+' day'+(c.days===1?'':'s')+' ahead',tag='A manually locked Full Rest day '+when+' ('+c.date+').';
      if(!readiness.recoveryGuard&&c.direction==='future'&&c.days<=3){
@@ -10145,7 +10183,7 @@ function renderRecoverySnapshot(){
  document.getElementById("recoverySnapshot")?.classList.toggle("empty-state",!c);
  recoveryReadiness.textContent=label;recoveryReadiness.className=sig?.level==="guard"?"recovery-readiness-guard":sig?.level==="watch"?"recovery-readiness-watch":"recovery-readiness-good";
  recoverySleep.textContent=c&&numericOrNull(c.sleepHours)!==null?Number(c.sleepHours).toFixed(1)+" h":"—";
- recoveryHrv.textContent=c&&numericOrNull(c.hrv)!==null?Math.round(Number(c.hrv))+" ms":"—";
+ recoverySteps.textContent=c&&numericOrNull(c.steps)!==null?Math.round(Number(c.steps)).toLocaleString("en-US"):"—";
  recoveryRhr.textContent=c&&numericOrNull(c.restingHr)!==null?Math.round(Number(c.restingHr))+" bpm":"—";
  recoveryBio.textContent=c&&numericOrNull(c.wakeBio)!==null?Math.round(Number(c.wakeBio)):"—";
  let text=!c?"No recovery data logged for today.":sig?.reasons?.length?sig.reasons.slice(0,2).join(" • "):"Today's recovery data is within your established range.";
@@ -13321,7 +13359,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.119";
+const HYBRID_APP_BUILD="36.121";
 function hybridBuildParts(v){return String(v||"").replace(/^v/,"").split(".").map(x=>Number(x)||0)}
 function compareHybridBuilds(a,b){
  const aa=hybridBuildParts(a),bb=hybridBuildParts(b),n=Math.max(aa.length,bb.length);
@@ -13793,7 +13831,7 @@ exportJson.addEventListener("click",()=>{
  try{
   if(btn){btn.disabled=true;btn.textContent="Exporting…"}
   const payload={
- exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.119",exportedAt:new Date().toISOString(),runtimeDiagnostics:Array.isArray(window.__hybridRuntimeDiagnostics)?window.__hybridRuntimeDiagnostics.slice(-100):[],settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:v36110SafeExportValue("bodyweightSnapshot",()=>bodyweightTrend(localISO(new Date())),{latest:null,entries:0,trendLb:0,latestDate:"",degraded:true}),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:v36110SafeExportValue("adaptiveModelSnapshot",()=>utmModelAudit(localISO(new Date())),{degraded:true,error:"adaptive model snapshot unavailable"}),
+ exportVersion:CURRENT_EXPORT_VERSION,appBuild:"v36.121",exportedAt:new Date().toISOString(),runtimeDiagnostics:Array.isArray(window.__hybridRuntimeDiagnostics)?window.__hybridRuntimeDiagnostics.slice(-100):[],settings:state.settings,dailyRecovery:state.dailyRecovery,bodyweightMeasurements:state.bodyweightMeasurements,wearableSessions:state.wearableSessions,restDays:state.restDays,bodyweightSnapshot:v36110SafeExportValue("bodyweightSnapshot",()=>bodyweightTrend(localISO(new Date())),{latest:null,entries:0,trendLb:0,latestDate:"",degraded:true}),pullupBaseProgression:pullups,kettlebellTargets:state.kb,adaptiveModelSnapshot:v36110SafeExportValue("adaptiveModelSnapshot",()=>utmModelAudit(localISO(new Date())),{degraded:true,error:"adaptive model snapshot unavailable"}),
  kbExerciseLibrary:kbExerciseLibrary,gymExerciseLibrary:gymExerciseLibrary,calisthenicsExerciseLibrary:calisthenicsExerciseLibrary,classActivityLibrary:classActivityLibrary,
  adaptiveModels:{
   conditioning:{type:"adaptive-infinite",version:20,rules:["Base Building E/HIC context","run-equivalent Base Building duration with walking scaled upward","E/HIC slot","recency","fitness-quality balance","modality-specific external-output vs HR/RPE efficiency","personal HR thresholds from longitudinal evidence; no age-predicted HRmax","evidence-gated critical speed and critical power","aerobic decoupling from split HR + pace/power or device value","interval repeatability/fade","same-day localized muscle/stress overlap","future-schedule interference weighted by local overlap, intensity and time proximity","mileage and duration vs baseline","avg/max HR trend","heat/humidity/elevation/environment normalization with decaying heat-acclimation state","graduated Normal/Caution/Guard recovery model","longitudinal HRV/RHR mean and variability","low-weight context-normalized HR-recovery trend","personalized recovery-signal weighting","classes contribute to recovery load","rest/no-rest dates","manual overrides","intermittent activity dose can use active time plus low rest-load credit instead of elapsed time alone","stateful future conditioning-recency projection","running-specific frequency policy for LSS, tempo, sprint and hill work","training-intensity distribution by minutes as context only; no rigid 80/20 quota","direct recommendation feedback learning","recommendation feedback is confidence-shrunk so one subjective response nudges rather than dominates; repeated consistent feedback progressively gains authority","wearable VO2 trend is low weight","wearable calories are reference only"]},
@@ -14983,7 +15021,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.119';
+const V3691_BUILD='36.121';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -16831,7 +16869,9 @@ window.__v36129SecondaryFrequencyPolicy={version:1,weekdayFullWindowDays:7,weekd
 // v36.107 — controlled bridge for modular UI/support code.
 // The training engine remains scoped inside this IIFE; the external shell only receives
 // the narrow operations it needs for presentation, undo, update UX, and comparisons.
-window.HybridCore=Object.freeze({
+// Keep the public bridge sealed against shape changes while allowing versioned runtime
+// layers to replace existing hooks (for example v36.120 personalization wrappers).
+window.HybridCore=Object.seal({
  build:HYBRID_APP_BUILD,
  localISO,addDays,parseLocalISO,daysBetweenISO,
  getState:()=>state,
@@ -16853,7 +16893,7 @@ window.HybridCore=Object.freeze({
  loadPlannedSession:()=>loadPlannedSession(),renderWorkoutIntentUi:()=>renderWorkoutIntentUi(),writeLogWorkspace:()=>writeLogWorkspace(),
  historySessionGroups:()=>historySessionGroups(),completedUsableRows:(g)=>completedUsableRows(g),effectiveEffortRpe:(r)=>effectiveEffortRpe(r),rowIsAdaptiveSecondary:(r)=>rowIsAdaptiveSecondary(r),utmPlannedDemandIndex:(name,opts)=>utmPlannedDemandIndex(name,opts),utmRepAverage:(reps)=>utmRepAverage(reps),
  weakLinkDiagnostics:(dateISO)=>weakLinkDiagnostics(dateISO),fullSecondWorkoutRecommendation:(dateISO)=>fullSecondWorkoutRecommendation(dateISO),openFullSecondWorkout:(session,dateISO,force)=>openFullSecondWorkout(session,dateISO,force),plateauDiagnostics:(dateISO)=>plateauDiagnostics(dateISO),asymmetryDiagnostics:(dateISO)=>asymmetryDiagnostics(dateISO),missingStimulusDiagnostics:(dateISO)=>missingStimulusDiagnostics(dateISO),dataQualityWarnings:(dateISO)=>dataQualityWarnings(dateISO),cardioDoseGuidance:(dateISO)=>cardioDoseGuidance(dateISO),dynamicWarmupForDate:(dateISO,session,exercises)=>dynamicWarmupForDate(dateISO,session,exercises),workoutStimulusSummary:(group)=>workoutStimulusSummary(group),exerciseLongitudinalSnapshot:(name,dateISO)=>exerciseLongitudinalSnapshot(name,dateISO),createPreUpdateSnapshot:async(latest)=>{try{return await window.__hybridCreatePreUpdateSnapshot?.(safePlainText(latest||HYBRID_APP_BUILD,24))===true}catch(_e){return false}},recommendationForDate:(dateISO)=>{const d=parseLocalISO(dateISO),week=Math.max(1,trainingWeekForDate(d)),base=programScheduledSessionForDate(dateISO);if(rollingOpenDayEligible(dateISO,base))return rollingOpenDayRecommendation(dateISO,{skipForecastProjection:true});return {session:expectedSession(dayNameFromDate(dateISO),week,dateISO),fixed:true,score:0,options:[]}},cadencePortfolio:(dateISO)=>rollingCadencePortfolio(dateISO),recentFatigue:(dateISO,days)=>utmRecentFatigue(dateISO,days||10),sessionDurationFactor:(session,dateISO)=>v36107SessionDurationFactor(session,dateISO),
- effectiveVolume:(dateISO,days)=>utmEffectiveVolume(dateISO,days||7),automaticGymProfile:(dateISO)=>gymAutomaticProfile(dateISO),athleticDevelopment:(dateISO)=>v36117AthleticDevelopmentState(dateISO),runSpikeState:(dateISO)=>v36117LongestRun30(dateISO),forecastRecommendationForDate:(dateISO)=>rollingOpenDayRecommendation(dateISO,{skipForecastProjection:true}),rowStimulus:(row)=>utmRowStimulus(row),resistanceEffortCredit:(row)=>utmResistanceEffortCredit(row),tissueStress:(dateISO)=>v36118TissueStressState(dateISO),tissueDoseForRow:(row)=>v36118RowTissueDose(row),physiologyPrescription:(plan,dateISO)=>v36118PhysiologyPrescription(plan,dateISO),interferenceBacktest:(dateISO)=>v36118InterferenceBacktest(dateISO),adaptiveBacktest:(dateISO)=>v36118ModelBacktest(dateISO),plannedSecondMain:(dateISO,session)=>v36118PlannedSecondMain(dateISO,session)
+ effectiveVolume:(dateISO,days)=>utmEffectiveVolume(dateISO,days||7),automaticGymProfile:(dateISO)=>gymAutomaticProfile(dateISO),athleticDevelopment:(dateISO)=>v36117AthleticDevelopmentState(dateISO),runSpikeState:(dateISO)=>v36117LongestRun30(dateISO),forecastRecommendationForDate:(dateISO)=>rollingOpenDayRecommendation(dateISO,{skipForecastProjection:true}),programMoveReflowAssignments:()=>Object.fromEntries(programMoveReflowAssignments()),rowStimulus:(row)=>utmRowStimulus(row),resistanceEffortCredit:(row)=>utmResistanceEffortCredit(row),tissueStress:(dateISO)=>v36118TissueStressState(dateISO),tissueDoseForRow:(row)=>v36118RowTissueDose(row),physiologyPrescription:(plan,dateISO)=>v36118PhysiologyPrescription(plan,dateISO),interferenceBacktest:(dateISO)=>v36118InterferenceBacktest(dateISO),adaptiveBacktest:(dateISO)=>v36118ModelBacktest(dateISO),plannedSecondMain:(dateISO,session)=>v36118PlannedSecondMain(dateISO,session)
 });
 
 })();
