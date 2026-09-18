@@ -1,10 +1,10 @@
-const BUILD="36.122";
-const CACHE="hybrid-training-v36-122-plan-sync1";
-const FALLBACK="./index.html?v=36.122-plan-sync1";
+const BUILD="36.124";
+const CACHE="hybrid-training-v36-124-whole-athlete-swim1";
+const FALLBACK="./index.html?v=36.124-whole-athlete-swim1";
 const PATCH="./adaptive-personalization-v36.120.js?v=36.120";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.122",
+  "./manifest-v36.webmanifest?v=36.124",
   "./app-shell-v36.119.css?v=36.119",
   "./app-shell-v36.119.js?v=36.119",
   "./stretching-flexibility-v36.119.js?v=36.119-sf1",
