@@ -1,12 +1,14 @@
-const BUILD="36.125";
-const CACHE="hybrid-training-v36-125-whole-athlete-swim2";
-const FALLBACK="./index.html?v=36.125-whole-athlete-swim2";
-const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.125";
+const BUILD="36.127";
+const CACHE="hybrid-training-v36-127-export-forecast-body-profile";
+const FALLBACK="./index.html?v=36.127-export-forecast-body-profile";
+const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.127";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.125",
+  "./manifest-v36.webmanifest?v=36.127",
+  "./actual-load-feedback-v36.126.js?v=36.127",
+  "./forecast-balance-v36.127.js?v=36.127",
   "./app-shell-v36.119.css?v=36.119",
-  "./app-shell-v36.119.js?v=36.125",
+  "./app-shell-v36.119.js?v=36.127",
   "./stretching-flexibility-v36.119.js?v=36.119-sf1",
   PERSONALIZATION
 ];

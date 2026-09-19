@@ -1,8 +1,8 @@
-/* Hybrid Training v36.125: personalized calibration and legacy swim-data migration. */
+/* Hybrid Training v36.126: personalized calibration and legacy swim-data migration. */
 (()=>{
 'use strict';
 const core=window.HybridCore;if(!core)return;
-const VER='36.125',LEGACY_SWIM='hybridSwimMetadataV36120';
+const VER='36.126',LEGACY_SWIM='hybridSwimMetadataV36120';
 const originals={getState:core.getState?.bind(core),readiness:core.readiness?.bind(core),hybridAdaptationState:core.hybridAdaptationState?.bind(core),effectiveEffortRpe:core.effectiveEffortRpe?.bind(core)};
 const FEEL={'too easy':[4.5,1.7],easy:[6,1.15],comfortable:[7,.8],challenging:[8,1],'very hard':[9.5,1.7],'too hard':[9.5,1.7]};
 const CARDIO=/(run|walk|swim|bike|cycling|cycle|row|ruck|conditioning|lss|tempo|sprint|hill|stair|elliptical|cardio)/i;
@@ -48,5 +48,5 @@ function weightUI(){const g=weightGate(state());let b=document.querySelector('#v
 function css(){if(document.querySelector('#v36120-css'))return;const s=document.createElement('style');s.id='v36120-css';s.textContent=`.v36120-status,.v36120-weight{margin:10px 0;padding:12px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:14px;background:color-mix(in srgb,currentColor 4%,transparent)}.v36120-status{display:flex;justify-content:space-between;gap:12px}.v36120-status small,.v36120-status p,.v36120-weight span{opacity:.72}.v36120-status strong{display:block}.v36120-status p{margin:4px 0 0;font-size:.86rem}.v36120-status em{font-size:.75rem;font-style:normal;font-weight:700}.v36120-weight{display:flex;gap:7px;align-items:baseline;flex-wrap:wrap}@media(max-width:560px){.v36120-status{flex-direction:column}}`;document.head.appendChild(s)}
 let busy=false;function refresh(){if(busy)return;busy=true;setTimeout(()=>{busy=false;try{state()}catch{}css();status();weightUI()},60)}new MutationObserver(refresh).observe(document.documentElement,{childList:true,subtree:true});
 window.HybridPersonalization=Object.freeze({version:VER,resolveDuration:duration,effortCalibration:e=>calibration(e,state()),bodyweightTrendGate:()=>weightGate(state()),recoveryAuthority:()=>recoveryAuthority(state()),swimDistanceFromLengths:swimDistance,refresh});
-refresh();console.info('[Hybrid v36.125] personalization layer active');
+refresh();console.info('[Hybrid v36.126] personalization layer active');
 })();
