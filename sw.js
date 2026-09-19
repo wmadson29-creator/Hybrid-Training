@@ -1,14 +1,14 @@
-const BUILD="36.124";
-const CACHE="hybrid-training-v36-124-whole-athlete-swim1";
-const FALLBACK="./index.html?v=36.124-whole-athlete-swim1";
-const PATCH="./adaptive-personalization-v36.120.js?v=36.120";
+const BUILD="36.125";
+const CACHE="hybrid-training-v36-125-whole-athlete-swim2";
+const FALLBACK="./index.html?v=36.125-whole-athlete-swim2";
+const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.125";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.124",
+  "./manifest-v36.webmanifest?v=36.125",
   "./app-shell-v36.119.css?v=36.119",
-  "./app-shell-v36.119.js?v=36.119",
+  "./app-shell-v36.119.js?v=36.125",
   "./stretching-flexibility-v36.119.js?v=36.119-sf1",
-  PATCH
+  PERSONALIZATION
 ];
 const OPTIONAL_PRECACHE=[
   "./hybrid-training-v34-64.png",
@@ -17,7 +17,6 @@ const OPTIONAL_PRECACHE=[
   "./hybrid-training-v34-512.png",
   "./hybrid-training-v34-512-maskable.png"
 ];
-const PATCH_TAG='<script src="'+PATCH+'"></script>';
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(async cache=>{
     await cache.addAll(REQUIRED_PRECACHE);
@@ -29,16 +28,6 @@ self.addEventListener("activate",event=>{
     .then(keys=>Promise.all(keys.filter(k=>k.startsWith("hybrid-training-")&&k!==CACHE).map(k=>caches.delete(k))))
     .then(()=>self.clients.claim()));
 });
-async function injectPersonalization(response){
-  if(!response||!response.ok)return response;
-  const type=response.headers.get("content-type")||"";
-  if(!type.includes("text/html"))return response;
-  const html=await response.text();
-  if(html.includes("adaptive-personalization-v36.120.js"))return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
-  const body=html.includes("</body>")?html.replace("</body>",PATCH_TAG+"</body>"):html+PATCH_TAG;
-  const headers=new Headers(response.headers);headers.delete("content-length");
-  return new Response(body,{status:response.status,statusText:response.statusText,headers});
-}
 async function fetchAndCache(cache,url,requestOptions={}){
   const response=await fetch(url,requestOptions);
   if(response&&response.ok)await cache.put(FALLBACK,response.clone());
@@ -56,10 +45,10 @@ self.addEventListener("fetch",event=>{
       const cache=await caches.open(CACHE),cached=await cache.match(FALLBACK);
       if(cached){
         event.waitUntil(fetchAndCache(cache,"./index.html?v="+BUILD,{cache:"no-store"}).catch(()=>null));
-        return injectPersonalization(cached.clone());
+        return cached.clone();
       }
-      try{return injectPersonalization(await fetchAndCache(cache,"./index.html?v="+BUILD,{cache:"no-store"}))}
-      catch(_e){return cached?injectPersonalization(cached.clone()):Response.error()}
+      try{return await fetchAndCache(cache,"./index.html?v="+BUILD,{cache:"no-store"})}
+      catch(_e){return cached?cached.clone():Response.error()}
     })());
     return;
   }
