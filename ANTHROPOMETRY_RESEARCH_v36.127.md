@@ -17,7 +17,7 @@ Falch and colleagues studied 36 resistance-trained adults and found associations
 
 Knopfli and colleagues found relationships between lower-limb anatomy and squat outcomes, but the exploratory sample contained only eight participants. It supports retaining geometry as possible context while rejecting strong limb-ratio prescriptions from sparse population data. [Original study, 2023](https://pubmed.ncbi.nlm.nih.gov/37508892/)
 
-For this user, entering 6 ft 6 in height and 6 ft 11 in arm span will record a +5 in reach difference (arm-span-to-height ratio about 1.064). That can explain some range-of-motion and swim-stroke differences, but it will not automatically raise or lower pull-up, pressing, swimming, or fatigue targets.
+When height and arm span are entered, the app can show reach difference and arm-span-to-height ratio as descriptive context. Those values can help explain range-of-motion or swim-stroke differences, but they never automatically raise or lower pull-up, pressing, swimming, or fatigue targets.
 
 ## Why waist and body-fat estimates are trends only
 
