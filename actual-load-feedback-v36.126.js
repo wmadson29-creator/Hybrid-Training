@@ -1,4 +1,4 @@
-/* Hybrid Training v36.126: actual-versus-planned load feedback. */
+/* Hybrid Training v36.130: actual-versus-planned load feedback; stable filename retained. */
 (function(root,factory){
   'use strict';
   const api=factory();
@@ -38,10 +38,27 @@
   }
 
   function isCardioRow(row){
+    if(typeof row?.modelConditioning==='boolean')return row.modelConditioning;
     const session=lower(row?.session),type=lower(row?.secondaryTrainingType),m=metrics(row);
-    if(type==='conditioning'||['conditioning','active recovery','class / activity'].includes(session)||Number(m.time)>0||Number(m.duration)>0||Number(row?.modelPlannedDurationMinutes)>0)return true;
+    if(type==='conditioning')return true;
+    // Legacy strength rows sometimes received a bogus planned "duration" parsed from
+    // a bare rep target (for example 3 reps became 3 minutes). Session identity wins
+    // over that old field unless the row explicitly declares itself conditioning.
     if(session==='barbell strength'||session==='generic gym'||session==='calisthenics'||session==='strength-endurance'||session.startsWith('kb '))return false;
+    if(['conditioning','active recovery','class / activity'].includes(session)||Number(m.time)>0||Number(m.duration)>0||Number(row?.modelPlannedDurationMinutes)>0)return true;
     return /(?:\brun(?:ning)?\b|\bwalk(?:ing)?\b|swim|bike|cycle|cycling|rowing|rower|\berg\b|ruck|sprint|hill|stair|elliptical|cardio|aerobic|\blss\b)/i.test(String(row?.exercise||''));
+  }
+
+  function structuredActualDoseExists(row){
+    const m=metrics(row);
+    return (Array.isArray(m.components)&&m.components.some(c=>String(c?.actual||c?.planned||'').trim()))||
+      (Array.isArray(m.swimStrokeBlocks)&&m.swimStrokeBlocks.length>0)||number(m.intervals)>0;
+  }
+
+  function plannedStructureExists(row){
+    if(Array.isArray(row?.modelPlannedComponents)&&row.modelPlannedComponents.length)return true;
+    if(!structuredActualDoseExists(row))return false;
+    return !!String(row?.modelPlannedExercise||row?.modelPlannedTarget||'').trim();
   }
 
   function actualMinutes(row){
@@ -85,7 +102,7 @@
   }
 
   function explicitActualDose(row){
-    if(isCardioRow(row))return actualMinutes(row)>0;
+    if(isCardioRow(row))return actualMinutes(row)>0||structuredActualDoseExists(row);
     if(validSetDetails(row).length)return true;
     if(!plannedStrengthExists(row))return actualStrengthExists(row);
     const setChanged=number(row?.sets)>0&&number(row?.sets)!==number(row?.modelPlannedSets),
@@ -133,15 +150,17 @@
     let ratio=null;
     if(cardio&&actual>0&&planned>0&&comparable)ratio=clamp(actual/planned,.05,3);
     else if(!cardio)ratio=strengthDoseRatio(row);
-    const plannedExists=cardio?planned>0:plannedStrengthExists(row),actualExists=cardio?actual>0:actualStrengthExists(row);
+    const structuredActual=cardio&&structuredActualDoseExists(row),structuredPlanned=cardio&&plannedStructureExists(row),
+      plannedExists=cardio?(planned>0||structuredPlanned):plannedStrengthExists(row),actualExists=cardio?(actual>0||structuredActual):actualStrengthExists(row);
     let relation='insufficient';
     if(actualExists&&!plannedExists)relation='unplanned';
     else if(actualExists&&plannedExists&&!comparable)relation='substituted';
     else if(ratio!==null)relation=ratio<.82?'under':ratio>1.18?'over':'as-planned';
+    else if(actualExists&&plannedExists)relation='planned-unquantified';
     return {
-      version:1,role:rowRole(row),cardio,actual,planned,ratio:ratio===null?null:Math.round(ratio*1000)/1000,
+      version:2,role:rowRole(row),cardio,actual,planned,ratio:ratio===null?null:Math.round(ratio*1000)/1000,
       relation,response:responseQuality(row),explicitActual:explicitActualDose(row),comparable,
-      actualDoseUnits:actual,plannedDoseUnits:planned
+      structuredActual,structuredPlanned,actualDoseUnits:actual,plannedDoseUnits:planned
     };
   }
 
@@ -161,8 +180,9 @@
     let relation='insufficient';
     if(ratio!==null)relation=ratio<.82?'under':ratio>1.18?'over':'as-planned';
     else if(profiles.some(profile=>profile.relation==='unplanned'))relation='unplanned';
-    return {version:1,rows:profiles.length,profiles,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation,response,cardioMinutes:Math.round(cardioMinutes*10)/10,strengthSets:Math.round(strengthSets*10)/10,doseWeight:Math.round(doseWeight*100)/100,avgRpe:Math.round(avgRpe*10)/10};
+    else if(profiles.some(profile=>profile.relation==='planned-unquantified'))relation='planned-unquantified';
+    return {version:2,rows:profiles.length,profiles,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation,response,cardioMinutes:Math.round(cardioMinutes*10)/10,strengthSets:Math.round(strengthSets*10)/10,doseWeight:Math.round(doseWeight*100)/100,avgRpe:Math.round(avgRpe*10)/10};
   }
 
-  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,explicitActualDose,completionFactor,responseQuality,rowRole,rowProfile,sessionProfile};
+  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,responseQuality,rowRole,rowProfile,sessionProfile};
 });

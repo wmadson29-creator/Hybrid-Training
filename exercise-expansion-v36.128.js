@@ -1,3 +1,4 @@
+/* Hybrid Training v36.130 exercise catalog update; stable filename retained for deployment compatibility. */
 (function(root,factory){
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
@@ -39,7 +40,20 @@
     g('Single-Leg Press','Machine','lunge',60,'single',['quads','glutes'],['adductors','hamstrings','core'],['Leg Press','Bulgarian Split Squat','Step-Up'],'Unilateral leg press using one working leg; log the displayed load and train both sides.',{unilateral:true}),
     g('Tibialis Raise Machine','Machine','calves',25,'total',['tibialis'],['calves'],['Tibialis Raise','Standing Calf Raise Machine','Seated Calf Raise Machine'],'Loaded ankle dorsiflexion; progress with full controlled range rather than momentum.'),
     g('Forearm Curl Machine','Machine','biceps',30,'total',['grip'],['biceps'],['Hammer Curl','Dumbbell Curl','Dead Hang'],'Wrist-flexion/grip accessory; avoid comparing machine-stack numbers across facilities.'),
-    g('Cable Hip Flexion','Cable','hip_accessory',15,'single',['quads','core'],['adductors','glutes'],['Hanging Knee Raise','Step-Up','Multi-Hip Machine'],'Cable resisted hip flexion; use a stable pelvis and log each side.',{unilateral:true})
+    g('Barbell Forearm Curl','Barbell','biceps',45,'barbell',['grip'],['biceps'],['Forearm Curl Machine','Barbell Curl','Hammer Curl','Dead Hang'],'Supported barbell wrist curl. Log total bar weight, keep the forearms still, and use a controlled wrist range. Direct barbell history stays separate from the machine version.',{increment:5,plateVisual:true}),
+    g('Cable Hip Flexion','Cable','hip_accessory',15,'single',['quads','core'],['adductors','glutes'],['Hanging Knee Raise','Step-Up','Multi-Hip Machine'],'Cable resisted hip flexion; use a stable pelvis and log each side.',{unilateral:true}),
+    g('Single-Arm Lat Pulldown','Cable','vertical_pull',35,'single',['lats'],['upperBack','biceps','grip','core'],['Lat Pulldown','Neutral-Grip Lat Pulldown','Single-Arm Cable Row'],'Unilateral vertical pull. Keep the torso quiet and use direct left/right history instead of converting the load to a bilateral pulldown.',{unilateral:true}),
+    g('Wide-Grip Lat Pulldown','Cable','vertical_pull',80,'total',['lats','upperBack'],['biceps','grip'],['Lat Pulldown','Pull-Up','Neutral-Grip Lat Pulldown'],'Pronated wide-grip pulldown. It remains a vertical-pull variant; grip width is not treated as automatically superior for lat recruitment.'),
+    g('Plate-Loaded Shoulder Press','Machine','shoulder_press',45,'per_side',['shoulders'],['triceps','upperBack','serratus'],['Machine Shoulder Press','Barbell Overhead Press','Iso-Lateral Chest Press'],'Plate-loaded overhead press. Log load per side and compare progress on the same machine because lever arms differ.',{unilateral:true}),
+    g('Smith Machine Overhead Press','Machine','shoulder_press',65,'total',['shoulders'],['triceps','upperBack','serratus'],['Barbell Overhead Press','Machine Shoulder Press','Plate-Loaded Shoulder Press'],'Guided vertical press; direct Smith-machine history is more useful than converting its load to a free-weight press.'),
+    g('Cable Upright Row','Cable','delts',35,'total',['shoulders','upperBack'],['biceps','grip'],['Dumbbell Lateral Raise','Cable Lateral Raise','Face Pull'],'Cable upright row using a comfortable grip and pain-free range. It overlaps lateral-delt and upper-back work but is not treated as an overhead-press substitute.'),
+    g('Landmine Squat','Barbell','squat',70,'total',['quads','glutes'],['adductors','core'],['Dumbbell Goblet Squat','Barbell Front Squat','Belt Squat'],'Front-loaded squat using an anchored bar. Log total implement weight (45 lb bar plus plates on the loaded end); direct history stays separate from back squats.',{increment:5,plateVisual:'landmine'}),
+    g('Cable Belt Squat','Cable','squat',70,'total',['quads','glutes'],['adductors','core'],['Belt Squat','Leg Press','Dumbbell Goblet Squat'],'Low-cable belt squat with little upper-body loading. Cable stack geometry varies, so compare within the same setup.'),
+    g('Smith Machine Calf Raise','Machine','calves',95,'total',['gastroc','calves'],['soleus','grip'],['Standing Calf Raise Machine','Cable Calf Raise','Single-Leg Calf Raise'],'Straight-knee calf raise under a guided bar; use full controlled ankle range and direct machine history.'),
+    g('Donkey Calf Raise Machine','Machine','calves',70,'total',['gastroc','calves'],['soleus','hamstrings','core'],['Standing Calf Raise Machine','Smith Machine Calf Raise','Seated Calf Raise Machine'],'Hip-hinged straight-knee calf machine. It mainly complements, rather than replaces, bent-knee soleus work.'),
+    g('Barbell Reverse Wrist Curl','Barbell','biceps',25,'barbell',['grip'],['biceps'],['Barbell Forearm Curl','Cable Reverse Wrist Curl','Wrist Roller'],'Supported wrist-extension curl. Log total bar weight and keep the forearms fixed; use lighter loading than wrist flexion.',{increment:5,plateVisual:true}),
+    g('Cable Reverse Wrist Curl','Cable','biceps',15,'total',['grip'],['biceps'],['Barbell Reverse Wrist Curl','Forearm Curl Machine','Wrist Roller'],'Cable wrist-extension accessory with continuous resistance; keep the elbow and forearm position fixed.'),
+    g('Wrist Roller','Cable','biceps',15,'total',['grip'],['biceps','shoulders'],['Barbell Forearm Curl','Barbell Reverse Wrist Curl','Farmer Carry'],'Forearm flexion/extension endurance using a wrist roller. Log the attached load and completed up/down cycles in the reps field.')
   ];
 
   const calisthenics=[
@@ -72,7 +86,21 @@
     c('Side-Lying Hip Abduction','legs','hip_accessory',1,15,['glutes'],['core'],['Hip Abduction Machine','Band Lateral Walk','Side Plank Hip Lift'],'Low-load hip-abduction accessory; keep the pelvis stacked and avoid rolling backward.'),
     c('Prone Cobra','pull','rear_delts',1,0,['upperBack','shoulders'],['glutes','core'],['Prone Y-T-W','Reverse Snow Angel','Face Pull'],'Prone isometric for upper-back and shoulder control; use a short, pain-free hold.',{baseSeconds:20}),
     c('Reverse Plank','core','core',2,0,['glutes','core'],['hamstrings','shoulders','triceps'],['Front Plank','Glute Bridge','Prone Cobra'],'Posterior-chain support hold; keep the hips extended without forcing shoulder range.',{baseSeconds:30}),
-    c('Back Widow','pull','horizontal_pull',2,10,['upperBack','shoulders'],['biceps','core'],['Inverted Row','Prone Cobra','Superman Row'],'Supine elbow-driven row against the floor; useful when no pulling equipment is available.')
+    c('Back Widow','pull','horizontal_pull',2,10,['upperBack','shoulders'],['biceps','core'],['Inverted Row','Prone Cobra','Superman Row'],'Supine elbow-driven row against the floor; useful when no pulling equipment is available.'),
+    c('Bodyweight Triceps Extension','push','triceps',3,10,['triceps'],['chest','shoulders','core'],['Close-Grip Push-Up','Diamond Push-Up','Rope Triceps Pushdown'],'Standing or inclined bodyweight elbow extension against a secure low bar or suspension setup. Keep the body rigid and change foot position to scale difficulty.',{requiresLowRow:true}),
+    c('Planche Lean','push','shoulder_press',5,0,['shoulders','serratus'],['chest','triceps','core'],['Pseudo-Planche Push-Up','Scapular Push-Up','Wall Handstand Hold'],'Advanced straight-arm forward lean. Use short controlled holds and manual selection because wrist tolerance and technique determine suitability.',{baseSeconds:12,auto:false}),
+    c('Wall Handstand Shoulder Tap','push','shoulder_press',5,6,['shoulders','triceps'],['serratus','upperBack','core'],['Wall Handstand Hold','Wall Handstand Push-Up','Plank Shoulder Tap'],'Advanced wall-supported alternating hand lift; reps are per side and trunk control ends the set.',{auto:false}),
+    c('Towel-Grip Pull-Up','pull','vertical_pull',5,4,['lats','upperBack','grip'],['biceps','core'],['Pull-Up','Neutral-Grip Pull-Up','Dead Hang'],'Manual pull-up variation using two securely anchored towels. High grip demand is explicit; never use an improvised or unverified anchor.',{requiresBar:true,auto:false}),
+    c('Archer Inverted Row','pull','horizontal_pull',4,6,['upperBack','lats'],['biceps','grip','core'],['Inverted Row','Feet-Elevated Inverted Row','Archer Pull-Up'],'Asymmetric horizontal row toward one hand while the opposite arm stays straighter; reps are per side.',{requiresLowRow:true,auto:false}),
+    c('Reverse Lunge to Knee Drive','legs','lunge',3,8,['quads','glutes'],['adductors','hamstrings','calves','core'],['Reverse Lunge','Walking Lunge','Step-Up'],'Reverse lunge followed by a controlled knee drive and single-leg balance; reps are per side.'),
+    c('Dragon Flag Negative','core','core',5,4,['core'],['lats','upperBack','glutes'],['Hollow Body Hold','Hanging Leg Raise','Ab Wheel Rollout'],'Advanced eccentric trunk exercise using a secure handhold. Lower only through a range that preserves a rigid trunk.',{auto:false}),
+    c('Hanging Windshield Wiper','core','core',5,5,['core'],['lats','upperBack','grip','shoulders'],['Hanging Leg Raise','Toes-to-Bar','Side Plank Reach-Through'],'Advanced hanging rotation with controlled side-to-side leg movement; reps are per side.',{requiresBar:true,auto:false}),
+    c('Single-Leg Bent-Knee Calf Raise','legs','calves',2,15,['soleus','calves'],['gastroc','core'],['Bent-Knee Soleus Raise','Single-Leg Calf Raise','Seated Calf Raise Machine'],'Single-leg bent-knee calf raise that increases soleus demand; reps are per side and balance support is allowed.'),
+    c('Quadruped Knee Hover','core','core',1,0,['core','serratus'],['shoulders','quads'],['Bear Crawl','Front Plank','Plank Shoulder Tap'],'Hands-and-knees hover with the knees just off the floor; maintain quiet breathing and a stable trunk.',{baseSeconds:25}),
+    c('Eccentric Push-Up','push','chest_press',2,6,['chest'],['triceps','shoulders','serratus','core'],['Knee Push-Up','Push-Up','Deficit Push-Up'],'Slow lowering push-up progression. Reset from the knees if needed rather than turning the concentric into a failed repetition.'),
+    c('Side Plank Reach-Through','core','core',3,8,['core'],['shoulders','serratus','glutes'],['Side Plank','Side Plank Hip Lift','Hanging Windshield Wiper'],'Controlled side-plank rotation; reps are per side and the supporting shoulder stays stacked.'),
+    c('Bodyweight Good Morning','legs','hinge',1,15,['hamHipExt','glutes'],['hamstrings','core'],['Hip Hinge','Glute Bridge','Barbell Romanian Deadlift'],'Unloaded hip-hinge drill. It builds patterning and local endurance but does not prove loaded deadlift strength.'),
+    c('Superman Hold','core','hinge',2,0,['hamHipExt','glutes','upperBack'],['hamstrings','shoulders','core'],['Superman Row','Prone Cobra','Reverse Plank'],'Short prone posterior-chain isometric. Use a comfortable lift rather than forcing lumbar range.',{baseSeconds:20})
   ];
 
   function validateCatalog(){
@@ -91,5 +119,5 @@
     return {valid:errors.length===0,errors,gym:gym.length,calisthenics:calisthenics.length,total:all.length};
   }
 
-  return Object.freeze({version:1,gym:Object.freeze(gym),calisthenics:Object.freeze(calisthenics),validateCatalog});
+  return Object.freeze({version:3,gym:Object.freeze(gym),calisthenics:Object.freeze(calisthenics),validateCatalog});
 });
