@@ -1,27 +1,33 @@
-# Apply Hybrid Training v36.130
+# Apply Hybrid Training v36.131
 
-Upload the contents of the GitHub-only ZIP at the repository root, preserving the `tests/` directory. The ZIP is generated as an exact file delta from `origin/main`; it does not include the user's export, screenshots, the `.git` directory, or unchanged repository files.
+This ZIP is an exact content delta from GitHub `origin/main` at commit `0c94421` (v36.128). It contains only files that are new or whose bytes differ from that GitHub baseline. It excludes the private training export, screenshots, `.git`, dependencies, generated browser files, and every unchanged repository file.
 
-The runtime changes must stay together:
+Upload the ZIP contents at the repository root and preserve the `.github/` and `tests/` directories.
 
-1. **Replace** `index.html`, `sw.js`, `version.json`, and `manifest-v36.webmanifest`.
-2. **Replace** `adaptive-personalization-v36.120.js`, `app-shell-v36.119.js`, and `app-shell-v36.119.css`. Their stable filenames are intentional; the page and service worker use the v36.130 cache key.
-3. **Add** `actual-load-feedback-v36.126.js`. It makes completed primary, secondary, substituted, and unplanned work authoritative for later load/fatigue decisions.
-4. **Add** `forecast-balance-v36.127.js`. It contains the tested endurance-protection, hard-stack, speed-spacing, and flexible-modality rules.
-5. **Add** `exercise-expansion-v36.128.js`. It supplies 43 gym and 44 bodyweight/calisthenics exercises with anatomy and relationship metadata, including Barbell Forearm Curl and the v36.130 exercise additions.
-6. **Add or replace** `package.json`, `tests/run-qa.js`, and `tests/audit-export.js` for repeatable validation.
-7. **Keep the included notes, research summaries, and QA reports** as the audit trail for the cumulative delta.
-8. **Add** `HISTORICAL_ITERATION_AUDIT_v36.129.md` plus the cumulative update/QA/research documents through `UPDATE_NOTES_v36.130.md`, `QA_REPORT_v36.130.md`, and `LOCAL_SORENESS_AND_EXERCISE_RESEARCH_v36.130.md`.
+## Runtime files that must be uploaded together
 
-Run the check before deployment:
+- Replace `index.html`, `sw.js`, `version.json`, and `manifest-v36.webmanifest`.
+- Replace `adaptive-personalization-v36.120.js`, `actual-load-feedback-v36.126.js`, `exercise-expansion-v36.128.js`, `app-shell-v36.119.js`, and `app-shell-v36.119.css`. Their stable filenames are intentional; v36.131 cache keys force the new contents to install.
+- Add `decision-integrity-v36.131.js`.
+
+## QA and audit files
+
+- Replace `package.json`.
+- Add `.github/workflows/qa.yml` and the `tests/` files. GitHub Actions installs Chromium and runs both the model/static suite and the mobile browser walkthrough.
+- Keep the included v36.129–v36.131 notes, research summaries, and QA reports as the audit trail.
+
+## Verify before deployment
 
 ```sh
+npm install --no-audit --no-fund
 npm test
+npx playwright install chromium
+npm run test:browser
 npm run audit:export -- "/path/to/an/export.json"
 ```
 
 Suggested commit message:
 
-`Stabilize recommendations and add local recovery modeling`
+`Add decision integrity, safer backups, and model/UI QA`
 
-After deployment, open the app online so the v36.130 service worker installs. If an older worker controls the first navigation, reload once more. Existing local training data should be preserved; no clearing or re-import is required.
+After GitHub Pages deploys, open the app online and reload once if the previous service worker controls the first navigation. Existing on-device training data should migrate in place; do not clear storage or re-import it.

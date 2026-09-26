@@ -2,11 +2,11 @@
 
 Audit date: 2026-09-25  
 Repository: `wmadson29-creator/Hybrid-Training`  
-Audited history: all refs through local commit `a766050` plus the cumulative v36.123–v36.128 working tree
+Audited history: all 138 commits reachable from local `main` and `origin/main` through remote commit `0c94421`, plus the cumulative v36.129–v36.131 working tree
 
 ## Executive result
 
-I inspected every archived repository state, not just the commit messages. The repository contains 132 commits on one linear history, 125 commits that change the tree, and 7 commits whose tree is byte-identical to the preceding commit. There are no tags, side branches, or hidden merge histories to audit.
+I inspected every archived repository state, not just the commit messages. The repository contains 138 commits across two unmerged tips that fork after v36.120. Of those commits, 131 change the tree relative to their parent, 7 are byte-identical no-op commits, and the two v36.121/v36.122 snapshots are duplicated across the local and remote branches. That yields 129 distinct tree snapshots across all refs. There are no tags or merge commits.
 
 Most commit titles are the generic `Add files via upload`, so the chronology below was reconstructed from each commit's actual file tree, diff, embedded build identifiers, update notes, QA reports, and research documents. The generic titles were not treated as evidence of what changed.
 
@@ -24,13 +24,15 @@ The audit also found one concrete regression relevant to the requested update: v
 
 ## Coverage and limitations
 
-- Audited refs: `main`, `origin/main`, and local commits through `a766050`.
-- Topology: one linear chain; no merge commits, tags, or other branches.
-- Exact archived snapshots: 132.
-- Substantive tree changes: 125.
+- Audited refs: local `main` through `a766050` and `origin/main` through `0c94421`.
+- Topology: two unmerged branch tips after common v36.120 commit `236dcf0`; no merge commits or tags. The first two remote continuation trees are byte-identical to local v36.121 and v36.122, so the semantic release sequence remains coherent even though the commit hashes differ.
+- Commits across all refs: 138.
+- Commits that change their parent tree: 131.
+- Distinct archived tree snapshots across all refs: 129.
 - Exact no-op commits: `8f5fc96`, `13c30b9`, `817064f`, `423a4e2`, `379e157`, `b8aed02`, and `494849c`.
+- Cross-branch duplicate snapshots: local `d0b91f2` equals remote `daf8b69` (v36.121), and local `a766050` equals remote `05c14ab` (v36.122).
 - Some displayed version numbers were skipped or bundled. A number that never existed as a distinct commit cannot be reconstructed as an exact standalone tree. Bundled changes are identified below.
-- v36.123–v36.128 are a cumulative uncommitted layer on top of v36.122. Their behavior can be audited from source identifiers, tests, and notes, but v36.123, v36.124, and v36.125 do not exist as independently recoverable Git trees.
+- v36.123–v36.128 are archived on `origin/main`, although several numbered builds were bundled into a later release commit rather than preserved as one Git commit per displayed version.
 
 ## Every archived iteration
 
@@ -187,22 +189,32 @@ The audit also found one concrete regression relevant to the requested update: v
 | 127 | `5632502` | v36.119 | Calendar secondary visibility. |
 | 128 | `5849a24` | v36.119 | Secondary-frequency correction. |
 | 129 | `cf9b0df` | v36.119 | Weekend package, History truth, on-site gym logic, and Base Building corrections. This intentionally supersedes v36.75's blanket avoidance of Barbell-day secondaries with narrowly allowed low-overlap accessories. |
-| 130 | `236dcf0` | v36.120 | Adaptive-personalization module and swim-length support. This is `origin/main`. |
+| 130 | `236dcf0` | v36.120 | Adaptive-personalization module and swim-length support. This is the common ancestor of the current local and remote tips. |
 | 131 | `d0b91f2` | v36.121 | Moved-anchor reflow and Steps summary. |
 | 132 | `a766050` | v36.122 | Accepted conditioning selection became canonical in calendar and workout views. |
 
-## Cumulative working-tree iterations after v36.122
+## Remote continuation through v36.128
 
-These builds are present as a cumulative local layer, not six independent Git snapshots.
+The remote branch independently uploaded byte-identical v36.121 and v36.122 trees, then continued through v36.128. Some displayed versions were bundled rather than committed one at a time.
+
+| # | Commit | Build visible in tree | Semantic change verified from tree/diff |
+|---:|:---|:---|:---|
+| 133 | `daf8b69` | v36.121 | Remote v36.121 upload; tree is byte-identical to local `d0b91f2`. |
+| 134 | `05c14ab` | v36.122 | Remote v36.122 upload; tree is byte-identical to local `a766050`. |
+| 135 | `0b64571` | v36.124 | Bundled v36.123–v36.124 secondary-choice, display-consistency, and tissue-stress work. |
+| 136 | `d43cc81` | v36.125 | Muscle-specific development/frequency, whole-athlete benchmarks, stroke-aware swimming, storage/import hardening, accessibility, calendar cues, and executable QA. |
+| 137 | `c69d57e` | v36.127 | Bundled v36.126–v36.127 actual-versus-planned feedback, forecast balancing, endurance protection, anthropometry context, and export repair. |
+| 138 | `0c94421` | v36.128 | Exercise expansion, evidence-gated balance refinements, calibration cleanup, searchable exercise pickers, and plain-language UI copy. This is the audited `origin/main`. |
+
+## Current working-tree iterations after origin v36.128
+
+These builds are the new cumulative local layer on top of the audited remote release.
 
 | Build | Auditable change set |
 |:---|:---|
-| v36.123 | Secondary-choice matrix and clearer control of short/full secondary type. |
-| v36.124 | Conditioning-family display consistency and tissue-stress caching. |
-| v36.125 | Muscle-specific development/frequency, whole-athlete benchmarks, stroke-aware swimming, storage/import hardening, additional ab machines, accessibility work, and calendar-state cues. |
-| v36.126 | Actual-versus-planned feedback for primary, full-secondary, short-secondary, and unplanned work; actual completed dose drives fatigue. |
-| v36.127 | Export crash fix, forecast balancing/endurance protection, and optional anthropometry context. |
-| v36.128 | Exercise expansion, evidence-gated balance refinements, calibration cleanup, searchable exercise pickers, and plain-language UI copy. |
+| v36.129 | Active-workout exercise insertion, explicit unplanned-work semantics, Barbell Forearm Curl, and audit-driven regression coverage. |
+| v36.130 | Localized soreness and pain, equipment availability controls, exercise-library expansion, recommendation stabilization, reason-copy cleanup, and import/backup hardening. |
+| v36.131 | Three-week planning horizon, durable decision/evidence records, component-dose feedback, independent overlapping equipment profiles, encrypted backups, import preview/rollback, expanded browser QA, and final integration fixes. |
 
 ## Rules that were deliberately superseded
 
@@ -219,7 +231,7 @@ These builds are present as a cumulative local layer, not six independent Git sn
 
 ## Current invariant verification
 
-The cumulative v36.128 source and regression suite preserve the following high-risk rules:
+The cumulative v36.131 source and regression suite preserve the following high-risk rules:
 
 1. **Fixed anchors win.** Automatic forecast balancing cannot rewrite fixed Barbell Strength, KB, moved-program, or Base Building anchors.
 2. **Barbell deadlift placement is exact.** In Barbell Strength-only blocks it appears Monday and Friday for one work set, never Wednesday; it is absent from hybrid blocks.
@@ -234,16 +246,16 @@ The cumulative v36.128 source and regression suite preserve the following high-r
 11. **Body measurements remain context, not destiny.** Height/reach can explain range-of-motion or stroke-length context but do not override direct performance.
 12. **Completed and secondary calendar states use distinguishable styling.** This resolves the previously confusing shared-color treatment.
 
-## Findings requiring action
+## Findings and resolution
 
-### High priority
+### High-priority findings resolved
 
-1. **Workout Mode hides Add Exercise.** The v36.101 stylesheet explicitly hides `#addLogExercise` while an active workout is running, despite the add-card function still existing. Add a clear active-workout action and focus the new card.
-2. **Manual extra exercises need explicit unplanned semantics.** Do not let a save fallback copy the actual exercise into `modelPlannedExercise`; otherwise actual-load feedback may mislabel it as planned. Preserve this marker through draft restore and History Edit.
+1. **Workout Mode hid Add Exercise.** The v36.101 stylesheet explicitly hid `#addLogExercise` while an active workout was running, despite the add-card function still existing. v36.129 restores a clear active-workout action and focuses the new card.
+2. **Manual extra exercises needed explicit unplanned semantics.** v36.129 prevents the save fallback from copying the actual exercise into `modelPlannedExercise` and preserves the unplanned marker through draft restore, History, import/export, and load-model paths.
 
-### Requested library gap
+### Requested library gap resolved
 
-3. **Barbell Forearm Curl is absent.** Add it as a distinct barbell movement. Use the app's `grip` channel as the primary forearm/wrist-flexor model area, `biceps` as secondary assistance, and explicit links to the machine forearm curl, barbell curl, hammer curl, and dead hang. Keep direct barbell history separate from machine-stack history.
+3. **Barbell Forearm Curl was absent.** v36.129 adds it as a distinct movement with the app's `grip` channel as its primary forearm/wrist-flexor area, `biceps` as secondary assistance, explicit related-exercise links, and direct-history separation from machine-stack work.
 
 ### Repository hygiene observations
 
@@ -253,7 +265,7 @@ The cumulative v36.128 source and regression suite preserve the following high-r
 
 ## Audit conclusion
 
-The current architecture reflects a coherent set of decisions rather than arbitrary recommendation changes. The main scheduling concern found in earlier screenshots—too many sprint sessions and too little endurance/gym variety—has already been addressed in the cumulative v36.127–v36.128 forecast layer with soft speed spacing, endurance protection, and flexible-strength variety. The next safe change is narrow: retain those rules, expose a true in-workout Add Exercise flow, make the added work explicitly unplanned for the load model, and add Barbell Forearm Curl through the same validated anatomy/relationship catalog used by the other new exercises.
+The current architecture reflects a coherent set of decisions rather than arbitrary recommendation changes. The scheduling concern found in earlier screenshots—too many sprint sessions and too little endurance/gym variety—was addressed in v36.127–v36.128 with soft speed spacing, endurance protection, and flexible-strength variety. The audit's implementation defects and requested library gap were then resolved in v36.129, and v36.130–v36.131 added durable recommendation state, localized constraints, equipment profiles, import safety, and deeper executable QA without weakening fixed-anchor authority. The only remaining local verification limitation is environmental: the Playwright browser binary could not be installed in this workspace, so browser execution is delegated to the included CI workflow while all static and export-fixture checks run locally.
 
 ## v36.129 resolution recorded after the audit
 
@@ -263,4 +275,12 @@ The requested implementation was applied only after the historical audit above w
 - The added row is explicitly unplanned through draft, History, import/export, and load-model paths.
 - Resistance added within a conditioning session retains resistance semantics.
 - Barbell Forearm Curl now has validated loading, anatomy, and relationship metadata.
-- The complete regression suite passes 133/133 checks, the supplied export passes with zero warnings, and all runtime modules parse.
+- At the time of v36.129, the regression suite passed 133/133 checks and the then-current v36.127 export passed with zero warnings.
+
+## v36.130–v36.131 follow-through
+
+- Equipment availability is now profile-specific for Main Gym, Home, and Travel; one machine can belong to any combination of those profiles without being moved between them.
+- Recommendation choices are stable across view changes, feedback is attributed to performed work, and reasons use concise user-facing language rather than internal score terminology.
+- Localized soreness and pain constrain the relevant tissues and movements, with explicit resolution controls rather than a permanent global penalty.
+- Import now previews and validates before mutation, migrations run against the imported schema in the correct order, and durable storage is verified with rollback on failure.
+- The current static regression suite passes 169/169 checks. The latest supplied v36.128 export passes the audit with zero errors and two data-quality warnings: legacy strength rows carrying irrelevant planned-minute values and one swim-distance/lap mismatch.

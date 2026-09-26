@@ -1,7 +1,7 @@
-/* Hybrid Training v36.130: personalized calibration and legacy swim-data migration. */
+/* Hybrid Training v36.131: personalized calibration and legacy swim-data migration. */
 ((root)=>{
 'use strict';
-const VER='36.130',LEGACY_SWIM='hybridSwimMetadataV36120',PREDICTION_VERSION=4;
+const VER='36.131',LEGACY_SWIM='hybridSwimMetadataV36120',PREDICTION_VERSION=4;
 const FEEL={
  'too easy':{low:1.5,high:4.25,weight:.88},easy:{low:3.75,high:5.75,weight:.72},comfortable:{low:5.25,high:7.25,weight:.62},
  challenging:{low:6.75,high:8.6,weight:.72},'very hard':{low:8.45,high:9.6,weight:.88},'too hard':{low:9.6,high:10,weight:.92},
@@ -61,5 +61,5 @@ function weightUI(){const g=weightGate(state());let b=document.querySelector('#v
 function css(){if(document.querySelector('#v36120-css'))return;const s=document.createElement('style');s.id='v36120-css';s.textContent=`.v36120-status,.v36120-weight{margin:10px 0;padding:12px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:14px;background:color-mix(in srgb,currentColor 4%,transparent)}.v36120-status{display:flex;justify-content:space-between;gap:12px}.v36120-status small,.v36120-status p,.v36120-weight span{opacity:.72}.v36120-status strong{display:block}.v36120-status p{margin:4px 0 0;font-size:.86rem}.v36120-status em{font-size:.75rem;font-style:normal;font-weight:700}.v36120-weight{display:flex;gap:7px;align-items:baseline;flex-wrap:wrap}@media(max-width:560px){.v36120-status{flex-direction:column}}`;document.head.appendChild(s)}
 let busy=false;function refresh(){if(busy)return;busy=true;setTimeout(()=>{busy=false;try{state()}catch{}css();status();weightUI()},60)}new MutationObserver(refresh).observe(document.documentElement,{childList:true,subtree:true});
 root.HybridPersonalization=Object.freeze({version:VER,resolveDuration:duration,effortCalibration:e=>calibration(e,state()),bodyweightTrendGate:()=>weightGate(state()),recoveryAuthority:()=>recoveryAuthority(state()),swimDistanceFromLengths:swimDistance,refresh});
-refresh();console.info('[Hybrid v36.130] personalization layer active');
+refresh();console.info('[Hybrid v36.131] personalization layer active');
 })(typeof window!=='undefined'?window:null);

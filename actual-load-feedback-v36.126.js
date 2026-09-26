@@ -1,4 +1,4 @@
-/* Hybrid Training v36.130: actual-versus-planned load feedback; stable filename retained. */
+/* Hybrid Training v36.131: actual-versus-planned load feedback; stable filename retained. */
 (function(root,factory){
   'use strict';
   const api=factory();
@@ -20,6 +20,8 @@
   const lower=value=>String(value??'').trim().toLowerCase();
   const status=row=>lower(row?.status||'complete');
   const metrics=row=>(row?.metrics&&typeof row.metrics==='object')?row.metrics:{};
+  let decisionApi=typeof globalThis!=='undefined'?globalThis.HybridDecisionIntegrity:null;
+  if(!decisionApi&&typeof require==='function'){try{decisionApi=require('./decision-integrity-v36.131.js')}catch(_error){}}
 
   function parsePlannedMinutes(value){
     if(Number.isFinite(Number(value))&&Number(value)>0)return Number(value);
@@ -51,7 +53,7 @@
 
   function structuredActualDoseExists(row){
     const m=metrics(row);
-    return (Array.isArray(m.components)&&m.components.some(c=>String(c?.actual||c?.planned||'').trim()))||
+    return (Array.isArray(m.components)&&m.components.some(c=>String(c?.actual||c?.planned||'').trim()||number(c?.actualDose)>0))||
       (Array.isArray(m.swimStrokeBlocks)&&m.swimStrokeBlocks.length>0)||number(m.intervals)>0;
   }
 
@@ -147,8 +149,10 @@
 
   function rowProfile(row){
     const cardio=isCardioRow(row),actual=cardio?actualMinutes(row):actualSets(row),planned=cardio?plannedMinutes(row):Math.max(0,number(row?.modelPlannedSets)),comparable=comparableExercise(row);
+    const componentDose=cardio&&decisionApi?.componentDoseProfile?decisionApi.componentDoseProfile(metrics(row).components,row?.modelPlannedComponents):null;
     let ratio=null;
     if(cardio&&actual>0&&planned>0&&comparable)ratio=clamp(actual/planned,.05,3);
+    else if(cardio&&Number.isFinite(componentDose?.ratio)&&comparable)ratio=clamp(componentDose.ratio,.05,3);
     else if(!cardio)ratio=strengthDoseRatio(row);
     const structuredActual=cardio&&structuredActualDoseExists(row),structuredPlanned=cardio&&plannedStructureExists(row),
       plannedExists=cardio?(planned>0||structuredPlanned):plannedStrengthExists(row),actualExists=cardio?(actual>0||structuredActual):actualStrengthExists(row);
@@ -158,9 +162,9 @@
     else if(ratio!==null)relation=ratio<.82?'under':ratio>1.18?'over':'as-planned';
     else if(actualExists&&plannedExists)relation='planned-unquantified';
     return {
-      version:2,role:rowRole(row),cardio,actual,planned,ratio:ratio===null?null:Math.round(ratio*1000)/1000,
+      version:3,role:rowRole(row),cardio,actual,planned,ratio:ratio===null?null:Math.round(ratio*1000)/1000,
       relation,response:responseQuality(row),explicitActual:explicitActualDose(row),comparable,
-      structuredActual,structuredPlanned,actualDoseUnits:actual,plannedDoseUnits:planned
+      structuredActual,structuredPlanned,componentDose,actualDoseUnits:actual,plannedDoseUnits:planned
     };
   }
 
@@ -181,7 +185,7 @@
     if(ratio!==null)relation=ratio<.82?'under':ratio>1.18?'over':'as-planned';
     else if(profiles.some(profile=>profile.relation==='unplanned'))relation='unplanned';
     else if(profiles.some(profile=>profile.relation==='planned-unquantified'))relation='planned-unquantified';
-    return {version:2,rows:profiles.length,profiles,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation,response,cardioMinutes:Math.round(cardioMinutes*10)/10,strengthSets:Math.round(strengthSets*10)/10,doseWeight:Math.round(doseWeight*100)/100,avgRpe:Math.round(avgRpe*10)/10};
+    return {version:3,rows:profiles.length,profiles,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation,response,cardioMinutes:Math.round(cardioMinutes*10)/10,strengthSets:Math.round(strengthSets*10)/10,doseWeight:Math.round(doseWeight*100)/100,avgRpe:Math.round(avgRpe*10)/10};
   }
 
   return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,responseQuality,rowRole,rowProfile,sessionProfile};
