@@ -1,28 +1,45 @@
-# Apply Hybrid Training v36.132
+# Apply Hybrid Training v36.133
 
-This ZIP is an exact content delta from GitHub `origin/main` at commit `44f793a` (v36.131). It contains only files that are missing from or byte-different from that GitHub baseline. It excludes the private training export, screenshots, `.git`, dependencies, and every unchanged repository file.
+This ZIP is an exact content delta from GitHub `origin/main` at commit `44f793a` (v36.131). It contains only files that are missing from or byte-different from that GitHub baseline. It excludes private training exports, screenshots, `.git`, dependencies, prior ZIPs, and every unchanged repository file.
 
 Upload the ZIP contents at the repository root and preserve the `.github/` and `tests/` directories.
 
-## Recovery-readiness hotfix
+## What changes
 
-v36.131 retained the recovery records but its new historical-observation selector treated the default `null` argument as timestamp zero. Normal lookups therefore returned no current record, causing historical cards to say `Readiness: No data` and preventing recovery inputs from reaching the adaptive model.
+### Full-secondary workout choices
 
-v36.132 makes `null`, `undefined`, and an omitted timestamp mean “use the current saved observation.” A real timestamp still returns only the newest observation available by that time. No saved recovery data need to be deleted, cleared, or manually re-entered.
+The optimized one-tap plan remains available. Full secondary selection now offers three intentional paths:
 
-## Travel/day-context visibility
+- **Use optimized plan** for the model-built choice.
+- **Customize this type** for a date-specific guided build.
+- **Start blank** for a completely new workout.
 
-The travel selection was saved, but the app did not show it in History or confirm the save on Home. This update adds a saved-status line, displays meaningful day context in History, and provides per-date Edit/Clear controls with undo. After deployment, clear the accidental September 23 context from History and leave September 24 unchanged.
+Guided customization covers LSS / Aerobic, Sprints / HIC, Gym, Calisthenics, Strength-Endurance, Kettlebell, and Class / Activity. Every resulting card remains editable.
+
+### Actual work and role safety
+
+- Planned conditioning time remains separate from completed time; only the completed duration contributes actual fatigue.
+- Full-secondary identity survives draft autosave, final save, History Edit, and export/import.
+- A secondary Class / Activity cannot replace the date's primary calendar identity.
+- Blank secondary workouts pass their role to manually added resistance and conditioning cards.
+- One-time equipment selections do not rewrite normal Gym or Calisthenics defaults.
+
+### Recovery and context hotfixes carried forward
+
+- Default recovery lookup returns the current saved observation rather than timestamp zero.
+- Saved day context is visible and correctable in History.
+- Home confirms a saved today-only context.
+- The user's confirmed travel day is 2026-09-24; the accidental 2026-09-23 context can be cleared independently from History.
 
 ## Runtime files
 
-- Replace `index.html`, `sw.js`, `version.json`, and `manifest-v36.webmanifest`.
-- Replace `decision-integrity-v36.131.js`, `adaptive-personalization-v36.120.js`, and `app-shell-v36.119.js`. Their stable filenames are intentional; the v36.132 cache keys force the corrected contents to install.
+Replace every runtime file included in the ZIP. Stable module filenames are intentional; the v36.133 query keys and service-worker cache force the new contents to install.
 
 ## QA files
 
-- Add the included `.github/workflows/qa.yml` and `tests/` files if they are still absent from GitHub.
-- Keep `UPDATE_NOTES_v36.132.md` and `QA_REPORT_v36.132.md` with the release audit trail.
+- Preserve `.github/workflows/qa.yml` and the `tests/` directory.
+- Keep `UPDATE_NOTES_v36.133.md`, `QA_REPORT_v36.133.md`, and the historical audit with the release trail.
+- Local static/model QA passes **185/185** checks.
 
 ## Verify before deployment
 
@@ -36,6 +53,6 @@ npm run audit:export -- "/path/to/an/export.json"
 
 Suggested commit message:
 
-`Fix recovery lookup and expose saved day context`
+`Add universal custom full-secondary workout builder`
 
-After GitHub Pages deploys, reload the installed app once. Existing recovery values should immediately produce readiness labels again; do not clear storage or re-enter the historical records. In History, use **Clear Context** only on 2026-09-23; 2026-09-24 is the real travel day.
+After GitHub Pages deploys, reload the installed app once so the v36.133 service worker activates. Do not clear local data or re-enter recovery history.

@@ -10,16 +10,16 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.132">
-<script src="decision-integrity-v36.131.js?v=36.132"></script>
-<script src="actual-load-feedback-v36.126.js?v=36.132"></script>
-<script src="forecast-balance-v36.127.js?v=36.132"></script>
-<script src="exercise-expansion-v36.128.js?v=36.132"></script>
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.133">
+<script src="decision-integrity-v36.131.js?v=36.133"></script>
+<script src="actual-load-feedback-v36.126.js?v=36.133"></script>
+<script src="forecast-balance-v36.127.js?v=36.133"></script>
+<script src="exercise-expansion-v36.128.js?v=36.133"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
 <meta name="apple-mobile-web-app-title" content="Hybrid Training">
-<link rel="stylesheet" href="app-shell-v36.119.css?v=36.132">
+<link rel="stylesheet" href="app-shell-v36.119.css?v=36.133">
 <style>
 :root{
   --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
@@ -624,7 +624,9 @@ summary.tools-toggle::-webkit-details-marker{display:none}
 .intent-mode-title{font-size:.75rem;font-weight:900;margin-bottom:7px}
 .manual-workout-panel{border:1px solid #294158;background:#0d1721;border-radius:12px;padding:12px;margin:0 0 12px}
 .log-guided-builder{margin:0 0 12px;background:#0d1721;border-color:#294158}.log-guided-builder>summary{font-size:.84rem}.log-guided-builder-mode{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:10px;align-items:end}.log-builder-availability{max-height:330px;overflow:auto;padding-right:4px}.log-builder-availability .gym-choice{font-size:.69rem}.log-builder-status{margin-top:10px}.log-builder-focus-parent{border:1px solid #26384b;border-radius:10px;padding:7px;background:#0f1822}.log-builder-focus-parent details{margin-top:5px}.log-builder-focus-parent summary{cursor:pointer;color:var(--muted);font-size:.68rem;font-weight:800}.log-builder-subchoices{display:grid;grid-template-columns:1fr;gap:5px;margin-top:6px}.log-builder-subchoices label{font-size:.67rem;color:var(--muted)}
+.log-guided-secondary-banner{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:11px 0;border-color:#4d86ad;background:#102333}.log-guided-secondary-banner.hidden{display:none}.log-guided-secondary-banner>div{display:flex;flex-direction:column;gap:3px}.log-guided-secondary-banner span{font-size:.68rem;line-height:1.4;color:var(--muted)}.log-guided-secondary-banner .btn{flex:0 0 auto;min-height:38px}
 @media(max-width:620px){.log-guided-builder-mode{grid-template-columns:1fr}.log-builder-availability{max-height:280px}}
+@media(max-width:620px){.log-guided-secondary-banner{align-items:stretch;flex-direction:column}.log-guided-secondary-banner .btn{width:100%}}
 .manual-workout-grid{display:grid;grid-template-columns:2fr 1fr 2fr;gap:8px}
 .quick-exercise-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:7px;max-height:260px;overflow:auto}
 .quick-exercise-result{text-align:left;white-space:normal;font-size:.7rem}
@@ -1202,10 +1204,14 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
       </div>
 
       <details class="optional-details log-guided-builder" id="logGuidedBuilderDetails">
-        <summary>Guided Gym / Calisthenics Builder</summary>
-        <div class="gym-step-sub">Build with the same adaptive model and the same core inputs used in the dedicated Gym and Calisthenics tabs, without leaving Log Workout. The Log date is the workout date. Generated exercises are loaded directly into the editable log cards below.</div>
+        <summary>Guided Workout Builder</summary>
+        <div class="gym-step-sub">Build any workout family without leaving Log Workout. The Log date is the workout date. Recommended inputs remain available, but every generated plan loads into editable log cards so the workout can match what you actually intend to do.</div>
+        <div class="notice hidden log-guided-secondary-banner" id="logGuidedSecondaryBanner" role="status">
+          <div><strong id="logGuidedSecondaryTitle">One-time full secondary</strong><span id="logGuidedSecondaryCopy">These choices apply only to this second workout.</span></div>
+          <button class="btn" id="logGuidedSecondaryCancel" type="button">Cancel custom secondary</button>
+        </div>
         <div class="log-guided-builder-mode">
-          <div class="field"><label>Builder type</label><select id="logGuidedBuilderType"><option value="gym">Generic Gym</option><option value="calisthenics">Calisthenics</option></select></div>
+          <div class="field"><label>Builder type</label><select id="logGuidedBuilderType"><option value="gym">Generic Gym</option><option value="calisthenics">Calisthenics</option><option value="aerobic">LSS / Aerobic</option><option value="speed">Sprints / HIC</option><option value="se">Strength-Endurance</option><option value="kettlebell">Kettlebell</option><option value="class">Class / Activity</option></select></div>
           <div class="field"><label>Workout name <span class="muted">(optional label)</span></label><input id="logGuidedWorkoutName" placeholder="e.g. Upper Strength, Full Body Calisthenics"></div>
         </div>
 
@@ -1232,7 +1238,39 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="gym-step-title">5. Time Available</div><div class="duration-line"><input id="logCalDurationRange" type="range" aria-label="Calisthenics workout duration in minutes" min="20" max="90" step="5" value="45"><div class="field"><label>Minutes</label><input id="logCalDuration" type="number" min="20" max="90" step="5" value="45"></div></div></div>
         </div>
 
-        <div class="notice log-builder-status" id="logGuidedBuilderStatus"><strong>Ready.</strong> Choose Gym or Calisthenics, set the inputs you want, then load the generated plan into the log.</div>
+        <div id="logGuidedAerobicPanel" class="hidden">
+          <div class="notice" style="margin-top:10px"><strong>LSS / Aerobic</strong> — choose the exact modality, planned duration, and effort. The saved workout still uses the duration, distance, pace, heart rate, and RPE you actually record.<div class="inline-actions" style="margin-top:8px"><button class="btn primary" id="logRecommendAerobic" type="button">Use Recommended Aerobic Session</button></div></div>
+          <div class="gym-step"><div class="gym-step-title">1. Activity</div><div class="field"><label>Endurance modality</label><select id="logAerobicActivity"></select></div></div>
+          <div class="gym-step"><div class="gym-step-title">2. Time Available</div><div class="duration-line"><input id="logAerobicDurationRange" type="range" aria-label="Aerobic workout duration in minutes" min="10" max="180" step="5" value="45"><div class="field"><label>Minutes</label><input id="logAerobicDuration" type="number" min="10" max="180" step="5" value="45"></div></div></div>
+          <div class="gym-step"><div class="gym-step-title">3. Intended Effort</div><div class="field"><label>Target RPE</label><select id="logAerobicRpe"><option value="2–3">2–3 • very easy</option><option value="3–4">3–4 • easy</option><option value="4" selected>4 • conversational</option><option value="4–5">4–5 • steady</option><option value="5–6">5–6 • moderate</option></select></div><div class="field"><label>Target or structure <span class="muted">(optional)</span></label><input id="logAerobicTarget" placeholder="e.g. easy continuous, 3 × 15 min steady"></div></div>
+          <div class="gym-step hidden" id="logAerobicSwimFields"><div class="gym-step-title">4. Swim Setup</div><div class="gym-builder-grid"><div class="field"><label>Planned stroke</label><select id="logAerobicSwimStroke"><option value="freestyle">Freestyle</option><option value="backstroke">Backstroke</option><option value="breaststroke">Breaststroke</option><option value="butterfly">Butterfly</option><option value="mixed">Mixed / IM</option><option value="drill">Drill / kick / pull</option></select></div><div class="field"><label>Pool length</label><select id="logAerobicPoolPreset"><option value="25yd">25 yd</option><option value="25m">25 m</option><option value="50m">50 m</option><option value="custom">Custom</option></select></div><div class="field hidden" id="logAerobicCustomPoolLengthField"><label>Custom length</label><input id="logAerobicPoolLength" type="number" min="1" max="500" step=".01" value="25"></div><div class="field hidden" id="logAerobicCustomPoolUnitField"><label>Unit</label><select id="logAerobicPoolUnit"><option value="yd">yd</option><option value="m">m</option></select></div></div><div class="gym-step-sub">Stroke and pool setup are preloaded into the log. Enter completed lengths, distance, and time after the swim; those actual values determine training load.</div></div>
+        </div>
+
+        <div id="logGuidedSpeedPanel" class="hidden">
+          <div class="notice" style="margin-top:10px"><strong>Sprints / HIC</strong> — choose the exact speed, interval, hill, general-conditioning, or power session. The recommendation remains one tap away, but the prescription can be changed for today.<div class="inline-actions" style="margin-top:8px"><button class="btn primary" id="logRecommendSpeed" type="button">Use Recommended Sprint / HIC Session</button></div></div>
+          <div class="gym-step"><div class="gym-step-title">1. Session</div><div class="field"><label>Workout</label><select id="logSpeedActivity"></select></div></div>
+          <div class="gym-step"><div class="gym-step-title">2. Time Available</div><div class="duration-line"><input id="logSpeedDurationRange" type="range" aria-label="Sprint or HIC workout duration in minutes" min="10" max="90" step="5" value="30"><div class="field"><label>Minutes</label><input id="logSpeedDuration" type="number" min="10" max="90" step="5" value="30"></div></div></div>
+          <div class="gym-step"><div class="gym-step-title">3. Prescription</div><div class="field"><label>Target RPE</label><select id="logSpeedRpe"><option value="6–7">6–7 • controlled</option><option value="7–8">7–8 • hard</option><option value="8–9" selected>8–9 • very hard</option><option value="9">9 • near-maximal</option><option value="9–10">9–10 • maximal intent</option></select></div><div class="field"><label>Work / rest or target <span class="muted">(optional)</span></label><input id="logSpeedTarget" placeholder="Leave blank to use the library prescription"></div></div>
+        </div>
+
+        <div id="logGuidedSEPanel" class="hidden">
+          <div class="notice" style="margin-top:10px"><strong>Strength-Endurance</strong> — choose today’s equipment, time, and freshness. The model selects a one-day circuit and dose around recovery and nearby anchors; this does not change the Base Building program.<div class="inline-actions" style="margin-top:8px"><button class="btn primary" id="logRecommendSE" type="button">Use Recommended SE Inputs</button></div></div>
+          <div class="gym-step"><div class="gym-step-title">1. Equipment Available Today</div><div class="gym-choice-grid"><label class="gym-choice"><input type="checkbox" class="log-se-equipment" value="bodyweight" checked disabled> Bodyweight</label><label class="gym-choice"><input type="checkbox" class="log-se-equipment" value="pullupBar"> Pull-up bar</label><label class="gym-choice"><input type="checkbox" class="log-se-equipment" value="bands"> Bands</label><label class="gym-choice"><input type="checkbox" class="log-se-equipment" value="dumbbells"> Dumbbells</label><label class="gym-choice"><input type="checkbox" class="log-se-equipment" value="barbell"> Barbell + rack</label><label class="gym-choice"><input type="checkbox" class="log-se-equipment" value="bench"> Bench</label><label class="gym-choice"><input type="checkbox" class="log-se-equipment" value="machines"> Machines / cables</label></div><div class="field"><label>Kettlebells</label><select id="logSEKbSetup"><option value="none">None</option><option value="40single">1 × 40 lb adjustable</option><option value="70single">1 × 70 lb adjustable</option><option value="70pair">2 × 70 lb adjustable</option><option value="all">All adjustable kettlebells</option></select></div></div>
+          <div class="gym-step"><div class="gym-step-title">2. Session Context</div><div class="gym-builder-grid"><div class="field"><label>Minutes available</label><input id="logSEMinutes" type="number" min="15" max="120" step="5" value="45"></div><div class="field"><label>How fresh are you?</label><select id="logSEFreshness"><option value="auto" selected>Let recovery data decide</option><option value="fresh">Fresh</option><option value="normal">Normal</option><option value="tired">Somewhat fatigued</option><option value="very_tired">Very fatigued</option></select></div><div class="field"><label>Start the circuit with</label><select id="logSEEmphasis"><option value="balanced" selected>Balanced order</option><option value="upper">Upper body</option><option value="lower">Lower body</option><option value="core">Core / trunk</option></select></div></div><div class="gym-step-sub">The emphasis changes exercise order, not the full-body dose. You can still swap, remove, or add any movement after building.</div></div>
+        </div>
+
+        <div id="logGuidedKettlebellPanel" class="hidden">
+          <div class="notice" style="margin-top:10px"><strong>Kettlebell</strong> — choose Heavy, Power, or Volume, the bells available today, time, and focus. Loads snap to a setting your selected equipment can actually provide.<div class="inline-actions" style="margin-top:8px"><button class="btn primary" id="logRecommendKettlebell" type="button">Use Recommended KB Setup</button></div></div>
+          <div class="gym-step"><div class="gym-step-title">1. Session</div><div class="gym-builder-grid"><div class="field"><label>Style</label><select id="logKbStyle"><option value="KB Heavy">Heavy</option><option value="KB Power" selected>Power</option><option value="KB Volume">Volume</option></select></div><div class="field"><label>Available bells</label><select id="logKbSetup"><option value="40single">1 × 40 lb adjustable</option><option value="70single">1 × 70 lb adjustable</option><option value="70pair">2 × 70 lb adjustable</option><option value="all" selected>All adjustable kettlebells</option></select></div><div class="field"><label>Minutes available</label><input id="logKbMinutes" type="number" min="15" max="90" step="5" value="45"></div><div class="field"><label>Priority</label><select id="logKbFocus"><option value="balanced" selected>Balanced</option><option value="lower">Hinge / legs</option><option value="upper">Press / upper body</option><option value="pull">Pull / grip / carry</option><option value="core">Core / stability</option></select></div></div></div>
+        </div>
+
+        <div id="logGuidedClassPanel" class="hidden">
+          <div class="notice" style="margin-top:10px"><strong>Class / Activity</strong> — log a complete second class, sport, outdoor session, or independent activity. Pick the exact activity so its cardio, impact, local-muscle, and fatigue profile are used instead of a generic label.</div>
+          <div class="gym-step"><div class="gym-step-title">1. Activity</div><div class="field"><label>Class or activity</label><select id="logClassActivity"></select></div></div>
+          <div class="gym-step"><div class="gym-step-title">2. Planned Dose</div><div class="gym-builder-grid"><div class="field"><label>Minutes</label><input id="logClassDuration" type="number" min="10" max="300" step="5" value="60"></div><div class="field"><label>Target RPE</label><input id="logClassRpe" type="number" min="1" max="10" step=".5" value="6"></div></div><div class="gym-step-sub">Record the actual duration, RPE, distance, rounds, or sport-specific metrics in the log after the session.</div></div>
+        </div>
+
+        <div class="notice log-builder-status" id="logGuidedBuilderStatus"><strong>Ready.</strong> Choose a workout family, set the inputs you want, then load the generated plan into the log.</div>
         <div class="inline-actions" style="margin-top:10px"><button class="btn primary" id="logBuildGuidedWorkout" type="button">Build Into Log</button><button class="btn" id="logResetGuidedBuilder" type="button">Reset Builder</button></div>
       </details>
 
@@ -2009,7 +2047,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.132</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
+      <div class="notice"><strong>Adaptive Engine v36.133</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -9827,10 +9865,11 @@ function universalCoreFinisherScore(name,dateISO,existingNames=[]){
 function universalCoreFinisherRaw(session,dateISO,rows=[],profile={}){
  const existing=(rows||[]).map(r=>r.exercise).filter(Boolean);
  if(session==="Generic Gym"){
-   let pool=gymExerciseLibrary.filter(g=>g.family==="core"&&gymAvailable(g.name)&&!existing.includes(g.name));
+   const available=g=>Object.prototype.hasOwnProperty.call(profile?.availabilityOverride||{},g.name)?profile.availabilityOverride[g.name]!==false:gymAvailable(g.name,dateISO);
+   let pool=gymExerciseLibrary.filter(g=>g.family==="core"&&available(g)&&!existing.includes(g.name));
    const preferred=(profile?.equipment||[]).length?pool.filter(g=>(profile.equipment||[]).some(e=>String(g.equipment||"").includes(e))):pool;
    if(preferred.length)pool=preferred;
-   if(!pool.length)pool=gymExerciseLibrary.filter(g=>g.family==="core"&&gymAvailable(g.name));
+   if(!pool.length)pool=gymExerciseLibrary.filter(g=>g.family==="core"&&available(g));
    if(pool.length){
      pool.sort((a,b)=>universalCoreFinisherScore(b.name,dateISO,existing)-universalCoreFinisherScore(a.name,dateISO,existing));
      const ex=pool[0];
@@ -11342,12 +11381,15 @@ function addLogCardControls(card){
 	 ensureLogSwapAction(card);ensureLogEquipmentAvailabilityAction(card);v3687RefreshInlineLogGuide(card);wireEffortChips(card);
 }
 function addControlsToAllLogCards(){plannedExercises.querySelectorAll(".log-exercise").forEach(addLogCardControls)}
+function applyCurrentSecondaryRoleToNewCard(card,trainingType=""){
+ if(!card||logGuidedPlan?.date!==logDate.value)return;const short=!!logGuidedPlan.secondaryOnly,full=!!logGuidedPlan.secondFullWorkout;if(!short&&!full)return;card.dataset.secondaryTrainingType=trainingType||(card.dataset.conditioning==="1"?"conditioning":"custom");card.dataset.isShortSecondary=short?"1":"0";card.dataset.isFullSecondary=full?"1":"0";card.dataset.secondarySessionRole=short?"short":"full";if(short){card.dataset.adaptiveSecondaryBlock="1";card.dataset.secondaryCadenceCredit="0.15"}
+}
 function appendAdditionalConditioningLogExercise(activity="Other"){
  blankNextWorkout=false;const d=document.createElement("div");d.className="log-exercise";d.dataset.conditioning="1";
  d.innerHTML='<div class="log-title"><div><strong>'+htmlSafe(activity)+'</strong><div class="planned">Manual cardio / activity</div></div></div>'+
  '<div class="conditioning-log-helper"></div><div class="conditioning-components-host"></div>'+
  '<div class="log-grid"><div class="field notes"><label>Activity</label><select class="le-ex">'+buildExerciseSelect(activity,logDate.value,logSession.value||"Conditioning")+'</select><input class="le-custom hidden" placeholder="Custom activity"></div><div class="conditioning-fields" style="display:contents">'+conditioningFieldsHTML(activity)+'</div></div>';
- d.dataset.plannedExercise=safePlainText(activity||"",240);d.dataset.plannedReps="Custom cardio";d.dataset.plannedDurationMinutes="";d.dataset.expectedRpe=String(utmModelExpectedRpe("Conditioning",activity,+logWeek.value||1));
+ d.dataset.plannedExercise=safePlainText(activity||"",240);d.dataset.plannedReps="Custom cardio";d.dataset.plannedDurationMinutes="";d.dataset.expectedRpe=String(utmModelExpectedRpe("Conditioning",activity,+logWeek.value||1));applyCurrentSecondaryRoleToNewCard(d,"conditioning");
  plannedExercises.appendChild(d);
  const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom");
  const syncCustom=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c&&document.activeElement===sel)custom.focus()};
@@ -11366,7 +11408,7 @@ function appendAdditionalLogExercise(){
  '<div class="field"><label>Technique</label><select class="le-tech"><option value=""></option><option>Crisp</option><option>Okay</option><option>Sloppy</option></select></div>'+
  '<div class="field"><label>Status</label><select class="le-status"><option>Complete</option><option>Partial</option><option>Missed</option><option>Skipped</option></select></div>'+
  '<div class="field notes"><label>Notes</label><input class="le-notes" placeholder="Optional exercise notes"></div></div><div class="log-visual-host"></div>';
- plannedExercises.appendChild(d);addLogCardControls(d);const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus();updateLogPlateVisual(d)};sel.addEventListener("change",sync);sync();wireExerciseCompletionState(d);wireLogPlateVisual(d);wireSetDetailLogging(d);writeLogWorkspace();
+ applyCurrentSecondaryRoleToNewCard(d,logSession.value==="Calisthenics"?"calisthenics":/^KB /.test(logSession.value)?"kettlebell":logSession.value==="Strength-Endurance"?"strength-endurance":"gym");plannedExercises.appendChild(d);addLogCardControls(d);const sel=d.querySelector(".le-ex"),custom=d.querySelector(".le-custom"),sync=()=>{const c=sel.value==="__custom__";custom.classList.toggle("hidden",!c);if(c)custom.focus();updateLogPlateVisual(d)};sel.addEventListener("change",sync);sync();wireExerciseCompletionState(d);wireLogPlateVisual(d);wireSetDetailLogging(d);writeLogWorkspace();
 }
 
 function syncExerciseCompletionState(card){
@@ -11473,13 +11515,16 @@ function loadPlannedSession(){
   custom.addEventListener("change",()=>{syncConditioningFields();if(d._refreshConditioningHelper)d._refreshConditioningHelper()});
   syncCustom();
   wireExerciseCompletionState(d);
-  if(d.dataset.conditioning==="1"){renderConditioningComponentEditor(d,x.exercise);d.dataset.conditioningActivity=x.exercise;wireConditioningLogHelper(d);wireAutomaticDistanceTimeRate(d,x.exercise)}
+  if(d.dataset.conditioning==="1"){
+   renderConditioningComponentEditor(d,x.exercise);d.dataset.conditioningActivity=x.exercise;wireConditioningLogHelper(d);wireAutomaticDistanceTimeRate(d,x.exercise);
+   const initial=x.initialMetrics||{},initialFields={swimStroke:".le-swimstroke",poolPreset:".le-poolpreset",poolLength:".le-poollength",poolLengthUnit:".le-poollengthunit"};Object.entries(initialFields).forEach(([key,selector])=>{const el=d.querySelector(selector);if(el&&initial[key]!==undefined)el.value=initial[key]});if(Object.keys(initial).length)wireAutomaticDistanceTimeRate(d,x.exercise);
+  }
   else{wireLogPlateVisual(d);wireSetDetailLogging(d)}
  });
  renderWorkoutIntentUi();
 }
 function resetLogForNextWorkout(dateISO){
- const d=parseLocalISO(dateISO),tw=!isNaN(d)?trainingWeekForDate(d):state.settings.currentWeek;setSessionEditMode("");blankNextWorkout=true;logDate.value=dateISO||localISO(new Date());logTime.value=logDate.value===localISO(new Date())?currentClockHHMM():"";logWeek.value=tw>=1?tw:state.settings.currentWeek;applyLogWeekOverrideUi(false);logSession.value="Other";plannedExercises.innerHTML="";sessionFeel.value="";sessionNotes.value="";if(recommendationFeedback)recommendationFeedback.value="";if(recommendationFeedbackNote)recommendationFeedbackNote.value="";updateRecommendationFeedbackVisibility();clearWearableSessionForm();if(sessionSaveStatus){sessionSaveStatus.classList.remove("hidden");sessionSaveStatus.innerHTML="<strong>Workout completed and saved to History.</strong> Ready for the next workout. Choose a session type or tap + Add Exercise."}saveSession.disabled=false;saveSession.textContent="Complete Workout";renderWorkoutIntentUi();v3685RenderWorkoutTracker();window.scrollTo({top:0,behavior:"auto"});setTimeout(()=>{try{renderHistory()}catch(e){}try{renderWeek();renderSelectedWorkout()}catch(e){}},0);
+ clearLogGuidedSecondaryContext();const d=parseLocalISO(dateISO),tw=!isNaN(d)?trainingWeekForDate(d):state.settings.currentWeek;setSessionEditMode("");blankNextWorkout=true;logDate.value=dateISO||localISO(new Date());logTime.value=logDate.value===localISO(new Date())?currentClockHHMM():"";logWeek.value=tw>=1?tw:state.settings.currentWeek;applyLogWeekOverrideUi(false);logSession.value="Other";plannedExercises.innerHTML="";sessionFeel.value="";sessionNotes.value="";if(recommendationFeedback)recommendationFeedback.value="";if(recommendationFeedbackNote)recommendationFeedbackNote.value="";updateRecommendationFeedbackVisibility();clearWearableSessionForm();if(sessionSaveStatus){sessionSaveStatus.classList.remove("hidden");sessionSaveStatus.innerHTML="<strong>Workout completed and saved to History.</strong> Ready for the next workout. Choose a session type or tap + Add Exercise."}saveSession.disabled=false;saveSession.textContent="Complete Workout";renderWorkoutIntentUi();v3685RenderWorkoutTracker();window.scrollTo({top:0,behavior:"auto"});setTimeout(()=>{try{renderHistory()}catch(e){}try{renderWeek();renderSelectedWorkout()}catch(e){}},0);
 }
 
 function finishSavedSession(sessionId,sessionName,date,rowCount,action="saved"){
@@ -11945,8 +11990,8 @@ function gymResearchContinuityScore(ex,dateISO){
 }
 
 function buildGymWorkoutFromProfile(p,dateISO){
- const families=gymFamiliesFromProfile(p),requestedSubs=p.subfocus||[],focus=p.focus||[],
-   availableAll=gymExerciseLibrary.filter(g=>gymAvailable(g.name)&&(!(p.equipment||[]).length||p.equipment.some(e=>g.equipment.includes(e))));
+ const availableForBuild=g=>Object.prototype.hasOwnProperty.call(p?.availabilityOverride||{},g.name)?p.availabilityOverride[g.name]!==false:gymAvailable(g.name,dateISO),families=gymFamiliesFromProfile(p),requestedSubs=p.subfocus||[],focus=p.focus||[],
+   availableAll=gymExerciseLibrary.filter(g=>availableForBuild(g)&&(!(p.equipment||[]).length||p.equipment.some(e=>g.equipment.includes(e))));
  const subsByParent={};requestedSubs.forEach(s=>{const parent=gymSubfocusParentMap[s];if(parent){subsByParent[parent]=subsByParent[parent]||[];subsByParent[parent].push(s)}});
 
  // Selection remains strict to the chosen major muscle groups.
@@ -13102,9 +13147,29 @@ function syncSettings(){
  if(trainingGoalSummary&&typeof utmGoalWeights==="function"){const g=utmGoalWeights(localISO(new Date()));trainingGoalSummary.textContent='Current emphasis: '+g.label+(state.settings.reduceCalisthenicsRecommendations!==false?' • Fewer automatic Calisthenics suggestions':'')+(state.settings.favorSwimmingMore!==false?' • More swimming suggestions':'')}
 }
 
-let logGuidedPlan=null;
+let logGuidedPlan=null,logGuidedSecondaryContext=null;
 function logGuidedEl(id){return document.getElementById(id)}
 function logGuidedDate(){return validIsoDateValue(logDate?.value||"")?logDate.value:localISO(new Date())}
+const LOG_GUIDED_TYPES={
+ gym:{label:"Gym",session:"Generic Gym",trainingType:"gym"},
+ calisthenics:{label:"Calisthenics",session:"Calisthenics",trainingType:"calisthenics"},
+ aerobic:{label:"LSS / Aerobic",session:"Conditioning",trainingType:"conditioning"},
+ speed:{label:"Sprints / HIC",session:"Conditioning",trainingType:"conditioning"},
+ se:{label:"Strength-Endurance",session:"Strength-Endurance",trainingType:"strength-endurance"},
+ kettlebell:{label:"Kettlebell",session:"KB Power",trainingType:"kettlebell"},
+ class:{label:"Class / Activity",session:"Class / Activity",trainingType:"conditioning"}
+};
+function logGuidedTypeInfo(type=logGuidedEl("logGuidedBuilderType")?.value||"gym"){return LOG_GUIDED_TYPES[type]||LOG_GUIDED_TYPES.gym}
+function activeLogGuidedSecondaryContext(dateISO=logGuidedDate()){
+ const ctx=logGuidedSecondaryContext;return ctx&&ctx.date===dateISO&&["short","full"].includes(ctx.kind)?ctx:null;
+}
+function syncLogGuidedSecondaryBanner(){
+ const banner=logGuidedEl("logGuidedSecondaryBanner"),ctx=activeLogGuidedSecondaryContext();if(!banner)return;
+ banner.classList.toggle("hidden",!ctx);if(!ctx)return;
+ const type=logGuidedTypeInfo().label,size=ctx.kind==="short"?"short secondary":"full second workout";
+ const title=logGuidedEl("logGuidedSecondaryTitle"),copy=logGuidedEl("logGuidedSecondaryCopy"),saveEquipment=logGuidedEl("logSaveGymEquipment");if(title)title.textContent="Custom "+type+" "+size;if(copy)copy.textContent="Equipment, focus, difficulty, and time apply only to "+ctx.date+". Build the plan, then edit, remove, swap, or add exercises before you start.";if(saveEquipment){saveEquipment.disabled=ctx.type==="gym";saveEquipment.title=ctx.type==="gym"?"One-time secondary equipment does not change your saved Gym profile.":""}
+}
+function clearLogGuidedSecondaryContext(){logGuidedSecondaryContext=null;const saveEquipment=logGuidedEl("logSaveGymEquipment");if(saveEquipment){saveEquipment.disabled=false;saveEquipment.title=""}syncLogGuidedSecondaryBanner()}
 function renderLogGymFocusControls(){
  const host=logGuidedEl("logGymFocusChoices");if(!host)return;
  host.innerHTML=Object.entries(gymFocusLabels).map(([key,label])=>{
@@ -13116,7 +13181,7 @@ function renderLogGymFocusControls(){
 function setLogGymFocus(values=[]){const set=new Set(values);document.querySelectorAll(".log-gym-focus").forEach(x=>x.checked=set.has(x.value));document.querySelectorAll(".log-gym-subfocus").forEach(x=>{if(!set.has(x.dataset.parent))x.checked=false})}
 function logGuidedGymProfile(){
  const focus=[...document.querySelectorAll(".log-gym-focus:checked")].map(x=>x.value),subfocus=[...document.querySelectorAll(".log-gym-subfocus:checked")].map(x=>x.value),equipment=[...document.querySelectorAll(".log-gym-equipment-pref:checked")].map(x=>x.value);
- return {focus:focus.length?focus:["back","shoulders","biceps","triceps"],subfocus,difficulty:logGuidedEl("logGymDifficulty")?.value||"medium",style:logGuidedEl("logGymRepStyle")?.value||"optimized",priorityFocus:logGuidedEl("logGymPriorityFocus")?.value||"",duration:Math.max(20,Math.min(120,Number(logGuidedEl("logGymDuration")?.value)||60)),equipment};
+ const ctx=activeLogGuidedSecondaryContext();return {focus:focus.length?focus:["back","shoulders","biceps","triceps"],subfocus,difficulty:logGuidedEl("logGymDifficulty")?.value||"medium",style:logGuidedEl("logGymRepStyle")?.value||"optimized",priorityFocus:logGuidedEl("logGymPriorityFocus")?.value||"",duration:Math.max(20,Math.min(120,Number(logGuidedEl("logGymDuration")?.value)||60)),equipment,...(ctx?.type==="gym"?{availabilityOverride:{...(ctx.gymAvailability||{})}}:{})};
 }
 function applyLogGuidedGymProfile(profile={}){
  const f=new Set(profile.focus||[]),subs=new Set(profile.subfocus||[]);document.querySelectorAll(".log-gym-focus").forEach(x=>x.checked=f.has(x.value));document.querySelectorAll(".log-gym-subfocus").forEach(x=>x.checked=subs.has(x.value));document.querySelectorAll(".log-gym-equipment-pref").forEach(x=>x.checked=(profile.equipment||[]).includes(x.value));
@@ -13131,45 +13196,126 @@ function applyLogGuidedCalProfile(profile={}){
  setLogCalFocus(profile.focus||[]);if(logGuidedEl("logCalDifficulty"))logGuidedEl("logCalDifficulty").value=profile.difficulty||"medium";const d=Math.max(20,Math.min(90,Number(profile.duration)||45));if(logGuidedEl("logCalDuration"))logGuidedEl("logCalDuration").value=d;if(logGuidedEl("logCalDurationRange"))logGuidedEl("logCalDurationRange").value=d;
  if(logGuidedEl("logCalHasPullupBar"))logGuidedEl("logCalHasPullupBar").checked=profile.hasPullupBar!==undefined?!!profile.hasPullupBar:state.settings.calHasPullupBar!==false;if(logGuidedEl("logCalHasBands"))logGuidedEl("logCalHasBands").checked=profile.hasBands!==undefined?!!profile.hasBands:!!state.settings.calHasBands;if(logGuidedEl("logCalHasLowRow"))logGuidedEl("logCalHasLowRow").checked=profile.hasLowRow!==undefined?!!profile.hasLowRow:!!state.settings.calHasLowRow;if(logGuidedEl("logCalHasDipBars"))logGuidedEl("logCalHasDipBars").checked=profile.hasDipBars!==undefined?!!profile.hasDipBars:!!state.settings.calHasDipBars;if(logGuidedEl("logCalHasAbWheel"))logGuidedEl("logCalHasAbWheel").checked=profile.hasAbWheel!==undefined?!!profile.hasAbWheel:state.settings.calHasAbWheel!==false;
 }
+function logGuidedPopulateSelect(id,items=[],selected=""){
+ const el=logGuidedEl(id);if(!el)return;const prior=selected||el.value;el.innerHTML=items.map(x=>{const value=typeof x==="string"?x:x.value,label=typeof x==="string"?x:x.label;return '<option value="'+attrSafe(value)+'"'+(value===prior?' selected':'')+'>'+htmlSafe(label)+'</option>'}).join("");if(prior&&[...el.options].some(o=>o.value===prior))el.value=prior;
+}
+function populateLogGuidedUniversalOptions(){
+ const aerobic=tbEnduranceLibrary.filter(x=>conditioningCategoryForEntry(x)==="E"&&x.name!=="Strength-Endurance Circuit").map(x=>({value:x.name,label:x.name+" • "+x.prescription}));
+ const speed=[...tbHICLibrary,...tbPowerLibrary].map(x=>({value:x.name,label:x.name+" • "+conditioningCategoryLabel(conditioningCategoryForEntry(x))}));
+ const classes=classActivityLibrary.slice().sort((a,b)=>classActivityType(a).localeCompare(classActivityType(b))||a.category.localeCompare(b.category)||a.name.localeCompare(b.name)).map(x=>({value:x.name,label:x.name+" • "+classActivityTypeLabel(x)+" • "+x.category}));
+ logGuidedPopulateSelect("logAerobicActivity",aerobic);logGuidedPopulateSelect("logSpeedActivity",speed);logGuidedPopulateSelect("logClassActivity",classes);
+}
+function syncLogGuidedAerobicSwimFields(){
+ const activity=logGuidedEl("logAerobicActivity")?.value||"",swim=["swim","swimclass"].includes(conditioningKind(activity)),host=logGuidedEl("logAerobicSwimFields"),preset=logGuidedEl("logAerobicPoolPreset");host?.classList.toggle("hidden",!swim);if(!swim||!preset)return;
+ const custom=preset.value==="custom",lengthField=logGuidedEl("logAerobicCustomPoolLengthField"),unitField=logGuidedEl("logAerobicCustomPoolUnitField"),length=logGuidedEl("logAerobicPoolLength"),unit=logGuidedEl("logAerobicPoolUnit");lengthField?.classList.toggle("hidden",!custom);unitField?.classList.toggle("hidden",!custom);
+ if(!custom&&length&&unit){if(preset.value==="25yd"){length.value="25";unit.value="yd"}else if(preset.value==="25m"){length.value="25";unit.value="m"}else if(preset.value==="50m"){length.value="50";unit.value="m"}}
+}
+function logGuidedSwimInitialMetrics(activity){
+ if(!["swim","swimclass"].includes(conditioningKind(activity)))return null;syncLogGuidedAerobicSwimFields();return {swimStroke:logGuidedEl("logAerobicSwimStroke")?.value||"freestyle",poolPreset:logGuidedEl("logAerobicPoolPreset")?.value||"25yd",poolLength:String(Math.max(1,Number(logGuidedEl("logAerobicPoolLength")?.value)||25)),poolLengthUnit:logGuidedEl("logAerobicPoolUnit")?.value==="m"?"m":"yd"};
+}
+function logGuidedConditioningPlan(type,dateISO){
+ const aerobic=type==="aerobic",activity=logGuidedEl(aerobic?"logAerobicActivity":"logSpeedActivity")?.value||"",lib=entryForName(activity);if(!activity)return null;
+ const minutes=Math.max(10,Math.min(aerobic?180:90,Number(logGuidedEl(aerobic?"logAerobicDuration":"logSpeedDuration")?.value)||(aerobic?45:30))),rpe=logGuidedEl(aerobic?"logAerobicRpe":"logSpeedRpe")?.value||(aerobic?"4":"8–9"),entered=String(logGuidedEl(aerobic?"logAerobicTarget":"logSpeedTarget")?.value||"").trim(),fallback=aerobic?"easy / conversational":(lib?.prescription||"hard intervals with full-quality recovery"),target=entered||fallback,initialMetrics=aerobic?logGuidedSwimInitialMetrics(activity):null;
+ const row={exercise:activity,plannedTarget:minutes+" min • "+target,plannedDurationMinutes:minutes,conditioning:true,meta:(aerobic?"LSS / AEROBIC":"SPRINTS / HIC")+" • target RPE "+rpe,note:aerobic?"Custom endurance session. Record actual time, distance, pace, heart rate, and RPE after training.":"Custom sprint / HIC session. Record the work completed, recoveries, output, and RPE after training."};if(initialMetrics)row.initialMetrics=initialMetrics;
+ return {session:"Conditioning",workout:{name:(aerobic?"Custom LSS / Aerobic • ":"Custom Sprints / HIC • ")+activity},plan:[row]};
+}
+function logGuidedSEEquipment(){const base=["bodyweight",...document.querySelectorAll(".log-se-equipment:checked")].map(x=>typeof x==="string"?x:x.value),setup=logGuidedEl("logSEKbSetup")?.value||"none";return equipmentWithKbSetup([...new Set(base)],setup)}
+function logGuidedSEOrder(rows=[],emphasis="balanced"){
+ const orders={balanced:["squat","push","pull","hinge","secondary","core"],upper:["push","pull","core","hinge","squat","secondary"],lower:["squat","hinge","secondary","core","push","pull"],core:["core","hinge","squat","pull","push","secondary"]},order=orders[emphasis]||orders.balanced;return rows.slice().sort((a,b)=>order.indexOf(a.role)-order.indexOf(b.role));
+}
+function buildLogGuidedSEPlan(dateISO){
+ const minutes=Math.max(15,Math.min(120,Number(logGuidedEl("logSEMinutes")?.value)||45)),freshness=logGuidedEl("logSEFreshness")?.value||"auto",emphasis=logGuidedEl("logSEEmphasis")?.value||"balanced",equipment=logGuidedSEEquipment(),rx=adaptiveSEPrescription(dateISO,{minutes,freshness}),circuit=logGuidedSEOrder(generateAdaptiveSECircuit(equipment,dateISO+"|guided-se|"+emphasis,rx.reps),emphasis),plan=circuit.map(r=>({exercise:r.exercise,sets:rx.circuits,reps:rx.reps,weight:adaptiveSELoadText(r.exercise,dateISO,equipment,rx.reps,rx.circuits),numeric:null,bar:false,meta:"CUSTOM SE • "+rx.circuits+" circuits × "+rx.reps+" reps",note:"One-day full-body circuit built from today’s equipment, time, freshness, recovery, and nearby anchors. The selected emphasis changes order only."}));return {session:"Strength-Endurance",workout:{name:"Custom Strength-Endurance • "+rx.circuits+" × "+rx.reps},plan};
+}
+function logGuidedKbFocusFamilies(focus){return {lower:["hinge","squat","lunge","clean"],upper:["press","clean","pull"],pull:["pull","carry","hinge"],core:["stability","carry","lunge"]}[focus]||[]}
+function logGuidedKbExerciseForSetup(name,equipment=[]){
+ const original=kbExercise(name);if(!original)return null;const available=ex=>kbEquipmentWeightsKg(equipment,ex.load==="double"?"double":"single").length>0;if(available(original))return original;return kbExerciseLibrary.filter(x=>x.family===original.family&&available(x)).sort((a,b)=>(a.load==="single"?-1:1)-(b.load==="single"?-1:1)||a.name.localeCompare(b.name))[0]||null;
+}
+function buildLogGuidedKbPlan(dateISO){
+ const session=logGuidedEl("logKbStyle")?.value||"KB Power",setup=logGuidedEl("logKbSetup")?.value||"all",minutes=Math.max(15,Math.min(90,Number(logGuidedEl("logKbMinutes")?.value)||45)),focus=logGuidedEl("logKbFocus")?.value||"balanced",families=logGuidedKbFocusFamilies(focus),equipment=equipmentWithKbSetup(["bodyweight"],setup),gw=Math.max(1,trainingWeekForDate(parseLocalISO(dateISO))||state.settings.currentWeek||1),used=new Set();let plan=getKbPlan(session,gw,dateISO).map(row=>{const ex=logGuidedKbExerciseForSetup(row.exercise,equipment);if(!ex||used.has(ex.name))return null;used.add(ex.name);const loadType=ex.load==="double"?"double":"single",adaptive=adaptiveKbTarget(ex.name,dateISO,""),kg=kbSnapEquipmentKg(adaptive.kg,equipment,loadType);if(!(kg>0))return null;return {...row,exercise:ex.name,sets:Math.min(Number(row.sets)||3,minutes<=25?3:minutes<=40?4:6),weight:kbEquipmentLoadText(kg,equipment,loadType),kg,manualKg:"",meta:"CUSTOM "+session.toUpperCase()+" • "+(kbExercise(ex.name)?.family||"KB"),note:"Load is adapted from actual history and snapped to the selected bell setup."}}).filter(Boolean);
+ if(families.length)plan.sort((a,b)=>{const ai=families.indexOf(kbExercise(a.exercise)?.family),bi=families.indexOf(kbExercise(b.exercise)?.family),as=ai<0?99:ai,bs=bi<0?99:bi;return as-bs});const cap=minutes<=25?3:minutes<=40?4:5;plan=plan.slice(0,cap);return {session,workout:{name:"Custom "+session+(focus!=="balanced"?" • "+focus:" ")},plan};
+}
+function logGuidedClassRpe(item){const nums=String(item?.rpe||"").match(/\d+(?:\.\d+)?/g)?.map(Number)||[];return nums.length?Math.max(1,Math.min(10,Math.round((nums.reduce((a,b)=>a+b,0)/nums.length)*2)/2)):6}
+function buildLogGuidedClassPlan(){
+ const activity=logGuidedEl("logClassActivity")?.value||"",item=classActivity(activity);if(!activity)return null;const minutes=Math.max(10,Math.min(300,Number(logGuidedEl("logClassDuration")?.value)||60)),rpe=Math.max(1,Math.min(10,Number(logGuidedEl("logClassRpe")?.value)||logGuidedClassRpe(item))),kind=classActivityTypeLabel(item);return {session:"Class / Activity",workout:{name:"Custom "+kind+" • "+activity},plan:[{exercise:activity,plannedTarget:minutes+" min • target RPE "+rpe,plannedDurationMinutes:minutes,conditioning:true,meta:"CUSTOM "+kind.toUpperCase()+" • "+String(item?.category||"activity").toUpperCase(),note:"Record the actual duration, effort, and activity-specific metrics after the session."}]};
+}
 function syncLogGuidedEquipmentProfile(){const active=activeGymEquipmentProfile(logDate?.value||selectedDateISO||localISO(new Date())),profile=active.profile||{};if(logGuidedEl("logGymDbMin"))logGuidedEl("logGymDbMin").value=profile.dbMin??state.settings.gymDbMin??5;if(logGuidedEl("logGymDbMax"))logGuidedEl("logGymDbMax").value=profile.dbMax??state.settings.gymDbMax??100;if(logGuidedEl("logGymDbIncrement"))logGuidedEl("logGymDbIncrement").value=profile.dbIncrement??state.settings.gymDbIncrement??5;applyLogGuidedCalProfile({focus:[...document.querySelectorAll(".log-cal-focus:checked")].map(x=>x.value),difficulty:logGuidedEl("logCalDifficulty")?.value||"medium",duration:Number(logGuidedEl("logCalDuration")?.value)||45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands,hasLowRow:!!state.settings.calHasLowRow,hasDipBars:!!state.settings.calHasDipBars,hasAbWheel:state.settings.calHasAbWheel!==false})}
 function renderLogGymAvailability(){
- const host=logGuidedEl("logGymAvailabilityGrid");if(!host)return;const q=(logGuidedEl("logGymAvailabilitySearch")?.value||"").trim().toLowerCase(),date=logDate?.value||selectedDateISO||localISO(new Date()),active=activeGymEquipmentProfile(date);
+ const host=logGuidedEl("logGymAvailabilityGrid");if(!host)return;const q=(logGuidedEl("logGymAvailabilitySearch")?.value||"").trim().toLowerCase(),date=logDate?.value||selectedDateISO||localISO(new Date()),active=activeGymEquipmentProfile(date),ctx=activeLogGuidedSecondaryContext(date),available=name=>ctx?.type==="gym"&&Object.prototype.hasOwnProperty.call(ctx.gymAvailability||{},name)?ctx.gymAvailability[name]!==false:gymAvailable(name,date);
  const rows=gymExerciseLibrary.filter(g=>!q||g.name.toLowerCase().includes(q)||String(g.equipment||"").toLowerCase().includes(q)||String(g.family||"").toLowerCase().includes(q));
- host.innerHTML='<div class="gym-step-sub v36131-profile-scope"><strong>'+htmlSafe(active.name)+'</strong> availability. Equipment may also be enabled in other profiles.</div>'+((rows.map(g=>'<label class="gym-choice"><input type="checkbox" class="log-gym-availability" data-name="'+attrSafe(g.name)+'" '+(gymAvailable(g.name,date)?'checked':'')+'> '+htmlSafe(g.name)+' <span class="muted">• '+htmlSafe(g.equipment||"")+'</span></label>').join(""))||'<div class="muted">No matching exercises.</div>');
+ host.innerHTML='<div class="gym-step-sub v36131-profile-scope"><strong>'+htmlSafe(active.name)+'</strong> availability. '+(ctx?.type==="gym"?'Changes here are one-time for this secondary.':'Equipment may also be enabled in other profiles.')+'</div>'+((rows.map(g=>'<label class="gym-choice"><input type="checkbox" class="log-gym-availability" data-name="'+attrSafe(g.name)+'" '+(available(g.name)?'checked':'')+'> '+htmlSafe(g.name)+' <span class="muted">• '+htmlSafe(g.equipment||"")+'</span></label>').join(""))||'<div class="muted">No matching exercises.</div>');
 }
-function updateLogGuidedBuilderVisibility(){const type=logGuidedEl("logGuidedBuilderType")?.value||"gym";logGuidedEl("logGuidedGymPanel")?.classList.toggle("hidden",type!=="gym");logGuidedEl("logGuidedCalPanel")?.classList.toggle("hidden",type!=="calisthenics")}
+function updateLogGuidedBuilderVisibility(){
+ const type=logGuidedEl("logGuidedBuilderType")?.value||"gym",panels={gym:"logGuidedGymPanel",calisthenics:"logGuidedCalPanel",aerobic:"logGuidedAerobicPanel",speed:"logGuidedSpeedPanel",se:"logGuidedSEPanel",kettlebell:"logGuidedKettlebellPanel",class:"logGuidedClassPanel"};Object.entries(panels).forEach(([key,id])=>logGuidedEl(id)?.classList.toggle("hidden",key!==type));if(type==="gym")renderLogGymAvailability();if(type==="aerobic")syncLogGuidedAerobicSwimFields();syncLogGuidedSecondaryBanner();
+}
 function logGuidedStatus(html){const el=logGuidedEl("logGuidedBuilderStatus");if(el)el.innerHTML=html}
 function recommendLogGuided(type){
  const date=logGuidedDate();if(type==="gym"){const rec=recommendedAdaptiveGymForDate(date);applyLogGuidedGymProfile(rec.plan?.profile||rec.profile||{});if(logGuidedEl("logGuidedWorkoutName"))logGuidedEl("logGuidedWorkoutName").value=rec.plan?.name||rec.label||"Adaptive Gym";logGuidedStatus('<strong>Gym recommendation loaded.</strong> '+htmlSafe((rec.why||[]).slice(0,2).join(" "))+' Review the inputs, then tap Build Into Log.');return}
- const rec=recommendedAdaptiveCalisthenicsForDate(date);applyLogGuidedCalProfile(rec.plan?.profile||{});if(logGuidedEl("logGuidedWorkoutName"))logGuidedEl("logGuidedWorkoutName").value=rec.plan?.name||rec.label||"Adaptive Calisthenics";logGuidedStatus('<strong>Calisthenics recommendation loaded.</strong> '+htmlSafe((rec.why||[]).slice(0,2).join(" "))+' Review the inputs, then tap Build Into Log.');
+ if(type==="calisthenics"){const rec=recommendedAdaptiveCalisthenicsForDate(date);applyLogGuidedCalProfile(rec.plan?.profile||{});if(logGuidedEl("logGuidedWorkoutName"))logGuidedEl("logGuidedWorkoutName").value=rec.plan?.name||rec.label||"Adaptive Calisthenics";logGuidedStatus('<strong>Calisthenics recommendation loaded.</strong> '+htmlSafe((rec.why||[]).slice(0,2).join(" "))+' Review the inputs, then tap Build Into Log.');return}
+ if(type==="aerobic"||type==="speed"){
+  const x=adaptiveModeSwitchBase(date),lane=type==="aerobic"?adaptiveLssLaneForDate(date):"speed",p=conditioningFor(x.day,x.gw,date,lane),activity=p?.activity||"";if(!activity){logGuidedStatus('<strong>No recommendation is available.</strong> Choose a session manually.');return}const select=logGuidedEl(type==="aerobic"?"logAerobicActivity":"logSpeedActivity");if(select&&[...select.options].some(o=>o.value===activity))select.value=activity;const minutes=Math.max(10,Math.round(utmPlannedDurationMinutes(p.target||p.detail)||(type==="aerobic"?45:30))),duration=logGuidedEl(type==="aerobic"?"logAerobicDuration":"logSpeedDuration"),range=logGuidedEl(type==="aerobic"?"logAerobicDurationRange":"logSpeedDurationRange"),rpe=logGuidedEl(type==="aerobic"?"logAerobicRpe":"logSpeedRpe"),target=logGuidedEl(type==="aerobic"?"logAerobicTarget":"logSpeedTarget");if(duration)duration.value=minutes;if(range)range.value=minutes;if(rpe&&p.rpe&&[...rpe.options].some(o=>o.value===p.rpe))rpe.value=p.rpe;if(target)target.value=p.detail||p.target||"";if(type==="aerobic")syncLogGuidedAerobicSwimFields();logGuidedStatus('<strong>'+htmlSafe(type==="aerobic"?"Aerobic":"Sprint / HIC")+' recommendation loaded.</strong> Review the exact activity, duration, effort, and prescription before building.');return
+ }
+ if(type==="se"){
+  const equipment=state.settings.adaptiveSELastEquipment||["bodyweight","pullupBar","bands","dumbbells","kettlebells","kbSetup:all","barbell","bench","machines"],set=new Set(equipment),rx=adaptiveSEPrescription(date);document.querySelectorAll(".log-se-equipment").forEach(x=>x.checked=x.value==="bodyweight"||set.has(x.value));if(logGuidedEl("logSEKbSetup"))logGuidedEl("logSEKbSetup").value=kbSetupFromEquipment(equipment);if(logGuidedEl("logSEMinutes"))logGuidedEl("logSEMinutes").value=rx.minutesAvailable;if(logGuidedEl("logSEFreshness"))logGuidedEl("logSEFreshness").value="auto";logGuidedStatus('<strong>SE recommendation loaded.</strong> The final circuit dose will still be recalculated from recovery, available time, and nearby anchors when you build.');return
+ }
+ if(type==="kettlebell"){
+  let style="KB Power";try{const top=fullSecondWorkoutRecommendation(date)?.top?.session;if(/^KB (Heavy|Power|Volume)$/.test(top))style=top}catch(_e){}if(logGuidedEl("logKbStyle"))logGuidedEl("logKbStyle").value=style;if(logGuidedEl("logKbSetup"))logGuidedEl("logKbSetup").value="all";if(logGuidedEl("logKbMinutes"))logGuidedEl("logKbMinutes").value=adaptiveReadiness(date).caution?30:45;if(logGuidedEl("logKbFocus"))logGuidedEl("logKbFocus").value="balanced";logGuidedStatus('<strong>Kettlebell inputs loaded.</strong> The exercise loads will adapt from actual history and snap to the selected bell setup.');
+ }
 }
 function buildLogGuidedWorkout(){
- const date=logGuidedDate(),type=logGuidedEl("logGuidedBuilderType")?.value||"gym",name=String(logGuidedEl("logGuidedWorkoutName")?.value||"").trim();let workout,plan,session;
- if(type==="gym"){const profile=logGuidedGymProfile();workout=buildGymWorkoutFromProfile(profile,date);session="Generic Gym";plan=genericGymPlanFromWorkout(workout,date)}else{const profile=logGuidedCalProfile();workout=buildCalisthenicsWorkout(profile,date,nextCalBuilderVariation(profile,date));session="Calisthenics";plan=calisthenicsPlanFromWorkout(workout,date)}
+ const date=logGuidedDate(),type=logGuidedEl("logGuidedBuilderType")?.value||"gym",name=String(logGuidedEl("logGuidedWorkoutName")?.value||"").trim(),secondary=activeLogGuidedSecondaryContext(date),typeInfo=logGuidedTypeInfo(type);let workout,plan,session,built=null;
+ if(type==="gym"){const profile=logGuidedGymProfile();workout=buildGymWorkoutFromProfile(profile,date);session="Generic Gym";plan=genericGymPlanFromWorkout(workout,date)}
+ else if(type==="calisthenics"){const profile=logGuidedCalProfile();workout=buildCalisthenicsWorkout(profile,date,nextCalBuilderVariation(profile,date));session="Calisthenics";plan=calisthenicsPlanFromWorkout(workout,date)}
+ else if(type==="aerobic"||type==="speed")built=logGuidedConditioningPlan(type,date);
+ else if(type==="se")built=buildLogGuidedSEPlan(date);
+ else if(type==="kettlebell")built=buildLogGuidedKbPlan(date);
+ else if(type==="class")built=buildLogGuidedClassPlan(date);
+ if(built){workout=built.workout;plan=built.plan;session=built.session}
  if(!plan?.length){logGuidedStatus('<strong>No matching exercises.</strong> Change the focus or equipment and try again.');return}
  if(name)plan=plan.map(r=>({...r,meta:(name+" • "+(r.meta||"")).trim()}));
- logGuidedPlan={date,session,rows:JSON.parse(JSON.stringify(plan)),name:name||workout?.name||session,createdAt:Date.now()};
+ const short=secondary?.kind==="short",full=secondary?.kind==="full",clean=JSON.parse(JSON.stringify(plan));
+ if(short)clean.forEach(r=>{r.adaptiveSecondaryBlock=true;r.secondaryTrainingType=typeInfo.trainingType;r.secondaryCadenceCredit=Number(r.secondaryCadenceCredit)||.15;r.isShortSecondary=true;r.secondarySessionRole="short"});
+ if(full)clean.forEach(r=>{r.secondaryTrainingType=r.secondaryTrainingType||typeInfo.trainingType;r.isFullSecondary=true;r.secondarySessionRole="full"});
+ logGuidedPlan={date,session,rows:clean,name:name||workout?.name||session,createdAt:Date.now(),guidedSecondaryBuilder:!!secondary,v36123:!!secondary,secondaryOnly:short,manualShortSecondary:short,secondFullWorkout:full,secondFullWorkoutOverride:!!secondary};
  if(logSession&&[...logSession.options].some(o=>o.value===session||o.textContent===session))logSession.value=session;else if(logSession){const o=document.createElement("option");o.value=session;o.textContent=session;logSession.appendChild(o);logSession.value=session}
  logWorkspacePlanEdited=true;logWorkspaceSessionUserChanged=true;logWorkspaceUserTouched=true;blankNextWorkout=false;loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();
  const timed=plan.filter(r=>!r.untimedCoreFinisher).length,finish=plan.filter(r=>r.untimedCoreFinisher).length;logGuidedStatus('<strong>'+htmlSafe(logGuidedPlan.name)+' loaded into Log.</strong> '+timed+' timed exercises'+(finish?' + '+finish+' untimed core finisher':'')+'. Edit any exercise, sets, reps, weight, or effort below before completing the workout. This draft does not rewrite the calendar unless you actually save the workout.');
+ if(secondary&&sessionNotes&&!String(sessionNotes.value||"").trim())sessionNotes.value=(short?"Custom short secondary. ":"Custom full secondary. ")+"Built for "+date+" from one-time "+typeInfo.label+" inputs.";
  plannedExercises?.scrollIntoView?.({behavior:"smooth",block:"start"});
 }
 function resetLogGuidedBuilder(type=logGuidedEl("logGuidedBuilderType")?.value||"gym"){
  if(type==="gym"){applyLogGuidedGymProfile({focus:[],subfocus:[],difficulty:"medium",style:"optimized",duration:60,equipment:[]});if(logGuidedEl("logGuidedWorkoutName"))logGuidedEl("logGuidedWorkoutName").value=""}
- else{applyLogGuidedCalProfile({focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands,hasLowRow:!!state.settings.calHasLowRow,hasDipBars:!!state.settings.calHasDipBars,hasAbWheel:state.settings.calHasAbWheel!==false});if(logGuidedEl("logGuidedWorkoutName"))logGuidedEl("logGuidedWorkoutName").value=""}
+ else if(type==="calisthenics")applyLogGuidedCalProfile({focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands,hasLowRow:!!state.settings.calHasLowRow,hasDipBars:!!state.settings.calHasDipBars,hasAbWheel:state.settings.calHasAbWheel!==false});
+ else if(type==="aerobic"){if(logGuidedEl("logAerobicActivity"))logGuidedEl("logAerobicActivity").value="LSS Run";if(logGuidedEl("logAerobicDuration"))logGuidedEl("logAerobicDuration").value=45;if(logGuidedEl("logAerobicDurationRange"))logGuidedEl("logAerobicDurationRange").value=45;if(logGuidedEl("logAerobicRpe"))logGuidedEl("logAerobicRpe").value="4";if(logGuidedEl("logAerobicTarget"))logGuidedEl("logAerobicTarget").value="";const length=Math.max(1,Number(state.settings.defaultPoolLength)||25),unit=String(state.settings.defaultPoolLengthUnit||"yd").toLowerCase()==="m"?"m":"yd";if(logGuidedEl("logAerobicPoolPreset"))logGuidedEl("logAerobicPoolPreset").value=poolPresetFromLength(length,unit);if(logGuidedEl("logAerobicPoolLength"))logGuidedEl("logAerobicPoolLength").value=length;if(logGuidedEl("logAerobicPoolUnit"))logGuidedEl("logAerobicPoolUnit").value=unit;if(logGuidedEl("logAerobicSwimStroke"))logGuidedEl("logAerobicSwimStroke").value="freestyle";syncLogGuidedAerobicSwimFields()}
+ else if(type==="speed"){if(logGuidedEl("logSpeedActivity"))logGuidedEl("logSpeedActivity").value="Short Hills";if(logGuidedEl("logSpeedDuration"))logGuidedEl("logSpeedDuration").value=30;if(logGuidedEl("logSpeedDurationRange"))logGuidedEl("logSpeedDurationRange").value=30;if(logGuidedEl("logSpeedRpe"))logGuidedEl("logSpeedRpe").value="8–9";if(logGuidedEl("logSpeedTarget"))logGuidedEl("logSpeedTarget").value=""}
+ else if(type==="se"){const equipment=state.settings.adaptiveSELastEquipment||["bodyweight","pullupBar","bands","dumbbells","kettlebells","kbSetup:all","barbell","bench","machines"],set=new Set(equipment);document.querySelectorAll(".log-se-equipment").forEach(x=>x.checked=x.value==="bodyweight"||set.has(x.value));if(logGuidedEl("logSEKbSetup"))logGuidedEl("logSEKbSetup").value=kbSetupFromEquipment(equipment);if(logGuidedEl("logSEMinutes"))logGuidedEl("logSEMinutes").value=state.settings.adaptiveSELastMinutes||45;if(logGuidedEl("logSEFreshness"))logGuidedEl("logSEFreshness").value="auto";if(logGuidedEl("logSEEmphasis"))logGuidedEl("logSEEmphasis").value="balanced"}
+ else if(type==="kettlebell"){if(logGuidedEl("logKbStyle"))logGuidedEl("logKbStyle").value="KB Power";if(logGuidedEl("logKbSetup"))logGuidedEl("logKbSetup").value="all";if(logGuidedEl("logKbMinutes"))logGuidedEl("logKbMinutes").value=45;if(logGuidedEl("logKbFocus"))logGuidedEl("logKbFocus").value="balanced"}
+ else if(type==="class"){const first=logGuidedEl("logClassActivity")?.value,item=classActivity(first);if(logGuidedEl("logClassDuration"))logGuidedEl("logClassDuration").value=60;if(logGuidedEl("logClassRpe"))logGuidedEl("logClassRpe").value=logGuidedClassRpe(item)}
+ if(logGuidedEl("logGuidedWorkoutName"))logGuidedEl("logGuidedWorkoutName").value="";
  logGuidedStatus('<strong>Builder reset.</strong> Choose your inputs or load a recommendation.');
 }
 function initLogGuidedBuilder(){
- renderLogGymFocusControls();syncLogGuidedEquipmentProfile();renderLogGymAvailability();resetLogGuidedBuilder("gym");updateLogGuidedBuilderVisibility();
- logGuidedEl("logGuidedBuilderType")?.addEventListener("change",()=>{updateLogGuidedBuilderVisibility();const type=logGuidedEl("logGuidedBuilderType").value;resetLogGuidedBuilder(type)});
+ renderLogGymFocusControls();populateLogGuidedUniversalOptions();syncLogGuidedEquipmentProfile();renderLogGymAvailability();resetLogGuidedBuilder("gym");updateLogGuidedBuilderVisibility();
+ logGuidedEl("logGuidedBuilderType")?.addEventListener("change",()=>{const type=logGuidedEl("logGuidedBuilderType").value,ctx=activeLogGuidedSecondaryContext();if(ctx)ctx.type=type;updateLogGuidedBuilderVisibility();resetLogGuidedBuilder(type);syncLogGuidedSecondaryBanner()});
  logGuidedEl("logGymDurationRange")?.addEventListener("input",()=>logGuidedEl("logGymDuration").value=logGuidedEl("logGymDurationRange").value);logGuidedEl("logGymDuration")?.addEventListener("input",()=>logGuidedEl("logGymDurationRange").value=Math.max(20,Math.min(120,Number(logGuidedEl("logGymDuration").value)||60)));
  logGuidedEl("logCalDurationRange")?.addEventListener("input",()=>logGuidedEl("logCalDuration").value=logGuidedEl("logCalDurationRange").value);logGuidedEl("logCalDuration")?.addEventListener("input",()=>logGuidedEl("logCalDurationRange").value=Math.max(20,Math.min(90,Number(logGuidedEl("logCalDuration").value)||45)));
+ logGuidedEl("logAerobicDurationRange")?.addEventListener("input",()=>logGuidedEl("logAerobicDuration").value=logGuidedEl("logAerobicDurationRange").value);logGuidedEl("logAerobicDuration")?.addEventListener("input",()=>logGuidedEl("logAerobicDurationRange").value=Math.max(10,Math.min(180,Number(logGuidedEl("logAerobicDuration").value)||45)));
+ logGuidedEl("logSpeedDurationRange")?.addEventListener("input",()=>logGuidedEl("logSpeedDuration").value=logGuidedEl("logSpeedDurationRange").value);logGuidedEl("logSpeedDuration")?.addEventListener("input",()=>logGuidedEl("logSpeedDurationRange").value=Math.max(10,Math.min(90,Number(logGuidedEl("logSpeedDuration").value)||30)));
+ logGuidedEl("logAerobicActivity")?.addEventListener("change",syncLogGuidedAerobicSwimFields);logGuidedEl("logAerobicPoolPreset")?.addEventListener("change",syncLogGuidedAerobicSwimFields);logGuidedEl("logClassActivity")?.addEventListener("change",()=>{const item=classActivity(logGuidedEl("logClassActivity").value);if(logGuidedEl("logClassRpe"))logGuidedEl("logClassRpe").value=logGuidedClassRpe(item)});
  logGuidedEl("logGymSelectUpper")?.addEventListener("click",()=>setLogGymFocus(["chest","back","shoulders","biceps","triceps"]));logGuidedEl("logGymSelectLower")?.addEventListener("click",()=>setLogGymFocus(["quads","posterior","calves","core"]));logGuidedEl("logGymSelectFull")?.addEventListener("click",()=>setLogGymFocus(Object.keys(gymFocusLabels)));logGuidedEl("logGymClearFocus")?.addEventListener("click",()=>setLogGymFocus([]));
  logGuidedEl("logCalSelectFullBody")?.addEventListener("click",()=>setLogCalFocus(["push","pull","legs","core","fullbody"]));logGuidedEl("logCalSelectUpper")?.addEventListener("click",()=>setLogCalFocus(["push","pull"]));logGuidedEl("logCalSelectLowerCore")?.addEventListener("click",()=>setLogCalFocus(["legs","core"]));logGuidedEl("logCalClearFocus")?.addEventListener("click",()=>setLogCalFocus([]));
- logGuidedEl("logRecommendGym")?.addEventListener("click",()=>recommendLogGuided("gym"));logGuidedEl("logRecommendCal")?.addEventListener("click",()=>recommendLogGuided("calisthenics"));logGuidedEl("logBuildGuidedWorkout")?.addEventListener("click",buildLogGuidedWorkout);logGuidedEl("logResetGuidedBuilder")?.addEventListener("click",()=>resetLogGuidedBuilder());
+ logGuidedEl("logRecommendGym")?.addEventListener("click",()=>recommendLogGuided("gym"));logGuidedEl("logRecommendCal")?.addEventListener("click",()=>recommendLogGuided("calisthenics"));logGuidedEl("logRecommendAerobic")?.addEventListener("click",()=>recommendLogGuided("aerobic"));logGuidedEl("logRecommendSpeed")?.addEventListener("click",()=>recommendLogGuided("speed"));logGuidedEl("logRecommendSE")?.addEventListener("click",()=>recommendLogGuided("se"));logGuidedEl("logRecommendKettlebell")?.addEventListener("click",()=>recommendLogGuided("kettlebell"));logGuidedEl("logBuildGuidedWorkout")?.addEventListener("click",buildLogGuidedWorkout);logGuidedEl("logResetGuidedBuilder")?.addEventListener("click",()=>resetLogGuidedBuilder());
  logGuidedEl("logSaveGymEquipment")?.addEventListener("click",()=>{const min=Math.max(0,Number(logGuidedEl("logGymDbMin")?.value)||0),max=Math.max(min,Number(logGuidedEl("logGymDbMax")?.value)||min),inc=Math.max(.5,Number(logGuidedEl("logGymDbIncrement")?.value)||5),active=activeGymEquipmentProfile(logDate?.value||selectedDateISO||localISO(new Date()));Object.assign(active.profile,{dbMin:min,dbMax:max,dbIncrement:inc,updatedAt:Date.now()});if(active.name==='Main Gym')Object.assign(state.settings,{gymDbMin:min,gymDbMax:max,gymDbIncrement:inc});if(gymDbMin)gymDbMin.value=min;if(gymDbMax)gymDbMax.value=max;if(gymDbIncrement)gymDbIncrement.value=inc;save("log-gym-equipment-profile");logGuidedStatus('<strong>'+htmlSafe(active.name)+' equipment saved.</strong> The Gym builder now uses this location’s availability and dumbbell range.');});
- ["logCalHasPullupBar","logCalHasBands","logCalHasLowRow","logCalHasDipBars","logCalHasAbWheel"].forEach(id=>logGuidedEl(id)?.addEventListener("change",()=>{state.settings.calHasPullupBar=!!logGuidedEl("logCalHasPullupBar")?.checked;state.settings.calHasBands=!!logGuidedEl("logCalHasBands")?.checked;state.settings.calHasLowRow=!!logGuidedEl("logCalHasLowRow")?.checked;state.settings.calHasDipBars=!!logGuidedEl("logCalHasDipBars")?.checked;state.settings.calHasAbWheel=!!logGuidedEl("logCalHasAbWheel")?.checked;if(calHasPullupBar)calHasPullupBar.checked=state.settings.calHasPullupBar;if(calHasBands)calHasBands.checked=state.settings.calHasBands;if(calHasLowRow)calHasLowRow.checked=state.settings.calHasLowRow;if(calHasDipBars)calHasDipBars.checked=state.settings.calHasDipBars;if(calHasAbWheel)calHasAbWheel.checked=state.settings.calHasAbWheel!==false;save("log-calisthenics-equipment");}));
- logGuidedEl("logGymAvailabilitySearch")?.addEventListener("input",renderLogGymAvailability);logGuidedEl("logGymAvailabilityGrid")?.addEventListener("change",e=>{const cb=e.target.closest?.(".log-gym-availability");if(!cb)return;v36131SetGymAvailability(cb.dataset.name,cb.checked,logDate.value);save("log-gym-availability");renderGymLibrary()});
+ ["logCalHasPullupBar","logCalHasBands","logCalHasLowRow","logCalHasDipBars","logCalHasAbWheel"].forEach(id=>logGuidedEl(id)?.addEventListener("change",()=>{if(activeLogGuidedSecondaryContext()){logGuidedStatus('<strong>One-time equipment updated.</strong> This changes only the custom secondary you are building, not your default Calisthenics equipment.');return}state.settings.calHasPullupBar=!!logGuidedEl("logCalHasPullupBar")?.checked;state.settings.calHasBands=!!logGuidedEl("logCalHasBands")?.checked;state.settings.calHasLowRow=!!logGuidedEl("logCalHasLowRow")?.checked;state.settings.calHasDipBars=!!logGuidedEl("logCalHasDipBars")?.checked;state.settings.calHasAbWheel=!!logGuidedEl("logCalHasAbWheel")?.checked;if(calHasPullupBar)calHasPullupBar.checked=state.settings.calHasPullupBar;if(calHasBands)calHasBands.checked=state.settings.calHasBands;if(calHasLowRow)calHasLowRow.checked=state.settings.calHasLowRow;if(calHasDipBars)calHasDipBars.checked=state.settings.calHasDipBars;if(calHasAbWheel)calHasAbWheel.checked=state.settings.calHasAbWheel!==false;save("log-calisthenics-equipment");}));
+ logGuidedEl("logGuidedSecondaryCancel")?.addEventListener("click",()=>{clearLogGuidedSecondaryContext();logGuidedStatus('<strong>Secondary builder cancelled.</strong> This builder is back to the normal workout mode.');});
+ logGuidedEl("logGymAvailabilitySearch")?.addEventListener("input",renderLogGymAvailability);logGuidedEl("logGymAvailabilityGrid")?.addEventListener("change",e=>{const cb=e.target.closest?.(".log-gym-availability");if(!cb)return;const ctx=activeLogGuidedSecondaryContext();if(ctx?.type==="gym"){ctx.gymAvailability=ctx.gymAvailability||{};ctx.gymAvailability[cb.dataset.name]=cb.checked;logGuidedStatus('<strong>One-time Gym availability updated.</strong> Your saved Gym profile was not changed.');return}v36131SetGymAvailability(cb.dataset.name,cb.checked,logDate.value);save("log-gym-availability");renderGymLibrary()});
+}
+
+function openLogGuidedSecondaryBuilder(dateISO=localISO(new Date()),type="calisthenics",kind="full"){
+ const date=validIsoDateValue(dateISO)?dateISO:localISO(new Date()),builderType=LOG_GUIDED_TYPES[type]?type:"calisthenics",info=logGuidedTypeInfo(builderType),session=builderType==="kettlebell"?(logGuidedEl("logKbStyle")?.value||info.session):info.session,isShort=kind==="short";
+ v36114LogPanel="";showView("log",{preserveDate:true});setSessionEditMode("");logGuidedPlan=null;logGuidedSecondaryContext={date,type:builderType,kind:isShort?"short":"full",gymAvailability:{},startedAt:Date.now()};blankNextWorkout=true;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=true;logWorkspacePlanEdited=false;
+ logDate.value=date;logTime.value=date===localISO(new Date())?currentClockHHMM():"";const tw=trainingWeekForDate(parseLocalISO(date));logWeek.value=tw>=1?tw:state.settings.currentWeek;applyLogWeekOverrideUi(false);if(logSession&&! [...logSession.options].some(o=>o.value===session||o.textContent===session)){const option=document.createElement("option");option.value=session;option.textContent=session;logSession.appendChild(option)}logSession.value=session;plannedExercises.innerHTML="";sessionFeel.value="";sessionNotes.value="";clearWearableSessionForm();
+ if(logGuidedEl("logGuidedBuilderType"))logGuidedEl("logGuidedBuilderType").value=builderType;updateLogGuidedBuilderVisibility();resetLogGuidedBuilder(builderType);if(logGuidedEl("logGuidedWorkoutName"))logGuidedEl("logGuidedWorkoutName").value="Custom "+(isShort?"Short ":"Full ")+info.label+" Secondary";
+ document.getElementById("log")?.classList.add("v36114-advanced-open");if(logSetupDetails)logSetupDetails.open=true;const details=logGuidedEl("logGuidedBuilderDetails");if(details)details.open=true;syncLogGuidedSecondaryBanner();logGuidedStatus('<strong>Build this secondary for '+htmlSafe(date)+'.</strong> Set the details that matter for '+htmlSafe(info.label)+'. After Build Into Log, every exercise or activity remains editable and you can add, swap, or remove anything.');renderWorkoutIntentUi();v3685RenderWorkoutTracker();requestAnimationFrame(()=>details?.scrollIntoView?.({behavior:"smooth",block:"start"}));return true;
 }
 
 const UI_DRAFT_KEY="hybridTrainingUiDraftV2";
@@ -13564,7 +13710,7 @@ function clearLogWorkspace(){
  try{localStorage.removeItem(LOG_WORKSPACE_KEY)}catch(e){}
 }
 function loadScheduledLogDate(dateISO=localISO(new Date())){
- const target=scheduledLogStateForDate(dateISO);setSessionEditMode("");blankNextWorkout=false;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;logDate.value=target.date;logTime.value=target.date===localISO(new Date())?currentClockHHMM():"";logWeek.value=target.week;applyLogWeekOverrideUi(false);logSession.value=target.session;sessionFeel.value="";sessionNotes.value="";if(recommendationFeedback)recommendationFeedback.value="";if(recommendationFeedbackNote)recommendationFeedbackNote.value="";updateRecommendationFeedbackVisibility();clearWearableSessionForm();loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();v3685RenderWorkoutTracker();return target;
+ clearLogGuidedSecondaryContext();const target=scheduledLogStateForDate(dateISO);setSessionEditMode("");blankNextWorkout=false;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;logDate.value=target.date;logTime.value=target.date===localISO(new Date())?currentClockHHMM():"";logWeek.value=target.week;applyLogWeekOverrideUi(false);logSession.value=target.session;sessionFeel.value="";sessionNotes.value="";if(recommendationFeedback)recommendationFeedback.value="";if(recommendationFeedbackNote)recommendationFeedbackNote.value="";updateRecommendationFeedbackVisibility();clearWearableSessionForm();loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();v3685RenderWorkoutTracker();return target;
 }
 function restorePersistentLogWorkspace(){
  v3685RecoverLegacyDraftIfNeeded();
@@ -13799,7 +13945,7 @@ function showView(id,options={}){
 function applyLogWeekOverrideUi(enabled){logWeek.readOnly=!enabled;logWeek.setAttribute("aria-readonly",enabled?"false":"true");const b=document.getElementById("toggleLogWeekOverride"),h=document.getElementById("logWeekDerivedHint");if(b)b.textContent=enabled?"Use derived":"Override";if(h)h.textContent=enabled?"Manual override enabled for this entry.":"Derived from the selected date."}
 function setLogWeekOverride(enabled){applyLogWeekOverrideUi(enabled);if(!enabled){const d=parseLocalISO(logDate.value),tw=!isNaN(d)?trainingWeekForDate(d):0;if(tw>=1)logWeek.value=tw}}
 function setLogDefaults(){
- setSessionEditMode("");logGuidedPlan=null;blankNextWorkout=false;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
+ clearLogGuidedSecondaryContext();setSessionEditMode("");logGuidedPlan=null;blankNextWorkout=false;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
  const d=new Date();logDate.value=localISO(d);logTime.value=currentClockHHMM(d);const tw=trainingWeekForDate(d);logWeek.value=tw>=1?tw:state.settings.currentWeek;applyLogWeekOverrideUi(false);
  const day=d.toLocaleDateString("en-US",{weekday:"long"});const gw=tw>=1?tw:state.settings.currentWeek;logSession.value=expectedSession(day,gw,logDate.value);clearWearableSessionForm();loadPlannedSession();renderWorkoutIntentUi();
 }
@@ -13834,7 +13980,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.132";
+const HYBRID_APP_BUILD="36.133";
 function hybridBuildParts(v){return String(v||"").replace(/^v/,"").split(".").map(x=>Number(x)||0)}
 function compareHybridBuilds(a,b){
  const aa=hybridBuildParts(a),bb=hybridBuildParts(b),n=Math.max(aa.length,bb.length);
@@ -14071,8 +14217,8 @@ adaptiveSEFreshness?.addEventListener("change",renderBaseBuildingCircuitPreview)
 baseBuildingSetupModal.addEventListener("click",e=>{if(e.target===baseBuildingSetupModal)closeBaseBuildingEquipmentModal()});
 
 loadPlan.addEventListener("click",()=>{logGuidedPlan=null;loadPlannedSession();writeLogWorkspace()});
-logDate.addEventListener("change",()=>{if(logGuidedPlan&&logGuidedPlan.date!==logDate.value)logGuidedPlan=null;const d=parseLocalISO(logDate.value);if(!isNaN(d)){if(!editingSessionId)logTime.value=logDate.value===localISO(new Date())?currentClockHHMM():"";const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;applyLogWeekOverrideUi(false);logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();v3685RenderWorkoutTracker()}});
-logSession.addEventListener("change",e=>{if(logGuidedPlan&&logGuidedPlan.session!==logSession.value)logGuidedPlan=null;if(e.isTrusted)logWorkspaceSessionUserChanged=true;if(logSession.value==="Custom Workout"&&!workoutIntentForDate(logDate.value))beginManualWorkout("Custom Workout","mixed");else{loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();v3685RenderWorkoutTracker()}});
+logDate.addEventListener("change",()=>{clearLogGuidedSecondaryContext();if(logGuidedPlan&&logGuidedPlan.date!==logDate.value)logGuidedPlan=null;const d=parseLocalISO(logDate.value);if(!isNaN(d)){if(!editingSessionId)logTime.value=logDate.value===localISO(new Date())?currentClockHHMM():"";const tw=trainingWeekForDate(d);if(tw>=1)logWeek.value=tw;applyLogWeekOverrideUi(false);logSession.value=expectedSession(d.toLocaleDateString("en-US",{weekday:"long"}),tw>=1?tw:state.settings.currentWeek,logDate.value);loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();v3685RenderWorkoutTracker()}});
+logSession.addEventListener("change",e=>{if(e.isTrusted)clearLogGuidedSecondaryContext();if(logGuidedPlan&&logGuidedPlan.session!==logSession.value)logGuidedPlan=null;if(e.isTrusted)logWorkspaceSessionUserChanged=true;if(logSession.value==="Custom Workout"&&!workoutIntentForDate(logDate.value))beginManualWorkout("Custom Workout","mixed");else{loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();v3685RenderWorkoutTracker()}});
 function validateResistanceEffort(cards){
  if(logSession.value==="Recovery / Rest")return {ok:true};
  for(const card of cards){
@@ -14230,7 +14376,7 @@ function completeWorkout(){
    const prior=(state.settings.customDayWorkouts||{})[logDate.value]||{},name=document.getElementById("manualWorkoutName")?.value.trim()||prior.name||logSession.value,type=document.getElementById("manualWorkoutType")?.value||prior.type||"mixed";
    state.settings.customDayWorkouts[logDate.value]={name,type,session:logSession.value,rows:currentLogPlanRows(),updatedAt:Date.now()};
  }
- if(logSession.value==="Class / Activity"&&rows[0]){
+ if(!savedSessionSecondaryOnly&&logSession.value==="Class / Activity"&&rows[0]){
    ensureWorkoutIntentStores();state.settings.classOverrides=state.settings.classOverrides||{};state.settings.classScheduleMeta=state.settings.classScheduleMeta||{};state.settings.dayOverrides=state.settings.dayOverrides||{};state.settings.noRestDates=state.settings.noRestDates||{};
    const existingMeta=state.settings.classScheduleMeta[logDate.value]||{},existingIntent=workoutIntentForDate(logDate.value),
      stillClassControlled=state.settings.dayOverrides[logDate.value]==="Class / Activity"||(existingIntent?.selectedSession==="Class / Activity"&&existingIntent?.source==="class"),
@@ -14951,7 +15097,7 @@ function v3677PostProcessToday(session,dateISO){
 const v3677OriginalRenderSelectedWorkout=renderSelectedWorkout;renderSelectedWorkout=function(){window.__v3677SuppressEmbeddedSecondary=true;try{v3677OriginalRenderSelectedWorkout()}finally{window.__v3677SuppressEmbeddedSecondary=false}try{const d=parseLocalISO(selectedDateISO),gw=trainingWeekForDate(d);if(gw>=1||baseBuildingForDate(selectedDateISO)){const session=expectedSession(d.toLocaleDateString('en-US',{weekday:'long'}),gw,selectedDateISO);v3677PostProcessToday(session,selectedDateISO)}}catch(e){console.warn('v36.89 secondary UI:',e)}v3677EnhanceInlineChoices(tbList);v3678RestoreBlockModeDropdown()};
 
 function v3677EnhanceOneSelect(sel){if(!sel||sel.options.length<2||sel.options.length>7||sel.closest('.field')?.querySelector('.effort-chips'))return;if(sel.dataset.v3677Inline==='1'){const host=sel.nextElementSibling;if(host?.classList?.contains('inline-choice-buttons'))[...host.children].forEach(b=>{const on=b.dataset.value===sel.value;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false')});return}sel.dataset.v3677Inline='1';sel.classList.add('v3677-inline-hidden');const host=document.createElement('div');host.className='inline-choice-buttons';host.setAttribute('role','group');host.setAttribute('aria-label',sel.getAttribute('aria-label')||sel.closest('.field')?.querySelector('label')?.textContent||'Choice');[...sel.options].forEach(opt=>{const b=document.createElement('button');b.type='button';b.className='btn inline-choice-chip';b.dataset.value=opt.value;b.textContent=(opt.textContent||'').trim()||'Not entered';b.addEventListener('click',()=>{sel.value=opt.value;sel.dispatchEvent(new Event('change',{bubbles:true}));});host.appendChild(b)});sel.insertAdjacentElement('afterend',host);const sync=()=>[...host.children].forEach(b=>{const on=b.dataset.value===sel.value;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false')});sel.addEventListener('change',sync);sync()}
-const V3677_INLINE_SELECTOR=['#manualWorkoutType','#customExerciseStrength','#logGuidedBuilderType','#logGymDifficulty','#logGymRepStyle','#logCalDifficulty','#sessionFeel','#recommendationFeedback','#recPhysicalFatigue','#recEnergyLevel','#recSoreness','#bodyweightFoodState','#bodyweightBathroomState','#bodyweightExerciseState','#bodyweightFluidState','#bodyweightClothingState','#kbBuilderSlot','#gymDifficulty','#gymRepStyle','#calDifficulty','#classTypeFilter','#adaptiveDeloadMode','#runningLocationPreference','#defaultPoolPreset','#transitionMode','#transitionPullups','#transitionKbPlan','#transitionTiming','#transitionFocusType','#transitionFocusWeeks','#baseBuildingKbSetup','#adaptiveSEFreshness','select.le-swimstroke','select.le-poolpreset','select.le-rpe-confidence','select.le-tech','select.le-status','select.le-feel'].join(',');
+const V3677_INLINE_SELECTOR=['#manualWorkoutType','#customExerciseStrength','#logGuidedBuilderType','#logGymDifficulty','#logGymRepStyle','#logCalDifficulty','#logAerobicActivity','#logAerobicRpe','#logAerobicSwimStroke','#logAerobicPoolPreset','#logAerobicPoolUnit','#logSpeedActivity','#logSpeedRpe','#logSEKbSetup','#logSEFreshness','#logSEEmphasis','#logKbStyle','#logKbSetup','#logKbFocus','#logClassActivity','#sessionFeel','#recommendationFeedback','#recPhysicalFatigue','#recEnergyLevel','#recSoreness','#bodyweightFoodState','#bodyweightBathroomState','#bodyweightExerciseState','#bodyweightFluidState','#bodyweightClothingState','#kbBuilderSlot','#gymDifficulty','#gymRepStyle','#calDifficulty','#classTypeFilter','#adaptiveDeloadMode','#runningLocationPreference','#defaultPoolPreset','#transitionMode','#transitionPullups','#transitionKbPlan','#transitionTiming','#transitionFocusType','#transitionFocusWeeks','#baseBuildingKbSetup','#adaptiveSEFreshness','select.le-swimstroke','select.le-poolpreset','select.le-rpe-confidence','select.le-tech','select.le-status','select.le-feel'].join(',');
 function v3677EnhanceInlineChoices(root=document){if(root?.matches?.(V3677_INLINE_SELECTOR))v3677EnhanceOneSelect(root);root.querySelectorAll?.(V3677_INLINE_SELECTOR).forEach(v3677EnhanceOneSelect)}
 function v3678RestoreBlockModeDropdown(){const sel=document.getElementById('blockModeSelect');if(!sel)return;sel.classList.remove('v3677-inline-hidden');delete sel.dataset.v3677Inline;const host=sel.nextElementSibling;if(host?.classList?.contains('inline-choice-buttons'))host.remove()}
 const v3677InlinePending=new Set();let v3677InlineRaf=0;function v3677QueueInlineEnhance(root){if(!root||root.nodeType!==1)return;if(!(root.matches?.(V3677_INLINE_SELECTOR)||root.querySelector?.(V3677_INLINE_SELECTOR)))return;v3677InlinePending.add(root);if(v3677InlineRaf)return;v3677InlineRaf=requestAnimationFrame(()=>{v3677InlineRaf=0;const roots=[...v3677InlinePending];v3677InlinePending.clear();roots.forEach(r=>{if(r.isConnected)v3677EnhanceInlineChoices(r)})})}const v3677Observer=new MutationObserver(m=>{for(const x of m)for(const n of x.addedNodes)v3677QueueInlineEnhance(n)});v3677Observer.observe(document.body,{childList:true,subtree:true});
@@ -15572,7 +15718,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.132';
+const V3691_BUILD='36.133';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -16109,7 +16255,7 @@ function fullSecondWorkoutRecommendation(dateISO=localISO(new Date())){
   const gapHours=strengthMode&&firstStrength?4:(strengthMode!==firstStrength?3:3.5),waitHours=hoursSince===null?0:Math.max(0,gapHours-hoursSince),why=[];why.push('Automatic cadence/preference need contributes '+Math.round(urgency*10)/10+' points.');why.push('Same-day overlap with completed work is '+Math.round(overlap*100)+'%.');if(anchor.days===1)why.push('Tomorrow is a fixed '+anchor.session+' anchor, so interference is penalized more heavily.');if(waitHours>.1)why.push('For this combination, waiting about '+Math.ceil(waitHours*2)/2+' more hours would better separate the sessions.');else why.push('The logged-session timing leaves a reasonable same-day separation window.');options.push({...plan,score:Math.round(score*10)/10,overlap:Math.round(overlap*100)/100,futurePenalty:Math.round(future*10)/10,gapHours,waitHours:Math.round(waitHours*10)/10,why})}
  options.sort((a,b)=>b.score-a.score);const alreadyTwo=groups.length>=2,hardStop=alreadyTwo||readiness.recoveryGuard||maxSystem>=3.25||maxLocal>=3.4,top=options[0]||null,lowValue=!!top&&top.score<0,recommended=!hardStop&&!lowValue&&!!top,result={available:true,recommended,blocked:hardStop,lowValue,reason:alreadyTwo?'Two full workouts are already logged today. The second-session guide does not recommend a third full workout.':hardStop?'Current recovery/fatigue state is too compromised for the model to recommend another full workout today. That is different from saying all movement is prohibited.':lowValue?'A full second workout is possible in theory, but every complete option is currently low-value relative to same-day overlap, recent cadence, and the next fixed anchor. The model would stop at one full workout today.':top?'A separate full session is feasible if you still feel normal after the first workout and can recover for the next fixed anchor.':'No suitable second session could be built.',completedSessions:groups.length,firstSessions,readiness:{caution:!!readiness.caution,recoveryGuard:!!readiness.recoveryGuard,maxLocal:Math.round(maxLocal*100)/100,maxSystem:Math.round(maxSystem*100)/100},anchor,hoursSince:hoursSince===null?null:Math.round(hoursSince*10)/10,top,options:options.slice(0,4)};v36105SecondWorkoutCache.set(key,result);return result;
 }
-function openFullSecondWorkout(session,dateISO=localISO(new Date()),force=false){try{v36114LogPanel=''}catch(_e){}document.getElementById('log')?.classList.remove('v36114-advanced-open');if(typeof logSetupDetails!=='undefined'&&logSetupDetails)logSetupDetails.open=false;const rec=fullSecondWorkoutRecommendation(dateISO);if(Number(rec?.completedSessions)>=2)return false;const opt=(rec.options||[]).find(x=>x.session===session)||rec.top;if(!opt?.rows?.length)return false;const override=!!force||rec.recommended===false;logGuidedPlan={date:dateISO,session:opt.session,rows:JSON.parse(JSON.stringify(opt.rows)),name:(override?'Full Second Workout • User Override • ':'Full Second Workout • ')+opt.label,createdAt:Date.now(),secondFullWorkout:true,secondFullWorkoutOverride:override};showView('log',{preserveDate:true});logDate.value=dateISO;const tw=trainingWeekForDate(parseLocalISO(dateISO));logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value=opt.session;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():'';blankNextWorkout=false;loadPlannedSession();if(sessionNotes&&!String(sessionNotes.value||'').trim())sessionNotes.value=(override?'User override — model did not advise another full workout today. ':'')+'Full second workout • '+opt.label;renderWorkoutIntentUi();writeLogWorkspace();window.scrollTo({top:0,behavior:'smooth'});return true}
+function openFullSecondWorkout(session,dateISO=localISO(new Date()),force=false){clearLogGuidedSecondaryContext();try{v36114LogPanel=''}catch(_e){}document.getElementById('log')?.classList.remove('v36114-advanced-open');if(typeof logSetupDetails!=='undefined'&&logSetupDetails)logSetupDetails.open=false;const rec=fullSecondWorkoutRecommendation(dateISO);if(Number(rec?.completedSessions)>=2)return false;const opt=(rec.options||[]).find(x=>x.session===session)||rec.top;if(!opt?.rows?.length)return false;const override=!!force||rec.recommended===false;logGuidedPlan={date:dateISO,session:opt.session,rows:JSON.parse(JSON.stringify(opt.rows)),name:(override?'Full Second Workout • User Override • ':'Full Second Workout • ')+opt.label,createdAt:Date.now(),secondFullWorkout:true,secondFullWorkoutOverride:override};showView('log',{preserveDate:true});logDate.value=dateISO;const tw=trainingWeekForDate(parseLocalISO(dateISO));logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value=opt.session;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():'';blankNextWorkout=false;loadPlannedSession();if(sessionNotes&&!String(sessionNotes.value||'').trim())sessionNotes.value=(override?'User override — model did not advise another full workout today. ':'')+'Full second workout • '+opt.label;renderWorkoutIntentUi();writeLogWorkspace();window.scrollTo({top:0,behavior:'smooth'});return true}
 const v36105PriorInvalidate=utmInvalidateCaches;utmInvalidateCaches=function(){v36105WeakLinkCache.clear();v36105SecondWorkoutCache.clear();return v36105PriorInvalidate.apply(this,arguments)};
 
 
@@ -16234,7 +16380,7 @@ function v36114CurrentLogLabel(){
 }
 function v36114PrepareNextWorkoutLanding(dateISO=localISO(new Date())){
   const d=parseLocalISO(dateISO),tw=trainingWeekForDate(d);
-  setSessionEditMode("");logGuidedPlan=null;blankNextWorkout=true;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
+  clearLogGuidedSecondaryContext();setSessionEditMode("");logGuidedPlan=null;blankNextWorkout=true;logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
   logDate.value=dateISO;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():"";logWeek.value=tw>=1?tw:state.settings.currentWeek;applyLogWeekOverrideUi(false);logSession.value="Other";plannedExercises.innerHTML="";
   sessionFeel.value="";sessionNotes.value="";if(recommendationFeedback)recommendationFeedback.value="";if(recommendationFeedbackNote)recommendationFeedbackNote.value="";updateRecommendationFeedbackVisibility();clearWearableSessionForm();
   document.getElementById("log")?.classList.remove("v36114-advanced-open");if(logSetupDetails)logSetupDetails.open=false;
@@ -16242,13 +16388,13 @@ function v36114PrepareNextWorkoutLanding(dateISO=localISO(new Date())){
   v3685RenderWorkoutTracker();v36114RenderLogFlowChooser();
 }
 function v36114LoadRows(dateISO,session,rows,name="",note=""){
-  v36114LogPanel="";
+  clearLogGuidedSecondaryContext();v36114LogPanel="";
   logGuidedPlan={date:dateISO,session,rows:JSON.parse(JSON.stringify(rows||[])),name:name||session,createdAt:Date.now(),v36114:true};
   showView("log",{preserveDate:true});logDate.value=dateISO;const tw=trainingWeekForDate(parseLocalISO(dateISO));logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value=session;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():"";blankNextWorkout=false;loadPlannedSession();
   if(sessionNotes&&note&&!String(sessionNotes.value||"").trim())sessionNotes.value=note;document.getElementById("log")?.classList.remove("v36114-advanced-open");renderWorkoutIntentUi();v3685RenderWorkoutTracker();window.scrollTo({top:0,behavior:"smooth"});return true;
 }
 function v36114StartShortSecondary(dateISO=localISO(new Date())){
-  v36114LogPanel="";document.getElementById("log")?.classList.remove("v36114-advanced-open");if(logSetupDetails)logSetupDetails.open=false;
+  clearLogGuidedSecondaryContext();v36114LogPanel="";document.getElementById("log")?.classList.remove("v36114-advanced-open");if(logSetupDetails)logSetupDetails.open=false;
   const group=v36114LastFullWorkout(dateISO);if(!group)return false;const session=group.session,primary=v3677GroupActualPrimaryPlan(group,session,dateISO);let addOn=null;
   if(primary)try{addOn=v3677SecondaryForDisplay(session,dateISO,primary,true)}catch(_e){addOn=null}
   if(!addOn&&primary){v3677EnsureStores();state.settings.secondaryOverrides[dateISO]=Object.assign({},state.settings.secondaryOverrides[dateISO]||{},{force:true,skipped:false,deferred:false,tune:""});save("log-short-secondary-override");try{addOn=v3677SecondaryForDisplay(session,dateISO,primary,true)}catch(_e){addOn=null}}
@@ -16273,7 +16419,7 @@ function v36114BuildAdaptiveStrength(dateISO,type){
   return false;
 }
 function v36114StartCustomWorkout(dateISO=localISO(new Date())){
-  v36114LogPanel="";showView("log",{preserveDate:true});logGuidedPlan=null;blankNextWorkout=false;const tw=trainingWeekForDate(parseLocalISO(dateISO));logDate.value=dateISO;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():"";logWeek.value=tw>=1?tw:state.settings.currentWeek;applyLogWeekOverrideUi(false);logSession.value="Custom Workout";plannedExercises.innerHTML="";appendAdditionalLogExercise();
+  clearLogGuidedSecondaryContext();v36114LogPanel="";showView("log",{preserveDate:true});logGuidedPlan=null;blankNextWorkout=false;const tw=trainingWeekForDate(parseLocalISO(dateISO));logDate.value=dateISO;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():"";logWeek.value=tw>=1?tw:state.settings.currentWeek;applyLogWeekOverrideUi(false);logSession.value="Custom Workout";plannedExercises.innerHTML="";appendAdditionalLogExercise();
   const n=document.getElementById("manualWorkoutName"),t=document.getElementById("manualWorkoutType");if(n)n.value=v36114FullWorkoutGroups(dateISO).length?"Additional Workout":"Custom Workout";if(t)t.value="mixed";if(sessionNotes&&!String(sessionNotes.value||"").trim())sessionNotes.value=v36114FullWorkoutGroups(dateISO).length?"Additional user-built workout.":"User-built workout.";
   document.getElementById("log")?.classList.remove("v36114-advanced-open");if(logSetupDetails)logSetupDetails.open=false;renderWorkoutIntentUi();v3685RenderWorkoutTracker();window.scrollTo({top:0,behavior:"smooth"});return true;
 }
@@ -17219,7 +17365,7 @@ window.__v36130SecondaryStrengthEquipmentContext=secondaryStrengthEquipmentConte
   function rowsHtml(rows,limit=4){return (rows||[]).slice(0,limit).map(r=>{const rx=r.conditioning?(r.plannedTarget||r.target||'Conditioning'):[r.sets&&r.reps?`${r.sets} × ${r.reps}`:'',r.weight||''].filter(Boolean).join(' • ');return '<div class="v36123-row"><strong>'+htmlSafe(r.exercise||'Secondary')+'</strong><span>'+htmlSafe(rx)+'</span></div>'}).join('')}
   function loadRows(dateISO,session,rows,name,note,kind){
     if(!rows?.length)return false;
-    const short=kind==='short',clean=JSON.parse(JSON.stringify(rows));
+    clearLogGuidedSecondaryContext();const short=kind==='short',clean=JSON.parse(JSON.stringify(rows));
     if(short)clean.forEach(r=>{r.adaptiveSecondaryBlock=true;r.secondaryTrainingType=r.secondaryTrainingType||(session==='Conditioning'?'conditioning':session==='Calisthenics'?'calisthenics':/^KB /.test(session)?'kettlebell':'gym');r.secondaryCadenceCredit=Number(r.secondaryCadenceCredit)||.15});
     logGuidedPlan={date:dateISO,session,rows:clean,name,createdAt:Date.now(),v36123:true,secondaryOnly:short,manualShortSecondary:short,secondFullWorkout:!short,secondFullWorkoutOverride:true};
     showView('log',{preserveDate:true});logDate.value=dateISO;const tw=trainingWeekForDate(parseLocalISO(dateISO));logWeek.value=tw>=1?tw:state.settings.currentWeek;logSession.value=session;logTime.value=dateISO===localISO(new Date())?currentClockHHMM():'';blankNextWorkout=false;loadPlannedSession();if(sessionNotes&&!String(sessionNotes.value||'').trim())sessionNotes.value=note||'';renderWorkoutIntentUi();try{v3685RenderWorkoutTracker()}catch(_e){}try{writeLogWorkspace()}catch(_e){}window.scrollTo({top:0,behavior:'smooth'});return true;
@@ -17254,12 +17400,20 @@ window.__v36130SecondaryStrengthEquipmentContext=secondaryStrengthEquipmentConte
     let session='',rows=[],label=family;
     if(family==='gym'){const p=recommendedAdaptiveGymForDate(dateISO);session='Generic Gym';rows=p?.plan?.rows||[];label=p?.label||'Generic Gym'}
     else if(family==='cal'){const p=recommendedAdaptiveCalisthenicsForDate(dateISO);session='Calisthenics';rows=p?.plan?.rows||[];label=p?.label||'Calisthenics'}
-    else if(family==='se'){session='Strength-Endurance';rows=adaptiveSEPlanForDate(dateISO)||[];label='Strength-Endurance'}
+    else if(family==='se'){
+      session='Strength-Endurance';rows=adaptiveSEPlanForDate(dateISO)||[];label='Strength-Endurance';
+      if(!rows.length){const equipment=state.settings.adaptiveSELastEquipment||['bodyweight','pullupBar','bands','dumbbells','kettlebells','kbSetup:all','barbell','bench','machines'],rx=adaptiveSEPrescription(dateISO),circuit=generateAdaptiveSECircuit(equipment,dateISO+'|optimized-secondary-se',rx.reps);rows=circuit.map(r=>({exercise:r.exercise,sets:rx.circuits,reps:rx.reps,weight:adaptiveSELoadText(r.exercise,dateISO,equipment,rx.reps,rx.circuits),numeric:null,bar:false,meta:'OPTIMIZED SE • '+rx.circuits+' circuits × '+rx.reps+' reps',note:'Model-built one-day Strength-Endurance circuit from current recovery, fatigue, available time, equipment, and nearby anchors.'}))}
+    }
     else if(family==='kb-heavy'||family==='kb-power'||family==='kb-volume'){session=family==='kb-heavy'?'KB Heavy':family==='kb-power'?'KB Power':'KB Volume';const pd=programPrescriptionDate(dateISO),pg=programPrescriptionWeek(dateISO);rows=getKbPlan(session,pg,pd)||[];label=session}
     else if(family==='kb-short'){session='KB Power';const pd=programPrescriptionDate(dateISO),pg=programPrescriptionWeek(dateISO);rows=getKbPlan(session,pg,pd)||[];label='Kettlebell microdose'}
     if(kind==='short')rows=cloneShortRows(rows,family==='se'?3:2);else rows=(rows||[]).filter(r=>!r.adaptiveSecondaryBlock);
     if(!rows.length)return false;
     rememberCustom(dateISO,kind==='short'?'custom-short':'custom-full',label,label,session);return loadRows(dateISO,session,rows,(kind==='short'?'Custom Short • ':'Custom Full • ')+label,'User-selected '+kind+' '+label+' secondary.',kind);
+  }
+  function customGuidedFamily(dateISO,kind,type){
+    const info=LOG_GUIDED_TYPES[type]||LOG_GUIDED_TYPES.calisthenics,label='Customize '+info.label;
+    rememberCustom(dateISO,kind==='short'?'custom-short':'custom-full',label,label+' • configure',info.session);
+    return openLogGuidedSecondaryBuilder(dateISO,type,kind);
   }
   function customBlank(dateISO,kind){
     v36114StartCustomWorkout(dateISO);const short=kind==='short',name=short?'Custom Short Secondary':'Custom Full Secondary';
@@ -17287,20 +17441,27 @@ window.__v36130SecondaryStrengthEquipmentContext=secondaryStrengthEquipmentConte
   }
   function familyChooser(box,st,dateISO){
     if(!['custom-short','custom-full'].includes(st.requested))return;const kind=st.requested==='custom-short'?'short':'full',wrap=document.createElement('div');wrap.className='v36123-family-wrap';wrap.innerHTML='<div class="v36123-family-title">Choose '+(kind==='short'?'short-secondary':'full-secondary')+' type</div><div class="v36123-family-copy">This changes only the secondary. Your primary stays exactly as selected above.</div><div class="v36123-family-grid"></div>';const g=wrap.querySelector('.v36123-family-grid');
-    addFamily(g,'LSS / Aerobic',kind==='short'?'Brief easy aerobic dose':'Full steady-state endurance session',()=>customLss(dateISO,kind));
-    addFamily(g,'Sprints / HIC',kind==='short'?'Short speed/power microdose':'Full hard-conditioning session',()=>customSpeed(dateISO,kind));
-    addFamily(g,'Generic Gym',kind==='short'?'Brief resistance block':'Full adaptive gym session',()=>customStrength(dateISO,kind,'gym'));
-    addFamily(g,'Calisthenics',kind==='short'?'Brief bodyweight block':'Full bodyweight session',()=>customStrength(dateISO,kind,'cal'));
+    addFamily(g,kind==='short'?'LSS / Aerobic':'Use optimized LSS / Aerobic',kind==='short'?'Brief easy aerobic dose':'Load the model-selected full endurance session',()=>customLss(dateISO,kind));
+    addFamily(g,kind==='short'?'Sprints / HIC':'Use optimized Sprints / HIC',kind==='short'?'Short speed/power microdose':'Load the model-selected full hard-conditioning session',()=>customSpeed(dateISO,kind));
+    addFamily(g,kind==='short'?'Generic Gym':'Use optimized Gym',kind==='short'?'Brief model-built resistance block':'Load the model-built full Gym plan',()=>customStrength(dateISO,kind,'gym'));
+    addFamily(g,kind==='short'?'Calisthenics':'Use optimized Calisthenics',kind==='short'?'Brief model-built bodyweight block':'Load the model-built full bodyweight plan',()=>customStrength(dateISO,kind,'cal'));
     if(kind==='short'){
       addFamily(g,'SE microdose','Brief circuit dose',()=>customStrength(dateISO,'short','se'));
       addFamily(g,'Kettlebell','Brief KB power-oriented block',()=>customStrength(dateISO,'short','kb-short'));
     }else{
-      addFamily(g,'SE Circuit','Full strength-endurance circuit',()=>customStrength(dateISO,'full','se'));
-      addFamily(g,'KB Heavy','Full kettlebell heavy session',()=>customStrength(dateISO,'full','kb-heavy'));
-      addFamily(g,'KB Power','Full kettlebell power session',()=>customStrength(dateISO,'full','kb-power'));
-      addFamily(g,'KB Volume','Full kettlebell volume session',()=>customStrength(dateISO,'full','kb-volume'));
+      addFamily(g,'Customize LSS / Aerobic','Choose modality, time, effort, target, and swim setup when relevant',()=>customGuidedFamily(dateISO,'full','aerobic'));
+      addFamily(g,'Customize Sprints / HIC','Choose the session, time, effort, and work/rest target',()=>customGuidedFamily(dateISO,'full','speed'));
+      addFamily(g,'Customize Gym','Choose muscles, equipment, difficulty, and time',()=>customGuidedFamily(dateISO,'full','gym'));
+      addFamily(g,'Customize Calisthenics','Choose available gear, target areas, difficulty, and time',()=>customGuidedFamily(dateISO,'full','calisthenics'));
+      addFamily(g,'Use optimized SE','Load the model-built full strength-endurance circuit',()=>customStrength(dateISO,'full','se'));
+      addFamily(g,'Customize Strength-Endurance','Choose equipment, time, freshness, and circuit order',()=>customGuidedFamily(dateISO,'full','se'));
+      addFamily(g,'Use optimized KB Heavy','Load the adaptive heavy kettlebell plan',()=>customStrength(dateISO,'full','kb-heavy'));
+      addFamily(g,'Use optimized KB Power','Load the adaptive power kettlebell plan',()=>customStrength(dateISO,'full','kb-power'));
+      addFamily(g,'Use optimized KB Volume','Load the adaptive volume kettlebell plan',()=>customStrength(dateISO,'full','kb-volume'));
+      addFamily(g,'Customize Kettlebell','Choose Heavy, Power, or Volume plus bells, time, and focus',()=>customGuidedFamily(dateISO,'full','kettlebell'));
+      addFamily(g,'Build Class / Activity','Choose the exact class, sport, or activity plus planned duration and effort',()=>customGuidedFamily(dateISO,'full','class'));
     }
-    addFamily(g,'Blank custom','Start empty and build it yourself',()=>customBlank(dateISO,kind));box.appendChild(wrap);
+    addFamily(g,'Start blank','Build a completely new workout with no model-selected exercises',()=>customBlank(dateISO,kind));box.appendChild(wrap);
   }
   function build(dateISO,session,st=stateFor(dateISO,session)){
     const box=document.createElement('section');box.className='v36123-secondary-matrix';box.dataset.v36123='secondary-matrix';
@@ -18193,8 +18354,8 @@ window.HybridCore=Object.seal({
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>scan());else scan();new MutationObserver(items=>items.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)scan(n)}))).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
-<script src="app-shell-v36.119.js?v=36.132"></script>
-<script src="adaptive-personalization-v36.120.js?v=36.132"></script>
+<script src="app-shell-v36.119.js?v=36.133"></script>
+<script src="adaptive-personalization-v36.120.js?v=36.133"></script>
 
 <script id="v36116-build-note">
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.

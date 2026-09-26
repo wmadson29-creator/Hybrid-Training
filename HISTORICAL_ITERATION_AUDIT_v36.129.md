@@ -215,6 +215,7 @@ This hotfix is the local layer on top of the audited remote release.
 | Build | Auditable change set |
 |:---|:---|
 | v36.132 | Recovery lookup correction: an omitted/default timestamp returns the current saved observation instead of being coerced to Unix timestamp zero. |
+| v36.133 | Universal full-secondary creation: optimized one-tap plans remain available, every workout family gains modality-specific customization, and a blank path supports a completely new workout without changing primary-calendar identity. |
 
 ## Rules that were deliberately superseded
 
@@ -245,6 +246,7 @@ The cumulative v36.132 source and regression suite preserve the following high-r
 10. **Swimming remains its own cadence lane.** It is not treated as interchangeable with running or converted into resistance-training sets.
 11. **Body measurements remain context, not destiny.** Height/reach can explain range-of-motion or stroke-length context but do not override direct performance.
 12. **Completed and secondary calendar states use distinguishable styling.** This resolves the previously confusing shared-color treatment.
+13. **Full second workouts stay secondary.** Guided, optimized, and blank full-secondary sessions contribute actual load without replacing the date's primary program or calendar identity.
 
 ## Findings and resolution
 
@@ -277,7 +279,7 @@ The requested implementation was applied only after the historical audit above w
 - Barbell Forearm Curl now has validated loading, anatomy, and relationship metadata.
 - At the time of v36.129, the regression suite passed 133/133 checks and the then-current v36.127 export passed with zero warnings.
 
-## v36.130–v36.132 follow-through
+## v36.130–v36.133 follow-through
 
 - Equipment availability is now profile-specific for Main Gym, Home, and Travel; one machine can belong to any combination of those profiles without being moved between them.
 - Recommendation choices are stable across view changes, feedback is attributed to performed work, and reasons use concise user-facing language rather than internal score terminology.
@@ -285,3 +287,4 @@ The requested implementation was applied only after the historical audit above w
 - Import now previews and validates before mutation, migrations run against the imported schema in the correct order, and durable storage is verified with rollback on failure.
 - At v36.131, the static regression suite passed 169/169 checks. The latest supplied v36.128 export passes the audit with zero errors and two data-quality warnings: legacy strength rows carrying irrelevant planned-minute values and one swim-distance/lap mismatch.
 - v36.132 fixes the v36.131 default recovery-selector regression: saved recovery rows were intact, but `null` was coerced to timestamp zero, so derived readiness and model consumers saw no current observation. It also makes saved date-specific context visible and independently correctable in History. The supplied export retains and exposes all 30 recovery days after the fix, and the expanded static suite passes 176/176 checks.
+- v36.133 preserves the optimized secondary recommendations and adds guided customization for LSS / Aerobic, Sprints / HIC, Gym, Calisthenics, Strength-Endurance, Kettlebell, and Class / Activity, plus a fully blank path. Planned dose remains separate from actual completion, one-time equipment stays date-specific, and every full-secondary path is prevented from rewriting the primary calendar state. The expanded static/model suite passes 185/185 checks.
