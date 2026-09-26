@@ -1,16 +1,16 @@
-const BUILD="36.131";
+const BUILD="36.132";
 const CACHE="hybrid-training-v36-131-decision-integrity-ui-qa";
-const FALLBACK="./index.html?v=36.131";
-const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.131";
+const FALLBACK="./index.html?v=36.132";
+const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.132";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.131",
-  "./decision-integrity-v36.131.js?v=36.131",
-  "./actual-load-feedback-v36.126.js?v=36.131",
-  "./forecast-balance-v36.127.js?v=36.131",
-  "./exercise-expansion-v36.128.js?v=36.131",
-  "./app-shell-v36.119.css?v=36.131",
-  "./app-shell-v36.119.js?v=36.131",
+  "./manifest-v36.webmanifest?v=36.132",
+  "./decision-integrity-v36.131.js?v=36.132",
+  "./actual-load-feedback-v36.126.js?v=36.132",
+  "./forecast-balance-v36.127.js?v=36.132",
+  "./exercise-expansion-v36.128.js?v=36.132",
+  "./app-shell-v36.119.css?v=36.132",
+  "./app-shell-v36.119.js?v=36.132",
   "./stretching-flexibility-v36.119.js?v=36.119-sf1",
   PERSONALIZATION
 ];

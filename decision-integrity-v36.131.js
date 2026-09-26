@@ -1,4 +1,4 @@
-/* Hybrid Training v36.131: decision integrity, migrations, dose comparison, and planning horizon. */
+/* Hybrid Training v36.132: decision integrity, migrations, dose comparison, and planning horizon. */
 (function(root,factory){
   'use strict';
   const api=factory();
@@ -153,6 +153,43 @@
     return {version:1,startDate:start,weeks,commitHours,priorities,weeks:weeksOut,note:'Only the next 72 hours are treated as a firm adaptive commitment. Later flexible days are re-scored from completed work, recovery, and fixed anchors.'};
   }
 
+  function selectRecoveryObservation(current,history=[],asOfTimestamp=null){
+    if(asOfTimestamp===null||asOfTimestamp===undefined||asOfTimestamp==='')return current||null;
+    const limit=Number(asOfTimestamp);if(!Number.isFinite(limit))return current||null;
+    const rows=[...(Array.isArray(history)?history:[]),...(record(current)?[current]:[])].filter(record);
+    return rows.filter(row=>finite(row.observedAt||row._savedAt,0)<=limit).sort((a,b)=>finite(a.observedAt||a._savedAt,0)-finite(b.observedAt||b._savedAt,0)).at(-1)||null;
+  }
+
+  function mergeDayContext(existing={},patch={},updatedAt=Date.now()){
+    const prior=record(existing)?existing:{},change=record(patch)?patch:{},next={...prior,...change};
+    if(Object.prototype.hasOwnProperty.call(change,'traveling')){
+      next.traveling=!!change.traveling;
+      if(next.traveling)next.environment='travel_indoor';
+      else if(!Object.prototype.hasOwnProperty.call(change,'environment')&&next.environment==='travel_indoor')next.environment='normal';
+    }
+    if(Object.prototype.hasOwnProperty.call(change,'environment'))next.traveling=String(change.environment)==='travel_indoor';
+    next.updatedAt=finite(updatedAt,Date.now());
+    return next;
+  }
+
+  function dayContextSummary(context={}){
+    if(!record(context))return {meaningful:false,parts:[],text:''};
+    const parts=[],add=value=>{if(value&&!parts.includes(value))parts.push(value)},environment=String(context.environment||'');
+    if(context.traveling===true||environment==='travel_indoor')add('Traveling');
+    else if(environment&&environment!=='normal')add(({hot:'Hot conditions',extreme_heat:'Extreme heat',poor_air:'Poor air',storms:'Storms'}[environment]||environment.replaceAll('_',' ')));
+    if(context.sickReturn===true)add('Sick / returning');
+    if(context.verySore===true)add('Very sore');
+    if(context.limitedEquipment===true)add('Limited equipment');
+    if(context.gymAccess==='no')add('No gym');else if(context.gymAccess==='on_site')add('Gym on-site');
+    if(context.poolAccess==='no')add('No pool');else if(context.poolAccess==='yes')add('Pool available');
+    if(context.gymEquipmentProfile)add(String(context.gymEquipmentProfile)+' equipment profile');
+    const kb={none:'No kettlebells','40single':'40 lb kettlebell only','70single':'One 70 lb kettlebell','70pair':'Pair of 70 lb kettlebells'}[context.kbMode];if(kb)add(kb);
+    const minutes=finite(context.timeBudget,0);if(minutes>0)add(Math.round(minutes)+' min available');
+    if(context.timeOfDay&&context.timeOfDay!=='auto')add(String(context.timeOfDay).replace(/^./,x=>x.toUpperCase()));
+    if(context.fedState&&context.fedState!=='auto')add(({fasted:'Fasted',light:'Light meal',fed:'Fed',full:'Very full'}[context.fedState]||String(context.fedState)));
+    return {meaningful:parts.length>0,parts,text:parts.join(' • '),updatedAt:finite(context.updatedAt||context._savedAt,0)||null};
+  }
+
   function normalizeEquipmentProfiles(settings){
     settings.gymAvailability=record(settings.gymAvailability)?settings.gymAvailability:{};
     settings.gymEquipmentProfiles=record(settings.gymEquipmentProfiles)?settings.gymEquipmentProfiles:{};
@@ -194,6 +231,6 @@
 
   return Object.freeze({
     version:VERSION,schemaVersion:SCHEMA_VERSION,stableStringify,hashString,evidenceRevision,snapshotValid,recommendationPreference,evidenceQuality,
-    normalizeUnit,doseNumber,componentDoseProfile,painFlag,painConstraint,summarizeReasons,recommendationDecision,developmentHorizon,migrateState,normalizeEquipmentProfiles
+    normalizeUnit,doseNumber,componentDoseProfile,painFlag,painConstraint,summarizeReasons,recommendationDecision,developmentHorizon,selectRecoveryObservation,mergeDayContext,dayContextSummary,migrateState,normalizeEquipmentProfiles
   });
 });

@@ -2,11 +2,11 @@
 
 Audit date: 2026-09-25  
 Repository: `wmadson29-creator/Hybrid-Training`  
-Audited history: all 138 commits reachable from local `main` and `origin/main` through remote commit `0c94421`, plus the cumulative v36.129–v36.131 working tree
+Audited history: all commits reachable through remote v36.131 commit `44f793a`, plus the v36.132 recovery-readiness hotfix
 
 ## Executive result
 
-I inspected every archived repository state, not just the commit messages. The repository contains 138 commits across two unmerged tips that fork after v36.120. Of those commits, 131 change the tree relative to their parent, 7 are byte-identical no-op commits, and the two v36.121/v36.122 snapshots are duplicated across the local and remote branches. That yields 129 distinct tree snapshots across all refs. There are no tags or merge commits.
+I inspected every archived repository state, not just the commit messages. The repository contains 140 commits across two unmerged tips that fork after v36.120. Of those commits, 133 change the tree relative to their parent, 7 are byte-identical no-op commits, and the two v36.121/v36.122 snapshots are duplicated across the local and remote branches. That yields 131 distinct tree snapshots across all refs. There are no tags or merge commits.
 
 Most commit titles are the generic `Add files via upload`, so the chronology below was reconstructed from each commit's actual file tree, diff, embedded build identifiers, update notes, QA reports, and research documents. The generic titles were not treated as evidence of what changed.
 
@@ -24,15 +24,15 @@ The audit also found one concrete regression relevant to the requested update: v
 
 ## Coverage and limitations
 
-- Audited refs: local `main` through `a766050` and `origin/main` through `0c94421`.
+- Audited refs: local `main` through `a766050` and `origin/main` through `44f793a`.
 - Topology: two unmerged branch tips after common v36.120 commit `236dcf0`; no merge commits or tags. The first two remote continuation trees are byte-identical to local v36.121 and v36.122, so the semantic release sequence remains coherent even though the commit hashes differ.
-- Commits across all refs: 138.
-- Commits that change their parent tree: 131.
-- Distinct archived tree snapshots across all refs: 129.
+- Commits across all refs: 140.
+- Commits that change their parent tree: 133.
+- Distinct archived tree snapshots across all refs: 131.
 - Exact no-op commits: `8f5fc96`, `13c30b9`, `817064f`, `423a4e2`, `379e157`, `b8aed02`, and `494849c`.
 - Cross-branch duplicate snapshots: local `d0b91f2` equals remote `daf8b69` (v36.121), and local `a766050` equals remote `05c14ab` (v36.122).
 - Some displayed version numbers were skipped or bundled. A number that never existed as a distinct commit cannot be reconstructed as an exact standalone tree. Bundled changes are identified below.
-- v36.123–v36.128 are archived on `origin/main`, although several numbered builds were bundled into a later release commit rather than preserved as one Git commit per displayed version.
+- v36.123–v36.131 are archived on `origin/main`, although several numbered builds were bundled into a later release commit rather than preserved as one Git commit per displayed version.
 
 ## Every archived iteration
 
@@ -193,9 +193,9 @@ The audit also found one concrete regression relevant to the requested update: v
 | 131 | `d0b91f2` | v36.121 | Moved-anchor reflow and Steps summary. |
 | 132 | `a766050` | v36.122 | Accepted conditioning selection became canonical in calendar and workout views. |
 
-## Remote continuation through v36.128
+## Remote continuation through v36.131
 
-The remote branch independently uploaded byte-identical v36.121 and v36.122 trees, then continued through v36.128. Some displayed versions were bundled rather than committed one at a time.
+The remote branch independently uploaded byte-identical v36.121 and v36.122 trees, then continued through v36.131. Some displayed versions were bundled rather than committed one at a time.
 
 | # | Commit | Build visible in tree | Semantic change verified from tree/diff |
 |---:|:---|:---|:---|
@@ -204,17 +204,17 @@ The remote branch independently uploaded byte-identical v36.121 and v36.122 tree
 | 135 | `0b64571` | v36.124 | Bundled v36.123–v36.124 secondary-choice, display-consistency, and tissue-stress work. |
 | 136 | `d43cc81` | v36.125 | Muscle-specific development/frequency, whole-athlete benchmarks, stroke-aware swimming, storage/import hardening, accessibility, calendar cues, and executable QA. |
 | 137 | `c69d57e` | v36.127 | Bundled v36.126–v36.127 actual-versus-planned feedback, forecast balancing, endurance protection, anthropometry context, and export repair. |
-| 138 | `0c94421` | v36.128 | Exercise expansion, evidence-gated balance refinements, calibration cleanup, searchable exercise pickers, and plain-language UI copy. This is the audited `origin/main`. |
+| 138 | `0c94421` | v36.128 | Exercise expansion, evidence-gated balance refinements, calibration cleanup, searchable exercise pickers, and plain-language UI copy. |
+| 139 | `f791949` | v36.130 | Bundled v36.129–v36.130 active-workout insertion, explicit unplanned semantics, localized soreness/pain, equipment controls, recommendation stabilization, and import/backup hardening. |
+| 140 | `44f793a` | v36.131 | Decision/evidence persistence, component-dose feedback, overlapping equipment profiles, encrypted backups, import preview/rollback, and expanded QA. This is the audited `origin/main`. |
 
-## Current working-tree iterations after origin v36.128
+## Current working-tree iteration after origin v36.131
 
-These builds are the new cumulative local layer on top of the audited remote release.
+This hotfix is the local layer on top of the audited remote release.
 
 | Build | Auditable change set |
 |:---|:---|
-| v36.129 | Active-workout exercise insertion, explicit unplanned-work semantics, Barbell Forearm Curl, and audit-driven regression coverage. |
-| v36.130 | Localized soreness and pain, equipment availability controls, exercise-library expansion, recommendation stabilization, reason-copy cleanup, and import/backup hardening. |
-| v36.131 | Three-week planning horizon, durable decision/evidence records, component-dose feedback, independent overlapping equipment profiles, encrypted backups, import preview/rollback, expanded browser QA, and final integration fixes. |
+| v36.132 | Recovery lookup correction: an omitted/default timestamp returns the current saved observation instead of being coerced to Unix timestamp zero. |
 
 ## Rules that were deliberately superseded
 
@@ -231,7 +231,7 @@ These builds are the new cumulative local layer on top of the audited remote rel
 
 ## Current invariant verification
 
-The cumulative v36.131 source and regression suite preserve the following high-risk rules:
+The cumulative v36.132 source and regression suite preserve the following high-risk rules:
 
 1. **Fixed anchors win.** Automatic forecast balancing cannot rewrite fixed Barbell Strength, KB, moved-program, or Base Building anchors.
 2. **Barbell deadlift placement is exact.** In Barbell Strength-only blocks it appears Monday and Friday for one work set, never Wednesday; it is absent from hybrid blocks.
@@ -277,10 +277,11 @@ The requested implementation was applied only after the historical audit above w
 - Barbell Forearm Curl now has validated loading, anatomy, and relationship metadata.
 - At the time of v36.129, the regression suite passed 133/133 checks and the then-current v36.127 export passed with zero warnings.
 
-## v36.130–v36.131 follow-through
+## v36.130–v36.132 follow-through
 
 - Equipment availability is now profile-specific for Main Gym, Home, and Travel; one machine can belong to any combination of those profiles without being moved between them.
 - Recommendation choices are stable across view changes, feedback is attributed to performed work, and reasons use concise user-facing language rather than internal score terminology.
 - Localized soreness and pain constrain the relevant tissues and movements, with explicit resolution controls rather than a permanent global penalty.
 - Import now previews and validates before mutation, migrations run against the imported schema in the correct order, and durable storage is verified with rollback on failure.
-- The current static regression suite passes 169/169 checks. The latest supplied v36.128 export passes the audit with zero errors and two data-quality warnings: legacy strength rows carrying irrelevant planned-minute values and one swim-distance/lap mismatch.
+- At v36.131, the static regression suite passed 169/169 checks. The latest supplied v36.128 export passes the audit with zero errors and two data-quality warnings: legacy strength rows carrying irrelevant planned-minute values and one swim-distance/lap mismatch.
+- v36.132 fixes the v36.131 default recovery-selector regression: saved recovery rows were intact, but `null` was coerced to timestamp zero, so derived readiness and model consumers saw no current observation. It also makes saved date-specific context visible and independently correctable in History. The supplied export retains and exposes all 30 recovery days after the fix, and the expanded static suite passes 176/176 checks.
