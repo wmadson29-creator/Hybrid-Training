@@ -1,16 +1,16 @@
-const BUILD="36.135";
-const CACHE="hybrid-training-v36-135-canonical-defaults-gym-variety";
-const FALLBACK="./index.html?v=36.135";
-const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.135";
+const BUILD="36.136";
+const CACHE="hybrid-training-v36-136-render-loop-hotfix";
+const FALLBACK="./index.html?v=36.136";
+const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.136";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.135",
-  "./decision-integrity-v36.131.js?v=36.135",
-  "./actual-load-feedback-v36.126.js?v=36.135",
-  "./forecast-balance-v36.127.js?v=36.135",
-  "./exercise-expansion-v36.128.js?v=36.135",
-  "./app-shell-v36.119.css?v=36.135",
-  "./app-shell-v36.119.js?v=36.135",
+  "./manifest-v36.webmanifest?v=36.136",
+  "./decision-integrity-v36.131.js?v=36.136",
+  "./actual-load-feedback-v36.126.js?v=36.136",
+  "./forecast-balance-v36.127.js?v=36.136",
+  "./exercise-expansion-v36.128.js?v=36.136",
+  "./app-shell-v36.119.css?v=36.136",
+  "./app-shell-v36.119.js?v=36.136",
   "./stretching-flexibility-v36.119.js?v=36.119-sf1",
   PERSONALIZATION
 ];

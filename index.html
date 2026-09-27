@@ -10,16 +10,16 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.135">
-<script src="decision-integrity-v36.131.js?v=36.135"></script>
-<script src="actual-load-feedback-v36.126.js?v=36.135"></script>
-<script src="forecast-balance-v36.127.js?v=36.135"></script>
-<script src="exercise-expansion-v36.128.js?v=36.135"></script>
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.136">
+<script src="decision-integrity-v36.131.js?v=36.136"></script>
+<script src="actual-load-feedback-v36.126.js?v=36.136"></script>
+<script src="forecast-balance-v36.127.js?v=36.136"></script>
+<script src="exercise-expansion-v36.128.js?v=36.136"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
 <meta name="apple-mobile-web-app-title" content="Hybrid Training">
-<link rel="stylesheet" href="app-shell-v36.119.css?v=36.135">
+<link rel="stylesheet" href="app-shell-v36.119.css?v=36.136">
 <style>
 :root{
   --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
@@ -2047,7 +2047,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.135</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
+      <div class="notice"><strong>Adaptive Engine v36.136</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -6736,10 +6736,10 @@ function rollingOpenDayRecommendation(dateISO,options={}){
  const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),bbSession=baseBuildingSessionForDate(dateISO),base=programScheduledSessionForDate(dateISO),mode=isManualProgramPauseDate(dateISO)?'paused':blockModeForWeek(gw);
  if(!rollingOpenDayEligible(dateISO,base))return {session:base,label:base,score:0,why:['This date is a fixed program anchor rather than an adaptive open day.'],options:[]};
  const forecastKey=rollingForecastActive?'|forecast:'+rollingForecastVirtualRows.map(r=>r.date+':'+r.session+':'+r.exercise).join(';'):'';const key=utmModelRevision+'|rolling-open|'+dateISO+'|'+(options.suppressRest?'no-rest':'rest-ok')+forecastKey;if(rollingOpenDayCache.has(key))return rollingOpenDayCache.get(key);
- // Only a true same-date recursion needs the fail-soft placeholder. A different date may
- // legitimately be scored while this date inspects the nearby schedule. The old global
- // `size` guard leaked the base-day Active Recovery placeholder into unrelated UI calls.
- if(rollingOpenDayResolving.has(dateISO)){const fallback=base==='Conditioning'?'Conditioning':'Active Recovery';return {session:fallback,label:fallback,score:0,transientResolutionFallback:true,why:['Temporary same-date fallback while the canonical recommendation is resolving.'],options:[]}}
+ // Recommendation scoring inspects nearby days. Keep that dependency walk single-threaded:
+ // allowing date A to fully score date B, which scores A again, causes an explosive render
+ // loop. The placeholder is explicitly transient so it can never become a UI default.
+ if(rollingOpenDayResolving.size){const fallback=base==='Conditioning'?'Conditioning':'Active Recovery';return {session:fallback,label:fallback,score:0,transientResolutionFallback:true,why:['Temporary dependency fallback while the canonical recommendation is resolving.'],options:[]}}
  rollingOpenDayResolving.add(dateISO);
  try{
    const readiness=adaptiveReadiness(dateISO),goal=utmGoalWeights(dateISO).weights,stim=rollingStimulusState(dateISO),endurance=rollingEnduranceState(dateISO),anchor=nextFixedTrainingAnchor(dateISO,5),prior=rollingDayPriors(mode,day),noRest=!!((state.settings.noRestDates||{})[dateISO]),scores={...prior},why={Conditioning:[], 'Strength-Endurance':[], 'Generic Gym':[], Calisthenics:[], 'Active Recovery':[], 'Recovery / Rest':[]};
@@ -7017,7 +7017,7 @@ function expectedSession(day,gw,dateISO=""){
  if(shortFocus&&!scheduledClass)return shortFocusSessionForDate(dateISO);
  // Base Building owns its own seven-day template and is intentionally excluded from
  // rolling-horizon rescheduling. Ordinary open days are continuously re-scored.
- if(dateISO&&(!rawBbBase||moveFrom||isManualProgramPauseDate(dateISO))&&!moveTo&&rollingOpenDayEligible(dateISO,base)&&!rollingOpenDayResolving.has(dateISO))return rollingOpenDayRecommendation(dateISO,{suppressRest:noRest}).session;
+ if(dateISO&&(!rawBbBase||moveFrom||isManualProgramPauseDate(dateISO))&&!moveTo&&rollingOpenDayEligible(dateISO,base)&&!rollingOpenDayResolving.size)return rollingOpenDayRecommendation(dateISO,{suppressRest:noRest}).session;
  if(noRest&&base==="Recovery / Rest")return adaptiveNoRestRecommendation(dateISO).session;
  return base;
 }
@@ -10129,7 +10129,7 @@ function appendSmartAccessoryFinisherPlan(session,dateISO,rows,primaryPlan=rows)
 }
 
 function formatGymWeight(exercise,lb){const ex=gymExercise(exercise);if(!ex)return lb?String(lb):"";if(ex.load==="per_db")return lb+" / DB";if(ex.load==="per_side")return lb+" / side";if(ex.load==="assist")return lb+" assistance";return String(lb)}
-function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];if(saved)return JSON.parse(JSON.stringify(saved));if(shortFocusBlockForDate(dateISO)&&shortFocusSessionForDate(dateISO)==="Generic Gym")return JSON.parse(JSON.stringify(recommendedAdaptiveGymForDate(dateISO).plan));const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseBuildingSessionForDate(dateISO)||baseExpectedSession(day,gw);if(!baseBuildingForDate(dateISO)&&rollingOpenDayEligible(dateISO,base)&&!rollingOpenDayResolving.has(dateISO)){const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});if(rec.session==="Generic Gym"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}return {name:"Generic Gym",profile:{focus:[],difficulty:"medium",style:"optimized",duration:60,equipment:[]},rows:[]}}
+function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];if(saved)return JSON.parse(JSON.stringify(saved));if(shortFocusBlockForDate(dateISO)&&shortFocusSessionForDate(dateISO)==="Generic Gym")return JSON.parse(JSON.stringify(recommendedAdaptiveGymForDate(dateISO).plan));const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseBuildingSessionForDate(dateISO)||baseExpectedSession(day,gw);if(!baseBuildingForDate(dateISO)&&rollingOpenDayEligible(dateISO,base)&&!rollingOpenDayResolving.size){const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});if(rec.session==="Generic Gym"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}return {name:"Generic Gym",profile:{focus:[],difficulty:"medium",style:"optimized",duration:60,equipment:[]},rows:[]}}
 function genericGymPlanFromWorkout(w,dateISO){
  let plan=(w?.rows||[]).map(r=>{
    const ex=gymExercise(r.exercise),isAbFinisher=!!r.untimedCoreFinisher&&r.exercise==="Ab Crunch Machine",
@@ -12630,7 +12630,7 @@ function calWorkoutForDate(dateISO){
  if(saved)return JSON.parse(JSON.stringify(saved));
  if(shortFocusBlockForDate(dateISO)&&shortFocusSessionForDate(dateISO)==="Calisthenics")return JSON.parse(JSON.stringify(recommendedAdaptiveCalisthenicsForDate(dateISO).plan));
  const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseBuildingSessionForDate(dateISO)||baseExpectedSession(day,gw);
- if(!baseBuildingForDate(dateISO)&&rollingOpenDayEligible(dateISO,base)&&!rollingOpenDayResolving.has(dateISO)){const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});if(rec.session==="Calisthenics"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}
+ if(!baseBuildingForDate(dateISO)&&rollingOpenDayEligible(dateISO,base)&&!rollingOpenDayResolving.size){const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});if(rec.session==="Calisthenics"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}
  return {name:"Calisthenics",profile:v3677CalEquipmentProfile(dateISO,{focus:[],difficulty:"medium",duration:45,hasPullupBar:state.settings.calHasPullupBar!==false,hasBands:!!state.settings.calHasBands,hasLowRow:!!state.settings.calHasLowRow,hasDipBars:!!state.settings.calHasDipBars,hasAbWheel:state.settings.calHasAbWheel!==false}),rows:[]};
 }
 function calisthenicsPlanFromWorkout(w,dateISO){
@@ -14025,7 +14025,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.135";
+const HYBRID_APP_BUILD="36.136";
 function hybridBuildParts(v){return String(v||"").replace(/^v/,"").split(".").map(x=>Number(x)||0)}
 function compareHybridBuilds(a,b){
  const aa=hybridBuildParts(a),bb=hybridBuildParts(b),n=Math.max(aa.length,bb.length);
@@ -15769,7 +15769,7 @@ function v3679ReconcileSecondaryOutcomes(){
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.135';
+const V3691_BUILD='36.136';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -16996,7 +16996,7 @@ rollingOpenDayRecommendation=function(dateISO,options={}){
  const nestedSameDate=rollingOpenDayResolving.has(dateISO);
  if(!nestedSameDate&&v36119FinalRecommendationCache.has(cacheKey))return v36119FinalRecommendationCache.get(cacheKey);
  let base=v36119WeekendDay(dateISO)?v36119NeutralPrimaryRecommendation(dateISO,options):v36119PriorRollingOpenDayRecommendation(dateISO,options);
- if(!base||base.resilientFallback||baseBuildingForDate(dateISO)){if(!nestedSameDate&&!base?.transientResolutionFallback)v36119FinalRecommendationCache.set(cacheKey,base);return base}
+ if(!base||base.resilientFallback||base.transientResolutionFallback||baseBuildingForDate(dateISO)){if(!nestedSameDate&&!base?.transientResolutionFallback)v36119FinalRecommendationCache.set(cacheKey,base);return base}
  if(v36119WeekendDay(dateISO)){const w=v36119WeekendAllocation(dateISO);if(w?.date===dateISO&&w.primary?.session&&w.primary.session!==base.session){const match=(base.options||[]).find(x=>x.session===w.primary.session);if(match)base=v36119BuildOpenRecommendation(base,match,dateISO,base.options)}}
  const second=v36119PlannedSecondMain(dateISO,base.session);let out;if(!second)out={...base,weekendSecondMain:null,weekendStandard:false};else{const why=uniqueConditioningReasons([...(base.why||[]),...(second.why||[])]);out={...base,weekendSecondMain:second,weekendStandard:v36119WeekendDay(dateISO),weekdayDouble:!v36119WeekendDay(dateISO),why}}
  if(!nestedSameDate&&!out?.transientResolutionFallback){v36119FinalRecommendationCache.set(cacheKey,out);if(v36119FinalRecommendationCache.size>96)v36119FinalRecommendationCache.delete(v36119FinalRecommendationCache.keys().next().value)}return out;
@@ -18427,8 +18427,8 @@ window.HybridCore=Object.seal({
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>scan());else scan();new MutationObserver(items=>items.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)scan(n)}))).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
-<script src="app-shell-v36.119.js?v=36.135"></script>
-<script src="adaptive-personalization-v36.120.js?v=36.135"></script>
+<script src="app-shell-v36.119.js?v=36.136"></script>
+<script src="adaptive-personalization-v36.120.js?v=36.136"></script>
 
 <script id="v36116-build-note">
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.
