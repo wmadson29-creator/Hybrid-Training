@@ -1,54 +1,49 @@
-# Apply Hybrid Training v36.134
+# Apply Hybrid Training v36.135
 
 This ZIP is an exact content delta from GitHub `origin/main` at commit `44f793a` (v36.131). It contains only files that are missing from or byte-different from that baseline. It excludes training exports, screenshots, `.git`, dependencies, prior ZIPs, and every unchanged repository file.
 
 Upload the ZIP contents at the repository root and preserve the `.github/` and `tests/` directories.
 
-## What changes
+## What changes in v36.135
 
-### Actual effort affects actual load
+### The recommendation becomes the calendar default
 
-- An exact logged RPE remains strongest.
-- If exact RPE is blank, the selected effort band now contributes a consistent RPE estimate to the session-dose calculation.
-- A session reported as **Very hard** against a low planned effort is treated as costly evidence rather than as an easy under-plan session merely because its duration was a little short.
-- This applies to primary, full-secondary, short-secondary, substituted, and unplanned sessions.
+- The model was already choosing **Generic Gym** primary plus a compatible easy swim secondary.
+- A temporary **Active Recovery** recursion fallback could be cached while the open-day recommendation was still resolving.
+- The calendar, selected-day header, recommendation panel, and Open Workout flow now consume the same canonical result without requiring a manual reselect.
+- This is a UI/default-state correction; it does not make the recovery or workload scorer more conservative or more aggressive.
 
-### Secondary outcomes can no longer attach to the wrong offer
+### Automatic Gym workouts rotate intelligently
 
-- Completed secondaries are matched by date, primary workout, and secondary type.
-- The old arbitrary same-day fallback is removed.
-- Existing stale completion links are removed when their recorded session does not match the offer.
+- The last four completed full Gym sessions now inform exercise variety.
+- Exact exercises from the last workout are penalized while comparable unused choices receive a small bonus.
+- A workout-level guard keeps exact overlap near 40% when valid substitutes exist.
+- A clearly progressing key lift may remain; accessories rotate more readily.
+- Focus, equipment, movement slots, recovery, future anchors, and stress budgets remain authoritative.
+- Manually built Gym sessions are not forced to rotate.
 
-### Recommendation comparisons honor real preferences
-
-- The Advanced Trends counterfactual view now uses the same outdoor-versus-treadmill preference, environment, pool availability, and swim suitability inputs as the live recommendation path.
-- Outdoor running and treadmill running share recovery recency; changing the label cannot bypass recent running fatigue.
-
-### Historical primary identity is repaired safely
-
-- Schema 54 detects the narrow case where one clearly marked secondary-only completion replaced the date's single unambiguous completed primary.
-- It repairs the stored workout intent and day override while keeping every workout row intact.
-- Dates with multiple possible primaries or no explicit secondary metadata are left unchanged.
-
-### Carried forward from v36.132–v36.133
+## Carried forward from v36.132–v36.134
 
 - Current recovery lookup, visible/editable day context, and Home save confirmation.
-- Optimized, guided-custom, and blank full-secondary workout paths for every supported training family.
-- Actual-versus-planned dose separation and full-secondary role safety.
+- Optimized, guided-custom, and blank full-secondary paths for every supported training family.
+- Actual-versus-planned dose separation for primary, secondary, substituted, and unplanned work.
+- Effort-band-aware load when exact RPE is blank.
+- Exact secondary-outcome matching, preference-consistent conditioning comparisons, and narrow historical primary repair.
 
 ## Corrected personal export
 
-The separately supplied corrected export is not part of the GitHub ZIP. It keeps all 149 exercise rows, 39 sessions, and 32 recovery days while correcting only the confirmed records: September 23 travel context, September 23 primary identity, the 420-yard swim's length count, and one stale secondary-opportunity link. Import it only after v36.134 is deployed.
+The separately supplied corrected export is not part of the GitHub ZIP. It keeps all 149 exercise rows, 39 sessions, and 32 recovery days while correcting only the confirmed records: September 23 travel context, September 23 primary identity, the 420-yard swim's length count, and one stale secondary-opportunity link. Import it only after v36.135 is deployed.
 
 ## Runtime files
 
-Replace every runtime file included in the ZIP. Stable module filenames are intentional; the v36.134 query keys and service-worker cache force the new contents to install.
+Replace every runtime file included in the ZIP. Stable module filenames are intentional; the v36.135 query keys and service-worker cache force the new contents to install.
 
 ## QA files
 
 - Preserve `.github/workflows/qa.yml` and the `tests/` directory.
 - Keep the versioned update notes, QA reports, and historical audit.
-- Local static/model QA passes **191/191** checks.
+- Local static/model QA passes **194/194** checks.
+- GitHub Actions installs Chromium and runs the browser suite, including canonical-default and cross-workout-variety regressions.
 
 ## Verify before deployment
 
@@ -62,6 +57,6 @@ npm run audit:export -- "/path/to/an/export.json"
 
 Suggested commit message:
 
-`Correct actual effort, recommendation comparison, and history linkage`
+`Sync adaptive defaults and diversify gym recommendations`
 
-After GitHub Pages deploys, reload the installed app once so the v36.134 service worker activates. Do not clear local data or re-enter recovery history.
+After GitHub Pages deploys, reload the installed app once so the v36.135 service worker activates. Do not clear local data or re-enter recovery history.
