@@ -1,4 +1,4 @@
-/* Hybrid Training v36.131: actual-versus-planned load feedback; stable filename retained. */
+/* Hybrid Training v36.134: actual-versus-planned load feedback; stable filename retained. */
 (function(root,factory){
   'use strict';
   const api=factory();
@@ -22,6 +22,19 @@
   const metrics=row=>(row?.metrics&&typeof row.metrics==='object')?row.metrics:{};
   let decisionApi=typeof globalThis!=='undefined'?globalThis.HybridDecisionIntegrity:null;
   if(!decisionApi&&typeof require==='function'){try{decisionApi=require('./decision-integrity-v36.131.js')}catch(_error){}}
+
+  function effortRpe(row){
+    const exact=Number(row?.rpe);
+    if(Number.isFinite(exact)&&exact>0)return clamp(exact,1,10);
+    const feel=lower(row?.feel);
+    if(feel==='too easy'||feel==='very easy')return 3.5;
+    if(feel==='easy')return 5;
+    if(feel==='comfortable'||feel==='good')return 6.5;
+    if(feel==='challenging'||feel==='hard but good')return 8;
+    if(feel==='very hard'||feel==='grindy')return 9.25;
+    if(feel==='max / failed'||feel==='max/failed'||feel==='bad')return 10;
+    return 0;
+  }
 
   function parsePlannedMinutes(value){
     if(Number.isFinite(Number(value))&&Number(value)>0)return Number(value);
@@ -122,9 +135,10 @@
   }
 
   function responseQuality(row){
-    const m=metrics(row),rpe=Number(row?.rpe)||0,feel=lower(row?.feel),technique=lower(row?.technique),sessionFeel=lower(row?.sessionFeel),pain=lower(row?.painLevel),decoupling=Number(m.decouplingPct),state=status(row),
-      costly=state==='missed'||rpe>=9.5||/(?:too hard|bad|grindy|failed|maximal)/.test(feel)||technique==='sloppy'||sessionFeel==='very rough'||/(?:moderate|sharp|stop)/.test(pain)||(Number.isFinite(decoupling)&&decoupling>=10),
-      positiveFeel=/(?:too easy|easy|comfortable|good|hard but good)/.test(feel),
+    const m=metrics(row),rpe=effortRpe(row),plannedRpe=Number(row?.modelPlannedExpectedRpe)||Number(row?.modelExpectedRpe)||0,feel=lower(row?.feel),technique=lower(row?.technique),sessionFeel=lower(row?.sessionFeel),pain=lower(row?.painLevel),decoupling=Number(m.decouplingPct),state=status(row),
+      unexpectedlyVeryHard=feel==='very hard'&&plannedRpe>0&&plannedRpe<=7.25&&rpe-plannedRpe>=1.75,
+      costly=state==='missed'||rpe>=9.5||unexpectedlyVeryHard||/(?:too hard|bad|grindy|failed|maximal)/.test(feel)||technique==='sloppy'||sessionFeel==='very rough'||/(?:moderate|sharp|stop)/.test(pain)||(Number.isFinite(decoupling)&&decoupling>=10),
+      positiveFeel=/(?:too easy|easy|comfortable|challenging|good|hard but good)/.test(feel),
       tolerated=state==='complete'&&!costly&&((rpe>0&&rpe<=8.5)||positiveFeel)&&(sessionFeel!=='rough');
     return costly?'costly':tolerated?'tolerated':'uncertain';
   }
@@ -162,7 +176,7 @@
     else if(ratio!==null)relation=ratio<.82?'under':ratio>1.18?'over':'as-planned';
     else if(actualExists&&plannedExists)relation='planned-unquantified';
     return {
-      version:3,role:rowRole(row),cardio,actual,planned,ratio:ratio===null?null:Math.round(ratio*1000)/1000,
+      version:4,role:rowRole(row),cardio,actual,planned,ratio:ratio===null?null:Math.round(ratio*1000)/1000,
       relation,response:responseQuality(row),explicitActual:explicitActualDose(row),comparable,
       structuredActual,structuredPlanned,componentDose,actualDoseUnits:actual,plannedDoseUnits:planned
     };
@@ -175,7 +189,7 @@
       strengthSets=profiles.filter(profile=>!profile.cardio).reduce((sum,profile)=>sum+profile.actual,0),
       cardioWeight=cardioMinutes/45,strengthWeight=strengthSets/15,
       mixedWeight=Math.max(cardioWeight,strengthWeight)+Math.min(cardioWeight,strengthWeight)*.35,
-      rpes=usable.map(row=>Number(row?.rpe)||0).filter(value=>value>0),avgRpe=rpes.length?rpes.reduce((sum,value)=>sum+value,0)/rpes.length:0,
+      rpes=usable.map(effortRpe).filter(value=>value>0),avgRpe=rpes.length?rpes.reduce((sum,value)=>sum+value,0)/rpes.length:0,
       effortFactor=avgRpe>=9.5?1.22:avgRpe>=8.5?1.10:avgRpe>0&&avgRpe<=5.5?.78:avgRpe>0&&avgRpe<=6.5?.88:1,
       activeRecovery=usable.length>0&&usable.every(row=>lower(row?.session)==='active recovery'),
       shortOnly=profiles.length>0&&profiles.every(profile=>profile.role==='short-secondary'),
@@ -188,5 +202,5 @@
     return {version:3,rows:profiles.length,profiles,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation,response,cardioMinutes:Math.round(cardioMinutes*10)/10,strengthSets:Math.round(strengthSets*10)/10,doseWeight:Math.round(doseWeight*100)/100,avgRpe:Math.round(avgRpe*10)/10};
   }
 
-  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,responseQuality,rowRole,rowProfile,sessionProfile};
+  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,effortRpe,responseQuality,rowRole,rowProfile,sessionProfile};
 });

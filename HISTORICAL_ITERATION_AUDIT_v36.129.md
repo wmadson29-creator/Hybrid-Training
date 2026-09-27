@@ -216,6 +216,7 @@ This hotfix is the local layer on top of the audited remote release.
 |:---|:---|
 | v36.132 | Recovery lookup correction: an omitted/default timestamp returns the current saved observation instead of being coerced to Unix timestamp zero. |
 | v36.133 | Universal full-secondary creation: optimized one-tap plans remain available, every workout family gains modality-specific customization, and a blank path supports a completely new workout without changing primary-calendar identity. |
+| v36.134 | Effort-band-aware actual load, exact secondary-outcome matching, preference-consistent conditioning counterfactuals, and a narrow schema-54 repair for secondary-only sessions that replaced an unambiguous primary. |
 
 ## Rules that were deliberately superseded
 
@@ -279,7 +280,7 @@ The requested implementation was applied only after the historical audit above w
 - Barbell Forearm Curl now has validated loading, anatomy, and relationship metadata.
 - At the time of v36.129, the regression suite passed 133/133 checks and the then-current v36.127 export passed with zero warnings.
 
-## v36.130–v36.133 follow-through
+## v36.130–v36.134 follow-through
 
 - Equipment availability is now profile-specific for Main Gym, Home, and Travel; one machine can belong to any combination of those profiles without being moved between them.
 - Recommendation choices are stable across view changes, feedback is attributed to performed work, and reasons use concise user-facing language rather than internal score terminology.
@@ -288,3 +289,4 @@ The requested implementation was applied only after the historical audit above w
 - At v36.131, the static regression suite passed 169/169 checks. The latest supplied v36.128 export passes the audit with zero errors and two data-quality warnings: legacy strength rows carrying irrelevant planned-minute values and one swim-distance/lap mismatch.
 - v36.132 fixes the v36.131 default recovery-selector regression: saved recovery rows were intact, but `null` was coerced to timestamp zero, so derived readiness and model consumers saw no current observation. It also makes saved date-specific context visible and independently correctable in History. The supplied export retains and exposes all 30 recovery days after the fix, and the expanded static suite passes 176/176 checks.
 - v36.133 preserves the optimized secondary recommendations and adds guided customization for LSS / Aerobic, Sprints / HIC, Gym, Calisthenics, Strength-Endurance, Kettlebell, and Class / Activity, plus a fully blank path. Planned dose remains separate from actual completion, one-time equipment stays date-specific, and every full-secondary path is prevented from rewriting the primary calendar state. The expanded static/model suite passes 185/185 checks.
+- v36.134 uses categorical effort in actual-load calculations when exact RPE is blank, prevents a mismatched same-day secondary from teaching the wrong opportunity outcome, and brings Advanced Trends conditioning comparisons into line with live modality preferences and availability. Schema 54 repairs only the historically unambiguous case where an explicit secondary-only session replaced one completed primary. The expanded suite passes 191/191 checks; the corrected supplied export retains all 149 exercise rows, 39 sessions, and 32 recovery days.

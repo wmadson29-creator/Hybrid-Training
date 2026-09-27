@@ -1,4 +1,4 @@
-/* Hybrid Training v36.133: decision integrity, migrations, dose comparison, and planning horizon. */
+/* Hybrid Training v36.134: decision integrity, migrations, dose comparison, and planning horizon. */
 (function(root,factory){
   'use strict';
   const api=factory();
@@ -8,7 +8,7 @@
   'use strict';
 
   const VERSION=1;
-  const SCHEMA_VERSION=53;
+  const SCHEMA_VERSION=54;
   const record=value=>!!value&&typeof value==='object'&&!Array.isArray(value);
   const finite=(value,fallback=0)=>Number.isFinite(Number(value))?Number(value):fallback;
   const clamp=(value,low,high)=>Math.max(low,Math.min(high,finite(value)));
@@ -200,6 +200,30 @@
     if(!record(settings.exerciseFavorites))settings.exerciseFavorites={};
   }
 
+  function explicitSecondaryRow(row){
+    const role=String(row?.secondarySessionRole||'').toLowerCase();
+    return role==='short'||role==='full'||row?.isShortSecondary===true||row?.isFullSecondary===true||row?.adaptiveSecondaryBlock===true;
+  }
+
+  function repairHistoricalPrimaryIntent(input){
+    const state=record(input)?input:{},settings=record(state.settings)?state.settings:(state.settings={}),logs=Array.isArray(state.logs)?state.logs:[],byDate={},repairs=[];
+    logs.forEach(row=>{if(isoDate(row?.date))(byDate[row.date]||(byDate[row.date]=[])).push(row)});
+    settings.workoutIntent=record(settings.workoutIntent)?settings.workoutIntent:{};
+    settings.dayOverrides=record(settings.dayOverrides)?settings.dayOverrides:{};
+    Object.entries(byDate).forEach(([date,rows])=>{
+      const usable=rows.filter(row=>!['skipped','missed'].includes(String(row?.status||'complete').toLowerCase())),secondary=usable.filter(explicitSecondaryRow),primary=usable.filter(row=>!explicitSecondaryRow(row));
+      if(!secondary.length||!primary.length)return;
+      const primarySessions=[...new Set(primary.map(row=>String(row?.session||'').trim()).filter(Boolean))],secondarySessions=new Set(secondary.map(row=>String(row?.session||'').trim()).filter(Boolean));
+      if(primarySessions.length!==1)return;
+      const primarySession=primarySessions[0],intent=record(settings.workoutIntent[date])?settings.workoutIntent[date]:{},selected=String(intent.selectedSession||intent.session||''),override=String(settings.dayOverrides[date]||''),staleIntent=!!selected&&selected!==primarySession&&secondarySessions.has(selected),staleOverride=!!override&&override!==primarySession&&secondarySessions.has(override);
+      if(!staleIntent&&!staleOverride)return;
+      settings.workoutIntent[date]={...intent,originalSession:String(intent.originalSession||intent.originalScheduledSession||primarySession),selectedSession:primarySession,mode:'integrity-repair',label:'Completed '+primarySession,source:'schema-54',changedAt:finite(intent.changedAt,0)||Date.now()};
+      if(staleOverride)settings.dayOverrides[date]=primarySession;
+      repairs.push({date,primarySession,replacedSession:selected||override,reason:'secondary-only completion had replaced the completed primary'});
+    });
+    return {state,repairs,count:repairs.length};
+  }
+
   function migrateState(input,target=SCHEMA_VERSION){
     const state=record(input)?input:{},settings=record(state.settings)?state.settings:(state.settings={}),applied=[],from=Math.max(0,Math.floor(finite(state.schemaVersion,0)));
     if(from<51){
@@ -224,6 +248,15 @@
       normalizeEquipmentProfiles(settings);
       applied.push(53);
     }
+    if(from<54){
+      const repaired=repairHistoricalPrimaryIntent(state);
+      if(repaired.count){
+        settings.integrityRepairLog=Array.isArray(settings.integrityRepairLog)?settings.integrityRepairLog:[];
+        settings.integrityRepairLog.push(...repaired.repairs.map(item=>({...item,appliedAt:Date.now(),schemaVersion:54})));
+        settings.integrityRepairLog=settings.integrityRepairLog.slice(-100);
+      }
+      applied.push(54);
+    }
     state.schemaVersion=Math.max(from,Math.min(target,SCHEMA_VERSION));
     if(state.schemaVersion<target)state.schemaVersion=target;
     return {state,from,to:state.schemaVersion,applied};
@@ -231,6 +264,6 @@
 
   return Object.freeze({
     version:VERSION,schemaVersion:SCHEMA_VERSION,stableStringify,hashString,evidenceRevision,snapshotValid,recommendationPreference,evidenceQuality,
-    normalizeUnit,doseNumber,componentDoseProfile,painFlag,painConstraint,summarizeReasons,recommendationDecision,developmentHorizon,selectRecoveryObservation,mergeDayContext,dayContextSummary,migrateState,normalizeEquipmentProfiles
+    normalizeUnit,doseNumber,componentDoseProfile,painFlag,painConstraint,summarizeReasons,recommendationDecision,developmentHorizon,selectRecoveryObservation,mergeDayContext,dayContextSummary,migrateState,normalizeEquipmentProfiles,repairHistoricalPrimaryIntent
   });
 });
