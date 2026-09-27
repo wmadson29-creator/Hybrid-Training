@@ -10,16 +10,16 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.134">
-<script src="decision-integrity-v36.131.js?v=36.134"></script>
-<script src="actual-load-feedback-v36.126.js?v=36.134"></script>
-<script src="forecast-balance-v36.127.js?v=36.134"></script>
-<script src="exercise-expansion-v36.128.js?v=36.134"></script>
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.137">
+<script src="decision-integrity-v36.131.js?v=36.137"></script>
+<script src="actual-load-feedback-v36.126.js?v=36.137"></script>
+<script src="forecast-balance-v36.127.js?v=36.137"></script>
+<script src="exercise-expansion-v36.128.js?v=36.137"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
 <meta name="apple-mobile-web-app-title" content="Hybrid Training">
-<link rel="stylesheet" href="app-shell-v36.119.css?v=36.134">
+<link rel="stylesheet" href="app-shell-v36.119.css?v=36.137">
 <style>
 :root{
   --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
@@ -2047,7 +2047,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.134</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
+      <div class="notice"><strong>Adaptive Engine v36.137</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -6736,7 +6736,10 @@ function rollingOpenDayRecommendation(dateISO,options={}){
  const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),bbSession=baseBuildingSessionForDate(dateISO),base=programScheduledSessionForDate(dateISO),mode=isManualProgramPauseDate(dateISO)?'paused':blockModeForWeek(gw);
  if(!rollingOpenDayEligible(dateISO,base))return {session:base,label:base,score:0,why:['This date is a fixed program anchor rather than an adaptive open day.'],options:[]};
  const forecastKey=rollingForecastActive?'|forecast:'+rollingForecastVirtualRows.map(r=>r.date+':'+r.session+':'+r.exercise).join(';'):'';const key=utmModelRevision+'|rolling-open|'+dateISO+'|'+(options.suppressRest?'no-rest':'rest-ok')+forecastKey;if(rollingOpenDayCache.has(key))return rollingOpenDayCache.get(key);
- if(rollingOpenDayResolving.size){const fallback=base==='Conditioning'?'Conditioning':'Active Recovery';return {session:fallback,label:fallback,score:0,why:['Rolling-horizon fallback while nearby schedule dependencies are resolving.'],options:[]}}
+ // Recommendation scoring inspects nearby days. Keep that dependency walk single-threaded:
+ // allowing date A to fully score date B, which scores A again, causes an explosive render
+ // loop. The placeholder is explicitly transient so it can never become a UI default.
+ if(rollingOpenDayResolving.size){const fallback=base==='Conditioning'?'Conditioning':'Active Recovery';return {session:fallback,label:fallback,score:0,transientResolutionFallback:true,why:['Temporary dependency fallback while the canonical recommendation is resolving.'],options:[]}}
  rollingOpenDayResolving.add(dateISO);
  try{
    const readiness=adaptiveReadiness(dateISO),goal=utmGoalWeights(dateISO).weights,stim=rollingStimulusState(dateISO),endurance=rollingEnduranceState(dateISO),anchor=nextFixedTrainingAnchor(dateISO,5),prior=rollingDayPriors(mode,day),noRest=!!((state.settings.noRestDates||{})[dateISO]),scores={...prior},why={Conditioning:[], 'Strength-Endurance':[], 'Generic Gym':[], Calisthenics:[], 'Active Recovery':[], 'Recovery / Rest':[]};
@@ -6881,7 +6884,7 @@ function quickAdaptiveCalisthenics(dateISO){
 function quickAdaptiveGym(dateISO){
  if(adaptiveModeSwitchEligible(dateISO))return switchAdaptiveTrainingMode(dateISO,"Generic Gym");
  const rec=recommendedAdaptiveGymForDate(dateISO);ensureWorkoutIntentStores();clearDateProgrammingForIntent(dateISO,"");
- state.settings.genericGymWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true};
+ state.settings.genericGymWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true,_automaticPlanModelVersion:GYM_AUTOMATIC_PLAN_MODEL_VERSION};
  setIntentDaySession(dateISO,"Generic Gym","adaptive",{keep:"gym",label:rec.label||"Adaptive Gym"});
 }
 function beginManualWorkout(session="Custom Workout",type="mixed"){
@@ -7120,12 +7123,17 @@ function v36131RecommendationEvidence(dateISO){
  };
 }
 function v36131EvidenceRevision(dateISO){return window.HybridDecisionIntegrity?.evidenceRevision?.(v36131RecommendationEvidence(dateISO))||''}
+// Recommendation snapshots and generated Gym plans must survive ordinary re-renders, but
+// they cannot remain authoritative after the recommendation logic itself changes. These are
+// semantic model versions (not app-build numbers) so unrelated UI releases do not churn plans.
+const OPEN_DAY_RECOMMENDATION_MODEL_VERSION=2;
+const GYM_AUTOMATIC_PLAN_MODEL_VERSION=2;
 function v36130CompactRecommendationSnapshot(recommendation){
  if(!recommendation?.session)return null;let plan=null;try{plan=recommendation.plan===undefined?null:JSON.parse(JSON.stringify(recommendation.plan))}catch(_e){plan=null}
- return {session:safePlainText(recommendation.session,80),label:safePlainText(recommendation.label||recommendation.session,240),score:Number.isFinite(Number(recommendation.score))?Number(recommendation.score):null,plan,why:(Array.isArray(recommendation.why)?recommendation.why:[]).slice(0,12).map(x=>safePlainText(x,800)),options:(Array.isArray(recommendation.options)?recommendation.options:[]).slice(0,10).map(x=>({session:safePlainText(x?.session||'',80),label:safePlainText(x?.label||x?.session||'',240),score:Number.isFinite(Number(x?.score))?Number(x.score):null})),capturedAt:Date.now(),evidenceRevision:v36131EvidenceRevision(recommendation.dateISO||selectedDateISO||localISO(new Date())),stableUntil:"new training, recovery, schedule, context, or equipment evidence"};
+ return {session:safePlainText(recommendation.session,80),label:safePlainText(recommendation.label||recommendation.session,240),score:Number.isFinite(Number(recommendation.score))?Number(recommendation.score):null,plan,why:(Array.isArray(recommendation.why)?recommendation.why:[]).slice(0,12).map(x=>safePlainText(x,800)),options:(Array.isArray(recommendation.options)?recommendation.options:[]).slice(0,10).map(x=>({session:safePlainText(x?.session||'',80),label:safePlainText(x?.label||x?.session||'',240),score:Number.isFinite(Number(x?.score))?Number(x.score):null})),capturedAt:Date.now(),modelVersion:OPEN_DAY_RECOMMENDATION_MODEL_VERSION,evidenceRevision:v36131EvidenceRevision(recommendation.dateISO||selectedDateISO||localISO(new Date())),stableUntil:"new training, recovery, schedule, context, equipment, or recommendation-model evidence"};
 }
 function v36130StableRecommendationForSwitch(dateISO,recommendation=null){
- const revision=v36131EvidenceRevision(dateISO),existing=workoutIntentForDate(dateISO)?.recommendedSnapshot;if(window.HybridDecisionIntegrity?.snapshotValid?.(existing,revision))return existing;
+ const revision=v36131EvidenceRevision(dateISO),existing=workoutIntentForDate(dateISO)?.recommendedSnapshot;if(Number(existing?.modelVersion)===OPEN_DAY_RECOMMENDATION_MODEL_VERSION&&window.HybridDecisionIntegrity?.snapshotValid?.(existing,revision))return existing;
  if(recommendation?.session)return v36130CompactRecommendationSnapshot({...recommendation,dateISO});
  const x=adaptiveModeSwitchBase(dateISO),rec=rollingOpenDayEligible(dateISO,x.base)?rollingOpenDayRecommendation(dateISO,{suppressRest:x.noRest}):recommendedAdaptiveModePlan(dateISO,expectedSession(x.day,x.gw,dateISO));
  return v36130CompactRecommendationSnapshot({...rec,dateISO});
@@ -7177,13 +7185,14 @@ function gymAutomaticProfile(dateISO){
    style=(strengthPriority>=1.18&&compoundFocus&&maxStress<.82)?"strength":"optimized";
  }
  const explicitBudget=Number(dayTrainingContextFor(dateISO).timeBudget)||0;if(explicitBudget)duration=Math.min(duration,explicitBudget);
- return {profile:{focus:focuses,subfocus:[],difficulty,style,duration,equipment:[]},ranked,readiness,maxStress,goal};
+ return {profile:{focus:focuses,subfocus:[],difficulty,style,duration,equipment:[],autoGeneratedRecommendation:true},ranked,readiness,maxStress,goal};
 }
 function recommendedAdaptiveGymForDate(dateISO){
  const auto=gymAutomaticProfile(dateISO),profile=auto.profile,plan=buildGymWorkoutFromProfile(profile,dateISO),selected=new Set(profile.focus),topMovements=auto.ranked.filter(x=>selected.has(x.focus)).flatMap(x=>x.top.slice(0,1));
  const styleLabel=profile.style==="strength"?"lower-rep/heavier":"exercise-specific optimized loading";
  return {session:"Generic Gym",label:plan.name||"Adaptive Gym",plan,why:uniqueConditioningReasons([
    "The model selected muscle groups first, then optimized exercises inside those groups; isolated high-scoring accessory movements cannot hijack the whole recommendation.",
+   plan.automaticVariety?.previousDate?("Compared with the last full Gym workout on "+plan.automaticVariety.previousDate+", this session has "+plan.automaticVariety.finalOverlap+" exact exercise repeat"+(plan.automaticVariety.finalOverlap===1?"":"s")+". Comparable accessory slots rotate; repeats remain where progression or exercise fit still wins."):"Exercise variety will increase as completed full Gym sessions provide a comparison history.",
    "Recent muscle volume is effort-adjusted: Too easy / Easy resistance work receives partial stimulus credit, so underloaded sets do not suppress useful targeting as if they were hard productive sets.",
    "Calves are intentionally low-priority in automatic Gym recommendations. They remain available whenever you explicitly select Calves in the builder.",
    "Today’s model chose "+profile.duration+" minutes, "+profile.difficulty+" difficulty, and "+styleLabel+" from readiness, rolling stress, training priorities, history, future interference, and available equipment.",
@@ -7226,7 +7235,7 @@ function switchAdaptiveTrainingMode(dateISO,session){
 	 ensureWorkoutIntentStores();const x=adaptiveModeSwitchBase(dateISO),stableRecommendation=v36130StableRecommendationForSwitch(dateISO);clearDateProgrammingForIntent(dateISO,"");clearRestRecord(dateISO);
  if(x.base==="Recovery / Rest")state.settings.noRestDates[dateISO]=true;else delete state.settings.noRestDates[dateISO];
  const rec=recommendedAdaptiveModePlan(dateISO,session);
- if(session==="Generic Gym")state.settings.genericGymWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveModeSwitch:true};
+ if(session==="Generic Gym")state.settings.genericGymWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveModeSwitch:true,_automaticPlanModelVersion:GYM_AUTOMATIC_PLAN_MODEL_VERSION};
  if(session==="Calisthenics")state.settings.calisthenicsWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveModeSwitch:true};
  if(session==="Conditioning"&&rec.plan?.activity){
    state.settings.conditioningOverrides[dateISO]=rec.plan.activity;
@@ -7244,7 +7253,7 @@ function useRecommendedAdaptiveTraining(dateISO,recommendation=null){
    state.settings.conditioningOverrides[dateISO]=rec.plan.activity;
    state.settings.conditioningSwapMeta[dateISO]={from:x.base,to:rec.plan.activity,mode:"adaptive-recommended",adaptiveFamily:conditioningCadenceLaneForActivity(rec.plan.activity,rec.plan)==="speed"?"speed":"lss",unavailable:[],at:Date.now(),target:rec.plan.target||"",rpe:rec.plan.rpe||conditioningTargetRpe(rec.plan.activity),whyFactors:uniqueConditioningReasons(rec.why||rec.plan.whyFactors||[])};
  }
- if(session==="Generic Gym"&&rec?.plan)state.settings.genericGymWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true};
+ if(session==="Generic Gym"&&rec?.plan)state.settings.genericGymWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true,_automaticPlanModelVersion:GYM_AUTOMATIC_PLAN_MODEL_VERSION};
  if(session==="Calisthenics"&&rec?.plan)state.settings.calisthenicsWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true};
  state.settings.dayOverrides[dateISO]=session;
  if(session==="Recovery / Rest"){delete state.settings.noRestDates[dateISO];setRestRecord(dateISO,dateISO<localISO(new Date())?"confirmed":"planned","adaptive-recommended")}
@@ -10125,7 +10134,21 @@ function appendSmartAccessoryFinisherPlan(session,dateISO,rows,primaryPlan=rows)
 }
 
 function formatGymWeight(exercise,lb){const ex=gymExercise(exercise);if(!ex)return lb?String(lb):"";if(ex.load==="per_db")return lb+" / DB";if(ex.load==="per_side")return lb+" / side";if(ex.load==="assist")return lb+" assistance";return String(lb)}
-function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];if(saved)return JSON.parse(JSON.stringify(saved));if(shortFocusBlockForDate(dateISO)&&shortFocusSessionForDate(dateISO)==="Generic Gym")return JSON.parse(JSON.stringify(recommendedAdaptiveGymForDate(dateISO).plan));const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseBuildingSessionForDate(dateISO)||baseExpectedSession(day,gw);if(!baseBuildingForDate(dateISO)&&rollingOpenDayEligible(dateISO,base)&&!rollingOpenDayResolving.size){const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});if(rec.session==="Generic Gym"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}return {name:"Generic Gym",profile:{focus:[],difficulty:"medium",style:"optimized",duration:60,equipment:[]},rows:[]}}
+function generatedGymPlanIsStale(saved){
+ if(!saved||!(saved._adaptiveRecommended||saved._adaptiveModeSwitch||saved.profile?.autoGeneratedRecommendation===true))return false;
+ return Number(saved._automaticPlanModelVersion||saved.automaticPlanModelVersion)!==GYM_AUTOMATIC_PLAN_MODEL_VERSION;
+}
+function generatedGymPlanIsLocked(dateISO){
+ const completed=completedSessionGroupsForDate(dateISO).some(g=>g.session==="Generic Gym"&&completedUsableRows(g).length);
+ let active=null;try{active=typeof v3685ReadActiveWorkout==="function"?v3685ReadActiveWorkout():null}catch(_e){}
+ return completed||!!(active&&active.date===dateISO&&active.session==="Generic Gym");
+}
+function currentGeneratedGymPlan(dateISO,saved){
+ if(!generatedGymPlanIsStale(saved)||generatedGymPlanIsLocked(dateISO))return saved;
+ const fresh=recommendedAdaptiveGymForDate(dateISO)?.plan;if(!fresh?.rows?.length)return saved;
+ return {...JSON.parse(JSON.stringify(fresh)),_adaptiveRecommended:!!saved._adaptiveRecommended,_adaptiveModeSwitch:!!saved._adaptiveModeSwitch,_automaticPlanModelVersion:GYM_AUTOMATIC_PLAN_MODEL_VERSION,_refreshedFromAutomaticPlanModelVersion:Number(saved._automaticPlanModelVersion||saved.automaticPlanModelVersion)||0};
+}
+function genericGymWorkoutFor(dateISO){const saved=(state.settings.genericGymWorkouts||{})[dateISO];if(saved)return JSON.parse(JSON.stringify(currentGeneratedGymPlan(dateISO,saved)));if(shortFocusBlockForDate(dateISO)&&shortFocusSessionForDate(dateISO)==="Generic Gym")return JSON.parse(JSON.stringify(recommendedAdaptiveGymForDate(dateISO).plan));const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseBuildingSessionForDate(dateISO)||baseExpectedSession(day,gw);if(!baseBuildingForDate(dateISO)&&rollingOpenDayEligible(dateISO,base)&&!rollingOpenDayResolving.size){const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});if(rec.session==="Generic Gym"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}return {name:"Generic Gym",profile:{focus:[],difficulty:"medium",style:"optimized",duration:60,equipment:[]},rows:[]}}
 function genericGymPlanFromWorkout(w,dateISO){
  let plan=(w?.rows||[]).map(r=>{
    const ex=gymExercise(r.exercise),isAbFinisher=!!r.untimedCoreFinisher&&r.exercise==="Ab Crunch Machine",
@@ -10915,7 +10938,19 @@ function renderWeek(){
  blockModeSelect.disabled=!!bbWeek||!!sfWeek||pause;blockModeSelect.value=blockModeForWeek((pause||sfWeek)?programWeek+1:programWeek);
  prevWeek.disabled=false;nextWeek.disabled=false;
  weekSchedule.forEach((x,i)=>{
-   const date=addDays(start,i),iso=localISO(date),day=x[0],session=expectedSession(day,programWeek,iso);
+   const date=addDays(start,i),iso=localISO(date),day=x[0];
+   // Historical cards are immutable display data. Re-running the complete adaptive
+   // recommendation and rolling forecast for every past day delayed the first calendar
+   // paint (especially late in the week) even though the historical-truth layer below
+   // immediately replaced those results. Build the past card directly from saved work.
+   if(iso<todayISO){
+     const completed=completedSessionGroupsForDate(iso),intent=workoutIntentForDate(iso),scheduled=intent?.selectedSession||(state.settings.dayOverrides||{})[iso]||programScheduledSessionForDate(iso),primary=completedPrimaryGroupForDate(iso,scheduled)||completedPrimaryGroupForDate(iso)||completed[0]||null,rested=!!(restRecord(iso)||effectiveRestDate(iso)),names=primary?completedExerciseNames(primary):[],displaySession=primary?v36124DisplaySessionLabel(primary.session,primary.rows):(rested?'Recovery / Rest':'No workout logged'),focus=primary?('Completed: '+(names.slice(0,3).join(' • ')+(names.length>3?' + more':'')||displaySession)):(rested?'Completed rest day':'Nothing completed');
+     const d=document.createElement('button');d.type='button';d.className='day-card'+(iso===selectedDateISO?' selected':'');d.dataset.date=iso;d.dataset.session=scheduled||displaySession;
+     d.setAttribute('aria-label',day+', '+date.toLocaleDateString('en-US',{month:'long',day:'numeric'})+', '+(primary?'completed '+displaySession:displaySession));
+     d.innerHTML='<div class="day-name">'+htmlSafe(day)+'</div><div class="day-date">'+htmlSafe(date.toLocaleDateString('en-US',{month:'short',day:'numeric'}))+'</div><div class="day-session">'+htmlSafe(displaySession)+'</div><div class="day-focus">'+htmlSafe(focus)+'</div>'+(completed.length?'<div class="day-logged">✓ '+completed.length+' completed session'+(completed.length===1?'':'s')+'</div>':'');
+     d.addEventListener('click',()=>{selectedDateUserTouched=true;selectedDateISO=iso;browseWeek=Math.max(1,trainingWeekForDate(date));weekStrip.querySelectorAll('.day-card.selected').forEach(x=>x.classList.remove('selected'));d.classList.add('selected');renderSelectedWorkout();requestAnimationFrame(()=>scrollCalendarDayIntoView(d,'smooth'))});weekStrip.appendChild(d);return;
+   }
+   const session=expectedSession(day,programWeek,iso);
    let focus=x[2],conditioningPlan=null;
    if(session==="Conditioning"){const rec=v36119CanonicalOpenRecommendationForDate(iso,session);conditioningPlan=v36119CanonicalConditioningPlanForDate(iso,day,programWeek);const acc=window.__v36123UseSecondaryMatrix?(rec?.addOn?.kind==='accessory'?rec.addOn:null):(rec?.addOn||v3678CalendarSecondaryFor("Conditioning",iso));focus=v36119ConditioningDisplayLabel(conditioningPlan,acc)}
    else if(session==="Strength-Endurance"){const b=baseBuildingForDate(iso),w=b?null:adaptiveSEWorkoutFor(iso),rx=b?baseSEPrescription(b.week,b.dayIndex):(w?{circuits:w.circuits,reps:w.reps}:adaptiveSEPrescription(iso)),circuit=b?currentBaseCircuitForDate(iso):(w?.circuit||[]),acc=!b&&!window.__v36123UseSecondaryMatrix?v3678CalendarSecondaryFor("Strength-Endurance",iso):null;focus=(rx?rx.circuits+" circuits × "+rx.reps+" reps • ":"")+(circuit.length?circuit.slice(0,3).map(x=>x.exercise).join(" / ")+(circuit.length>3?" + more":""):"choose today's equipment")+(acc?" + "+acc.label:"")}
@@ -10933,7 +10968,7 @@ function renderWeek(){
    const displaySession=session==='Conditioning'?v36124DisplaySessionLabel(session,conditioningPlan||v36119CanonicalConditioningPlanForDate(iso,day,programWeek)):session;d.setAttribute("aria-label",day+", "+date.toLocaleDateString("en-US",{month:"long",day:"numeric"})+", "+displaySession+(actual.label?", completed "+actual.label:""));
    d.innerHTML='<div class="day-name">'+htmlSafe(day)+'</div><div class="day-date">'+htmlSafe(date.toLocaleDateString("en-US",{month:"short",day:"numeric"}))+'</div><div class="day-session">'+htmlSafe(displaySession)+'</div><div class="day-focus">'+htmlSafe(focus)+'</div>'+
      (completed.length?'<div class="day-logged">✓ '+completed.length+' completed session'+(completed.length===1?'':'s')+'</div>':'');
-   d.dataset.date=iso;d.addEventListener("click",()=>{selectedDateUserTouched=true;selectedDateISO=iso;browseWeek=Math.max(1,trainingWeekForDate(date));weekStrip.querySelectorAll(".day-card.selected").forEach(x=>x.classList.remove("selected"));d.classList.add("selected");renderSelectedWorkout();requestAnimationFrame(()=>scrollCalendarDayIntoView(d,"smooth"))});weekStrip.appendChild(d);
+   d.dataset.date=iso;d.dataset.session=session;d.addEventListener("click",()=>{selectedDateUserTouched=true;selectedDateISO=iso;browseWeek=Math.max(1,trainingWeekForDate(date));weekStrip.querySelectorAll(".day-card.selected").forEach(x=>x.classList.remove("selected"));d.classList.add("selected");renderSelectedWorkout();requestAnimationFrame(()=>scrollCalendarDayIntoView(d,"smooth"))});weekStrip.appendChild(d);
  });
  const selectedCard=weekStrip.querySelector(".day-card.selected");if(selectedCard)requestAnimationFrame(()=>scrollCalendarDayIntoView(selectedCard,"smooth"));
 }
@@ -10999,7 +11034,7 @@ function appendAdaptiveOpenDayNotice(dateISO,session){
  if(accepted&&session==="Conditioning"){
    const plan=v36119CanonicalConditioningPlanForDate(dateISO,day,gw),meta=(state.settings.conditioningSwapMeta||{})[dateISO]||{};
    rec={...rec,session:"Conditioning",plan,label:plan?.activity||intent.label||"Conditioning",why:uniqueConditioningReasons(meta.whyFactors||plan?.whyFactors||rec.why||[])};
- }else if(accepted){const savedPlan=session==="Generic Gym"?(state.settings.genericGymWorkouts||{})[dateISO]:session==="Calisthenics"?(state.settings.calisthenicsWorkouts||{})[dateISO]:null;rec={...rec,session,plan:savedPlan,label:intent.label||session}}
+ }else if(accepted){const savedPlan=session==="Generic Gym"?genericGymWorkoutFor(dateISO):session==="Calisthenics"?(state.settings.calisthenicsWorkouts||{})[dateISO]:null;rec={...rec,session,plan:savedPlan,label:intent.label||session}}
  const box=document.createElement("div"),alternatives=(rec.options||[]).filter(x=>x.session!==rec.session).slice(0,3).map(x=>v36124DisplaySessionForDate(x.session,dateISO,x.plan||null)).join(", "),reasonPack=window.HybridDecisionIntegrity?.summarizeReasons?.(rec.why||[],3)||{short:(rec.why||[]).slice(0,3),details:[]},details=[];box.className="notice compact-recommendation";
  if(rec.cadence){const recent=rec.cadence.ordered.slice(0,3).map(x=>x.label+" "+(x.daysSince>=9999?"has not been logged recently":"was last done "+x.daysSince+" day"+(x.daysSince===1?"":"s")+" ago"));if(recent.length)details.push("Recent training: "+recent.join("; ")+".")}if(alternatives)details.push("Also considered: "+alternatives+".");if(rec.endurance)details.push(rec.endurance.daysSinceMeaningful>=9999?"No recent aerobic workout is recorded.":"Last meaningful aerobic workout: "+rec.endurance.daysSinceMeaningful+" days ago.");if(rec.projectedForecast)details.push("Later recommendations will update from what you actually complete.");if((rec.addOn||rec.accessory)?.label){const a=rec.addOn||rec.accessory;if(!(window.__v36123UseSecondaryMatrix&&a.kind==='secondary'))details.push((a.kind==='secondary'?"Optional second workout: ":"Optional extra: ")+a.label+".");}details.push(...reasonPack.short);
  const displayLabel=v36119RecommendationDisplayLabel(rec),displaySession=rec.session==='Conditioning'?v36119ConditioningFamilyLabel(rec.plan):rec.session,prefix=accepted?"Selected workout:":"Recommended:";box.innerHTML='<strong>'+prefix+'</strong> '+htmlSafe(displaySession)+(displayLabel&&displayLabel!==displaySession?' • '+htmlSafe(displayLabel):'')+dashboardExplanationHtml(accepted?"Why this workout":"Why today",details);tbList.appendChild(box)
@@ -11992,9 +12027,45 @@ function gymResearchContinuityScore(ex,dateISO){
  if(days<=1)return -4;if(days<=10)return gymIsCompound(ex)?5:2.5;if(days<=28)return gymIsCompound(ex)?3:1;return 0;
 }
 
+// Automatic Gym sessions need both continuity and variation. Direct performance history still
+// drives load/reps and can retain a key progression lift, but the rest of a large exercise
+// library should not collapse into the same six cards every time.
+function gymAutomaticVarietyContext(dateISO,p={}){
+ const enabled=p.autoGeneratedRecommendation===true;if(!enabled)return {enabled:false,sessions:[],lastNames:new Set(),counts:new Map()};
+ const sessions=historySessionGroups().filter(g=>g.date<dateISO&&g.session==="Generic Gym").map(g=>{
+   const rows=completedUsableRows(g).filter(r=>(!rowIsAdaptiveSecondary(r)||r.isFullSecondary||r.secondarySessionRole==="full")&&!r.untimedCoreFinisher&&gymExercise(r.exercise));
+   return {...g,rows,names:new Set(rows.map(r=>r.exercise))};
+ }).filter(g=>g.rows.length>=3).slice(-4).reverse(),counts=new Map();
+ sessions.forEach((g,rank)=>g.names.forEach(name=>{const x=counts.get(name)||{count:0,latestRank:99};x.count++;x.latestRank=Math.min(x.latestRank,rank);counts.set(name,x)}));
+ return {enabled:true,sessions,lastNames:sessions[0]?.names||new Set(),counts,lastDate:sessions[0]?.date||""};
+}
+function gymAutomaticVarietyScore(ex,ctx,prog={}){
+ if(!ctx?.enabled||!ctx.sessions.length)return 0;const seen=ctx.counts.get(ex.name);if(!seen)return 4;
+ let score=seen.latestRank===0?(gymIsCompound(ex)?-14:-17):seen.latestRank===1?-7:seen.latestRank===2?-3:-1;
+ if(seen.latestRank===0&&prog.direction==="up")score+=gymIsCompound(ex)?8:4;
+ if(seen.count>=2)score-=(seen.count-1)*3;return score;
+}
+function gymDiversifyAutomaticSelection(selection,candidates,focus,ctx,p={}){
+ const before=selection.slice(),last=ctx?.lastNames||new Set(),initialOverlap=before.filter(c=>last.has(c.g.name)).length;
+ if(!ctx?.enabled||!last.size||before.length<2)return {selection:before,rotated:0,initialOverlap,finalOverlap:initialOverlap,previousDate:ctx?.lastDate||""};
+ const out=before.slice(),maxRepeat=Math.max(1,Math.floor(out.length*.40));let rotated=0,guard=0;
+ const valid=trial=>new Set(trial.map(c=>c.g.name)).size===trial.length&&new Set(trial.map(c=>c.slot)).size===trial.length&&(!focus.length||focus.every(f=>trial.some(c=>c.parents.includes(f))));
+ while(out.filter(c=>last.has(c.g.name)).length>maxRepeat&&guard++<out.length*3){
+   const repeated=out.map((c,i)=>({c,i,preserve:(c.prog?.direction==="up"?18:0)+(gymIsCompound(c.g)?6:0)+c.score})).filter(x=>last.has(x.c.g.name)).sort((a,b)=>a.preserve-b.preserve);let swap=null;
+   for(const old of repeated){
+     const usedNames=new Set(out.filter((_,i)=>i!==old.i).map(c=>c.g.name)),usedSlots=new Set(out.filter((_,i)=>i!==old.i).map(c=>c.slot));
+     const alternatives=candidates.filter(c=>!last.has(c.g.name)&&!usedNames.has(c.g.name)&&!usedSlots.has(c.slot)&&c.parents.some(parent=>old.c.parents.includes(parent))).map(c=>({c,utility:c.score+(c.slot===old.c.slot?12:0)+(c.g.family===old.c.g.family?5:0)})).sort((a,b)=>b.utility-a.utility);
+     const alt=alternatives.find(x=>x.c.score>=old.c.score-20&&valid(out.map((c,i)=>i===old.i?x.c:c)));
+     if(alt){swap={index:old.i,candidate:alt.c};break}
+   }
+   if(!swap)break;out[swap.index]=swap.candidate;rotated++;
+ }
+ return {selection:out,rotated,initialOverlap,finalOverlap:out.filter(c=>last.has(c.g.name)).length,previousDate:ctx.lastDate||""};
+}
+
 function buildGymWorkoutFromProfile(p,dateISO){
  const availableForBuild=g=>Object.prototype.hasOwnProperty.call(p?.availabilityOverride||{},g.name)?p.availabilityOverride[g.name]!==false:gymAvailable(g.name,dateISO),families=gymFamiliesFromProfile(p),requestedSubs=p.subfocus||[],focus=p.focus||[],
-   availableAll=gymExerciseLibrary.filter(g=>availableForBuild(g)&&(!(p.equipment||[]).length||p.equipment.some(e=>g.equipment.includes(e))));
+   availableAll=gymExerciseLibrary.filter(g=>availableForBuild(g)&&(!(p.equipment||[]).length||p.equipment.some(e=>g.equipment.includes(e)))),varietyContext=gymAutomaticVarietyContext(dateISO,p);
  const subsByParent={};requestedSubs.forEach(s=>{const parent=gymSubfocusParentMap[s];if(parent){subsByParent[parent]=subsByParent[parent]||[];subsByParent[parent].push(s)}});
 
  // Selection remains strict to the chosen major muscle groups.
@@ -12014,7 +12085,7 @@ function buildGymWorkoutFromProfile(p,dateISO){
  const range=p.style==="power"?gymPowerDurationExerciseRange(p.duration):gymDurationExerciseRange(p.duration,focus.length),targetCount=p.style==="power"?range.target:gymTargetExerciseCount(p);
  const exactCandidate=(g,relaxed=false)=>{
    const tags=gymSubTargets(g),subMatches=requestedSubs.filter(s=>tags.includes(s)).length,parents=exerciseParents(g).filter(parent=>focus.includes(parent));
-   const utm=utmBuilderContext(g.name,dateISO),prog=utmProgressionState(g.name,dateISO);let score=(families.includes(g.family)?65:45)+gymSelectionPriority(g)+subMatches*60-gymRecentFamilyStress(g.family,dateISO)*8+utm.score+gymResearchContinuityScore(g,dateISO)+(prog.direction==="up"?4:prog.direction==="down"?-5:0)+(prog.plateau?-2:0);
+   const utm=utmBuilderContext(g.name,dateISO),prog=utmProgressionState(g.name,dateISO);let score=(families.includes(g.family)?65:45)+gymSelectionPriority(g)+subMatches*60-gymRecentFamilyStress(g.family,dateISO)*8+utm.score+gymResearchContinuityScore(g,dateISO)+gymAutomaticVarietyScore(g,varietyContext,prog)+(prog.direction==="up"?4:prog.direction==="down"?-5:0)+(prog.plateau?-2:0);
    // Equipment type is not a quality ranking: machines and free weights can both build muscle.
    // Selection instead follows the requested movement, direct progression history, fatigue, and equipment availability.
    if(p.style==="power"&&!gymPowerSuitable(g))score-=90;if(relaxed)score-=35; // duration fill from the same major muscle group, not an unrelated muscle.
@@ -12073,8 +12144,8 @@ function buildGymWorkoutFromProfile(p,dateISO){
  // Productive sets/reps are expanded first; a second variation is considered only
  // later if the requested duration still cannot be met without junk volume.
 
- const optimizedSelection=utmOptimizeGymSelection(selected,candidates,focus,dateISO);
- selected.splice(0,selected.length,...optimizedSelection);
+ const optimizedSelection=utmOptimizeGymSelection(selected,candidates,focus,dateISO),autoVariety=gymDiversifyAutomaticSelection(optimizedSelection,candidates,focus,varietyContext,p);
+ selected.splice(0,selected.length,...autoVariety.selection);
  let rows=selected.map(c=>{const scheme=gymRepScheme(c.g,p),a=adaptiveGymTarget(c.g.name,dateISO,"",p);return {exercise:c.g.name,sets:scheme.sets,reps:String(a.repTarget||scheme.lowReps),manualLb:"",autoWeightManaged:true,loadScale:scheme.scale,adaptiveRepManaged:true,restSeconds:gymRestSeconds(c.g,p)}});rows=orderGymRows(rows,p);
 
  // Fit duration by adding productive volume to the selected diverse movements.
@@ -12088,8 +12159,10 @@ function buildGymWorkoutFromProfile(p,dateISO){
    const names=new Set(rows.map(r=>r.exercise)),slotCounts={},familyCountsNow={},parentCountsNow={};focus.forEach(f=>parentCountsNow[f]=0);
    rows.forEach(r=>{const ex=gymExercise(r.exercise);if(!ex)return;const slot=gymMovementSlot(ex);slotCounts[slot]=(slotCounts[slot]||0)+1;familyCountsNow[ex.family]=(familyCountsNow[ex.family]||0)+1;exerciseParents(ex).filter(x=>focus.includes(x)).forEach(parent=>parentCountsNow[parent]=(parentCountsNow[parent]||0)+1)});
    const rank=c=>{let score=c.score-(familyCountsNow[c.g.family]||0)*8;const minParent=focus.length?Math.min(...focus.map(x=>parentCountsNow[x]||0)):0;if(c.parents.some(x=>(parentCountsNow[x]||0)===minParent))score+=14;if(!(slotCounts[c.slot]||0))score+=20;else score-=(slotCounts[c.slot]||0)*14;return score};
-   let options=candidates.filter(c=>!names.has(c.g.name)&&!(slotCounts[c.slot]||0)).sort((a,b)=>rank(b)-rank(a));
-   if(!options.length)options=candidates.filter(c=>!names.has(c.g.name)&&(slotCounts[c.slot]||0)<2).sort((a,b)=>rank(b)-rank(a));
+   let pool=candidates.filter(c=>!names.has(c.g.name)&&!(slotCounts[c.slot]||0)),options=(varietyContext.enabled?pool.filter(c=>!varietyContext.lastNames.has(c.g.name)):pool).sort((a,b)=>rank(b)-rank(a));
+   if(!options.length)options=pool.sort((a,b)=>rank(b)-rank(a));
+   if(!options.length){pool=candidates.filter(c=>!names.has(c.g.name)&&(slotCounts[c.slot]||0)<2);options=(varietyContext.enabled?pool.filter(c=>!varietyContext.lastNames.has(c.g.name)):pool).sort((a,b)=>rank(b)-rank(a))}
+   if(!options.length)options=pool.sort((a,b)=>rank(b)-rank(a));
    const c=options[0];if(!c)return false;const scheme=gymRepScheme(c.g,p),a=adaptiveGymTarget(c.g.name,dateISO,"",p);rows.push({exercise:c.g.name,sets:scheme.sets,reps:String(a.repTarget||scheme.lowReps),manualLb:"",autoWeightManaged:true,loadScale:scheme.scale,adaptiveRepManaged:true,restSeconds:gymRestSeconds(c.g,p)});rows=orderGymRows(rows,p);return true;
  };
  while(durationFit.status==="short"&&rows.length<range.max&&addExtraGymMovement())durationFit=gymFillDurationWithQualityVolume(rows,p);
@@ -12108,7 +12181,7 @@ function buildGymWorkoutFromProfile(p,dateISO){
  if(diversityLimited)durationNote+=" Only "+distinctMovementCount+" different movement patterns matched your selections."; durationNote+=" The extra core finisher is outside the "+p.duration+"-minute target.";
  return {
    name:focusNames+" • "+(p.style==="optimized"?"Optimized":p.style==="high-rep"?"High Rep":p.style==="strength"?"Strength":p.style==="power"?"Power":"Moderate")+" • "+p.duration+" min",
-   profile:p,rows,estimatedMinutes:estimated,targetCount,diversityLimited,
+   profile:p,rows,estimatedMinutes:estimated,targetCount,diversityLimited,automaticVariety:autoVariety,automaticPlanModelVersion:p.autoGeneratedRecommendation===true?GYM_AUTOMATIC_PLAN_MODEL_VERSION:0,
    durationFit:durationFit.status,durationRatio:durationFit.ratio,durationNote:durationNote+" "+stressAdjustment.note,stressBudget:stressAdjustment,modelNote:"Built from your selected focus, equipment, recent training, recovery, and time limit. Exercise order, working sets, and rest are included in the estimate."
  };
 }
@@ -13983,7 +14056,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.134";
+const HYBRID_APP_BUILD="36.137";
 function hybridBuildParts(v){return String(v||"").replace(/^v/,"").split(".").map(x=>Number(x)||0)}
 function compareHybridBuilds(a,b){
  const aa=hybridBuildParts(a),bb=hybridBuildParts(b),n=Math.max(aa.length,bb.length);
@@ -15727,7 +15800,7 @@ function v3679ReconcileSecondaryOutcomes(){
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.134';
+const V3691_BUILD='36.137';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -15999,9 +16072,17 @@ function v3691AlternativeCopy(alt,rec,dateISO=''){
  return '<strong>'+htmlSafe(label)+'</strong> was a weaker fit today.'+(reason.length?'<ul>'+reason.map(x=>'<li>'+htmlSafe(x)+'</li>').join('')+'</ul>':'')
 }
 function v3691RecommendationPanel(session,dateISO){
- const base=programScheduledSessionForDate(dateISO);if(!rollingOpenDayEligible(dateISO,base))return null;let rec;try{rec=rollingOpenDayRecommendation(dateISO)}catch(_e){return null}if(!rec||!rec.options?.length||rec.session!==session)return null;const preference=v3691Preference(rec),evidence=v36131RecommendationEvidenceQuality(rec,dateISO),box=document.createElement('div');box.className='v3691-why-panel';box.dataset.v3691='why';const reasonSummary=window.HybridDecisionIntegrity?.summarizeReasons?.(rec.why||[],3)||{short:(rec.why||[]).slice(0,3),details:rec.why||[]},reasons=reasonSummary.short,alts=v36127RecommendationComparisonAlternatives(rec,dateISO),displayLabel=v36119RecommendationDisplayLabel(rec);
- box.innerHTML='<div class="v3691-why-head"><div><div class="v3691-kicker">Why this today?</div><div class="v3691-why-title">'+htmlSafe(displayLabel||rec.session)+'</div></div><div class="v36131-evidence-badges"><span class="v3691-confidence '+preference.level+'">'+htmlSafe(preference.label)+' • '+preference.margin+'-point gap</span><span class="v3691-confidence '+evidence.level+'">'+htmlSafe(evidence.label)+' • '+evidence.score+'/100</span></div></div><div class="v3691-why-reasons">'+reasons.map(x=>'<div>• '+htmlSafe(x)+'</div>').join('')+'</div>'+(reasonSummary.details.length>reasons.length?'<details class="micro-details v36131-full-reasons"><summary>Full model explanation</summary><div class="gym-step-sub">'+reasonSummary.details.map(x=>'<div>• '+htmlSafe(x)+'</div>').join('')+'</div></details>':'')+'<div class="v36131-evidence-note">Evidence quality reflects available comparable logs and recovery observations. It is separate from the score gap between today’s options.</div><div class="v3691-change"><strong>Since yesterday:</strong> '+htmlSafe(v3691ChangedSinceYesterday(dateISO,rec))+'</div>'+(alts.length?'<div class="v3691-alt-label">Compare training modes</div><div class="v3691-alt-chips">'+alts.map((a,i)=>'<button class="btn v3691-alt'+(a.comparisonCurrent?' primary':'')+'" type="button" data-i="'+i+'"'+(a.comparisonCurrent?' disabled aria-current="true"':'')+'>'+htmlSafe((a.comparisonLabel||v36124DisplaySessionForDate(a.session,dateISO,a.plan||null))+(a.comparisonCurrent?' • Current':''))+'</button>').join('')+'</div><div class="v3691-alt-detail" aria-live="polite"></div>':'');
- box.querySelectorAll('.v3691-alt').forEach(b=>b.addEventListener('click',()=>{const alt=alts[Number(b.dataset.i)||0],detail=box.querySelector('.v3691-alt-detail');box.querySelectorAll('.v3691-alt').forEach(x=>x.classList.toggle('primary',x===b));if(detail)detail.innerHTML=v3691AlternativeCopy(alt,rec,dateISO)}));return box;
+ const base=programScheduledSessionForDate(dateISO);if(!rollingOpenDayEligible(dateISO,base))return null;let rec;try{rec=rollingOpenDayRecommendation(dateISO)}catch(_e){return null}if(!rec||!rec.options?.length||rec.session!==session)return null;const preference=v3691Preference(rec),box=document.createElement('div');box.className='v3691-why-panel';box.dataset.v3691='why';const reasonSummary=window.HybridDecisionIntegrity?.summarizeReasons?.(rec.why||[],2)||{short:(rec.why||[]).slice(0,2),details:rec.why||[]},reasons=reasonSummary.short,displayLabel=v36119RecommendationDisplayLabel(rec);
+ // Backtesting yesterday's recommendation and generating two complete conditioning
+ // alternatives are explanation-only work. Keep the selected workout responsive and
+ // calculate those details only when the user asks to see them.
+ box.innerHTML='<div class="v3691-why-head"><div><div class="v3691-kicker">Why this today?</div><div class="v3691-why-title">'+htmlSafe(displayLabel||rec.session)+'</div></div><div class="v36131-evidence-badges"><span class="v3691-confidence '+preference.level+'">'+htmlSafe(preference.label)+' • '+preference.margin+'-point gap</span></div></div><div class="v3691-why-reasons">'+reasons.map(x=>'<div>• '+htmlSafe(x)+'</div>').join('')+'</div>'+(reasonSummary.details.length>reasons.length?'<details class="micro-details v36131-full-reasons"><summary>Full model explanation</summary><div class="gym-step-sub">'+reasonSummary.details.map(x=>'<div>• '+htmlSafe(x)+'</div>').join('')+'</div></details>':'')+'<details class="micro-details v36137-model-context"><summary>Evidence and what changed</summary><div class="gym-step-sub v36137-model-context-body">Open this section to calculate the comparison.</div></details><details class="v3693-why-compare v36137-lazy-compare"><summary>Compare training modes</summary><div class="v3693-why-compare-body"><div class="gym-step-sub v36137-compare-status">Open this section to build the alternatives.</div></div></details>';
+ const defer=fn=>{try{requestAnimationFrame(()=>setTimeout(fn,0))}catch(_e){setTimeout(fn,0)}};
+ const context=box.querySelector('.v36137-model-context'),contextBody=box.querySelector('.v36137-model-context-body');let contextLoaded=false;
+ context?.addEventListener('toggle',()=>{if(!context.open||contextLoaded)return;contextLoaded=true;contextBody.textContent='Calculating…';defer(()=>{try{const evidence=v36131RecommendationEvidenceQuality(rec,dateISO),changed=v3691ChangedSinceYesterday(dateISO,rec);contextBody.innerHTML='<div class="v36131-evidence-badges"><span class="v3691-confidence '+htmlSafe(evidence.level)+'">'+htmlSafe(evidence.label)+' • '+Number(evidence.score||0)+'/100</span></div><div class="v36131-evidence-note">Evidence quality reflects available comparable logs and recovery observations. It is separate from the score gap between today’s options.</div><div class="v36137-change"><strong>Since yesterday:</strong> '+htmlSafe(changed)+'</div>'}catch(_e){contextBody.textContent='The extra comparison could not be calculated. Your workout recommendation is unchanged.'}})});
+ const compare=box.querySelector('.v36137-lazy-compare'),compareBody=compare?.querySelector('.v3693-why-compare-body');let compareLoaded=false;
+ compare?.addEventListener('toggle',()=>{if(!compare.open||compareLoaded)return;compareLoaded=true;if(compareBody)compareBody.innerHTML='<div class="gym-step-sub">Building alternatives…</div>';defer(()=>{try{const alts=v36127RecommendationComparisonAlternatives(rec,dateISO);if(!compareBody)return;if(!alts.length){compareBody.innerHTML='<div class="gym-step-sub">No compatible alternatives are available for this date.</div>';return}compareBody.innerHTML='<div class="v3691-alt-chips">'+alts.map((a,i)=>'<button class="btn v3691-alt'+(a.comparisonCurrent?' primary':'')+'" type="button" data-i="'+i+'"'+(a.comparisonCurrent?' disabled aria-current="true"':'')+'>'+htmlSafe((a.comparisonLabel||v36124DisplaySessionForDate(a.session,dateISO,a.plan||null))+(a.comparisonCurrent?' • Current':''))+'</button>').join('')+'</div><div class="v3691-alt-detail" aria-live="polite"></div>';compareBody.querySelectorAll('.v3691-alt').forEach(b=>b.addEventListener('click',()=>{const alt=alts[Number(b.dataset.i)||0],detail=compareBody.querySelector('.v3691-alt-detail');compareBody.querySelectorAll('.v3691-alt').forEach(x=>x.classList.toggle('primary',x===b));if(detail)detail.innerHTML=v3691AlternativeCopy(alt,rec,dateISO)}))}catch(_e){if(compareBody)compareBody.innerHTML='<div class="gym-step-sub">The alternatives could not be calculated. Your current recommendation is unchanged.</div>'}})});
+ return box;
 }
 const v3691OriginalRenderSelectedWorkout=renderSelectedWorkout;
 renderSelectedWorkout=function(){const out=v3691OriginalRenderSelectedWorkout.apply(this,arguments);try{document.querySelectorAll('[data-v3691="why"]').forEach(x=>x.remove());const d=parseLocalISO(selectedDateISO),gw=Math.max(1,trainingWeekForDate(d)),session=expectedSession(dayNameFromDate(selectedDateISO),gw,selectedDateISO),panel=v3691RecommendationPanel(session,selectedDateISO);if(panel){const host=document.getElementById('selectedWorkoutActions');host?.insertAdjacentElement('afterend',panel)}}catch(e){console.warn('v36.91 recommendation explanation:',e)}return out};
@@ -16920,8 +17001,22 @@ function v36119WeekdaySecond(dateISO,primary){if(v36119WeekendDay(dateISO)||base
 function v36119WeekendDates(dateISO){const d=parseLocalISO(dateISO),day=dayNameFromDate(dateISO);if(day==='Saturday')return [dateISO,localISO(addDays(d,1))];if(day==='Sunday')return [localISO(addDays(d,-1)),dateISO];return []}
 const v36119WeekendAllocationCache=new Map();
 function v36119CheapWeekendPrimary(dateISO){const base=programScheduledSessionForDate(dateISO),gw=Math.max(1,trainingWeekForDate(parseLocalISO(dateISO)));if(base==='Barbell Strength'||String(base||'').startsWith('KB '))return {session:base,label:base};const a=v36117AthleticDevelopmentState(dateISO),scores=[['Conditioning',Number(a.conditioningNeed)||0],['Generic Gym',Number(a.gymNeed)||0],['Strength-Endurance',Number(a.seNeed)||0],['Calisthenics',Number(a.calNeed)||0]].sort((x,y)=>y[1]-x[1]);return {session:scores[0]?.[0]||'Conditioning',label:scores[0]?.[0]||'Conditioning',development:a}}
-function v36119CheapWeekendPairScore(dateISO,primary){let rd;try{rd=adaptiveReadiness(dateISO)}catch(_e){rd=null}if(rd?.recoveryGuard)return -999;const a=primary.development||v36117AthleticDevelopmentState(dateISO),t=v36118TissueStressState(dateISO),anchor=nextFixedTrainingAnchor(dateISO,2),s=String(primary.session||''),secondStrength=s==='Conditioning';let score=7+(secondStrength?(Number(a.gymNeed)||0):Math.max(Number(a.runNeed)||0,Number(a.otherAerobicNeed)||0,(Number(a.conditioningNeed)||0)*.72));if(rd?.caution)score-=4;if(secondStrength){const lane=a.conditioningLane||'run';if(lane==='speed')score-=6;else score+=3;if(anchor.days===1&&(anchor.session==='Barbell Strength'||String(anchor.session||'').startsWith('KB ')))score-=8}else{score+=3;if(t.status==='watch')score+=2;if(t.status==='high')score+=3;if(anchor.days===1&&(anchor.session==='Barbell Strength'||String(anchor.session||'').startsWith('KB ')))score-=1;if(s==='KB Power')score+=2}return v36118Round(score,1)}
-function v36119WeekendAllocation(dateISO){const dates=v36119WeekendDates(dateISO);if(!dates.length||baseBuildingForDate(dateISO))return null;const [sat]=dates,mode=blockModeForWeek(Math.max(1,trainingWeekForDate(parseLocalISO(sat)))),cacheKey=[v36119StateSig(),sat].join('|');if(v36119WeekendAllocationCache.has(cacheKey))return v36119WeekendAllocationCache.get(cacheKey);const candidates=[];for(const iso of dates){const base=programScheduledSessionForDate(iso),fixed=base==='Barbell Strength'||String(base||'').startsWith('KB ');if(fixed){const p={session:base,label:base};candidates.push({date:iso,primary:p,score:v36119CheapWeekendPairScore(iso,p)})}else{const a=v36117AthleticDevelopmentState(iso);for(const sess of ['Conditioning','Generic Gym']){const p={session:sess,label:sess,development:a};candidates.push({date:iso,primary:p,score:v36119CheapWeekendPairScore(iso,p)})}}}candidates.sort((a,b)=>b.score-a.score||a.date.localeCompare(b.date));const best=candidates[0]||null,threshold=mode==='tb'?-2.5:mode==='hybrid'?0:1;if(!best||best.score<threshold){v36119WeekendAllocationCache.set(cacheKey,null);return null}const result={...best,threshold,why:['Weekend capacity is optimized across Saturday and Sunday together. The allocator compares both days and both compatible endurance/Gym orderings; no day owns the double-session slot. Placement comes from adaptation need, recovery, tissue load, compatibility, and the following fixed schedule.']};v36119WeekendAllocationCache.set(cacheKey,result);return result}
+function v36119CheapWeekendPairScore(dateISO,primary){
+ let rd;try{rd=adaptiveReadiness(dateISO)}catch(_e){rd=null}if(rd?.recoveryGuard)return -999;
+ const a=primary.development||v36117AthleticDevelopmentState(dateISO),t=v36118TissueStressState(dateISO),anchor=nextFixedTrainingAnchor(dateISO,2),s=String(primary.session||''),secondStrength=s==='Conditioning';let score=7+(secondStrength?(Number(a.gymNeed)||0):Math.max(Number(a.runNeed)||0,Number(a.otherAerobicNeed)||0,(Number(a.conditioningNeed)||0)*.72));
+ if(rd?.caution)score-=4;if(secondStrength){const lane=a.conditioningLane||'run';if(lane==='speed')score-=6;else score+=3;if(anchor.days===1&&(anchor.session==='Barbell Strength'||String(anchor.session||'').startsWith('KB ')))score-=8}else{score+=3;if(t.status==='watch')score+=2;if(t.status==='high')score+=3;if(anchor.days===1&&(anchor.session==='Barbell Strength'||String(anchor.session||'').startsWith('KB ')))score-=1;if(s==='KB Power')score+=2}
+ return v36118Round(score,1);
+}
+function v36119WeekendAllocation(dateISO){
+ const dates=v36119WeekendDates(dateISO);if(!dates.length||baseBuildingForDate(dateISO))return null;const [sat]=dates,mode=blockModeForWeek(Math.max(1,trainingWeekForDate(parseLocalISO(sat)))),cacheKey=[v36119StateSig(),sat].join('|');if(v36119WeekendAllocationCache.has(cacheKey))return v36119WeekendAllocationCache.get(cacheKey);
+ const candidates=[];for(const iso of dates){
+   const base=programScheduledSessionForDate(iso),fixed=base==='Barbell Strength'||String(base||'').startsWith('KB ');
+   if(fixed){const p={session:base,label:base};candidates.push({date:iso,primary:p,score:v36119CheapWeekendPairScore(iso,p)})}
+   else{const a=v36117AthleticDevelopmentState(iso);for(const sess of ['Conditioning','Generic Gym']){const p={session:sess,label:sess,development:a};candidates.push({date:iso,primary:p,score:v36119CheapWeekendPairScore(iso,p)})}}
+ }
+ candidates.sort((a,b)=>b.score-a.score||a.date.localeCompare(b.date));const best=candidates[0]||null,threshold=mode==='tb'?-2.5:mode==='hybrid'?0:1;if(!best||best.score<threshold){v36119WeekendAllocationCache.set(cacheKey,null);return null}
+ const result={...best,threshold,why:['Weekend capacity is optimized across Saturday and Sunday together. The allocator compares both days and both compatible endurance/Gym orderings; no day owns the double-session slot. Placement comes from adaptation need, recovery, tissue load, compatibility, and the following fixed schedule.']};v36119WeekendAllocationCache.set(cacheKey,result);return result;
+}
 function v36119PlannedSecondMain(dateISO,session=''){
  if(baseBuildingForDate(dateISO))return null;const day=dayNameFromDate(dateISO),primary=session?{session,label:session,plan:null}:v36119PrimaryForDate(dateISO);
  if(day==='Saturday'||day==='Sunday'){const w=v36119WeekendAllocation(dateISO);if(w?.date!==dateISO)return null;const second=v36119CandidateForPrimary(dateISO,primary,true);if(!second)return null;const e=v36119CandidateScore(dateISO,primary,second,true);if(!e.eligible||e.score<w.threshold)return null;return {...second,weekendStack:true,autoDoubleScore:e.score,autoDoubleThreshold:w.threshold,why:uniqueConditioningReasons([...(second.why||[]),...e.reasons,...(w.why||[])])}}
@@ -16934,12 +17029,16 @@ const v36119FinalRecommendationCache=new Map();
 rollingOpenDayRecommendation=function(dateISO,options={}){
  const forecastSig=rollingForecastActive?'|forecast:'+rollingForecastVirtualRows.map(r=>r.date+':'+r.session+':'+r.exercise).join(';'):'';
  const cacheKey=[utmModelRevision,v36119StateSig(),dateISO,options.suppressRest?'no-rest':'rest-ok',options.skipForecastProjection?'skip-forecast':'forecast-ok',options.v36119Neutral?'neutral':'normal',forecastSig].join('|');
- if(v36119FinalRecommendationCache.has(cacheKey))return v36119FinalRecommendationCache.get(cacheKey);
+ // A nested same-date request receives a temporary fail-soft value from the core scorer.
+ // Never let that placeholder enter the shared recommendation cache: doing so made the
+ // calendar/header say Active Recovery while the recommendation card correctly said Gym.
+ const nestedSameDate=rollingOpenDayResolving.has(dateISO);
+ if(!nestedSameDate&&v36119FinalRecommendationCache.has(cacheKey))return v36119FinalRecommendationCache.get(cacheKey);
  let base=v36119WeekendDay(dateISO)?v36119NeutralPrimaryRecommendation(dateISO,options):v36119PriorRollingOpenDayRecommendation(dateISO,options);
- if(!base||base.resilientFallback||baseBuildingForDate(dateISO)){v36119FinalRecommendationCache.set(cacheKey,base);return base}
+ if(!base||base.resilientFallback||base.transientResolutionFallback||baseBuildingForDate(dateISO)){if(!nestedSameDate&&!base?.transientResolutionFallback)v36119FinalRecommendationCache.set(cacheKey,base);return base}
  if(v36119WeekendDay(dateISO)){const w=v36119WeekendAllocation(dateISO);if(w?.date===dateISO&&w.primary?.session&&w.primary.session!==base.session){const match=(base.options||[]).find(x=>x.session===w.primary.session);if(match)base=v36119BuildOpenRecommendation(base,match,dateISO,base.options)}}
  const second=v36119PlannedSecondMain(dateISO,base.session);let out;if(!second)out={...base,weekendSecondMain:null,weekendStandard:false};else{const why=uniqueConditioningReasons([...(base.why||[]),...(second.why||[])]);out={...base,weekendSecondMain:second,weekendStandard:v36119WeekendDay(dateISO),weekdayDouble:!v36119WeekendDay(dateISO),why}}
- v36119FinalRecommendationCache.set(cacheKey,out);if(v36119FinalRecommendationCache.size>96)v36119FinalRecommendationCache.delete(v36119FinalRecommendationCache.keys().next().value);return out;
+ if(!nestedSameDate&&!out?.transientResolutionFallback){v36119FinalRecommendationCache.set(cacheKey,out);if(v36119FinalRecommendationCache.size>96)v36119FinalRecommendationCache.delete(v36119FinalRecommendationCache.keys().next().value)}return out;
 };
 
 // v36.119 consistency hotfix — one resolved adaptive conditioning plan must drive every UI/log surface.
@@ -17163,9 +17262,13 @@ expectedSession=function(day,gw,dateISO=""){
  let draft=null;try{draft=activeUserLogDraftForDate(dateISO)}catch(_e){}
  if(draft?.session)return v36126PriorExpectedSession(day,gw,dateISO);
  const key=[utmModelRevision,v36119StateSig(),dateISO,day,gw].join('|');
- if(v36126ExpectedSessionCache.has(key))return v36126ExpectedSessionCache.get(key);
- const out=v36126PriorExpectedSession(day,gw,dateISO);v36126ExpectedSessionCache.set(key,out);
- if(v36126ExpectedSessionCache.size>96)v36126ExpectedSessionCache.delete(v36126ExpectedSessionCache.keys().next().value);return out;
+ // expectedSession is called from inside recommendation scoring as well as by the UI.
+ // Values observed during any active resolution are dependency probes, not canonical UI
+ // answers, and must never poison the stable session cache.
+ const dependencyProbe=rollingOpenDayResolving.size>0;
+ if(!dependencyProbe&&v36126ExpectedSessionCache.has(key))return v36126ExpectedSessionCache.get(key);
+ const out=v36126PriorExpectedSession(day,gw,dateISO);
+ if(!dependencyProbe&&!rollingOpenDayResolving.size){v36126ExpectedSessionCache.set(key,out);if(v36126ExpectedSessionCache.size>96)v36126ExpectedSessionCache.delete(v36126ExpectedSessionCache.keys().next().value)}return out;
 };
 
 // v36.119 secondary-frequency calibration: lightweight future-weekday short gate.
@@ -17541,6 +17644,7 @@ window.__v36130SecondaryStrengthEquipmentContext=secondaryStrengthEquipmentConte
 // The weekend allocator remains authoritative; exposing its full-secondary result here restores
 // the visible three-session weekend forecast when one of Saturday/Sunday wins the double slot.
 (function(){
+  let annotateGeneration=0;
   function compactSecondaryLabel(x){
     const raw=String(x?.label||'').replace(/^Full Second Workout\s*[•:-]?\s*/i,'').replace(/^Recommended (Short|Full)\s*[•:-]?\s*/i,'').trim();
     return raw||((x?.kind==='full')?'Full second workout':(x?.kind==='short')?'Short secondary':'No secondary');
@@ -17548,18 +17652,25 @@ window.__v36130SecondaryStrengthEquipmentContext=secondaryStrengthEquipmentConte
   function scheduledSecondary(dateISO,session){
     try{return window.__v36123SecondaryMatrix?.calendarStatus?.(dateISO,session)||{kind:'none',label:'No secondary'}}catch(_e){return {kind:'none',label:'No secondary'}}
   }
+  function scheduleOne(fn){
+    try{if('requestIdleCallback'in window)return requestIdleCallback(fn,{timeout:300});return setTimeout(fn,0)}catch(_e){return setTimeout(fn,0)}
+  }
   function annotate(){
-    if(!weekStrip||!selectedDateISO)return;const start=mondayOf(parseLocalISO(selectedDateISO)),cards=[...weekStrip.querySelectorAll('.day-card')];
+    if(!weekStrip||!selectedDateISO)return;const generation=++annotateGeneration,today=localISO(new Date()),start=mondayOf(parseLocalISO(selectedDateISO)),cards=[...weekStrip.querySelectorAll('.day-card')],jobs=[];
     cards.forEach((card,i)=>{
-      const iso=localISO(addDays(start,i)),d=parseLocalISO(iso),gw=Math.max(1,trainingWeekForDate(d)),session=expectedSession(dayNameFromDate(iso),gw,iso);
+      const iso=card.dataset.date||localISO(addDays(start,i));
       card.querySelectorAll('.v36128-primary-tag,.v36128-secondary-line').forEach(x=>x.remove());
       const sessionEl=card.querySelector('.day-session'),focus=card.querySelector('.day-focus');if(!sessionEl||!focus)return;
       if(!card.querySelector('.day-primary-kicker')){const primary=document.createElement('div');primary.className='day-primary-kicker';primary.textContent='Primary';sessionEl.insertAdjacentElement('beforebegin',primary)}
-      const sec=scheduledSecondary(iso,session),line=document.createElement('div');line.className='v36128-secondary-line '+(sec.kind||'none');
-      const kind=sec.kind==='full'?'Full':sec.kind==='short'?'Short':'None',label=compactSecondaryLabel(sec);
-      line.innerHTML='<span>Secondary</span><strong>'+htmlSafe(kind)+(sec.kind==='none'?'':' • '+label)+'</strong>'+(sec.pending?'<em>Choose type</em>':'');
-      focus.insertAdjacentElement('afterend',line);
+      // Past cards are completed by annotateHistorical() from saved logs. Forecasting a
+      // secondary for them is both misleading and expensive.
+      if(iso<today)return;
+      const line=document.createElement('div');line.className='v36128-secondary-line pending';line.innerHTML='<span>Secondary</span><strong>Checking…</strong>';focus.insertAdjacentElement('afterend',line);
+      const session=card.dataset.session||sessionEl.textContent.trim();jobs.push({card,iso,session,line});
     });
+    jobs.sort((a,b)=>Number(b.iso===selectedDateISO)-Number(a.iso===selectedDateISO)||a.iso.localeCompare(b.iso));
+    const next=()=>{if(generation!==annotateGeneration||!jobs.length)return;const job=jobs.shift();if(!job.card.isConnected||job.card.dataset.date!==job.iso){scheduleOne(next);return}const sec=scheduledSecondary(job.iso,job.session),kind=sec.kind==='full'?'Full':sec.kind==='short'?'Short':'None',label=compactSecondaryLabel(sec);job.line.className='v36128-secondary-line '+(sec.kind||'none');job.line.innerHTML='<span>Secondary</span><strong>'+htmlSafe(kind)+(sec.kind==='none'?'':' • '+htmlSafe(label))+'</strong>'+(sec.pending?'<em>Choose type</em>':'');scheduleOne(next)};
+    if(jobs.length)scheduleOne(next);
   }
   const prior=renderWeek;
   renderWeek=function(){const out=prior.apply(this,arguments);try{annotate()}catch(e){console.warn('v36.119 calendar secondary schedule:',e)}return out};
@@ -17617,7 +17728,7 @@ window.__v36130SecondaryStrengthEquipmentContext=secondaryStrengthEquipmentConte
     if(!weekStrip||!selectedDateISO)return;const today=localISO(new Date()),start=mondayOf(parseLocalISO(selectedDateISO)),cards=[...weekStrip.querySelectorAll('.day-card')];
     cards.forEach((card,i)=>{
       const iso=localISO(addDays(start,i));if(iso>=today)return;
-      const d=parseLocalISO(iso),gw=Math.max(1,trainingWeekForDate(d)),scheduled=expectedSession(dayNameFromDate(iso),gw,iso),actual=actualUnits(iso,scheduled),sessionEl=card.querySelector('.day-session'),focus=card.querySelector('.day-focus');if(!sessionEl||!focus)return;
+      const d=parseLocalISO(iso),intent=workoutIntentForDate(iso),scheduled=intent?.selectedSession||(state.settings.dayOverrides||{})[iso]||programScheduledSessionForDate(iso),actual=actualUnits(iso,scheduled),sessionEl=card.querySelector('.day-session'),focus=card.querySelector('.day-focus');if(!sessionEl||!focus)return;
       card.querySelectorAll('.v36128-primary-tag').forEach(x=>x.remove());let primaryTag=card.querySelector('.day-primary-kicker');if(!primaryTag){primaryTag=document.createElement('div');primaryTag.className='day-primary-kicker';primaryTag.textContent='Primary';sessionEl.insertAdjacentElement('beforebegin',primaryTag)}
       if(actual.primary){const l=rowsLabel(actual.primary.session,actual.primary.rows);sessionEl.textContent=l.display;focus.textContent='Completed: '+(l.focus||l.display);card.setAttribute('aria-label',dayNameFromDate(iso)+', '+d.toLocaleDateString('en-US',{month:'long',day:'numeric'})+', completed '+l.display+(l.focus?' '+l.focus:''));}
       else if(restRecord(iso)||effectiveRestDate(iso)){sessionEl.textContent='Recovery / Rest';focus.textContent='Completed rest day';}
@@ -17849,17 +17960,44 @@ strengthCapabilityProfile=function(name,dateISO){const out=v36127PriorStrengthCa
 const v36127PriorSwimStrokeCapability=v36132SwimStrokeCapability;
 v36132SwimStrokeCapability=function(stroke,dateISO){const out=v36127PriorSwimStrokeCapability(stroke,dateISO);if(!out)return out;const p=anthropometryProfile(dateISO||localISO(new Date()));return {...out,anthropometryContext:{heightIn:p.heightIn,wingspanIn:p.wingspanIn,reachDeltaIn:p.reachDeltaIn,note:'Reach is context for stroke length and range of motion; direct same-stroke pace, effort, and fatigue data remain authoritative.'}}};
 
+// v36.137 — render-performance caches. These functions are pure for a stable model
+// revision, but the UI calls them repeatedly while building the calendar, selected day,
+// History, and explanation surfaces. Reuse their results and clear them on every save,
+// import, recovery update, or settings change through the normal cache invalidator.
+(function(){
+ const completedCache=new Map(),historyGroupsCache=new Map(),athleticCache=new Map(),shadowCache=new Map();
+ function trim(map,max,drop){if(map.size<=max)return;[...map.keys()].slice(0,drop).forEach(k=>map.delete(k))}
+ function dataSig(){const logs=state.logs||[],last=logs[logs.length-1]||{};return [utmModelRevision,logs.length,Number(state._persistedAt)||0,last.sessionId||'',Number(last.completedAt)||Number(last.sessionTimestamp)||0].join('|')}
+ function forecastSig(){return rollingForecastActive?'rf:'+rollingForecastVirtualRows.map(r=>[r?.date||'',r?.session||'',r?.exercise||'',r?.sets||'',r?.reps||'',r?.metrics?.time||''].join(':')).join(';'):'live'}
+
+ const uncachedCompletedSessionGroupsForDate=completedSessionGroupsForDate;
+ completedSessionGroupsForDate=function(dateISO){const key=dataSig()+'|'+dateISO;if(completedCache.has(key))return completedCache.get(key).slice();const out=uncachedCompletedSessionGroupsForDate(dateISO);completedCache.set(key,out);trim(completedCache,120,35);return out.slice()};
+
+ const uncachedHistorySessionGroups=historySessionGroups;
+ historySessionGroups=function(){const key=dataSig();if(historyGroupsCache.has(key))return historyGroupsCache.get(key).slice();const out=uncachedHistorySessionGroups();historyGroupsCache.set(key,out);trim(historyGroupsCache,8,3);return out.slice()};
+
+ const uncachedAthleticDevelopmentState=v36117AthleticDevelopmentState;
+ v36117AthleticDevelopmentState=function(dateISO){const today=localISO(new Date()),timeBucket=dateISO===today?Math.floor(Date.now()/900000):0,key=[dataSig(),v36119StateSig(),dateISO,forecastSig(),timeBucket].join('|');if(athleticCache.has(key))return athleticCache.get(key);const out=uncachedAthleticDevelopmentState(dateISO);athleticCache.set(key,out);trim(athleticCache,180,55);return out};
+
+ const uncachedShadowModelBacktest=shadowModelBacktest;
+ shadowModelBacktest=function(dateISO=localISO(new Date())){const key=dataSig()+'|'+dateISO;if(shadowCache.has(key))return shadowCache.get(key);const out=uncachedShadowModelBacktest(dateISO);shadowCache.set(key,out);trim(shadowCache,24,8);return out};
+
+ const priorInvalidate=utmInvalidateCaches;
+ utmInvalidateCaches=function(){const out=priorInvalidate.apply(this,arguments);completedCache.clear();historyGroupsCache.clear();athleticCache.clear();shadowCache.clear();return out};
+})();
+
 // v36.107 — controlled bridge for modular UI/support code.
 // The training engine remains scoped inside this IIFE; the external shell only receives
 // the narrow operations it needs for presentation, undo, update UX, and comparisons.
 // Keep the public bridge sealed against shape changes while allowing versioned runtime
 // layers to replace existing hooks (for example v36.120 personalization wrappers).
 let v36125A11yId=0;
-function v36125WireFormLabels(root=document){
+function v36125UpdateUnlabeledCount(){window.__hybridUnlabeledControlCount=[...document.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>!(el.labels?.length||el.getAttribute('aria-label')||el.getAttribute('aria-labelledby')||el.title)).length}
+function v36125WireFormLabels(root=document,updateCount=true){
  const controls=[];if(root?.matches?.('input,select,textarea'))controls.push(root);root?.querySelectorAll?.('input,select,textarea').forEach(el=>controls.push(el));
- controls.forEach(el=>{if(el.type==='hidden'||el.labels?.length||el.getAttribute('aria-label')||el.getAttribute('aria-labelledby')||el.title)return;const field=el.closest('.field'),label=field?.querySelector(':scope > label');if(label&&!label.querySelector('input,select,textarea')&&(!label.htmlFor||label.htmlFor===el.id)){if(!el.id){let id;do{id='hybrid-field-'+(++v36125A11yId)}while(document.getElementById(id));el.id=id}label.htmlFor=el.id;return}const text=String(el.placeholder||el.name||[...el.classList].find(c=>/^le-|^sd-|^sb-/.test(c))||'Form field').replace(/[-_]+/g,' ').replace(/^(le|sd|sb)\s+/i,'').trim();el.setAttribute('aria-label',text||'Form field')});window.__hybridUnlabeledControlCount=[...document.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>!(el.labels?.length||el.getAttribute('aria-label')||el.getAttribute('aria-labelledby')||el.title)).length;return controls.length;
+ controls.forEach(el=>{if(el.type==='hidden'||el.labels?.length||el.getAttribute('aria-label')||el.getAttribute('aria-labelledby')||el.title)return;const field=el.closest('.field'),label=field?.querySelector(':scope > label');if(label&&!label.querySelector('input,select,textarea')&&(!label.htmlFor||label.htmlFor===el.id)){if(!el.id){let id;do{id='hybrid-field-'+(++v36125A11yId)}while(document.getElementById(id));el.id=id}label.htmlFor=el.id;return}const text=String(el.placeholder||el.name||[...el.classList].find(c=>/^le-|^sd-|^sb-/.test(c))||'Form field').replace(/[-_]+/g,' ').replace(/^(le|sd|sb)\s+/i,'').trim();el.setAttribute('aria-label',text||'Form field')});if(updateCount)v36125UpdateUnlabeledCount();return controls.length;
 }
-window.v36125WireFormLabels=v36125WireFormLabels;v36125WireFormLabels(document);new MutationObserver(mutations=>mutations.forEach(m=>m.addedNodes.forEach(node=>{if(node.nodeType===1)v36125WireFormLabels(node)}))).observe(document.documentElement,{childList:true,subtree:true});
+window.v36125WireFormLabels=v36125WireFormLabels;v36125WireFormLabels(document);const v36137LabelRoots=new Set();let v36137LabelRaf=0;new MutationObserver(mutations=>{mutations.forEach(m=>m.addedNodes.forEach(node=>{if(node.nodeType===1&&(node.matches?.('input,select,textarea,.field')||node.querySelector?.('input,select,textarea')))v36137LabelRoots.add(node)}));if(v36137LabelRoots.size&&!v36137LabelRaf)v36137LabelRaf=requestAnimationFrame(()=>{v36137LabelRaf=0;const roots=[...v36137LabelRoots];v36137LabelRoots.clear();roots.forEach(node=>{if(node.isConnected)v36125WireFormLabels(node,false)});v36125UpdateUnlabeledCount()})}).observe(document.documentElement,{childList:true,subtree:true});
 window.HybridCore=Object.seal({
  build:HYBRID_APP_BUILD,
  localISO,addDays,parseLocalISO,daysBetweenISO,
@@ -18360,11 +18498,12 @@ window.HybridCore=Object.seal({
   search.addEventListener('input',apply);search.addEventListener('keydown',e=>{if(e.key==='Escape'){search.value='';apply();search.blur()}});select.addEventListener('change',()=>{search.value='';apply()});apply();
  }
  function scan(root=document){if(root.matches?.(selector))wire(root);root.querySelectorAll?.(selector).forEach(wire)}
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>scan());else scan();new MutationObserver(items=>items.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)scan(n)}))).observe(document.documentElement,{childList:true,subtree:true});
+ const pending=new Set();let raf=0;const queue=n=>{if(n?.nodeType!==1||!(n.matches?.(selector)||n.querySelector?.(selector)))return;pending.add(n);if(!raf)raf=requestAnimationFrame(()=>{raf=0;const roots=[...pending];pending.clear();roots.forEach(root=>{if(root.isConnected)scan(root)})})};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>scan());else scan();new MutationObserver(items=>items.forEach(m=>m.addedNodes.forEach(queue))).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
-<script src="app-shell-v36.119.js?v=36.134"></script>
-<script src="adaptive-personalization-v36.120.js?v=36.134"></script>
+<script src="app-shell-v36.119.js?v=36.137"></script>
+<script src="adaptive-personalization-v36.120.js?v=36.137"></script>
 
 <script id="v36116-build-note">
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.

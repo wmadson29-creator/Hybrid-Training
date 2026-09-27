@@ -1,67 +1,41 @@
-# Apply Hybrid Training v36.134
+# Apply Hybrid Training v36.137
 
-This ZIP is an exact content delta from GitHub `origin/main` at commit `44f793a` (v36.131). It contains only files that are missing from or byte-different from that baseline. It excludes training exports, screenshots, `.git`, dependencies, prior ZIPs, and every unchanged repository file.
+This is a narrow follow-up to v36.136. Upload the ZIP contents at the repository root, preserving the `tests/` directory. It contains only files that are new or changed since v36.136; it excludes exports, screenshots, dependencies, `.git`, older release notes, and unchanged app files.
 
-Upload the ZIP contents at the repository root and preserve the `.github/` and `tests/` directories.
+## What this fixes
 
-## What changes
+The cross-workout Gym rotation logic was working when a plan was freshly generated, but an already accepted automatic plan bypassed it. Its stored recommendation snapshot was considered current whenever the user's evidence had not changed, even when the recommendation model had changed. The app could therefore progress weights and reps while presenting the exact same exercise list.
 
-### Actual effort affects actual load
+v36.137 separates two kinds of stability:
 
-- An exact logged RPE remains strongest.
-- If exact RPE is blank, the selected effort band now contributes a consistent RPE estimate to the session-dose calculation.
-- A session reported as **Very hard** against a low planned effort is treated as costly evidence rather than as an easy under-plan session merely because its duration was a little short.
-- This applies to primary, full-secondary, short-secondary, substituted, and unplanned sessions.
+- ordinary re-renders continue to show one stable recommendation;
+- a semantic recommendation-model change invalidates an obsolete generated snapshot;
+- an unstarted model-generated Gym plan is rebuilt with the current rotation logic;
+- manually built plans remain exactly as saved;
+- an active workout remains exactly as started; and
+- completed workouts remain immutable historical records.
 
-### Secondary outcomes can no longer attach to the wrong offer
+No workout, recovery, wearable, body-measurement, schedule, or settings data is cleared. No import is required.
 
-- Completed secondaries are matched by date, primary workout, and secondary type.
-- The old arbitrary same-day fallback is removed.
-- Existing stale completion links are removed when their recorded session does not match the offer.
+The same release also addresses the severe mobile lag. Past calendar days no longer run the adaptive planner, secondary labels yield between days instead of blocking the main thread, closed explanation sections no longer pre-build expensive comparisons, repeated history/development calculations are cached until training data changes, and DOM observers batch their work instead of rescanning the whole interface for every new element. The recommendation model and fixed-anchor rules remain intact.
 
-### Recommendation comparisons honor real preferences
+## Expected behavior after deployment
 
-- The Advanced Trends counterfactual view now uses the same outdoor-versus-treadmill preference, environment, pool availability, and swim suitability inputs as the live recommendation path.
-- Outdoor running and treadmill running share recovery recency; changing the label cannot bypass recent running fatigue.
+The next unstarted automatic Generic Gym workout should be regenerated once. Comparable accessories and implement variants can rotate, with exact overlap held near 40% when valid alternatives exist. A useful progressing compound may remain when progression value outweighs novelty. Once the v36.137 plan is accepted, it stays stable until relevant training evidence or a later semantic model revision changes it.
 
-### Historical primary identity is repaired safely
-
-- Schema 54 detects the narrow case where one clearly marked secondary-only completion replaced the date's single unambiguous completed primary.
-- It repairs the stored workout intent and day override while keeping every workout row intact.
-- Dates with multiple possible primaries or no explicit secondary metadata are left unchanged.
-
-### Carried forward from v36.132–v36.133
-
-- Current recovery lookup, visible/editable day context, and Home save confirmation.
-- Optimized, guided-custom, and blank full-secondary workout paths for every supported training family.
-- Actual-versus-planned dose separation and full-secondary role safety.
-
-## Corrected personal export
-
-The separately supplied corrected export is not part of the GitHub ZIP. It keeps all 149 exercise rows, 39 sessions, and 32 recovery days while correcting only the confirmed records: September 23 travel context, September 23 primary identity, the 420-yard swim's length count, and one stale secondary-opportunity link. Import it only after v36.134 is deployed.
-
-## Runtime files
-
-Replace every runtime file included in the ZIP. Stable module filenames are intentional; the v36.134 query keys and service-worker cache force the new contents to install.
-
-## QA files
-
-- Preserve `.github/workflows/qa.yml` and the `tests/` directory.
-- Keep the versioned update notes, QA reports, and historical audit.
-- Local static/model QA passes **191/191** checks.
-
-## Verify before deployment
+## Verification
 
 ```sh
 npm install --no-audit --no-fund
 npm test
 npx playwright install chromium
 npm run test:browser
-npm run audit:export -- "/path/to/an/export.json"
 ```
+
+Local static/model QA passes **203/203** checks. The browser regression suite now also covers stale generated-plan refresh, manual-plan preservation, active-workout preservation, obsolete recommendation snapshots, and the zero-past-day-forecast performance invariant. Chromium could not be downloaded in this restricted workspace, so GitHub Actions should run the browser suite after upload.
 
 Suggested commit message:
 
-`Correct actual effort, recommendation comparison, and history linkage`
+`Refresh Gym rotation and reduce calendar lag`
 
-After GitHub Pages deploys, reload the installed app once so the v36.134 service worker activates. Do not clear local data or re-enter recovery history.
+After GitHub Pages deploys, fully close and reopen the installed app once so the v36.137 service worker activates. Do not clear app storage.
