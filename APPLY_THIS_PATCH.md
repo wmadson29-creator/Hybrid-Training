@@ -1,28 +1,28 @@
-# Apply Hybrid Training v36.138
+# Apply Hybrid Training v36.139
 
-Upload the ZIP contents at the repository root, preserving the `tests/` directory. The ZIP contains only files that are new or changed since v36.137; it excludes exports, screenshots, dependencies, `.git`, and unchanged application files.
+Upload the ZIP contents at the repository root, preserving the `tests/` directory. The ZIP contains only files that are new or changed since v36.138; it excludes exports, screenshots, dependencies, `.git`, and unchanged application files.
 
 ## What this release fixes
 
-- Consecutive automatic Generic Gym workouts now receive a **soft, dose-sensitive spacing cost** for recently trained focus areas. This is not a prohibition: a muscle can still repeat when weakness, due volume, progression value, equipment fit, and recovery evidence make it the best choice.
-- Future recommendations now include projected-workout context in their memoization keys. This prevents a future date from reusing a Gym recommendation calculated before the preceding projected workout existed.
-- The Gym and Calisthenics libraries render only when opened and in bounded batches. Research citations hydrate only when their disclosure is opened.
-- Generated Gym, Calisthenics, kettlebell, class, conditioning, History, Training Library, and Trends markup is released after leaving those views.
-- Repeated exercise-anatomy, conditioning-type, bodyweight, history, and development calculations use bounded caches that clear whenever model evidence changes.
-- Existing saved data can safely use the new date cache during startup migration; the real export-backed upgrade path is covered by browser QA.
+- A manually selected future conditioning activity is now a first-class schedule commitment even when that date was already labeled `Conditioning`.
+- The app now distinguishes an accepted generated recommendation from an explicit manual choice. Generated open-day plans reflow when their evidence changes; manual switches remain fixed.
+- Run, swim, other-cardio, and speed commitments reserve their exact lane using a soft adjustment based on proximity and planned duration. A Thursday full swim therefore lowers duplicate-swim priority on Tuesday, while an unusually large swim need can still justify both sessions.
+- Earlier open days re-rank from the complete picture: completed work from the prior week, current recovery/load, fixed Barbell or kettlebell anchors, and future manual commitments.
+- Future day overrides, conditioning choices, workout intent, and compact future-plan signatures now participate in recommendation evidence. Changing Thursday therefore invalidates and releases a stale generated Tuesday recommendation snapshot immediately.
+- Manually committed conditioning rows are marked as manual in future-interference modeling rather than being mistaken for an adaptive placeholder.
+- The new future-commitment lookup uses a bounded cache that is cleared with all other model caches.
 
 No workout, recovery, wearable, body-measurement, schedule, equipment, or settings data is cleared.
 
-## Expected adjacent-day behavior
+## Expected behavior
 
-Repeating one muscle on back-to-back Gym days is allowed. A near-duplicate three-muscle emphasis should be uncommon because the previous day's actual or projected dose lowers those focus scores. Stronger individualized evidence can override that cost.
+If Tuesday and Thursday are flexible conditioning slots and you set Thursday to `LSS Swim`:
 
-With the supplied export, the corrected forecast is:
-
-- Oct. 10: Hamstrings / Glutes + Quads + Biceps
-- Oct. 11: Shoulders + Back + Biceps
-
-Biceps repeats because it still scores highly; the former shoulder/triceps-heavy near-repeat does not.
+- Thursday remains exactly where you put it.
+- Tuesday's prior generated recommendation is released and recalculated immediately.
+- Thursday's planned swim duration lowers Tuesday's swim-lane score.
+- Tuesday can become a run, speed session, other cardio, Gym, Calisthenics, or SE workout according to the remaining needs.
+- Swimming Tuesday is still possible when its need is clearly large enough; this is not a hard no-repeat rule.
 
 ## Verification
 
@@ -33,10 +33,10 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Local results: **213/213 static/model checks** and **34/34 browser checks** passed. The latest export audit passed with four retained historical-data warnings documented in `QA_REPORT_v36.138.md`.
+Local results: **217/217 static/model checks** and **35/35 browser checks** passed. The browser suite reported no uncaught page exceptions or console errors. It includes the exact regression where Tuesday begins as a generated swim, Thursday is manually set to swim, Thursday stays fixed, and Tuesday re-ranks to a run. Details are in `QA_REPORT_v36.139.md`.
 
 Suggested commit message:
 
-`Fix projected Gym spacing and reduce UI lag`
+`Rebalance open days around future cardio commitments`
 
-After GitHub Pages deploys, fully close and reopen the installed app once so the v36.138 service worker activates. Do not clear app storage.
+After GitHub Pages deploys, fully close and reopen the installed app once so the v36.139 service worker activates. Do not clear app storage.

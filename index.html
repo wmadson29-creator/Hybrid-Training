@@ -10,16 +10,16 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.138">
-<script src="decision-integrity-v36.131.js?v=36.138"></script>
-<script src="actual-load-feedback-v36.126.js?v=36.138"></script>
-<script src="forecast-balance-v36.127.js?v=36.138"></script>
-<script src="exercise-expansion-v36.128.js?v=36.138"></script>
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.139">
+<script src="decision-integrity-v36.131.js?v=36.139"></script>
+<script src="actual-load-feedback-v36.126.js?v=36.139"></script>
+<script src="forecast-balance-v36.127.js?v=36.139"></script>
+<script src="exercise-expansion-v36.128.js?v=36.139"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
 <meta name="apple-mobile-web-app-title" content="Hybrid Training">
-<link rel="stylesheet" href="app-shell-v36.119.css?v=36.138">
+<link rel="stylesheet" href="app-shell-v36.119.css?v=36.139">
 <style>
 :root{
   --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
@@ -2048,7 +2048,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.138</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
+      <div class="notice"><strong>Adaptive Engine v36.139</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -3535,7 +3535,7 @@ function utmDirectionalTransfer(targetName,sourceName,dateISO=localISO(new Date(
 let utmModelRevision=0;
 const utmCapabilityCache=new Map(),utmTransferCache=new Map(),utmRecoveryWeightCache=new Map(),utmFatigueCache=new Map(),utmVolumeCache=new Map(),
   utmLatentCache=new Map(),utmStressCache=new Map(),utmDoseCache=new Map(),utmDeloadCache=new Map(),utmCounterfactualCache=new Map(),utmHybridAdaptationCache=new Map(),utmFutureInterferenceCache=new Map();
-function utmInvalidateCaches(){utmModelRevision++;[utmCapabilityCache,utmTransferCache,utmRecoveryWeightCache,utmFatigueCache,utmVolumeCache,utmLatentCache,utmStressCache,utmDoseCache,utmDeloadCache,utmCounterfactualCache,utmHybridAdaptationCache,utmFutureInterferenceCache].forEach(x=>x.clear());try{v36138FingerprintCache?.clear();v36138ExposureOverlapCache?.clear()}catch(e){}try{rollingOpenDayCache.clear()}catch(e){}try{adaptiveNoRestCache.clear()}catch(e){}try{resetRollingForecastProjection()}catch(e){}}
+function utmInvalidateCaches(){utmModelRevision++;[utmCapabilityCache,utmTransferCache,utmRecoveryWeightCache,utmFatigueCache,utmVolumeCache,utmLatentCache,utmStressCache,utmDoseCache,utmDeloadCache,utmCounterfactualCache,utmHybridAdaptationCache,utmFutureInterferenceCache].forEach(x=>x.clear());try{v36138FingerprintCache?.clear();v36138ExposureOverlapCache?.clear();futureManualCadenceReservationCache?.clear()}catch(e){}try{rollingOpenDayCache.clear()}catch(e){}try{adaptiveNoRestCache.clear()}catch(e){}try{resetRollingForecastProjection()}catch(e){}}
 function utmClamp(v,lo,hi){return Math.max(lo,Math.min(hi,Number(v)||0))}
 function utmMean(a){const x=a.filter(Number.isFinite);return x.length?x.reduce((s,v)=>s+v,0)/x.length:0}
 function utmPearson(xs,ys){
@@ -4357,7 +4357,7 @@ function utmCounterfactualConditioning(dateISO=localISO(new Date())){
 }
 
 function utmPlannedRowsForDate(dateISO){
- const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)||Number(state.settings.currentWeek)||1),day=dayNameFromDate(dateISO),session=expectedSession(day,gw,dateISO),manual=(state.settings.customDayWorkouts||{})[dateISO],scheduledClass=selectedClassForDate(dateISO);let rows=[];
+ const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)||Number(state.settings.currentWeek)||1),day=dayNameFromDate(dateISO),session=expectedSession(day,gw,dateISO),manual=(state.settings.customDayWorkouts||{})[dateISO],scheduledClass=selectedClassForDate(dateISO),conditioningCommitment=explicitConditioningCommitmentForDate(dateISO);let rows=[];
  // Resolve the authoritative session first. A stale manual plan must never hide a
  // fixed Barbell Strength / KB session or a scheduled class from future-interference modeling.
  if(session==="Class / Activity"){const meta=(state.settings.classScheduleMeta||{})[dateISO]||{};rows=[{exercise:scheduledClass||"Yoga — Vinyasa",source:"class",duration:Number(meta.duration)||0}];}
@@ -4367,7 +4367,7 @@ function utmPlannedRowsForDate(dateISO){
  else if(session==="Generic Gym"){const sf=shortFocusBlockForDate(dateISO);if(sf)rows=["Squat","Barbell Row","Chest Machine"].map(exercise=>({exercise,source:"focus-template"}));else{const w=genericGymWorkoutFor(dateISO);rows=(w.rows||[]).map(x=>({exercise:x.exercise,source:"adaptive"}))}}
  else if(session==="Calisthenics"){const sf=shortFocusBlockForDate(dateISO);if(sf)rows=["Push-Up","Pull-Up","Bodyweight Squat"].map(exercise=>({exercise,source:"focus-template"}));else{const w=calWorkoutForDate(dateISO);rows=(w.rows&&w.rows.length?w.rows:[{exercise:"Push-Up"},{exercise:"Pull-Up"},{exercise:"Bodyweight Squat"}]).map(x=>({exercise:x.exercise,source:"adaptive"}))}}
  else if(session==="Custom Workout")rows=(manual?.rows||[]).map(x=>({exercise:x.exercise,source:"manual"}));
- else if(session==="Conditioning"){const exact=(state.settings.conditioningOverrides||{})[dateISO];rows=[{exercise:exact||(conditioningSlot(day,gw)==="hard"?"Short Hills":"LSS Run"),source:"adaptive"}]}
+ else if(session==="Conditioning"){const exact=v36139EffectiveConditioningOverride(dateISO);rows=[{exercise:exact||(conditioningSlot(day,gw)==="hard"?"Short Hills":"LSS Run"),source:conditioningCommitment?"manual":"adaptive"}]}
  if(scheduledClass&&session!=="Class / Activity"){const meta=(state.settings.classScheduleMeta||{})[dateISO]||{};rows.push({exercise:scheduledClass,source:"class",duration:Number(meta.duration)||0})};
  return {session,rows};
 }
@@ -6376,9 +6376,9 @@ function rollingForecastAddOnRows(dateISO,addOn){
  if(!addOn)return [];if(Array.isArray(addOn.rows)&&addOn.rows.length)return addOn.rows.map((src,i)=>{const type=src.secondaryTrainingType||addOn.secondaryTrainingType||'gym',mins=type==='conditioning'?Math.max(10,parseFirstNumber(src.plannedTarget||'')||15):0;return {date:dateISO,session:type==='conditioning'?'Conditioning':'Conditioning',exercise:src.exercise,status:'complete',rpe:type==='conditioning'?3:6,sets:src.sets||'',reps:src.reps||'',weight:src.weight||'',metrics:mins?{time:mins,duration:mins}:{},sessionFeel:'Good',feel:'Good',technique:'Clean',sessionId:'forecast-secondary|'+dateISO+'|'+type,projectedForecast:true,adaptiveSecondaryBlock:true,secondaryTrainingType:type,secondaryFocus:src.secondaryFocus||addOn.focusRegion||'',secondaryCadenceCredit:Number(src.secondaryCadenceCredit)||Number(addOn.secondaryCadenceCredit)||.45}});const row=rollingForecastAccessoryRow(dateISO,addOn);return row?[row]:[];
 }
 function rollingForecastBaseConditioningDate(dateISO){
- const base=programScheduledSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),override=(state.settings.dayOverrides||{})[dateISO];
- if((state.settings.conditioningOverrides||{})[dateISO]||override==="Conditioning"||intent?.selectedSession==="Conditioning")return true;
- if(["Generic Gym","Calisthenics","Strength-Endurance","Active Recovery","Recovery / Rest","Class / Activity"].includes(override||intent?.selectedSession||""))return false;
+ const base=programScheduledSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),stale=v36139GeneratedRecommendationStale(dateISO,intent),override=stale?'':(state.settings.dayOverrides||{})[dateISO],selected=stale?'':intent?.selectedSession;
+ if(v36139EffectiveConditioningOverride(dateISO)||override==="Conditioning"||selected==="Conditioning")return true;
+ if(["Generic Gym","Calisthenics","Strength-Endurance","Active Recovery","Recovery / Rest","Class / Activity"].includes(override||selected||""))return false;
  return base==="Conditioning";
 }
 function ensureRollingForecastRowsBefore(targetISO){
@@ -6399,7 +6399,7 @@ function ensureRollingForecastRowsBefore(targetISO){
          else if(constraint.kind==='workout'){
            if(constraint.session==='Conditioning'){
              const activity=(state.settings.conditioningOverrides||{})[cursor]||constraint.label||'Adaptive Cardio';
-             row=rollingForecastConditioningRow(cursor,{activity,target:'45 min',rpe:'5'});
+             row=rollingForecastConditioningRow(cursor,{activity,target:constraint.target||'45 min',rpe:constraint.rpe||'5'});
            }else row=rollingForecastFlexibleRow(cursor,constraint.session,constraint.label||'',null);
          }
        }else if(rollingOpenDayEligible(cursor,base)){
@@ -6554,22 +6554,58 @@ function rollingCadenceUrgency(days,targetDays){
  if(r<1.55)return 17;
  return 22;
 }
+// A saved future conditioning choice is a real planning commitment, even when the
+// underlying program slot was already "Conditioning". Keep this separate from an
+// automatic forecast: only a persisted user choice can reserve a future cadence lane.
+function explicitConditioningCommitmentForDate(dateISO){
+ const intent=workoutIntentForDate(dateISO),meta=(state.settings.conditioningSwapMeta||{})[dateISO]||{};
+ // "Use recommended" remains model-owned and must be free to reflow when another day is
+ // manually changed. Only a true activity/family switch or manual override reserves a lane.
+ if(intent?.mode==='adaptive-recommended'||meta.mode==='adaptive-recommended')return null;
+ const activity=String((state.settings.conditioningOverrides||{})[dateISO]||'').trim();if(!activity)return null;
+ const override=(state.settings.dayOverrides||{})[dateISO]||'',base=programScheduledSessionForDate(dateISO),fixed=fixedAnchorBaseForDate(dateISO);
+ if(fixed?.fixed)return null;
+ if(intent?.selectedSession&&intent.selectedSession!=='Conditioning')return null;
+ if(!intent?.selectedSession&&override&&override!=='Conditioning')return null;
+ if(!intent?.selectedSession&&!override&&base!=='Conditioning')return null;
+ const lane=conditioningCadenceLaneForActivity(activity),target=String(meta.target||''),fallbackMinutes=lane==='speed'?25:45,minutes=rollingForecastMinutes(target,fallbackMinutes),originalSession=intent?.originalSession||base;
+ return {date:dateISO,session:'Conditioning',activity,lane,cadenceLane:lane,target,minutes,rpe:String(meta.rpe||''),mode:String(meta.mode||intent?.mode||'conditioning-override'),source:String(intent?.source||'conditioning-override'),originalSession,activityOnly:originalSession==='Conditioning'};
+}
+var futureManualCadenceReservationCache;
+function futureManualCadenceReservations(dateISO,horizon=7){
+ const cache=futureManualCadenceReservationCache||(futureManualCadenceReservationCache=new Map()),cacheKey=utmModelRevision+'|'+dateISO+'|'+horizon;if(cache.has(cacheKey))return cache.get(cacheKey);
+ const reservations={};
+ for(let days=1;days<=horizon;days++){
+   const futureDate=localISO(addDays(parseLocalISO(dateISO),days)),constraint=manualScheduleConstraintForDate(futureDate);if(!constraint)continue;
+   let lane='',activity='',target='',minutes=0;
+   if(constraint.kind==='workout'&&constraint.session==='Conditioning'){
+     activity=constraint.activity||constraint.label||'';lane=constraint.cadenceLane||conditioningCadenceLaneForActivity(activity);target=constraint.target||'';minutes=Number(constraint.minutes)||rollingForecastMinutes(target,lane==='speed'?25:45);
+   }else if(constraint.kind==='class'){
+     activity=constraint.label||'';lane=conditioningCadenceLaneForActivity(activity);minutes=Number(constraint.duration)||45;
+   }
+   if(!['run','swim','cardio','speed'].includes(lane))continue;
+   const proximity=[0,16,14,11,8,6,4,3][days]||2,referenceMinutes=lane==='speed'?25:45,doseFactor=utmClamp(minutes/referenceMinutes,.45,1.15),credit=Math.round(proximity*doseFactor*10)/10,item={lane,date:futureDate,days,activity:activity||ROLLING_CADENCE_LABELS[lane],target,minutes:Math.round(minutes),credit,kind:constraint.kind};
+   if(!reservations[lane]||credit>reservations[lane].credit||(credit===reservations[lane].credit&&days<reservations[lane].days))reservations[lane]=item;
+ }
+ cache.set(cacheKey,reservations);if(cache.size>96)cache.delete(cache.keys().next().value);return reservations;
+}
 function rollingCadencePortfolio(dateISO){
- const capacity=rollingCadenceCapacity(dateISO,14),lanes={};
+ const capacity=rollingCadenceCapacity(dateISO,14),futureReservations=futureManualCadenceReservations(dateISO,7),lanes={};
  ROLLING_CADENCE_LANES.forEach(lane=>{
    const days=rollingCadenceDaysSince(dateISO,lane),mult=lane==='calisthenics'?calisthenicsCadenceMultiplier():(Number(ROLLING_CADENCE_TARGET_MULTIPLIER[lane])||1),targetDays=Math.round(capacity.targetDays*mult*10)/10,
      standardUrgency=rollingCadenceUrgency(days,capacity.targetDays),rawUrgency=rollingCadenceUrgency(days,targetDays),supplement=rollingSecondaryCadenceCredit(dateISO,lane),
-     baseUrgency=(mult>1&&!['calisthenics','se'].includes(lane))?Math.max(rawUrgency,standardUrgency-2):rawUrgency,urgency=Math.round((baseUrgency-supplement.credit*7)*10)/10;
-   lanes[lane]={lane,label:ROLLING_CADENCE_LABELS[lane],daysSince:days,targetDays,standardTargetDays:capacity.targetDays,urgency,ratio:days>=9999?99:Math.round(days/targetDays*100)/100,secondaryCredit:supplement.credit,secondaryDaysSince:supplement.daysSince};
+     baseUrgency=(mult>1&&!['calisthenics','se'].includes(lane))?Math.max(rawUrgency,standardUrgency-2):rawUrgency,unreservedUrgency=Math.round((baseUrgency-supplement.credit*7)*10)/10,reservation=futureReservations[lane]||null,urgency=Math.round(utmClamp(unreservedUrgency-(Number(reservation?.credit)||0),-20,22)*10)/10;
+   lanes[lane]={lane,label:ROLLING_CADENCE_LABELS[lane],daysSince:days,targetDays,standardTargetDays:capacity.targetDays,urgency,unreservedUrgency,ratio:days>=9999?99:Math.round(days/targetDays*100)/100,secondaryCredit:supplement.credit,secondaryDaysSince:supplement.daysSince,futureReservationCredit:Number(reservation?.credit)||0,futureCommitment:reservation};
  });
  const conditioningLanes=['run','swim','cardio','speed'].map(k=>lanes[k]).filter(Boolean).sort((a,b)=>b.urgency-a.urgency||(b.daysSince===9999?1:b.daysSince)-(a.daysSince===9999?1:a.daysSince)||(CONDITIONING_CADENCE_TIE_PRIORITY[a.lane]??9)-(CONDITIONING_CADENCE_TIE_PRIORITY[b.lane]??9));
- return {capacity,lanes,conditioningLane:conditioningLanes[0]?.lane||'run',conditioningLabel:conditioningLanes[0]?.label||'Run',conditioningUrgency:conditioningLanes[0]?.urgency||0,ordered:Object.values(lanes).sort((a,b)=>b.urgency-a.urgency||b.ratio-a.ratio||a.label.localeCompare(b.label))};
+ return {capacity,lanes,futureReservations,conditioningLane:conditioningLanes[0]?.lane||'run',conditioningLabel:conditioningLanes[0]?.label||'Run',conditioningUrgency:conditioningLanes[0]?.urgency||0,ordered:Object.values(lanes).sort((a,b)=>b.urgency-a.urgency||b.ratio-a.ratio||a.label.localeCompare(b.label))};
 }
 function cadenceReasonText(item,capacity){
  if(!item)return '';
  const when=item.daysSince>=9999?'has no recent dedicated exposure':'was last trained '+item.daysSince+' days ago',target=Number(item.targetDays)||capacity.targetDays,
-   spacingNote=target>capacity.targetDays+.05?' It is intentionally scheduled a little less often than the other flexible choices.':'';
- return item.label+' '+when+'. With '+capacity.slots+' open training opportunities in the next '+capacity.horizon+' days, it is normally revisited about every '+target+' days.'+spacingNote;
+   spacingNote=target>capacity.targetDays+.05?' It is intentionally scheduled a little less often than the other flexible choices.':'',future=item.futureCommitment,
+   reservationNote=future?' You manually scheduled '+future.activity+' on '+future.date+', so that future dose lowers today\'s '+String(item.label||'conditioning').toLowerCase()+' priority. This is a soft adjustment, not a ban on repeating the modality.':'';
+ return item.label+' '+when+'. With '+capacity.slots+' open training opportunities in the next '+capacity.horizon+' days, it is normally revisited about every '+target+' days.'+spacingNote+reservationNote;
 }
 function fixedAnchorBaseForDate(dateISO){const sf=shortFocusBlockForDate(dateISO);if(sf)return {fixed:false,session:shortFocusSessionForDate(dateISO),shortFocus:true};if(isManualProgramPauseDate(dateISO))return {fixed:false,session:'Open Training',programPause:true};const movedTo=programMoveToDate(dateISO);if(movedTo)return {fixed:true,session:movedTo.sourceSession,programMove:true,sourceDate:movedTo.sourceDate,gw:movedTo.sourceTrainingWeek||Math.max(1,trainingWeekForDate(parseLocalISO(movedTo.sourceDate))),day:movedTo.sourceDay||dayNameFromDate(movedTo.sourceDate)};const movedFrom=programMoveFromDate(dateISO);if(movedFrom)return {fixed:false,session:movedFrom.replacement||'Open Training',programMove:true,source:true};const bb=baseBuildingForDate(dateISO);if(bb)return {fixed:true,session:baseBuildingSessionForDate(dateISO),baseBuilding:true};const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseExpectedSession(day,gw);return {fixed:base==='Barbell Strength'||String(base).startsWith('KB '),session:base,baseBuilding:false,gw,day}}
 function nextFixedTrainingAnchor(dateISO,maxDays=5){for(let i=1;i<=maxDays;i++){const iso=localISO(addDays(parseLocalISO(dateISO),i)),a=fixedAnchorBaseForDate(iso);if(a.fixed)return {days:i,date:iso,session:a.session}}return {days:9999,date:'',session:''}}
@@ -6635,12 +6671,14 @@ function adaptiveSEPlanForDate(dateISO){const w=adaptiveSEWorkoutFor(dateISO);if
 // re-optimized across every flexible mode from current recency, goals, adaptation gaps,
 // readiness, recent load, feedback, and future interference. Recovery Guard still wins.
 function manualScheduleConstraintForDate(dateISO){
- const base=programScheduledSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),override=(state.settings.dayOverrides||{})[dateISO]||'',rest=restRecord(dateISO),scheduledClass=selectedClassForDate(dateISO),movedFrom=programMoveFromDate(dateISO),reflowEligible=!movedFrom;
+ const base=programScheduledSessionForDate(dateISO),intent=workoutIntentForDate(dateISO),override=(state.settings.dayOverrides||{})[dateISO]||'',rest=restRecord(dateISO),scheduledClass=selectedClassForDate(dateISO),movedFrom=programMoveFromDate(dateISO),reflowEligible=!movedFrom,conditioningCommitment=explicitConditioningCommitmentForDate(dateISO);
  if(rest?.source==='manual'&&['planned','confirmed'].includes(rest.status)&&override==='Recovery / Rest')return {date:dateISO,session:'Recovery / Rest',originalSession:intent?.originalSession||base,kind:'rest',label:'Manually scheduled rest',reflowEligible};
- if(scheduledClass){const meta=(state.settings.classScheduleMeta||{})[dateISO]||{};return {date:dateISO,session:'Class / Activity',originalSession:intent?.originalSession||base,kind:'class',label:scheduledClass,additional:!!meta.additional,reflowEligible};}
- if(intent&&intent.selectedSession&&intent.selectedSession!==intent.originalSession){return {date:dateISO,session:intent.selectedSession,originalSession:intent.originalSession||base,kind:'workout',label:intent.label||intent.selectedSession,mode:intent.mode||'',source:intent.source||'',reflowEligible};}
+ if(scheduledClass){const meta=(state.settings.classScheduleMeta||{})[dateISO]||{};return {date:dateISO,session:'Class / Activity',originalSession:intent?.originalSession||base,kind:'class',label:scheduledClass,duration:Number(meta.duration)||0,additional:!!meta.additional,reflowEligible};}
+ if(conditioningCommitment)return {...conditioningCommitment,kind:'workout',label:conditioningCommitment.activity,reflowEligible};
+ if(intent&&intent.mode!=='adaptive-recommended'&&intent.selectedSession&&intent.selectedSession!==intent.originalSession){return {date:dateISO,session:intent.selectedSession,originalSession:intent.originalSession||base,kind:'workout',label:intent.label||intent.selectedSession,mode:intent.mode||'',source:intent.source||'',reflowEligible};}
  const manualSaved=(state.settings.customDayWorkouts||{})[dateISO]||(state.settings.genericGymWorkouts||{})[dateISO]||(state.settings.calisthenicsWorkouts||{})[dateISO]||(state.settings.adaptiveSEWorkouts||{})[dateISO];
- if(manualSaved&&override&&override!==base)return {date:dateISO,session:override,originalSession:base,kind:'workout',label:manualSaved.name||override,reflowEligible};
+ const generatedSaved=!!manualSaved&&(intent?.mode==='adaptive-recommended'||manualSaved._adaptiveRecommended===true);
+ if(manualSaved&&!generatedSaved&&override&&override!==base)return {date:dateISO,session:override,originalSession:base,kind:'workout',label:manualSaved.name||override,reflowEligible};
  if(movedFrom&&movedFrom.replacement&&movedFrom.replacement!=='Open Training')return {date:dateISO,session:movedFrom.replacement,originalSession:movedFrom.sourceSession||base,kind:movedFrom.replacement==='Recovery / Rest'?'rest':'workout',label:'Replacement for '+(movedFrom.sourceSession||'moved program day'),mode:'program-move-source',source:'schedule-exception',reflowEligible:false};
  return null;
 }
@@ -6732,6 +6770,11 @@ function applyFutureScheduleReflow(dateISO,scores,why,readiness){
      }else if(readiness.recoveryGuard&&isCandidate){
        why['Recovery / Rest'].push(tag+' Recovery Guard is active, so the app will not force a training mode onto '+dateISO+'.');
      }
+     return;
+   }
+   if(c.activityOnly&&selected==='Conditioning'&&c.direction==='future'){
+     const plannedLane=c.cadenceLane||conditioningCadenceLaneForActivity(c.activity||c.label||''),dueLane=rollingCadencePortfolio(dateISO).conditioningLane;
+     why.Conditioning.push('You manually scheduled '+(c.activity||c.label||'conditioning')+' on '+c.date+'. That future '+(ROLLING_CADENCE_LABELS[plannedLane]||'conditioning')+' dose is already included in today\'s lane ranking; it lowers duplicate priority without banning another '+(plannedLane===dueLane?'useful session':'conditioning modality')+'.');
      return;
    }
    if(selected&&c.direction==='future'&&c.days<=2){
@@ -7034,14 +7077,14 @@ function draftExerciseName(card){
 }
 function expectedSession(day,gw,dateISO=""){
  const liveDraft=dateISO?activeUserLogDraftForDate(dateISO):null;if(liveDraft?.session)return liveDraft.session;
- const override=(state.settings.dayOverrides||{})[dateISO],noRest=!!(dateISO&&((state.settings.noRestDates||{})[dateISO])),rawBbBase=dateISO?baseBuildingSessionForDate(dateISO):"",shortFocus=dateISO?shortFocusBlockForDate(dateISO):null,moveFrom=dateISO?programMoveFromDate(dateISO):null,moveTo=dateISO?programMoveToDate(dateISO):null,base=dateISO?programScheduledSessionForDate(dateISO):(rawBbBase||baseExpectedSession(day,gw)),scheduledClass=dateISO?selectedClassForDate(dateISO):"",priorityBase=!!moveTo||base==="Barbell Strength"||base==="Strength-Endurance"||String(base).startsWith("KB "),intent=dateISO?workoutIntentForDate(dateISO):null,
-   explicitAdaptiveSwitch=["adaptive-switch","adaptive-recommended"].includes(intent?.mode)&&["Conditioning","Generic Gym","Calisthenics","Strength-Endurance"].includes(intent.selectedSession)?intent.selectedSession:"";
+ const intent=dateISO?workoutIntentForDate(dateISO):null,generatedStale=!!dateISO&&v36139GeneratedRecommendationStale(dateISO,intent),override=generatedStale?"":(state.settings.dayOverrides||{})[dateISO],noRest=!!(dateISO&&((state.settings.noRestDates||{})[dateISO])),rawBbBase=dateISO?baseBuildingSessionForDate(dateISO):"",shortFocus=dateISO?shortFocusBlockForDate(dateISO):null,moveFrom=dateISO?programMoveFromDate(dateISO):null,moveTo=dateISO?programMoveToDate(dateISO):null,base=dateISO?programScheduledSessionForDate(dateISO):(rawBbBase||baseExpectedSession(day,gw)),scheduledClass=dateISO?selectedClassForDate(dateISO):"",priorityBase=!!moveTo||base==="Barbell Strength"||base==="Strength-Endurance"||String(base).startsWith("KB "),
+   explicitAdaptiveSwitch=v36139IntentAuthoritativeForDate(dateISO,intent)&&["Conditioning","Generic Gym","Calisthenics","Strength-Endurance"].includes(intent?.selectedSession)?intent.selectedSession:"";
  if(override==="Recovery / Rest"&&!noRest)return "Recovery / Rest";
  if(scheduledClass&&!priorityBase)return "Class / Activity";
  if(explicitAdaptiveSwitch)return explicitAdaptiveSwitch;
- if(dateISO&&((state.settings.adaptiveSEWorkouts||{})[dateISO])&&(override==="Strength-Endurance"||intent?.selectedSession==="Strength-Endurance"))return "Strength-Endurance";
- if(dateISO&&((state.settings.calisthenicsWorkouts||{})[dateISO]))return "Calisthenics";
- if(dateISO&&((state.settings.genericGymWorkouts||{})[dateISO]))return "Generic Gym";
+ if(dateISO&&!generatedStale&&((state.settings.adaptiveSEWorkouts||{})[dateISO])&&(override==="Strength-Endurance"||intent?.selectedSession==="Strength-Endurance"))return "Strength-Endurance";
+ if(dateISO&&!generatedStale&&((state.settings.calisthenicsWorkouts||{})[dateISO]))return "Calisthenics";
+ if(dateISO&&!generatedStale&&((state.settings.genericGymWorkouts||{})[dateISO]))return "Generic Gym";
  if(override==="Calisthenics")return "Calisthenics";if(override==="Generic Gym")return "Generic Gym";if(override==="Class / Activity")return "Class / Activity";
  if(override&&override!=="Recovery / Rest")return override;
  if(shortFocus&&!scheduledClass)return shortFocusSessionForDate(dateISO);
@@ -7139,7 +7182,10 @@ function recommendedAdaptiveSessionForDate(dateISO){
  const x=adaptiveModeSwitchBase(dateISO);if(x.scheduledClass&&!x.priorityBase)return "Class / Activity";if(!x.priorityBase&&rollingOpenDayEligible(dateISO,x.base))return rollingOpenDayRecommendation(dateISO,{suppressRest:x.noRest}).session;return expectedSession(x.day,x.gw,dateISO);
 }
 function v36131RecommendationEvidence(dateISO){
- const start=localISO(addDays(parseLocalISO(dateISO),-56)),end=localISO(addDays(parseLocalISO(dateISO),14)),settings=state.settings||{},futureRecord=source=>Object.fromEntries(Object.entries(source||{}).filter(([date])=>validIsoDateValue(date)&&date>dateISO&&date<=end));
+ const start=localISO(addDays(parseLocalISO(dateISO),-56)),end=localISO(addDays(parseLocalISO(dateISO),14)),settings=state.settings||{},futureRecord=source=>Object.fromEntries(Object.entries(source||{}).filter(([date])=>validIsoDateValue(date)&&date>dateISO&&date<=end)),
+  futureIntents=Object.fromEntries(Object.entries(futureRecord(settings.workoutIntent)).map(([date,x])=>[date,[x?.originalSession||'',x?.selectedSession||'',x?.mode||'',x?.label||'',x?.source||'',Number(x?.changedAt)||0]])),
+  futureConditioningMeta=Object.fromEntries(Object.entries(futureRecord(settings.conditioningSwapMeta)).map(([date,x])=>[date,[x?.to||'',x?.mode||'',x?.adaptiveFamily||'',x?.forcedCadenceLane||'',x?.target||'',x?.rpe||'',Number(x?.at)||0]])),
+  futurePlanRecord=source=>Object.fromEntries(Object.entries(futureRecord(source)).map(([date,plan])=>{const rows=Array.isArray(plan?.rows)?plan.rows:Array.isArray(plan?.circuit)?plan.circuit:[];return [date,[plan?.session||'',plan?.name||'',plan?.minutesAvailable||plan?.duration||'',plan?.profile?.focus||plan?.focus||'',rows.slice(0,20).map(r=>[r?.exercise||'',r?.sets||'',r?.reps||'',r?.weight||r?.manualLb||''])]]}));
  return {
   date:dateISO,
   logs:(state.logs||[]).filter(row=>validIsoDateValue(row?.date)&&row.date>=start&&row.date<=dateISO).map(row=>[row.date,row.sessionId,row.completedAt,row.session,row.exercise,row.status,row.rpe,row.feel,row.sets,row.reps,row.weight,row.metrics?.time,row.metrics?.distance,row.metrics?.intervals,row.painLevel,row.changeReason]),
@@ -7149,15 +7195,31 @@ function v36131RecommendationEvidence(dateISO){
   bodyweight:Object.entries(state.bodyweightMeasurements||{}).filter(([date])=>date>=start&&date<=dateISO),
   context:(settings.dayTrainingContext||{})[dateISO]||{},goal:settings.trainingGoalProfile||'automatic',deloadMode:settings.adaptiveDeloadMode||'suggest',running:settings.runningLocationPreference||'outdoor',
   gymProfiles:settings.gymEquipmentProfiles||{},activeGymProfile:settings.activeGymEquipmentProfile||'Main Gym',gymAvailability:settings.gymAvailability||{},calEquipment:[settings.calHasPullupBar,settings.calHasBands,settings.calHasLowRow,settings.calHasDipBars,settings.calHasAbWheel],
-  futureClasses:futureRecord(settings.classOverrides),futureRest:futureRecord(state.restDays),futureMoves:settings.programDayMoves||{},shortFocus:settings.shortFocusBlocks||[],basePlans:settings.baseBuildingPlans||[]
+  futureClasses:futureRecord(settings.classOverrides),futureRest:futureRecord(state.restDays),futureMoves:settings.programDayMoves||{},futureDayOverrides:futureRecord(settings.dayOverrides),futureConditioning:futureRecord(settings.conditioningOverrides),futureConditioningMeta,futureIntents,futureNoRest:futureRecord(settings.noRestDates),futureSecondary:futureRecord(settings.secondaryOverrides),futurePlans:{custom:futurePlanRecord(settings.customDayWorkouts),gym:futurePlanRecord(settings.genericGymWorkouts),calisthenics:futurePlanRecord(settings.calisthenicsWorkouts),se:futurePlanRecord(settings.adaptiveSEWorkouts)},shortFocus:settings.shortFocusBlocks||[],basePlans:settings.baseBuildingPlans||[]
  };
 }
 function v36131EvidenceRevision(dateISO){return window.HybridDecisionIntegrity?.evidenceRevision?.(v36131RecommendationEvidence(dateISO))||''}
 // Recommendation snapshots and generated Gym plans must survive ordinary re-renders, but
 // they cannot remain authoritative after the recommendation logic itself changes. These are
 // semantic model versions (not app-build numbers) so unrelated UI releases do not churn plans.
-const OPEN_DAY_RECOMMENDATION_MODEL_VERSION=3;
+const OPEN_DAY_RECOMMENDATION_MODEL_VERSION=5;
 const GYM_AUTOMATIC_PLAN_MODEL_VERSION=3;
+// A recommendation the model generated can remain stable while its evidence is unchanged,
+// but it is not a permanent user lock. A later manual rest/workout/activity, completed
+// session, recovery entry, or other evidence change must make the generated choice yield to
+// a fresh rolling-horizon calculation. Explicit switches and manual builders remain fixed.
+function v36139AdaptiveRecommendationSnapshotCurrent(dateISO,intent=workoutIntentForDate(dateISO)){
+ if(intent?.mode!=="adaptive-recommended")return true;
+ const snapshot=intent.recommendedSnapshot,revision=v36131EvidenceRevision(dateISO);
+ return Number(snapshot?.modelVersion)===OPEN_DAY_RECOMMENDATION_MODEL_VERSION&&!!revision&&!!window.HybridDecisionIntegrity?.snapshotValid?.(snapshot,revision);
+}
+function v36139GeneratedRecommendationStale(dateISO,intent=workoutIntentForDate(dateISO)){return intent?.mode==="adaptive-recommended"&&!v36139AdaptiveRecommendationSnapshotCurrent(dateISO,intent)}
+function v36139IntentAuthoritativeForDate(dateISO,intent=workoutIntentForDate(dateISO)){
+ if(!intent)return false;
+ if(intent.mode==="adaptive-recommended")return v36139AdaptiveRecommendationSnapshotCurrent(dateISO,intent);
+ return ["adaptive-switch","manual","template","user-selected","explicit","rest","active-recovery","schedule-exception"].includes(String(intent.mode||""));
+}
+function v36139EffectiveConditioningOverride(dateISO){return v36139GeneratedRecommendationStale(dateISO)?"":String((state.settings.conditioningOverrides||{})[dateISO]||"")}
 function v36130CompactRecommendationSnapshot(recommendation){
  if(!recommendation?.session)return null;let plan=null;try{plan=recommendation.plan===undefined?null:JSON.parse(JSON.stringify(recommendation.plan))}catch(_e){plan=null}
  return {session:safePlainText(recommendation.session,80),label:safePlainText(recommendation.label||recommendation.session,240),score:Number.isFinite(Number(recommendation.score))?Number(recommendation.score):null,plan,why:(Array.isArray(recommendation.why)?recommendation.why:[]).slice(0,12).map(x=>safePlainText(x,800)),options:(Array.isArray(recommendation.options)?recommendation.options:[]).slice(0,10).map(x=>({session:safePlainText(x?.session||'',80),label:safePlainText(x?.label||x?.session||'',240),score:Number.isFinite(Number(x?.score))?Number(x.score):null})),capturedAt:Date.now(),modelVersion:OPEN_DAY_RECOMMENDATION_MODEL_VERSION,evidenceRevision:v36131EvidenceRevision(recommendation.dateISO||selectedDateISO||localISO(new Date())),stableUntil:"new training, recovery, schedule, context, equipment, or recommendation-model evidence"};
@@ -7263,7 +7325,7 @@ function confirmAdaptiveModeDraftReplacement(dateISO){
 }
 function refreshLogAfterAdaptiveModeChange(dateISO,forcedSession=""){
  if(logDate.value!==dateISO)return;
- const x=adaptiveModeSwitchBase(dateISO),intent=workoutIntentForDate(dateISO),explicit=["adaptive-switch","adaptive-recommended"].includes(intent?.mode)&&["Conditioning","Generic Gym","Calisthenics","Strength-Endurance"].includes(intent.selectedSession)?intent.selectedSession:"";
+ const x=adaptiveModeSwitchBase(dateISO),intent=workoutIntentForDate(dateISO),explicit=v36139IntentAuthoritativeForDate(dateISO,intent)&&["Conditioning","Generic Gym","Calisthenics","Strength-Endurance"].includes(intent?.selectedSession)?intent.selectedSession:"";
  logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
  logSession.value=forcedSession||explicit||expectedSession(x.day,x.gw,dateISO);blankNextWorkout=false;loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();
 }
@@ -7305,7 +7367,7 @@ function useRecommendedAdaptiveTraining(dateISO,recommendation=null){
 // Sprints/HIC forces the hard/speed lane. Both still pass through the normal recovery,
 // environment, tissue-load, equipment, and future-interference logic inside conditioningFor().
 function adaptiveConditioningSwitchFamily(dateISO){
- const meta=(state.settings.conditioningSwapMeta||{})[dateISO]||{},activity=(state.settings.conditioningOverrides||{})[dateISO]||"";
+ const stale=v36139GeneratedRecommendationStale(dateISO),meta=stale?{}:((state.settings.conditioningSwapMeta||{})[dateISO]||{}),activity=v36139EffectiveConditioningOverride(dateISO);
  if(meta.adaptiveFamily==="lss"||meta.adaptiveFamily==="speed")return meta.adaptiveFamily;
  const lane=conditioningCadenceLaneForActivity(activity);return lane==="speed"?"speed":activity?"lss":"";
 }
@@ -8676,7 +8738,7 @@ function conditioningFor(day,gw,dateISO="",preferredCadenceLane=""){
    const card=liveDraft.cards.find(c=>String(c?.conditioning||"")==="1")||liveDraft.cards[0],activity=draftExerciseName(card);
    if(activity)return {activity,target:card?.plannedTarget||"Continue in-progress workout",rpe:conditioningTargetRpe(activity),detail:"In-progress Log Workout",inProgress:true,adaptive:false,why:"Log Workout already contains user-entered work or an explicit exercise/activity choice for this date, so Dashboard follows that in-progress plan instead of recalculating a different recommendation.",whyFactors:["Dashboard and Log Workout are locked to the same in-progress plan for this date."]};
  }
- const override=(state.settings.conditioningOverrides||{})[dateISO];
+ const override=v36139EffectiveConditioningOverride(dateISO);
  if(override){
    const lib=entryForName(override),swap=(state.settings.conditioningSwapMeta||{})[dateISO],autoRest=(state.settings.noRestAutoSuggestions||{})[dateISO];
    if(autoRest&&autoRest.activity===override){const factors=uniqueConditioningReasons(autoRest.whyFactors||[autoRest.why||"This was automatically filled after you chose not to use the rest day."]);return {activity:override,detail:"Adaptive fill for a no-rest day",target:autoRest.target,rpe:autoRest.rpe||conditioningTargetRpe(override),override:true,adaptive:true,autoNoRest:true,why:factors.join(" "),whyFactors:factors};}
@@ -10185,7 +10247,8 @@ function generatedGymPlanIsLocked(dateISO){
  return completed||!!(active&&active.date===dateISO&&active.session==="Generic Gym");
 }
 function currentGeneratedGymPlan(dateISO,saved){
- if(!generatedGymPlanIsStale(saved)||generatedGymPlanIsLocked(dateISO))return saved;
+ const staleRecommendation=!!saved?._adaptiveRecommended&&v36139GeneratedRecommendationStale(dateISO);
+ if((!generatedGymPlanIsStale(saved)&&!staleRecommendation)||generatedGymPlanIsLocked(dateISO))return saved;
  const fresh=recommendedAdaptiveGymForDate(dateISO)?.plan;if(!fresh?.rows?.length)return saved;
  return {...JSON.parse(JSON.stringify(fresh)),_adaptiveRecommended:!!saved._adaptiveRecommended,_adaptiveModeSwitch:!!saved._adaptiveModeSwitch,_automaticPlanModelVersion:GYM_AUTOMATIC_PLAN_MODEL_VERSION,_refreshedFromAutomaticPlanModelVersion:Number(saved._automaticPlanModelVersion||saved.automaticPlanModelVersion)||0};
 }
@@ -11064,14 +11127,14 @@ function appendProgramExceptionNotice(dateISO,session=""){
  const from=programMoveFromDate(dateISO),to=programMoveToDate(dateISO),pause=manualProgramPauseInfoForDate(dateISO);if(!from&&!to&&!pause)return;
  const box=document.createElement("div");box.className="notice";
  if(to)box.innerHTML='<strong>Schedule change:</strong> '+htmlSafe(to.sourceSession)+' moved here from '+htmlSafe(to.sourceDate)+'. It still uses the original workout prescription. Later weeks are unchanged.';
- else if(from){const resolved=session||expectedSession(dayNameFromDate(dateISO),Math.max(1,trainingWeekForDate(parseLocalISO(dateISO))),dateISO),fallback=from.replacement||"Open Training",intent=workoutIntentForDate(dateISO),accepted=intent?.selectedSession===resolved&&["adaptive-switch","adaptive-recommended"].includes(intent?.mode),summary=primaryPlanSummaryForDate(dateISO,resolved);box.innerHTML='<strong>Schedule change:</strong> '+htmlSafe(from.sourceSession)+' moved to '+htmlSafe(from.targetDate)+'. '+(resolved!==fallback||accepted?('Workout for this date: <strong>'+htmlSafe(summary)+'</strong>.'):('This date is now '+htmlSafe(fallback)+'. Choose a workout below or use today’s recommendation.'))+' Later weeks are unchanged.';}
+ else if(from){const resolved=session||expectedSession(dayNameFromDate(dateISO),Math.max(1,trainingWeekForDate(parseLocalISO(dateISO))),dateISO),fallback=from.replacement||"Open Training",intent=workoutIntentForDate(dateISO),accepted=intent?.selectedSession===resolved&&v36139IntentAuthoritativeForDate(dateISO,intent),summary=primaryPlanSummaryForDate(dateISO,resolved);box.innerHTML='<strong>Schedule change:</strong> '+htmlSafe(from.sourceSession)+' moved to '+htmlSafe(from.targetDate)+'. '+(resolved!==fallback||accepted?('Workout for this date: <strong>'+htmlSafe(summary)+'</strong>.'):('This date is now '+htmlSafe(fallback)+'. Choose a workout below or use today’s recommendation.'))+' Later weeks are unchanged.';}
  else box.innerHTML='<strong>Program paused:</strong> '+htmlSafe(pause.startDate)+' through '+htmlSafe(pause.endDate)+'. Fixed program anchors are suspended for this interval. Open-day recommendations still use rolling load/recovery, and the same program sequence resumes afterward.';
  tbList.appendChild(box);
 }
 function dashboardExplanationHtml(title,items=[],extraHtml=""){const clean=(items||[]).map(x=>String(x||"").trim()).filter(Boolean);if(!clean.length&&!extraHtml)return "";return '<details class="dashboard-explanation"><summary>'+htmlSafe(title)+'</summary><div class="dashboard-explanation-body">'+(clean.length?'<ul>'+clean.map(x=>'<li>'+htmlSafe(x)+'</li>').join("")+'</ul>':'')+(extraHtml||'')+'</div></details>'}
 function appendAdaptiveOpenDayNotice(dateISO,session){
  const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=programScheduledSessionForDate(dateISO),moveFrom=programMoveFromDate(dateISO);if(completedSessionGroupsForDate(dateISO).length)return;if((baseBuildingForDate(dateISO)&&!moveFrom)||!rollingOpenDayEligible(dateISO,base))return;
- const intent=workoutIntentForDate(dateISO),accepted=intent?.selectedSession===session&&["adaptive-switch","adaptive-recommended"].includes(intent?.mode);let rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});
+ const intent=workoutIntentForDate(dateISO),accepted=intent?.selectedSession===session&&v36139IntentAuthoritativeForDate(dateISO,intent);let rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});
  if(accepted&&session==="Conditioning"){
    const plan=v36119CanonicalConditioningPlanForDate(dateISO,day,gw),meta=(state.settings.conditioningSwapMeta||{})[dateISO]||{};
    rec={...rec,session:"Conditioning",plan,label:plan?.activity||intent.label||"Conditioning",why:uniqueConditioningReasons(meta.whyFactors||plan?.whyFactors||rec.why||[])};
@@ -12704,7 +12767,7 @@ function buildCalisthenicsWorkout(profile,dateISO,variationOrdinal=0){
 
 function calWorkoutForDate(dateISO){
  const saved=(state.settings.calisthenicsWorkouts||{})[dateISO];
- if(saved)return JSON.parse(JSON.stringify(saved));
+ if(saved&&!(saved._adaptiveRecommended&&v36139GeneratedRecommendationStale(dateISO)))return JSON.parse(JSON.stringify(saved));
  if(shortFocusBlockForDate(dateISO)&&shortFocusSessionForDate(dateISO)==="Calisthenics")return JSON.parse(JSON.stringify(recommendedAdaptiveCalisthenicsForDate(dateISO).plan));
  const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseBuildingSessionForDate(dateISO)||baseExpectedSession(day,gw);
  if(!baseBuildingForDate(dateISO)&&rollingOpenDayEligible(dateISO,base)&&!rollingOpenDayResolving.size){const rec=rollingOpenDayRecommendation(dateISO,{suppressRest:!!((state.settings.noRestDates||{})[dateISO])});if(rec.session==="Calisthenics"&&rec.plan)return JSON.parse(JSON.stringify(rec.plan))}
@@ -14107,7 +14170,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.138";
+const HYBRID_APP_BUILD="36.139";
 function hybridBuildParts(v){return String(v||"").replace(/^v/,"").split(".").map(x=>Number(x)||0)}
 function compareHybridBuilds(a,b){
  const aa=hybridBuildParts(a),bb=hybridBuildParts(b),n=Math.max(aa.length,bb.length);
@@ -14617,7 +14680,7 @@ function v36110SafeExportValue(area,fn,fallback=null){
 function v36127FinalizeExportPayload(payload){
  const adaptiveExportModel=payload?.adaptiveProgramming||payload?.adaptiveModels?.adaptiveProgramming||null;
  if(adaptiveExportModel&&typeof adaptiveExportModel==='object'){
-  adaptiveExportModel.version=Math.max(16,Number(adaptiveExportModel.version)||0);
+  adaptiveExportModel.version=Math.max(17,Number(adaptiveExportModel.version)||0);
   if(Array.isArray(adaptiveExportModel.rules)){
    adaptiveExportModel.rules=adaptiveExportModel.rules.map(rule=>String(rule).startsWith('rolling run-specific aerobic')?'rolling run, swim, other-cardio and quality-speed lanes use separate direct-exposure needs with no Monday reset while retaining partial shared-aerobic transfer':rule);
    if(!adaptiveExportModel.rules.some(rule=>String(rule).includes('dedicated speed sessions use a recovery-aware minimum spacing')))adaptiveExportModel.rules.push('dedicated speed sessions use a recovery-aware minimum spacing; sequential forecasts cannot fill several flexible dates with repeated sprint work');
@@ -15458,7 +15521,7 @@ function v3679ReconcileSecondaryOutcomes(){
 
  // ----- 6) Calendar: separate Primary and Optional instead of '+' text -----
  function v3679EnhanceCalendarCards(){
-   const selected=parseLocalISO(selectedDateISO),start=mondayOf(selected),cards=[...weekStrip.querySelectorAll('.day-card')];cards.forEach((card,i)=>{const iso=localISO(addDays(start,i)),session=expectedSession(dayNameFromDate(iso),Math.max(1,trainingWeekForDate(parseLocalISO(iso))),iso),focus=card.querySelector('.day-focus'),completed=completedSessionGroupsForDate(iso).length;if(!focus)return;card.querySelectorAll('.day-primary-kicker,.day-secondary').forEach(x=>x.remove());if(!completed&&!['Recovery / Rest','Open Training'].includes(session)){const k=document.createElement('div');k.className='day-primary-kicker';k.textContent='Primary';focus.insertAdjacentElement('beforebegin',k)}if(completed||window.__v36123UseSecondaryMatrix)return;const addOn=['Barbell Strength','Conditioning','Strength-Endurance','Generic Gym','Calisthenics'].includes(session)||String(session).startsWith('KB ')?v3678CalendarSecondaryFor(session,iso):null;if(!addOn?.rows?.length)return;const label=String(addOn.label||'').trim();if(label){for(const p of [' • + '+label,' + '+label])focus.textContent=focus.textContent.replace(p,'')}const sec=document.createElement('div');sec.className='day-secondary';sec.innerHTML='<strong>Optional:</strong> '+htmlSafe(label);focus.insertAdjacentElement('afterend',sec)});
+   const selected=parseLocalISO(selectedDateISO),start=mondayOf(selected),today=localISO(new Date()),cards=[...weekStrip.querySelectorAll('.day-card')];cards.forEach((card,i)=>{const iso=localISO(addDays(start,i)),focus=card.querySelector('.day-focus');if(!focus||iso<today)return;const session=expectedSession(dayNameFromDate(iso),Math.max(1,trainingWeekForDate(parseLocalISO(iso))),iso),completed=completedSessionGroupsForDate(iso).length;card.querySelectorAll('.day-primary-kicker,.day-secondary').forEach(x=>x.remove());if(!completed&&!['Recovery / Rest','Open Training'].includes(session)){const k=document.createElement('div');k.className='day-primary-kicker';k.textContent='Primary';focus.insertAdjacentElement('beforebegin',k)}if(completed||window.__v36123UseSecondaryMatrix)return;const addOn=['Barbell Strength','Conditioning','Strength-Endurance','Generic Gym','Calisthenics'].includes(session)||String(session).startsWith('KB ')?v3678CalendarSecondaryFor(session,iso):null;if(!addOn?.rows?.length)return;const label=String(addOn.label||'').trim();if(label){for(const p of [' • + '+label,' + '+label])focus.textContent=focus.textContent.replace(p,'')}const sec=document.createElement('div');sec.className='day-secondary';sec.innerHTML='<strong>Optional:</strong> '+htmlSafe(label);focus.insertAdjacentElement('afterend',sec)});
  }
  const v3679OriginalRenderWeek=renderWeek;renderWeek=function(){v3679OriginalRenderWeek();v3679EnhanceCalendarCards()};
 
@@ -15854,7 +15917,7 @@ function v3679ReconcileSecondaryOutcomes(){
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.138';
+const V3691_BUILD='36.139';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -16755,11 +16818,13 @@ rollingCadencePortfolio=function(dateISO){
 const v36117PriorCadenceReasonText=cadenceReasonText;
 cadenceReasonText=function(item,capacity){
  if(!item?.athleticDevelopment)return v36117PriorCadenceReasonText(item,capacity);
- const d=String(item.lane||'');if(d==='run')return 'Your recent training leaves easy running with the biggest run-specific gap.';
- if(d==='speed')return 'Your recent training is light on speed work, and recovery is good enough for it today.';
- if(d==='swim')return 'Swimming has the clearest endurance gap today. Bike and row work help your cardio, but they do not replace time practicing a stroke.';
- if(d==='cardio')return 'A lower-impact aerobic session fits today without adding more running impact.';
- return item.label+' has the clearest useful training gap today.';
+ const d=String(item.lane||''),future=item.futureCommitment,reserved=future?' You manually scheduled '+future.activity+' on '+future.date+', so that future dose already lowers this lane\'s priority today. The adjustment is soft; a clearly larger need can still override it.':'';let reason='';
+ if(d==='run')reason='Your recent training leaves easy running with the biggest run-specific gap.';
+ else if(d==='speed')reason='Your recent training is light on speed work, and recovery is good enough for it today.';
+ else if(d==='swim')reason='Swimming has the clearest endurance gap today. Bike and row work help your cardio, but they do not replace time practicing a stroke.';
+ else if(d==='cardio')reason='A lower-impact aerobic session fits today without adding more running impact.';
+ else reason=item.label+' has the clearest useful training gap today.';
+ return reason+reserved;
 };
 
 const v36117PriorRollingDayPriors=rollingDayPriors;
@@ -17110,8 +17175,8 @@ function v36119CanonicalConditioningPlanForDate(dateISO,day='',gw=0){
  const d=parseLocalISO(dateISO),resolvedDay=day||dayNameFromDate(dateISO),resolvedGw=Math.max(1,Number(gw)||trainingWeekForDate(d)||state.settings.currentWeek);
  // A user-accepted family/recommendation is authoritative. The earlier order consulted the
  // live rolling pick first, which could hide a saved LSS/HIC choice behind a newer forecast.
- const override=(state.settings.conditioningOverrides||{})[dateISO],intent=workoutIntentForDate(dateISO);
- if(override&&(intent?.selectedSession==="Conditioning"||(state.settings.dayOverrides||{})[dateISO]==="Conditioning"))return conditioningFor(resolvedDay,resolvedGw,dateISO);
+ const override=v36139EffectiveConditioningOverride(dateISO),intent=workoutIntentForDate(dateISO),stale=v36139GeneratedRecommendationStale(dateISO,intent),dayOverride=stale?'':(state.settings.dayOverrides||{})[dateISO];
+ if(override&&(intent?.selectedSession==="Conditioning"||dayOverride==="Conditioning"))return conditioningFor(resolvedDay,resolvedGw,dateISO);
  const rec=v36119CanonicalOpenRecommendationForDate(dateISO,'Conditioning');if(rec?.plan?.activity)return rec.plan;
  return conditioningFor(resolvedDay,resolvedGw,dateISO);
 }
@@ -17142,7 +17207,7 @@ function v36119RecommendationDisplayLabel(rec){
 }
 function v36124ConditioningActivityFromRows(rows=[]){const list=Array.isArray(rows)?rows:[];const row=list.find(r=>String(r?.session||'')==='Conditioning'&&!rowIsAdaptiveSecondary(r))||list.find(r=>String(r?.session||'')==='Conditioning')||list[0];return String(row?.exercise||'')}
 function v36124DisplaySessionLabel(session,payload=null){if(String(session)!=='Conditioning')return String(session||'');let activity='';if(Array.isArray(payload))activity=v36124ConditioningActivityFromRows(payload);else activity=String(payload?.activity||payload?.exercise||'');return activity?v36114ConditioningFamilyLabel(activity):'LSS / Aerobic or Sprints / HIC'}
-function v36124DisplaySessionForDate(session,dateISO,payload=null){if(String(session)!=='Conditioning')return String(session||'');let activity='';if(Array.isArray(payload))activity=v36124ConditioningActivityFromRows(payload);else activity=String(payload?.activity||payload?.exercise||'');if(!activity&&dateISO)activity=String(state.settings?.conditioningOverrides?.[dateISO]||'');if(!activity&&dateISO){try{activity=String(v36119CanonicalConditioningPlanForDate(dateISO)?.activity||'')}catch(_e){}}return activity?v36114ConditioningFamilyLabel(activity):'LSS / Aerobic or Sprints / HIC'}
+function v36124DisplaySessionForDate(session,dateISO,payload=null){if(String(session)!=='Conditioning')return String(session||'');let activity='';if(Array.isArray(payload))activity=v36124ConditioningActivityFromRows(payload);else activity=String(payload?.activity||payload?.exercise||'');if(!activity&&dateISO)activity=v36139EffectiveConditioningOverride(dateISO);if(!activity&&dateISO){try{activity=String(v36119CanonicalConditioningPlanForDate(dateISO)?.activity||'')}catch(_e){}}return activity?v36114ConditioningFamilyLabel(activity):'LSS / Aerobic or Sprints / HIC'}
 
 // Fixed-KB forecast gate now uses the same high-threshold weekday allocator instead of
 // assuming every KB anchor should automatically carry aerobic work.
@@ -17992,12 +18057,14 @@ function v36128HardPrimarySummary(dateISO,days=4){
 v36117AthleticDevelopmentState=function(dateISO){
  const base=v36127PriorAthleticDevelopmentState(dateISO);if(!base?.enabled||baseBuildingForDate(dateISO)||!window.HybridForecastBalance)return base;
  const shortFocus=!!shortFocusBlockForDate(dateISO),profile=state.settings.trainingGoalProfile||'automatic',spacing=HybridForecastBalance.speedSpacingDays(profile,shortFocus),lastQuality=rollingCadenceDaysSince(dateISO,'speed'),lastEndurance=rollingCadenceDaysSince(dateISO,'run'),hard=v36128HardPrimarySummary(dateISO,4);let readiness={};try{readiness=adaptiveReadiness(dateISO)||{}}catch(_e){}
- const nextAnchor=nextFixedTrainingAnchor(dateISO,2),lowerConcern=!!(readiness.lowerFatigue||readiness.mileageSpike),balanced=HybridForecastBalance.rebalanceConditioningNeeds({run:base.runNeed,speed:base.qualityNeed,swim:v3688PoolAvailable(dateISO)?base.swimNeed:-999,cardio:base.otherAerobicNeed},lastQuality,spacing,{daysSinceEnduranceRun:lastEndurance,longRunNeed:base.longRunNeed,recentHardCount:hard.count,enduranceDue:lastEndurance>=7,allowHardStack:!readiness.recoveryGuard&&!readiness.caution&&!lowerConcern,recoveryGuard:!!readiness.recoveryGuard,lowerBodyConcern:lowerConcern,nextAnchorConflict:nextAnchor.days===1&&lowerConcern});
- const lane=balanced.lane,need=balanced.needs[lane],bits=[];
+ const nextAnchor=nextFixedTrainingAnchor(dateISO,2),lowerConcern=!!(readiness.lowerFatigue||readiness.mileageSpike),balanced=HybridForecastBalance.rebalanceConditioningNeeds({run:base.runNeed,speed:base.qualityNeed,swim:v3688PoolAvailable(dateISO)?base.swimNeed:-999,cardio:base.otherAerobicNeed},lastQuality,spacing,{daysSinceEnduranceRun:lastEndurance,longRunNeed:base.longRunNeed,recentHardCount:hard.count,enduranceDue:lastEndurance>=7,allowHardStack:!readiness.recoveryGuard&&!readiness.caution&&!lowerConcern,recoveryGuard:!!readiness.recoveryGuard,lowerBodyConcern:lowerConcern,nextAnchorConflict:nextAnchor.days===1&&lowerConcern}),futureCadenceReservations=futureManualCadenceReservations(dateISO,7),needs={...balanced.needs};
+ for(const laneName of ['run','swim','cardio','speed'])needs[laneName]=Math.round(utmClamp((Number(needs[laneName])||0)-(Number(futureCadenceReservations[laneName]?.credit)||0),-999,24)*10)/10;
+ const lane=['run','swim','cardio','speed'].sort((a,b)=>Number(needs[b])-Number(needs[a])||(CONDITIONING_CADENCE_TIE_PRIORITY[a]??9)-(CONDITIONING_CADENCE_TIE_PRIORITY[b]??9))[0]||balanced.lane,need=needs[lane],bits=[];
  if(balanced.speedLimited)bits.push('Recent quality work and current recovery/load context make another automatic hard session a poor trade today, so an aerobic option ranks higher.');
  else if(balanced.hardStackAllowed)bits.push('A second hard day remains eligible because recovery and lower-body load are normal and the speed gap is clearly larger; the automatic planner will not extend that into a third crowded hard session.');
  if(balanced.enduranceRunBoost>0&&lane==='run')bits.push('The rolling plan is also protecting a meaningful run-specific endurance exposure rather than letting speed work crowd it out.');
- return {...base,runNeed:Math.round(balanced.needs.run*10)/10,qualityNeed:Math.round(balanced.needs.speed*10)/10,swimNeed:Math.round(balanced.needs.swim*10)/10,otherAerobicNeed:Math.round(balanced.needs.cardio*10)/10,conditioningLane:lane,conditioningNeed:Math.round(need*10)/10,speedSpacing:{limited:balanced.speedLimited,hardStackAllowed:balanced.hardStackAllowed,lastQualityDays:lastQuality,minSpacingDays:spacing,recentHardCount:hard.count},enduranceRunPriority:{daysSince:lastEndurance,boost:balanced.enduranceRunBoost,due:balanced.enduranceDue},explanation:base.explanation+(bits.length?' '+bits.join(' '):'')};
+ Object.values(futureCadenceReservations).sort((a,b)=>a.days-b.days).slice(0,2).forEach(r=>bits.push('Your '+r.date+' '+r.activity+' is already counted as a future '+(ROLLING_CADENCE_LABELS[r.lane]||r.lane)+' dose, so the open days before it are re-ranked instead of repeating that plan by default.'));
+ return {...base,runNeed:needs.run,qualityNeed:needs.speed,swimNeed:needs.swim,otherAerobicNeed:needs.cardio,conditioningLane:lane,conditioningNeed:Math.round(need*10)/10,futureCadenceReservations,speedSpacing:{limited:balanced.speedLimited,hardStackAllowed:balanced.hardStackAllowed,lastQualityDays:lastQuality,minSpacingDays:spacing,recentHardCount:hard.count},enduranceRunPriority:{daysSince:lastEndurance,boost:balanced.enduranceRunBoost,due:balanced.enduranceDue},explanation:base.explanation+(bits.length?' '+bits.join(' '):'')};
 };
 const v36127PriorRollingOpenDayRecommendation=rollingOpenDayRecommendation;
 rollingOpenDayRecommendation=function(dateISO,options={}){
@@ -18009,7 +18076,7 @@ rollingOpenDayRecommendation=function(dateISO,options={}){
 };
 
 const v36127PriorModelAudit=utmModelAudit;
-utmModelAudit=function(dateISO=localISO(new Date())){const out=v36127PriorModelAudit(dateISO),balanceApi=window.HybridForecastBalance;return {...out,anthropometry:anthropometryProfile(dateISO),forecastBalance:{version:2,speedSpacingDays:balanceApi?.speedSpacingDays(state.settings.trainingGoalProfile||'automatic',false)||4,rule:'manual choices and fixed anchors win; automatic forecasts protect endurance exposure, permit an evidence-supported two-day hard stack, and prevent repeated quality crowding'}}};
+utmModelAudit=function(dateISO=localISO(new Date())){const out=v36127PriorModelAudit(dateISO),balanceApi=window.HybridForecastBalance,adaptive=out?.adaptiveProgramming,intent=out?.workoutIntentModel;if(adaptive){adaptive.version=Math.max(18,Number(adaptive.version)||0);adaptive.rules=Array.isArray(adaptive.rules)?adaptive.rules:[];if(!adaptive.rules.some(x=>String(x).includes('future conditioning commitments reserve')))adaptive.rules.push('future conditioning commitments reserve their exact run, swim, other-cardio, or speed lane using a soft proximity- and dose-weighted credit; prior open days and saved recommendation snapshots re-rank immediately');if(!adaptive.rules.some(x=>String(x).includes('model-owned accepted recommendations')))adaptive.rules.push('model-owned accepted recommendations remain reflowable: new training, recovery, schedule, context, equipment, or model evidence releases the generated snapshot and re-ranks the open day; explicit user switches remain fixed');}if(intent){intent.version=Math.max(8,Number(intent.version)||0);intent.rules=Array.isArray(intent.rules)?intent.rules:[];if(!intent.rules.some(x=>String(x).includes('same-mode activity choices')))intent.rules.push('same-mode activity choices such as a future LSS Swim are first-class schedule constraints even when the underlying day was already Conditioning');if(!intent.rules.some(x=>String(x).includes('generated recommendation')))intent.rules.push('an accepted generated recommendation is distinguished from an explicit manual commitment so future user scheduling can reflow generated open days without moving the manual choice');}return {...out,anthropometry:anthropometryProfile(dateISO),forecastBalance:{version:4,speedSpacingDays:balanceApi?.speedSpacingDays(state.settings.trainingGoalProfile||'automatic',false)||4,rule:'manual choices and fixed anchors win; future conditioning commitments reserve their exact lane softly; generated open-day recommendations re-rank when evidence changes; automatic forecasts protect endurance exposure, permit an evidence-supported two-day hard stack, and prevent repeated quality crowding'}}};
 const v36127PriorStrengthCapabilityProfile=strengthCapabilityProfile;
 strengthCapabilityProfile=function(name,dateISO){const out=v36127PriorStrengthCapabilityProfile(name,dateISO),p=anthropometryProfile(dateISO||localISO(new Date()));return {...out,anthropometryContext:{heightIn:p.heightIn,wingspanIn:p.wingspanIn,reachDeltaIn:p.reachDeltaIn,note:'Body geometry is retained as range-of-motion context only; this exercise\'s own repeated results determine capability and progression.'}}};
 const v36127PriorSwimStrokeCapability=v36132SwimStrokeCapability;
@@ -18579,8 +18646,8 @@ window.HybridCore=Object.seal({
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>scan());else scan();new MutationObserver(items=>items.forEach(m=>m.addedNodes.forEach(queue))).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
-<script src="app-shell-v36.119.js?v=36.138"></script>
-<script src="adaptive-personalization-v36.120.js?v=36.138"></script>
+<script src="app-shell-v36.119.js?v=36.139"></script>
+<script src="adaptive-personalization-v36.120.js?v=36.139"></script>
 
 <script id="v36116-build-note">
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.
