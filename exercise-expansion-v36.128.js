@@ -11,6 +11,11 @@
   const c=(name,focus,family,level,baseReps,primaryMuscles,secondaryMuscles,related,note,extra={})=>({name,focus,family,secondary:[],requiresBar:false,level,baseSets:3,baseReps,primaryMuscles,secondaryMuscles,related,note,...extra});
 
   const gym=[
+    g('Hanging Knee Raise','Bodyweight / Pull-up Bar','core',0,'bodyweight',['core'],['grip','shoulders','lats'],['Hanging Leg Raise','Reverse Crunch','Dead Hang'],'Hang from a secure bar, lift the knees and curl the pelvis toward the ribs without swinging. Hip flexors lift the thighs; the trunk controls the pelvic curl.',{requiresBar:true,increment:5}),
+    g('Hanging Leg Raise','Bodyweight / Pull-up Bar','core',0,'bodyweight',['core'],['grip','shoulders','lats'],['Hanging Knee Raise','Toes-to-Bar','Reverse Crunch'],'Raise straighter legs from a controlled hang, curl the pelvis at the top and lower slowly. Use the knee-raise variation when the longer lever cannot stay controlled.',{requiresBar:true,increment:5}),
+    g('Reverse Crunch','Bodyweight','core',0,'bodyweight',['core'],[],['Hanging Knee Raise','Bicycle Crunch','Dead Bug'],'Floor-based pelvic curl. Bring the pelvis toward the ribs under control instead of swinging the legs.',{increment:5}),
+    g('Dead Bug','Bodyweight','core',0,'bodyweight',['core'],[],['Reverse Crunch','Front Plank','Bird Dog'],'Alternate opposite arm and leg while keeping the trunk and low back controlled. No machine or hanging bar is required.',{increment:5}),
+    g('Bicycle Crunch','Bodyweight','core',0,'bodyweight',['core'],[],['Reverse Crunch','Dead Bug','Cable Wood Chop'],'Controlled alternating trunk rotation and knee drive. Reps are per side; avoid pulling on the neck.',{increment:5}),
     g('Plate-Loaded Chest Press','Machine','chest_press',90,'total',['chest'],['triceps','shoulders'],['Machine Chest Press','Barbell Bench Press','Dumbbell Bench Press'],'Independent handles can reduce side-to-side compensation; track this machine separately because lever arms vary.'),
     g('Decline Chest Press Machine','Machine','chest_press',90,'total',['chest'],['triceps','shoulders'],['Machine Chest Press','Dumbbell Bench Press','Barbell Bench Press'],'Decline-path machine press with a chest and triceps emphasis.'),
     g('Iso-Lateral Chest Press','Machine','chest_press',45,'per_side',['chest'],['triceps','shoulders','serratus'],['Plate-Loaded Chest Press','Dumbbell Bench Press','Machine Chest Press'],'Each arm moves independently; log load per side and keep left/right range matched.',{unilateral:true}),
@@ -119,5 +124,5 @@
     return {valid:errors.length===0,errors,gym:gym.length,calisthenics:calisthenics.length,total:all.length};
   }
 
-  return Object.freeze({version:3,gym:Object.freeze(gym),calisthenics:Object.freeze(calisthenics),validateCatalog});
+  return Object.freeze({version:4,gym:Object.freeze(gym),calisthenics:Object.freeze(calisthenics),validateCatalog});
 });
