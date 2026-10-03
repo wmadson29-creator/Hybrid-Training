@@ -175,6 +175,7 @@
   function dayContextSummary(context={}){
     if(!record(context))return {meaningful:false,parts:[],text:''};
     const parts=[],add=value=>{if(value&&!parts.includes(value))parts.push(value)},environment=String(context.environment||'');
+    if(context.workoutLocation==='home')add('Primary at home');else if(context.workoutLocation==='gym')add('Primary at gym');
     if(context.traveling===true||environment==='travel_indoor')add('Traveling');
     else if(environment&&environment!=='normal')add(({hot:'Hot conditions',extreme_heat:'Extreme heat',poor_air:'Poor air',storms:'Storms'}[environment]||environment.replaceAll('_',' ')));
     if(context.sickReturn===true)add('Sick / returning');
