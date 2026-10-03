@@ -11,23 +11,42 @@ const state=()=>core.getState();
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // ---------- PWA update notification: user-visible and non-destructive ----------
+let updateSnoozeBuild='',updateSnoozeUntil=0;
+try{const snooze=JSON.parse(sessionStorage.getItem('hybridUpdateLaterV1')||'null');updateSnoozeBuild=snooze?.build||'';updateSnoozeUntil=Number(snooze?.until)||0}catch(_){ }
+function waitForUpdateActivation(reg){
+ const previous=reg?.active,initial=reg?.waiting||reg?.installing;if(!initial||initial.state==='activated')return Promise.resolve();
+ return new Promise((resolve,reject)=>{
+  let poll=0,timeout=0;
+  const finish=error=>{clearInterval(poll);clearTimeout(timeout);error?reject(error):resolve()};
+  const check=()=>{
+   // Installation can replace the worker object that update() initially returned.
+   // Message the registration's current waiting worker after installation finishes.
+   const waiting=reg.waiting;if(waiting)waiting.postMessage('SKIP_WAITING');
+   if(initial.state==='activated'||(!reg.waiting&&!reg.installing&&reg.active&&reg.active!==previous))finish();
+   else if(initial.state==='redundant'&&!reg.waiting&&!reg.installing)finish(Error('Update installation was interrupted'));
+  };
+  poll=setInterval(check,200);timeout=setTimeout(()=>finish(Error('Update still installing')),20000);check();
+ });
+}
 function installUpdateBanner(){
  if($('#v36101UpdateBanner'))return;
  const b=document.createElement('div');b.id='v36101UpdateBanner';b.className='v36101-update-banner hidden';
  b.innerHTML='<div class="v36101-update-copy"><strong id="v36101UpdateTitle">Update available</strong><span id="v36101UpdateText"></span></div><div class="v36101-update-actions"><button class="btn" id="v36101UpdateLater" type="button">Later</button><button class="btn primary" id="v36101UpdateNow" type="button">Update</button></div>';
  document.body.appendChild(b);
- $('#v36101UpdateLater')?.addEventListener('click',()=>b.classList.add('hidden'));
+ $('#v36101UpdateLater')?.addEventListener('click',()=>{updateSnoozeBuild=b.dataset.latest||'';updateSnoozeUntil=Date.now()+30*60*1000;try{sessionStorage.setItem('hybridUpdateLaterV1',JSON.stringify({build:updateSnoozeBuild,until:updateSnoozeUntil}))}catch(_){ }b.classList.add('hidden')});
  $('#v36101UpdateNow')?.addEventListener('click',async()=>{
    const latest=b.dataset.latest;if(!latest)return;
    const btn=$('#v36101UpdateNow');if(btn){btn.disabled=true;btn.textContent='Updating…'}
-   try{await core.createPreUpdateSnapshot?.(latest)}catch(_){ }
-   try{const reg=await navigator.serviceWorker?.getRegistration?.();try{reg?.waiting?.postMessage('SKIP_WAITING')}catch(_){ }try{await reg?.update?.()}catch(_){ }}catch(_){ }
+   const active=core.readActiveWorkout?.();if(active&&['active','paused'].includes(active.status)){window.__hybridPendingUpdateBuild=latest;b.classList.add('hidden');if(btn){btn.disabled=false;btn.textContent='Update'}return}
+   let backedUp=false;try{backedUp=await core.createPreUpdateSnapshot?.(latest)===true}catch(_){ }
+   if(!backedUp){$('#v36101UpdateText').textContent=' Could not save a safety backup. Try again or export your data before updating.';if(btn){btn.disabled=false;btn.textContent='Update'}return}
+   try{const reg=await navigator.serviceWorker?.getRegistration?.();await reg?.update?.();await waitForUpdateActivation(reg)}catch(e){window.__hybridLastUpdateError=String(e?.message||e);$('#v36101UpdateText').textContent=' The update is still installing. Your data is backed up; try again shortly.';if(btn){btn.disabled=false;btn.textContent='Update'}return}
    setTimeout(()=>{const u=new URL(location.href);u.searchParams.set('v',latest);u.searchParams.set('refresh',Date.now());location.replace(u.href)},250);
  });
 }
-function showUpdateBanner(latest){installUpdateBanner();const b=$('#v36101UpdateBanner');if(!b)return;b.dataset.latest=String(latest);$('#v36101UpdateTitle').textContent='Hybrid Training v'+latest+' available';$('#v36101UpdateText').textContent=' Your current workout data stays on this device.';b.classList.remove('hidden')}
+function showUpdateBanner(latest){if(String(latest)===updateSnoozeBuild&&Date.now()<updateSnoozeUntil)return;installUpdateBanner();const b=$('#v36101UpdateBanner');if(!b)return;const active=core.readActiveWorkout?.();if(active&&['active','paused'].includes(active.status)){window.__hybridPendingUpdateBuild=latest;b.classList.add('hidden');return}b.dataset.latest=String(latest);$('#v36101UpdateTitle').textContent='Hybrid Training v'+latest+' available';$('#v36101UpdateText').textContent=' Your current workout data stays on this device.';b.classList.remove('hidden')}
 window.HybridShell=Object.freeze({showUpdate:showUpdateBanner});
-if(window.__hybridPendingUpdateBuild){showUpdateBanner(window.__hybridPendingUpdateBuild);window.__hybridPendingUpdateBuild=''}
+if(window.__hybridPendingUpdateBuild){const pending=window.__hybridPendingUpdateBuild;window.__hybridPendingUpdateBuild='';showUpdateBanner(pending)}
 
 // ---------- Practical data coverage + bottleneck + today-only context ----------
 function explicitCtx(dateISO){return state().settings?.dayTrainingContext?.[dateISO]||{}}
