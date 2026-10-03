@@ -1,6 +1,6 @@
 # Hybrid Training — complete release history, decisions, and chat handoff
 
-Prepared October 2, 2026, America/Phoenix; updated for v36.142. Repository: [wmadson29-creator/Hybrid-Training](https://github.com/wmadson29-creator/Hybrid-Training).
+Prepared October 2, 2026, America/Phoenix; updated for v36.143. Repository: [wmadson29-creator/Hybrid-Training](https://github.com/wmadson29-creator/Hybrid-Training).
 
 This is the standalone continuity document for a replacement chat. It records the actual chronological archive, the reasons behind important changes, the latest accepted user requests, the implemented release, validation, and the boundaries that must survive future edits. Attach this document and a current app export when resuming work.
 
@@ -17,14 +17,15 @@ The app and chats are separate systems. The reported chat unloading/crashing doe
 | Item | Verified status |
 | --- | --- |
 | Original reviewed baseline | v36.139, [commit 093f077](https://github.com/wmadson29-creator/Hybrid-Training/commit/093f077a8290b9a1b3d1b80703bf493c6a5073d7), uploaded September 29 at 19:43:10 Phoenix |
-| Last verified GitHub archive, during v36.141 preparation | v36.140, [commit f20ede8](https://github.com/wmadson29-creator/Hybrid-Training/commit/f20ede8b9ef5fa715163e1756e951611ae187daa), uploaded October 2 at 18:23:06 Phoenix. This is historical verification, not a fresh check of HEAD during v36.142 work. |
+| Last verified GitHub archive, during v36.141 preparation | v36.140, [commit f20ede8](https://github.com/wmadson29-creator/Hybrid-Training/commit/f20ede8b9ef5fa715163e1756e951611ae187daa), uploaded October 2 at 18:23:06 Phoenix. This is historical verification; HEAD was not rechecked during v36.142/v36.143 work. |
 | v36.140 delivery | `Hybrid_Training_v36_140_GitHub_Update.zip` was prepared and delivered. The seven app/document files uploaded to GitHub match the prepared release. Its five test files were absent from that GitHub upload. |
 | v36.141 delivery | `Hybrid_Training_v36_141_GitHub_Update.zip` and its handoff were delivered. Its complete KB/secondary/forecast changes are retained in the current cumulative bundle. No v36.141 repository upload or phone build was independently verified during this work. |
-| Current prepared release | **v36.142**, implemented and validated locally, delivered as `Hybrid_Training_v36_142_GitHub_Update.zip`. It includes cumulative changes from v36.139 and can update v36.139, v36.140, or v36.141. |
+| v36.142 delivery | `Hybrid_Training_v36_142_GitHub_Update.zip` and its handoff were delivered. Its Barbell accessory, SE spacing, secondary agreement, location, and duration changes remain in the current bundle. The user found advice much better, then reported too few secondaries. |
+| Current prepared release | **v36.143**, implemented and validated locally, delivered as `Hybrid_Training_v36_143_GitHub_Update.zip`. It includes cumulative changes from v36.139 and can update v36.139, v36.140, v36.141, or v36.142. |
 | Phone / GitHub Pages | The loaded phone build and completed Pages deployment were not independently verified. Repository upload, deployment completion, and an installed client’s active build are different facts. |
 | Publication actions | This chat did not push, merge, or deploy the prepared release. |
 
-The original archive review covered 147 reachable commits, 140 distinct trees, and seven exact duplicates. The verified v36.140 upload extends that to **148 reachable commits, 141 distinct trees, and seven exact duplicates**. These are archived repository states, not 141 separately numbered feature releases. The locally prepared v36.141/v36.142 releases are described separately; no new archived GitHub commits were verified in this continuation.
+The original archive review covered 147 reachable commits, 140 distinct trees, and seven exact duplicates. The verified v36.140 upload extends that to **148 reachable commits, 141 distinct trees, and seven exact duplicates**. These are archived repository states, not 141 separately numbered feature releases. The locally prepared v36.141/v36.142/v36.143 releases are described separately; no new archived GitHub commits were verified in this continuation.
 
 ## Current user instructions and design boundaries
 
@@ -46,7 +47,8 @@ These are active decisions, not suggestions to reinterpret silently.
 | Pairing location | Prefer useful primary/secondary combinations at the same place across families: gym equipment/cardio after Gym; feasible Cal/KB/outdoor cardio or swimming after home work. Infer venue from the actual/resolved primary and equipment; allow an inline Auto/Home/Gym override. Account for a location change in score and total time. Location is a preference, not a universal hard ban on cross-location choices. |
 | Barbell extras | Automatic short/full secondaries remain off Barbell days. This latest preference supersedes archived v36.88/v36.119/v36.130 exceptions. Deliberate manual extra work remains possible. |
 | KB primary extras | Preserve the stricter, rare easy-aerobic-double policy after a KB primary. KB being eligible as a secondary after another primary is a separate decision. |
-| Weekday/weekend capacity | Weekends remain the preferred capacity window. Suitable open weekdays can still earn a short/full extra. Effort, recovery, time, hardware, overlap, double spacing, and anchors remain decisive. |
+| KB dose review | The user asked about exercise count, sets, and reps, and explicitly clarified that starting weights were not the concern. The current four-pattern A/B/C prescription remains a reasonable starting addition to the two Barbell days; its swing blocks are conservative conditioning supplements. Do not describe the exact adaptation as a research-validated optimum or add arbitrary baseline volume. |
+| Weekday/weekend capacity | Weekends remain the preferred capacity window. Suitable open weekdays can earn short/full extras. Restore useful frequency through genuinely feasible choices, including a short aerobic alternative when strength work cannot fit. Compare actual combined time rather than requiring a blanket 75-minute budget; effort, recovery, hardware, overlap, spacing, and anchors remain decisive. No mandatory weekly secondary quota. |
 | Running and swimming | Outdoor running has personal priority; treadmill is generally rare except travel/pinch. Pool access is normally available at home/gym except travel. Easy swimming has a low-toll prior; actual hard swim effort overrides it. |
 | Duplicate cardio | Automatic/Best full advice complements actual primary activity. A completed swim excludes another swim, including variants. A run primary excludes another run variant from automatic full pairing. Custom remains available for a deliberate repeat. |
 | Future preview | Assume intervening unfinished scheduled workouts occurred exactly as planned in a temporary forecast. Actual primary completion supersedes a forecast primary. A short/full secondary alone must not erase the scheduled primary. |
@@ -69,7 +71,7 @@ The sequence below follows the user’s clarification order, not a guessed priva
 | 3 | Cal/SE rare but not impossible; more optional work if the data permits. | v36.140 bounded long-gap re-entry credit and removal of date-lottery suppression; effort/recovery/time/anchor guards retained. |
 | 4 | Weighted Pull-up before Squat in Tactical Barbell. | v36.140 generated plan, Log, and forecast ordering; historical rows preserved. |
 | 5 | Actual swim followed by recommended swim; calendar sometimes shows different past activity. | v36.140 completed-primary identity, duplicate swim filtering, primary/full/short attribution, and completed-only history rendering. |
-| 6 | Comprehensive chronological release/decision document for a replacement chat; explain changes since v139. | This standalone handoff plus repository copy, now maintained through v142, with the full archive and maintenance instructions. |
+| 6 | Comprehensive chronological release/decision document for a replacement chat; explain changes since v139. | This standalone handoff plus repository copy, now maintained through v143, with the full archive and maintenance instructions. |
 | 7 | SE, KB, and related work can be secondary sessions. | v36.141 expands complete secondary candidates and preserves family/style identity through loading, saving, effort, fatigue, and progression. |
 | 8 | Re-research KB Power/Volume because the workouts felt assembled randomly. | Initial scope was clarified before finalizing implementation. |
 | 9 | Research a coordinated three-day full-body KB muscle-building and conditioning regimen. | v36.141 uses one stable A/B/C program with purposeful exercises, rest, rep/load/round progression, hardware substitutions, and documented primary sources. |
@@ -80,6 +82,8 @@ The sequence below follows the user’s clarification order, not a guessed priva
 | 14 | Remove Barbell Deadlift when the program switches to KB; slow Barbell Ab Crunch Machine progression substantially; the machine supports 5s. | v36.142 verifies the existing Hybrid Deadlift omission across all six wave weeks and future/moved-source prescriptions. Barbell ab progression gets a separate slower ladder and 5 lb hardware rounding. |
 | 15 | Continue fixing the prior release: screenshots show back-to-back SE, disagreement about None, and poor primary/secondary location pairing. | v36.142 adds automatic full-SE spacing, revisable future generated choices, a shared resolved primary/secondary model, same-location scoring/equipment construction, transfer-time cost, and honest conditioning duration. Triples’ two circuits no longer become two minutes. |
 | 16 | Explicitly confirm the card recommended None while a workout appeared below and in the calendar. | Automatic surfaces now use the same decision. None stops after the primary. A deliberate Best full/short choice is labeled Selected optional / Your choice and Selected in the calendar while the automatic badge remains truthful. |
+| 17 | Much better, but now there are almost never secondary workouts. | v36.143 repairs infeasible weekend full reservations, incomplete package/cache context, an excessive blanket time floor, and missing easy aerobic short options on suitable open days. A matched 35-day preview increases secondary days from 6 to 11 while retaining no automatic Barbell extras and rare KB-primary doubles. |
+| 18 | Do the KB days seem too easy for full-body conditioning and muscle building? Clarification: exercise count, sets, and reps, rather than weights; retain them if the research supports it. | Review documents eight weekly KB press sets, seven squat sets, seven row sets, and 170 initial swings alongside two Barbell days. Four compound patterns can be purposeful; the swing dose is modest. The exact recipe is an informed adaptation, with no direct completed KB evidence in the supplied export. Baseline doses remain unchanged; `KETTLEBELL_PROGRAM_REVIEW_v36.143.md` records the reasoning and primary sources. |
 
 ## Changes since v36.139
 
@@ -154,6 +158,22 @@ The continuation began with Deadlift/ab-machine requests, then expanded after th
 | Clear optional selection | Recommended None renders No secondary without an automatic Start action. Best full/short remain deliberate options, explicitly labeled Selected optional / Your choice in the preview and Selected in the calendar. The badge still describes the underlying automatic recommendation. |
 
 New `tests/barbell-qa.js` and `tests/secondary-logic-qa.js` join the existing runnable suite. The checks reproduce screenshot-relevant conditions synthetically over the supplied export; no new full export or phone runtime was supplied. The prepared release is not proof of a completed deployment. Exact current coverage and limits appear below and in `QA_REPORT_v36.142.md`.
+
+### v36.143 — useful secondary opportunities and KB volume review
+
+The user accepted the consistency/location improvements but found that automatic secondaries had become too scarce. The correction repairs opportunity selection within the existing rolling planner. It retains the no-Barbell-extra preference, stricter KB-primary policy, full-SE spacing, actual effort, equipment/location, shared time, manual commitments, and completed-history protection.
+
+| Change | Reason and implementation decision |
+| --- | --- |
+| Build a feasible weekend package | The cheap allocator could reserve a full extra before the real build cleared feasibility, then suppress the short choice when that full failed. The package now evaluates actual complete candidates against real short options after the resolved primary. The forecast bridge, automatic card, calendar, and weekday edge guard use that feasible package. |
+| Preserve recommendation context in caches | Include forecast-history signature, requested date, and the resolved primary's dose/effort in the weekend cache. A growing temporary forecast or a harder/longer resolved primary cannot reuse old advice. Nested weekend resolution is a dependency probe and is not memoized as a canonical primary. Open-day model version advances to 9. |
+| Use the actual shared time | Remove the separate 75-minute minimum. Complete builds still have to fit primary + secondary + five minutes of transition + any modeled location transfer. A genuine 25 + 30 + 5-minute pair can fit a 65-minute budget; a 50-minute primary with only ten minutes remaining can earn a short instead. |
+| Calibrate open weekdays | Lower the normal automatic full score threshold from 9/9.5 to 7 for Conditioning/Gym and 7.5 for other eligible non-KB families. Keep KB at 11.5 and retain its longer full-double spacing. These are scheduling parameters, not scientific constants. Weekday spacing and actual double history still apply. |
+| Add a useful short aerobic alternative | When the existing resistance short cannot fit, suitable open Conditioning/Gym/Cal/SE days can earn ten to twenty easy minutes in a complementary available aerobic lane. Gym uses local cardio/pool; home uses available swimming/outdoor cardio. Dose shrinks for the primary, tomorrow's anchor, and remaining time. It does not add an automatic Barbell/KB short fallback. |
+| Keep short-work boundaries | Automatic choices still decline for recovery guard/caution, severe or very hard primary effort, insufficient time, hardware/environment limits, or two completed full sessions. A recent full double prevents another automatic short the following day. Explicit skipped secondaries remain skipped. Explicit full roles are counted correctly despite old short metadata. |
+| Review KB dose rather than inflate it | Preserve A/B/C and comparable-result progression. The question concerned counts and reps. Document the combined week, pattern-specific volume, conservative swing conditioning, and the limits of the research adaptation. The review does not claim the current baseline is optimal for every muscle or this user's unobserved response. |
+
+In the same export-seeded October 3–November 6 preview, frozen at October 2 at 21:00 Phoenix, v36.142 advised two shorts and four fulls; v36.143 advised four shorts and seven fulls. Barbell extras stayed zero; KB-primary extras changed from one to zero; other eligible-primary extras rose from five to eleven. These are conditional previews at one state, not logged sessions or a promised weekly frequency. Real logs stayed byte-for-byte unchanged and no page errors occurred. The new 29-check frequency/feasibility suite and current evidence are detailed in `QA_REPORT_v36.143.md`.
 
 ## Chronology evidence and interpretation
 
@@ -391,6 +411,9 @@ Every row links to its immutable GitHub commit. Bundled labels describe the chan
 | Barbell ab-machine volume advances after one comfortable exposure, then +10 lb | v36.142 three comparable dates per volume step, four at the top, then +5 lb | The user explicitly requested substantially slower progression and confirmed 5 lb hardware increments. Ordinary Gym progression retains its separate policy. |
 | A current stamped future automatic snapshot can become a lasting override | v36.142 model version 8 and revisable future adaptive-recommended choices | Intervening projected work and nearby commitments must change future advice; explicit manual intent remains fixed. |
 | New full-secondary families ignore the primary’s location / circuit numbers can be time | v36.142 family-wide location preference, equipment-aware construction, and explicit minute parsing | A convenient useful pairing should beat an unnecessary extra trip when other factors are comparable; displayed duration must represent actual time. |
+| A cheap weekend full reservation can suppress shorts even when the complete plan fails | v36.143 compares actually buildable/scored fulls against viable shorts | A failed candidate cannot own the date or block a useful smaller option. |
+| Every full double requires at least a 75-minute budget, even if both complete plans fit below it | v36.143 checks the actual two-session sum, transition, and transfer | Complete short-duration sessions should remain possible; insufficient remaining time should yield a real short or None. |
+| Non-KB open weekdays retain 9/9.5 full thresholds and only the old short resistance pathway | v36.143 uses 7/7.5 and offers a bounded complementary easy-aerobic short | Restore useful opportunities after the user reported almost no secondaries, while retaining recovery, spacing, time, location, and fixed-anchor checks. KB's 11.5 threshold remains. |
 
 ## Kettlebell program research and decisions — v36.141
 
@@ -475,9 +498,13 @@ SE secondary rows now retain the SE model, and KB rows retain their actual sessi
 
 Keep the research/program distinction explicit in future releases. Review actual KB completion, load, effort, technique, recovery, and time data before increasing baseline volume or changing this program. Preserve manual routines and historical records. Update this document when the program or its progression gates change; do not silently replace A/B/C with unrelated per-block templates.
 
+### Later KB dose assessment — v36.143
+
+The user clarified that the concern was the number of exercises, sets, and reps. `KETTLEBELL_PROGRAM_REVIEW_v36.143.md` reviews the unchanged presets and the whole week. Starting KB totals are eight press sets (six overhead, two horizontal), seven squat sets, seven row sets, and 170 swings. Those are movement-pattern totals, not equal hard sets for every muscle; swing rounds are not interchangeable hypertrophy sets. Four compound patterns can be purposeful, and the Barbell days add direct work. The conditioning blocks are modest supplements, with open days still responsible for broader conditioning. The existing research supports the programming principles rather than proving the exact app adaptation. No baseline KB dose was increased without comparable completion/recovery evidence.
+
 ## Validation and evidence
 
-Use `QA_REPORT_v36.142.md` for current checks; retain `QA_REPORT_v36.140.md` and `QA_REPORT_v36.141.md` as prior-release evidence. Do not substitute the older archive’s QA claims for runnable current tests.
+Use `QA_REPORT_v36.143.md` for current checks; retain the v36.140/v36.141/v36.142 reports as prior-release evidence. Do not substitute the older archive's QA claims for runnable current tests.
 
 ### Supplied data
 
@@ -493,23 +520,26 @@ Actual effort matters: the supplied September 26 run was around 44 minutes, 4.4 
 
 ### Executed check sets
 
-| Check set | v36.140 result | v36.141 result | v36.142 result |
-| --- | ---: | ---: | ---: |
-| Static/deployment | 19 / 19 | 19 / 19 | 19 / 19 |
-| Export-seeded browser/PWA | 90 / 90 | 90 / 90 | 90 / 90 |
-| Empty-history browser/PWA | 84 / 84 | 84 / 84 | 84 / 84 |
-| Coordinated KB / secondary execution | — | 62 / 62 | 62 / 62 |
-| Future assumptions / variety | — | 26 / 26 | 26 / 26 |
-| Barbell phase / slowed ab progression | — | — | 56 / 56 |
-| Secondary agreement / SE spacing / location / duration | — | — | 39 / 39 |
+| Check set | v36.140 result | v36.141 result | v36.142 result | v36.143 result |
+| --- | ---: | ---: | ---: | ---: |
+| Static/deployment | 19 / 19 | 19 / 19 | 19 / 19 | 19 / 19 |
+| Export-seeded browser/PWA | 90 / 90 | 90 / 90 | 90 / 90 | 90 / 90 |
+| Empty-history browser/PWA | 84 / 84 | 84 / 84 | 84 / 84 | 84 / 84 |
+| Coordinated KB / secondary execution | — | 62 / 62 | 62 / 62 | 62 / 62 |
+| Future assumptions / variety | — | 26 / 26 | 26 / 26 | 26 / 26 |
+| Barbell phase / slowed ab progression | — | — | 56 / 56 | 56 / 56 |
+| Secondary agreement / SE spacing / location / duration | — | — | 39 / 39 | 39 / 39 |
+| Secondary frequency / real feasibility / cache context | — | — | — | 29 / 29 |
 
-The current export-seeded/static sets total **292 checks**; the **84-check empty-history** run is additional. The v36.141 total was 197. Synthetic scenarios test reachability and edge cases while preservation checks retain the original export. These are checks, not 292 completed user workouts. The older v139 report’s 217 static/model and 35 Chromium counts were historical claims about unavailable scripts, not newly reproduced checks here.
+The current export-seeded/static sets total **321 checks**; the **84-check empty-history** run is additional. v36.142 totaled 292; v36.141 totaled 197. Synthetic scenarios test reachability and edge cases while preservation checks retain the original export. These are checks, not completed user workouts. The older v139 report's 217 static/model and 35 Chromium counts were historical claims about unavailable scripts, not newly reproduced checks here.
 
 The current tests cover actual-row/recovery/measurement preservation, explicit manual swim metadata, waves/deadlift/order, race cancellation, coherent updates, active-workout deferral, Later, failed backup, activated-worker reload, and offline reopening. KB tests cover the complete 2+3+2 week; four movement patterns; single/paired hardware; fit-to-time/rest; comparable-result progression; partial/short/full distinctions; manual custom retention; SE/KB effort identity; no-Gym aerobic doubles; exact activity selection; and starting/saving a full secondary from a previous primary edit mode.
 
 Forecast checks cover actual future wave prescriptions, displayed/generated plan agreement, manual workout/dose changes, earlier projected endurance credit, upcoming Sunday reservation, actual-primary precedence, secondary-only completion, the old horizon cutoff, final scorer/display/secondary context, and distant variety. Temporary forecasting preserves the actual saved log.
 
 The v36.142 sets add all-six-wave Hybrid Deadlift omission, TB-only retention, moved-source/future prescriptions, the entire 19-exposure ab ladder, 65 lb/5 lb rounding, duplicate/same-day/short/Gym exclusion, quality/pain/effort/staleness/backoff/recovery gates, actual/projected full-SE spacing, manual intent preservation, future snapshot reflow, canonical primary agreement, venue inference/overrides, gym/home equipment construction, actual full-secondary ranking, transfer time, and conditioning-unit parsing. Visible UI checks confirm automatic None has no workout/action below it; choosing Best full leaves the badge at None while explicitly labeling the optional workout in both preview and future calendar. No uncaught page errors were observed in the final suites.
+
+The v36.143 checks reproduce an infeasible weekend full with a viable ten-minute short, a complete local pair below the former 75-minute floor, gym/home complementary aerobic options, actual hard-effort and recovery/time exclusions, skipped choices, explicit full-role counting, no third block, stricter KB-double spacing, growing shadow-history cache invalidation, and changed primary effort/duration without a model revision. The mobile card and calendar show the same Short Swim choice and opening action. A prior browser assertion required a particular Thursday option to remain short; it now verifies continued short/full availability and agreement, because the calibrated planner can legitimately advise a full. The updater fixture was refreshed to the current/newer builds. The matched 35-day frequency comparison is recorded above and in the current QA report; forecasts preserve real history.
 
 The prior v36.141 export-seeded 85-day preview (October 3–December 26, frozen at October 2 at 21:00 Phoenix) covered 30 adaptive primary slots and resolved through December 26. Its primary choices included 11 LSS Run, two LSS Swim, eight Gym, two Short Hills, two Standard Issue Hills, two Fast 5 Tempo Run, two Speed-Endurance Ladders, and one Connaught Range 10 to 1s. Beyond the old cutoff, 13 inspected open dates retained seven distinct activity/session choices. Secondary work was projected separately. Real serialized log rows remained unchanged and no page errors occurred. This is historical v36.141 evidence; those exact counts were not re-measured for v36.142. They describe hypothetical choices at one saved state, not completed workouts or promised frequencies. The current 26 forecast regressions continue to verify distant variety.
 
@@ -519,7 +549,7 @@ For v36.140, three alternating fresh local Chromium contexts with the same expor
 
 Three alternating October 2 fresh-context runs compared v36.140 and v36.141 with the same export and blocked workers. Interface-ready median was **2430 → 2266 ms** (about 7% faster); calendar-resolved median was **2720 → 2986 ms** (about 10% longer, 266 ms). Repeated unchanged renders remained about one millisecond. Correct prospective calculations add some first-calendar work. No page errors were observed. These small local measurements used a different frozen date from the older v139/v140 benchmark and must not be combined into a single controlled three-version comparison.
 
-No fresh controlled startup/Android benchmark was run for v36.142. Retain the earlier measurements with their original version labels; do not present them as current phone timings.
+No fresh controlled startup/Android benchmark was run for v36.142/v36.143. Retain the earlier measurements with their original version labels; do not present them as current phone timings.
 
 ### Reproduce current checks
 
@@ -548,9 +578,10 @@ npm run audit:export -- '/absolute/path/to/export.json'
 | Barbell / KB builders | `getTBPlan`, `pullupForWeek`, `kbPresetWorkout`, `getKbPlan`, `v36141KbRoutinePlan`, and `v36141KbRowPrescription`. Distinguish current presets from user-owned routines and preserve prescription week for moved anchors. |
 | Barbell ab accessory | `adaptiveAbCrunchPrescription(dateISO,{barbell:true})`, `gymIncrementFor`, and the Ab Crunch Machine definition. Preserve the separate ordinary-Gym policy, 5 lb hardware, comparable-date credit, slow volume/load ladder, and actual saved weights. |
 | Forecast | `ensureRollingForecastRowsBefore`, `withRollingForecastForDate`, `v36117ForecastFixedAnchorRows`, `v36141ForecastSessionRows`, final `rollingOpenDayRecommendation`. Shadow rows have `projectedForecast`; they must never be appended to real logs or treated as observed outcomes. |
-| Manual intent / reflow | `manualScheduleConstraintForDate`, `futureManualCadenceReservations`, and generated-recommendation freshness/evidence helpers. Manual same-type activity/dose choices count; future generated snapshots are revisable advice. Model version 8 does not turn them into manual locks. |
+| Manual intent / reflow | `manualScheduleConstraintForDate`, `futureManualCadenceReservations`, and generated-recommendation freshness/evidence helpers. Manual same-type activity/dose choices count; future generated snapshots are revisable advice. Model version 9 does not turn them into manual locks. |
 | Secondary selection | `v36141FullCandidatePlans`, `v36141AerobicSecondPlans`, `v36119CandidateScore`, weekday/weekend allocation, and `__v36123SecondaryMatrix` presentation. Family eligibility does not imply an automatic full recommendation. |
 | Secondary logistics / spacing / duration | `v36142WorkoutLocation`, `v36142PairLocation`, `v36142SESecondaryEquipment`, `v36142SESpacing`, and `v36142ConditioningMinutes`. Read actual/resolved primary, explicit location, hardware, and forecast context. Minute parsing must not interpret circuits/reps/meters/seconds as minutes. |
+| Secondary frequency / feasibility | `v36130WeekendPackageDecision`, `v36143WeekendPackageResolving`, `v36143ShortAerobicCandidate`, `v36143ShortFits`, and `v36143CompletedFullCount`. Compare real full/short plans; key caches by forecast and primary dose/effort; retain role-aware completion and conditional boundaries. A failed full cannot reserve the date. |
 | Exact secondary identity | `adaptiveSecondaryModelSession`, `v36141SecondKey`, `openFullSecondWorkout`, load/save paths, and effort calibration. Several activities share a session family; matching only `Conditioning` is insufficient. Full role outranks old short flags. |
 | Actual history | Completed session groups, completed-primary helpers, and historical calendar decorator. Prefer actual work and role/timing over current expected session. Avoid guessing missing legacy identities. |
 | Cache invalidation | `utmInvalidateCaches`, model revision, prospective-history signatures, and bounded caches. A manual edit/import/save/recovery/equipment change must invalidate associated projections and choices. Never cache transient dependency fallbacks as canonical recommendations. |
@@ -562,13 +593,13 @@ npm run audit:export -- '/absolute/path/to/export.json'
 | `exercise-expansion-v36.128.js` | Exercise definitions and model relationships. |
 | `stretching-flexibility-v36.119.*` | Separate stretching support/assets; remain present in coherent deployment. |
 | `sw.js`, `version.json`, `manifest-v36.webmanifest` | Current deployment build/query/precache agreement. Keep all existing required assets and coherent update verification. |
-| `tests/` / `package.json` | Runnable static, browser, KB, forecast, Barbell, secondary-logic, and export-audit commands. Keep nested helpers. Private exports are supplied via an environment variable or local path. |
-| Release / research documents | Current `UPDATE_NOTES_v36.142.md`, `QA_REPORT_v36.142.md`, and `RELEASE_HISTORY_AND_CHAT_HANDOFF.md`; retained `KETTLEBELL_RESEARCH_v36.141.md` and older reports. Update current scope/evidence and handoff each release; preserve older evidence as history. |
+| `tests/` / `package.json` | Runnable static, browser, KB, forecast, Barbell, secondary-logic, secondary-frequency, and export-audit commands. Keep nested helpers. Private exports are supplied via `HYBRID_TEST_EXPORT` or an explicit local audit path. |
+| Release / research documents | Current `UPDATE_NOTES_v36.143.md`, `QA_REPORT_v36.143.md`, `KETTLEBELL_PROGRAM_REVIEW_v36.143.md`, and `RELEASE_HISTORY_AND_CHAT_HANDOFF.md`; retain the v36.141 KB research and older reports. Update current scope/evidence and handoff each release; preserve older evidence as history. |
 
 ## Installation and delivery
 
-1. Extract `Hybrid_Training_v36_142_GitHub_Update.zip` and upload its contents into the existing repository, preserving nested folders. Commit the bundle together.
-2. Keep every other existing app asset. This is a cumulative delta from v36.139, not a replacement full repository; it can also update v36.140/v36.141. It restores tests omitted from the later v36.140 GitHub upload.
+1. Extract `Hybrid_Training_v36_143_GitHub_Update.zip` and upload its contents into the existing repository, preserving nested folders. Commit the bundle together.
+2. Keep every other existing app asset. This is a cumulative delta from v36.139, not a replacement full repository; it can also update v36.140/v36.141/v36.142. It restores tests omitted from the later v36.140 GitHub upload.
 3. Wait for GitHub Pages deployment, then reopen the installed app at the existing address. The repaired v140+ updater can notify a newer coherent bundle; a client still running an older build may need an initial normal refresh before it receives that updater.
 4. Check the loaded build and saved data. Keep the existing browser/origin so local workout data remains available. Export Data remains the portable backup.
 
@@ -576,8 +607,8 @@ The standalone handoff file and the repository’s `RELEASE_HISTORY_AND_CHAT_HAN
 
 ## Remaining limits and next-chat priorities
 
-- The last repository verification, during v36.141 preparation, found v36.140. v36.142 is prepared locally; no fresh current HEAD, installed phone build, or completed deployment was verified in this continuation. Check them before diagnosing a reported live issue against the new source.
-- No new KB completion data was supplied. Revisit initial bell selection and baseline dose only after comparable actual KB results and recovery are available.
+- The last repository verification, during v36.141 preparation, found v36.140. v36.143 is prepared locally; no fresh current HEAD, installed phone build, or completed deployment was verified in this continuation. Check them before diagnosing a reported live issue against the new source.
+- No new KB completion data was supplied. The user asked about sets/reps/exercise count, not weights. Revisit baseline dose with comparable actual results and recovery; the latest review describes a reasonable starting hybrid dose and conservative conditioning rather than a proven optimum.
 - Farther previews assume scheduled work, estimated effort, and current availability. They update when real completion/recovery/manual context changes; a long forecast is not a guarantee of future readiness.
 - A direct jump far ahead requires sequential prospective work through intervening dates. Incremental/bounded caching avoids repeating stable work, but increasingly distant first-time calculations can cost more than a nearby preview.
 - Legacy rows without distinct IDs, roles, or timing can only be attributed from available information. Do not “repair” them by fabricating workouts.
