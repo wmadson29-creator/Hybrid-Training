@@ -1,16 +1,16 @@
-const BUILD="36.140";
-const CACHE="hybrid-training-v36-140-responsive-recommendations";
-const FALLBACK="./index.html?v=36.140";
-const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.140";
+const BUILD="36.141";
+const CACHE="hybrid-training-v36-141-kettlebell-secondary-families";
+const FALLBACK="./index.html?v=36.141";
+const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.141";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.140",
-  "./decision-integrity-v36.131.js?v=36.140",
-  "./actual-load-feedback-v36.126.js?v=36.140",
-  "./forecast-balance-v36.127.js?v=36.140",
-  "./exercise-expansion-v36.128.js?v=36.140",
-  "./app-shell-v36.119.css?v=36.140",
-  "./app-shell-v36.119.js?v=36.140",
+  "./manifest-v36.webmanifest?v=36.141",
+  "./decision-integrity-v36.131.js?v=36.141",
+  "./actual-load-feedback-v36.126.js?v=36.141",
+  "./forecast-balance-v36.127.js?v=36.141",
+  "./exercise-expansion-v36.128.js?v=36.141",
+  "./app-shell-v36.119.css?v=36.141",
+  "./app-shell-v36.119.js?v=36.141",
   "./stretching-flexibility-v36.119.js?v=36.119-sf1",
   PERSONALIZATION
 ];
