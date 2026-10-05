@@ -1,4 +1,4 @@
-/* Hybrid Training v36.137: actual-versus-planned load feedback; stable filename retained. */
+/* Hybrid Training v36.148: actual-versus-planned feedback uses exercise effort, not overall experience; stable filename retained. */
 (function(root,factory){
   'use strict';
   const api=factory();
@@ -135,11 +135,11 @@
   }
 
   function responseQuality(row){
-    const m=metrics(row),rpe=effortRpe(row),plannedRpe=Number(row?.modelPlannedExpectedRpe)||Number(row?.modelExpectedRpe)||0,feel=lower(row?.feel),technique=lower(row?.technique),sessionFeel=lower(row?.sessionFeel),pain=lower(row?.painLevel),decoupling=Number(m.decouplingPct),state=status(row),
+    const m=metrics(row),rpe=effortRpe(row),plannedRpe=Number(row?.modelPlannedExpectedRpe)||Number(row?.modelExpectedRpe)||0,feel=lower(row?.feel),technique=lower(row?.technique),pain=lower(row?.painLevel),decoupling=Number(m.decouplingPct),state=status(row),
       unexpectedlyVeryHard=feel==='very hard'&&plannedRpe>0&&plannedRpe<=7.25&&rpe-plannedRpe>=1.75,
-      costly=state==='missed'||rpe>=9.5||unexpectedlyVeryHard||/(?:too hard|bad|grindy|failed|maximal)/.test(feel)||technique==='sloppy'||sessionFeel==='very rough'||/(?:moderate|sharp|stop)/.test(pain)||(Number.isFinite(decoupling)&&decoupling>=10),
+      costly=state==='missed'||rpe>=9.5||unexpectedlyVeryHard||/(?:too hard|bad|grindy|failed|maximal)/.test(feel)||technique==='sloppy'||/(?:moderate|sharp|stop)/.test(pain)||(Number.isFinite(decoupling)&&decoupling>=10),
       positiveFeel=/(?:too easy|easy|comfortable|challenging|good|hard but good)/.test(feel),
-      tolerated=state==='complete'&&!costly&&((rpe>0&&rpe<=8.5)||positiveFeel)&&(sessionFeel!=='rough');
+      tolerated=state==='complete'&&!costly&&((rpe>0&&rpe<=8.5)||positiveFeel);
     return costly?'costly':tolerated?'tolerated':'uncertain';
   }
 
