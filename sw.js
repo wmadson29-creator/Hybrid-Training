@@ -1,16 +1,16 @@
-const BUILD="36.148";
-const CACHE="hybrid-training-v36-148-recovery-roles";
-const FALLBACK="./index.html?v=36.148";
-const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.148";
+const BUILD="36.149";
+const CACHE="hybrid-training-v36-149-effort-calibration";
+const FALLBACK="./index.html?v=36.149";
+const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.149";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.148",
-  "./decision-integrity-v36.131.js?v=36.148",
-  "./actual-load-feedback-v36.126.js?v=36.148",
-  "./forecast-balance-v36.127.js?v=36.148",
-  "./exercise-expansion-v36.128.js?v=36.148",
-  "./app-shell-v36.119.css?v=36.148",
-  "./app-shell-v36.119.js?v=36.148",
+  "./manifest-v36.webmanifest?v=36.149",
+  "./decision-integrity-v36.131.js?v=36.149",
+  "./actual-load-feedback-v36.126.js?v=36.149",
+  "./forecast-balance-v36.127.js?v=36.149",
+  "./exercise-expansion-v36.128.js?v=36.149",
+  "./app-shell-v36.119.css?v=36.149",
+  "./app-shell-v36.119.js?v=36.149",
   "./stretching-flexibility-v36.119.js?v=36.119-sf1",
   PERSONALIZATION
 ];
