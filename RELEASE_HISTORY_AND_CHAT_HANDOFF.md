@@ -1,6 +1,6 @@
 # Hybrid Training — complete release history, decisions, and chat handoff
 
-Prepared October 7, 2026, America/Phoenix; updated for v36.151. Repository: [wmadson29-creator/Hybrid-Training](https://github.com/wmadson29-creator/Hybrid-Training).
+Prepared October 7, 2026, America/Phoenix; updated for v36.153. Repository: [wmadson29-creator/Hybrid-Training](https://github.com/wmadson29-creator/Hybrid-Training).
 
 This is the standalone continuity document for a replacement chat. It records the actual chronological archive, the reasons behind important changes, the latest accepted user requests, the implemented release, validation, and the boundaries that must survive future edits. Attach this document and a current app export when resuming work.
 
@@ -11,6 +11,20 @@ Copy this prompt with the document attached:
 > Continue work on my Hybrid Training app using this handoff as context. Read its current-release status, user constraints, latest decisions, and chronological archive before editing. Check the actual GitHub HEAD and loaded/exported app build; do not assume the prepared release is deployed. Preserve completed workouts, recovery, manual schedule commitments, active/paused workouts, custom routines, and drafts. Implement my new requests, validate the relevant behavior with my latest export, update this handoff, and deliver only new/modified GitHub files in a ZIP. Do not push or deploy unless I explicitly ask.
 
 The app and chats are separate systems. The reported chat unloading/crashing does not itself prove an app defect. App calendar/startup slowness, update notifications, duplicate swim recommendations, historical attribution, and future recommendation repetition were investigated independently.
+
+## Current release — v36.153
+
+The user confirmed all nine UI candidates and requested fewer weight changes for cumbersome 70 lb adjustable kettlebells. They then clarified that the single 40 lb bell is easy to adjust. The authoritative saved v36.152 package already contained all nine UI improvements; this turn retrieved it, verified its source overlay and carried the improvements into v36.153.
+
+The new `kb-load-layout.js` allocates the actual physical bells and can group matching preset loads. Minimize 70 lb changes and adjustment breaks, keep the first movement and final swings, and favor the easy 40 lb dial for supported single-bell loads. Preparing the spare can remove a second adjustment break without reordering. Do not homogenize exercise targets for convenience or share progression merely because loads match. Custom ordering and manual doses are retained. Live edits clear dependent setup instructions, and drafts retain that invalidation.
+
+The user also requested purple 55 lb plates and minimum-switching graphics for the fixed Squat → Deadlift → Barbell Row sequence on Barbell Strength days only. The new pure `barbell-plate-layout.js` optimizes exact ordered stacks across the participating lifts, omitting deadlift when absent/skipped. Between lifts, keep the common inner prefix, remove only its outer suffix and add the new suffix. The 235 → 185 example retains 45 + 25 and removes one outer 25 per side. Exact edited actual loads recalculate the whole sequence and survive reopening. No total loads or training prescription are changed. Existing graphics for other sessions/exercises keep their previous plate set. A startup restore dependency exposed by the active barbell test is fixed by restoring work after every model extension initializes.
+
+The current KB training recipe remains 147. Build, cache and manifest are 36.153; recommendation model stamp is 19. Both new stable-name JS files are required in `version.json`, the HTML and worker precache. The KB Workouts inline grouping preference defaults on and survives reopening. Completed observations are untouched.
+
+Current validation: **796 export-based checks plus 122 empty-history checks**, comprising 43 bell-layout/draft, 50 nine-workflow and 29 plate-layout checks. See `QA_REPORT_v36.153.md` and `UI_AUDIT_v36.153.md`. Independent physical-state enumeration confirms minimum individual 70 lb changes in 40 mixed-dose cases, and 30 exhaustive ordered-stack cases match minimum plate switching. No actual new completed KB data was supplied; this release improves execution, not the training dose.
+
+Deliver `Hybrid_Training_v36_153_GitHub_Update.zip`, the updated handoff and current UI audit. This is a cumulative delta from v36.139; extract and upload its contents, preserving other repository files. No GitHub push or deployment was performed in this turn. The last earlier GitHub verification remains historical v36.151; it was not rechecked here.
 
 ## Release and deployment status
 
@@ -29,18 +43,25 @@ The app and chats are separate systems. The reported chat unloading/crashing doe
 | v36.148 delivery | Delivered the export (23) audit, role repairs, compact Recovery and separate overall experience semantics. Those changes remain in the current bundle. |
 | v36.149 delivery | Delivered target evidence, optional class focus intensity, clean reps remaining and initial KB calibration. Export (24) now identifies its exporter as v36.149; this is export evidence, not a fresh GitHub HEAD/deployment inspection. |
 | v36.150 delivery | Delivered dated recovery freshness, class-specific effort priors, recent exercise-effort calibration and durable Barbell reasons. The new release retains that work. |
-| Current prepared release | **v36.151**, implemented and validated locally, packaged as `Hybrid_Training_v36_151_GitHub_Update.zip`. Repairs optional Best full, visible/effective dated travel context, future cardio date/dose commitments, History comparisons and mobile display details. The 58-path bundle is cumulative from v36.139 and updates v36.140–150. |
-| Phone / GitHub Pages | The newest supplied export reports v36.149. No installed phone or completed Pages deployment was independently observed for v36.151. Repository upload, export build, deployment completion and the active installed client are distinct evidence. |
+| v36.151 delivery | Optional Best full, dated context, exact future commitments and History repairs were delivered in a 58-path cumulative ZIP. The current release retains them. The October 7 10:37 upload now verifies those changed files in GitHub. |
+| v36.152 prepared package | **v36.152**, implemented and validated locally, packaged as `Hybrid_Training_v36_152_GitHub_Update.zip`. Implements all nine approved UI candidates and corrects missing set evidence / Trends category selection. The 63-path bundle is cumulative from v36.139 and updates v36.140–151. |
+| Current prepared release | **v36.153**, implemented and validated locally, packaged as `Hybrid_Training_v36_153_GitHub_Update.zip`. All nine UI improvements, physical KB setup and exact plate-reuse graphics are included. The 70-path bundle is cumulative from v36.139 and updates v36.140–152. No push or deployment was performed. |
+| Last verified GitHub HEAD, during v36.152 work | **v36.151**, [73eee7b](https://github.com/wmadson29-creator/Hybrid-Training/commit/73eee7b8a778874d5450bb475990579b41374537), uploaded October 7 at 10:37:52 Phoenix; Pages succeeded at 10:38:41. Its 13 changed files match the delivered v36.151 bytes. The earlier 09:40 upload was an exact duplicate with zero file changes and still v36.149. |
+| Phone / GitHub Pages | Export (24) reports v36.149. GitHub HEAD and its successful Pages job now verify v36.151, but the public origin bytes and installed phone's active build were not independently inspected. v36.153 is prepared locally and was not pushed or deployed. |
 | Publication actions | This chat did not push, merge, or deploy the prepared release. |
 
-The original archive review covered 147 reachable commits, 140 distinct trees, and seven exact duplicates. The verified v36.140 upload extends that to **148 reachable commits, 141 distinct trees, and seven exact duplicates**. These are archived repository states, not 141 separately numbered feature releases. The locally prepared v36.141/v36.142/v36.143/v36.144/v36.145/v36.146/v36.147/v36.148/v36.149/v36.150/v36.151 releases are described separately; no new archived GitHub commits were verified in this continuation.
+The original archive review covered 147 reachable commits, 140 distinct trees, and seven exact duplicates. The verified v36.140 upload extends that to **148 reachable commits, 141 distinct trees, and seven exact duplicates**. These are archived repository states, not 141 separately numbered feature releases. The locally prepared v36.141/v36.142/v36.143/v36.144/v36.145/v36.146/v36.147/v36.148/v36.149/v36.150/v36.151 releases are described separately; the fresh October 7 HEAD/duplicate verification is additional evidence, but the complete archive has not been recounted beyond v36.140. The archive body below remains unchanged.
 
 ## Current user instructions and design boundaries
+
+v36.153 retains all nine UI candidates approved with “I want all 9,” plus the slow-70/easy-40 bell setup and scoped 55 lb plate reuse. Preserve their practical flows, truthful units/date windows, moved class controls, full-history filtering and visible bounded recalculation. Displaying major muscle areas first must not change model priorities.
 
 These are active decisions, not suggestions to reinterpret silently.
 
 | Area | Rule to retain |
 | --- | --- |
+| Physical KB setup | Prioritize fewer individual adjustments and adjustment breaks for the 70 lb pair. The single 40 lb dial is easy to adjust. Group compatible preset targets, retain exact doses/progression and custom order, and clear dependent instructions after a live change. |
+| Barbell plate graphics | Only Barbell Strength Squat, Deadlift and Barbell Row use purple 55 lb plates and a minimum-switching ordered stack. Keep the squat → deadlift → row sequence, omitting missing/skipped deadlift; keep exact totals and mirror both sleeves. Recompute from actual edited weights. Other workouts/exercises retain their original graphics. |
 | Overall experience | Great/Good/Average/Rough/Very Rough means general feedback and how the workout felt overall. Preserve it in records. Never use it to infer RPE, exercise difficulty, progression success, tissue fatigue, recovery persistence or secondary eligibility/spacing. Exercise-specific effort/RPE, actual dose, execution and explicit Recovery inputs supply those signals. |
 | Recovery freshness | Recommendations may use yesterday’s timestamped observations while today has no check-in, with source date/age disclosed. Keep daily entry fields and baseline records on their original date. Never copy steps or invent new sleep. Body/soreness context expires after 36 hours, alertness/current BioCharge/stress after 12, and prior waking/sleep markers before 06:00 or after 24 hours. An exact-date entry supersedes carryover; future/historical dates do not borrow it. Freshness expiry invalidates stored generated advice. |
 | Class effort priors | Use the library’s class-specific RPE range before generic conditioning defaults and separate residual learning by class family. Old hard-class generic predictions can be re-baselined for learning without changing saved actual data or predictions. |
@@ -100,7 +121,7 @@ The sequence below follows the user’s clarification order, not a guessed priva
 | 3 | Cal/SE rare but not impossible; more optional work if the data permits. | v36.140 bounded long-gap re-entry credit and removal of date-lottery suppression; effort/recovery/time/anchor guards retained. |
 | 4 | Weighted Pull-up before Squat in Tactical Barbell. | v36.140 generated plan, Log, and forecast ordering; historical rows preserved. |
 | 5 | Actual swim followed by recommended swim; calendar sometimes shows different past activity. | v36.140 completed-primary identity, duplicate swim filtering, primary/full/short attribution, and completed-only history rendering. |
-| 6 | Comprehensive chronological release/decision document for a replacement chat; explain changes since v139. | This standalone handoff plus repository copy, now maintained through v151, with the full archive and maintenance instructions. |
+| 6 | Comprehensive chronological release/decision document for a replacement chat; explain changes since v139. | This standalone handoff plus repository copy, now maintained through v152, with the full archive and maintenance instructions. |
 | 7 | SE, KB, and related work can be secondary sessions. | v36.141 expands complete secondary candidates and preserves family/style identity through loading, saving, effort, fatigue, and progression. |
 | 8 | Re-research KB Power/Volume because the workouts felt assembled randomly. | Initial scope was clarified before finalizing implementation. |
 | 9 | Research a coordinated three-day full-body KB muscle-building and conditioning regimen. | v36.141 uses one stable A/B/C program with purposeful exercises, rest, rep/load/round progression, hardware substitutions, and documented primary sources. |
@@ -135,6 +156,8 @@ The sequence below follows the user’s clarification order, not a guessed priva
 | 38 | Travel days and other constraints should be marked on the calendar and immediately shift recommendations. | v36.151 adds meaningful date badges/notices, dated recovery/time controls and indoor/equipment feasibility across automatic conditioning and full extras. Fixed/manual authority remains explicit. |
 | 39 | Future manual changes sometimes do not adjust nearby non-anchors. | Reproduce More/library date reset plus a selected 60-minute Swim projected as 45 minutes. v36.151 preserves the date, stores authoritative exact manual prescriptions and feeds the full dose into forecast and future reservations; nearby automatic needs re-evaluate. Some type changes already reflowed in v36.150. |
 | 40 | Screenshot: Recommended None, Best full selected, No compatible full plan. | Reproduce automatic Barbell ban leaking into optional selection. v36.151 separates explicit optional feasibility; viable plans open consistently, and genuinely unavailable plans give a concrete reason and useful actions. |
+| 41 | Review more UI issues, first give a candidate list; then “I want all 9.” | v36.152 implements all nine: Today action, simpler Trends, explained/checked metrics, History filters, compact setup, class logging, balance ordering, actionable conflicts and before/after future reflow. See current audit and 50 workflow checks. |
+| 42 | Updated GitHub, but app still on the last version. | Initial Oct 7 09:40 upload had zero changes and remained v36.149. Fresh verification found the later 10:37 upload now has v36.151 and a successful Pages job. Phone active build remains unknown; deliver v36.152 without pushing/deploying. |
 
 ## Changes since v36.139
 
@@ -370,6 +393,36 @@ History formerly compared a bike's miles with an intervening swim's yards. Close
 `UI_AUDIT_v36.151.md` prioritizes remaining layout work: bring Open/Resume forward on Today, shorten Trends and clarify its comparison windows, add History filtering, compact pre-Start/class entry, and put accessory detail behind disclosure. Those are recommendations, not completed redesigns. The audit did not prove contradictory-looking strength summaries mathematically wrong.
 
 App/cache/manifest **36.151**, recommendation model stamp **17**, KB recipe **147**. Final unique export-seeded suites passed **671 checks**; the new UI suite also passed **41 empty-history checks**. The initial full command passed 664 checks; the extended 41-check UI run replaces its initial 34-check run in the final total. Test-only fixture/index/modal-timing corrections are documented separately from production defects. See `UPDATE_NOTES_v36.151.md`, `QA_REPORT_v36.151.md` and `UI_AUDIT_v36.151.md`. The cumulative ZIP excludes private/runtime data, preserves the archive exactly, and was not pushed or deployed.
+
+### v36.152 — all nine approved UI candidates and version diagnosis
+
+The user approved all nine candidates from the practical UI review. Every candidate is implemented; their stable numbered mapping and exact behavior are in `UI_AUDIT_v36.152.md`. The real Today action leads the screen and resumes existing work. Trends has four dated summaries, four intended Overview panels, actual exercise load/reps/RPE charts and phone-readable comparisons. History searches all dates before pagination. Loaded-workout setup and optional class fields are disclosed, with original controls and data retained. Major areas and training goals lead balance; accessory/horizon detail is optional and priorities remain unchanged.
+
+The screenshot-class fields are not treated as ornamental metadata: class focus still reaches the existing model. Optional metrics survive edit, draft and save because controls are moved without cloning. Tests change HR/notes and update the same class identity, preserving other metrics and muscle focus.
+
+Saved No gym/limited-equipment conflicts are visible on gym workouts. Change, context edit and inline Move use existing protections. A Move retains the source week/wave and checks neighborhoods around both ends. Future programming saves produce bounded before/after reports for actual automatic changes, highlight visible dates and explicitly explain unchanged choices; fixed, manual and completed days are excluded from the automatic-change list.
+
+Arithmetic correction: a summary-only result used to contribute zero drop to an observed set-repeatability average. Missing or effort-only set evidence is now excluded; observed zero is retained. The 100 lb × 10 then × 6 fixture independently gives a 10% estimated-demand drop and remains 10% after adding an unobserved breakdown. Performance windows, percent/RPE units, limited evidence and the difference between progression decisions and performance are shown. A conditioning filter also mistook title/subtitle IDs for the data target; it now selects actual known targets.
+
+App/cache/manifest **36.152**, recommendation model stamp **18**, KB recipe **147**. The stamp invalidates saved advice affected by the set-evidence correction. Fixed wave, dedicated pull-up progression and the KB recipe remain unchanged. A stable `ui-workflows.js` filename is required and precached with the release query; PWA installation/update/backup/offline checks pass.
+
+Final validation: **722 unique export-seeded checks**, plus **50 focused empty-history checks**. The final 50-check workflow run replaces its initial 39 checks; repeated runs are not summed. Full source observations were preserved and mobile screenshots inspected. User Android hardware and public origin bytes were not independently tested. No push or deployment was performed.
+
+### v36.153 — practical bell and plate setup with all nine UI improvements
+
+This release organizes the v147 prescription around the slow-to-adjust 70 lb pair and easy 40 lb dial, without changing sets/reps/load/rest. Starting B runs floor press, gorilla row, goblet squat, RDL and swings: five → four individual changes to 70 lb bells and three → two adjustment breaks after initial setup. A preserves order and prepares the spare together. Per-exercise Set/Adjust/Keep instructions, optional initial settings and a saved inline grouping preference make the execution clear. A live change clears stale dependent instructions; reload preserves the invalidation. Custom ordering and manual loads are protected.
+
+The three barbell-day lifts also receive exact minimum-switching plate visuals with labeled purple 55 lb plates. Their fixed order is squat → deadlift → row, with deadlift omitted when absent/skipped. Edited actual loads recompute the joint sequence and restore reliably after initialization. The 235 → 185 lb example retains 45 + 25 and removes the outer 25 per side. No other exercises or sessions receive the new plate set.
+
+The nine v36.152 candidates remain included and pass their full workflow suite. The cumulative export-seeded command passed 796 checks; empty-history bell-layout, nine-workflow and plate-layout commands passed 122. Read the current notes/QA/audit for exact scope and test boundaries. Counts assume the displayed initial setup; the app does not measure physical bell states or adjustment time.
+
+## Why the earlier GitHub update did not change the app
+
+The October 7 **09:40:16 Phoenix** upload, [b3b08c3](https://github.com/wmadson29-creator/Hybrid-Training/commit/b3b08c3b5e1d42aa177602f6437dca5515f958a0), changed zero files. Its tree was identical to the parent and `version.json` / `sw.js` remained v36.149. The Pages job succeeded at 09:41:13 with those unchanged files. This explained the initial version report; it was not evidence of a failed Pages deployment.
+
+A fresh check found the later **10:37:52 Phoenix** upload, [73eee7b](https://github.com/wmadson29-creator/Hybrid-Training/commit/73eee7b8a778874d5450bb475990579b41374537). It changed 13 files, now identifies **v36.151**, and its [Pages job](https://github.com/wmadson29-creator/Hybrid-Training/actions/runs/37660574718) succeeded at **10:38:41**. Every changed file's Git blob SHA matches the delivered local v36.151 baseline. The repository issue is resolved. The installed phone's active version and public origin bytes were not independently inspected. If a phone retains an older build, reopen and use the in-app Update action or refresh after deployment.
+
+For v36.152, extract the ZIP and upload its **contents** into the existing repository root, replacing the listed files and preserving nested folders and other app assets. Uploading only the ZIP or making another empty commit does not update the web app. This release has not been pushed or deployed by Codex.
 
 ## Every archived commit, in actual order
 
@@ -734,7 +787,7 @@ The app's swing-credit discount is not a validated growth conversion. Retain its
 
 ## Validation and evidence
 
-Use `QA_REPORT_v36.151.md` for current checks and `UI_AUDIT_v36.151.md` for workflow findings; retain v36.140–v36.150 reports as prior-release evidence. Do not substitute the older archive's QA claims for runnable current tests.
+Use `QA_REPORT_v36.153.md` for current checks and `UI_AUDIT_v36.153.md` for implemented UI behavior; retain v36.140–v36.151 reports as earlier evidence. Do not substitute the older archive's QA claims for runnable current tests.
 
 ### Supplied data
 
@@ -744,31 +797,30 @@ October 5 includes 3×5 +30 lb Weighted Pull-up marked Very hard for a second co
 
 Export (23), from v36.144, had 192 logs / 40 recovery dates / seven weights, through October 4. Export (22), from v36.138, had 165 logs / 34 dates, through September 28. Prior reports retain those original fixture/version labels. The v36.149 exporter is confirmed by the new file; this is not an independent inspection of current GitHub HEAD or the installed phone.
 
-### Current v36.151 check set
+### Earlier v36.152 check set
 
 | Suite | Export (24) checks passed |
 | --- | ---: |
-| Static/deployment | 19 |
-| Browser/calendar/PWA | 90 |
-| KB and full-secondary execution | 93 |
-| Future forecast | 26 |
-| Barbell and ab progression | 57 |
+| Static / deployment | 20 |
+| Browser / calendar / PWA | 90 |
+| KB / full secondary | 93 |
+| Forecast | 26 |
+| Barbell / abs | 57 |
 | Secondary logic | 39 |
 | Secondary frequency | 29 |
-| Gym/bodyweight core | 27 |
+| Gym / bodyweight core | 27 |
 | Class focus | 47 |
 | Substitution | 18 |
-| Recovery/role/experience semantics | 49 |
-| Target evidence/class intensity/RIR/KB calibration | 66 |
-| Recovery freshness/class priors/recent effort/saved reasons | 70 |
-| Travel/manual selection/secondary/History/mobile UI audit | 41 |
-| **Total** | **671** |
+| Recovery / role semantics | 49 |
+| Effort / RIR / class intensity | 66 |
+| Freshness / class priors / saved reasons | 70 |
+| Travel / manual commitments / previous UI repairs | 41 |
+| Nine approved UI workflows / arithmetic | 50 |
+| **Total** | **722** |
 
-Additional current empty-history execution: the new UI suite passed **41 checks**. Prior v36.150 validation was 630 export-seeded plus 169 empty-history checks; these remain historical counts and are not added to the current run.
+Additional empty-history execution: the focused nine-workflow suite passed **50 checks**. Earlier v36.151 totals were 671 export-seeded plus 41 empty UI checks; earlier v36.150 was 630 plus 169. These are historical evidence and not added to current counts. The complete command's initial 711 total is superseded by the final expanded workflow/static/UI counts above. No uncaught browser errors occurred; the supplied export was not modified.
 
-The full command passed with its initial 34-check UI suite (664 checks), followed by the final 41-check UI suite with both export and empty history. Final counts replace earlier UI checks rather than double-counting them. The added checks exercise actual History activity/role/unit comparisons and inline reps-remaining entry. No uncaught browser errors occurred. The private export was not modified; synthetic rows were restored and forecasts never became completed workouts. Production contains no test hook.
-
-The new suite covers optional Best full versus automatic None, selected plan/calendar/loading agreement, explanatory time limits, dated Travel/No gym/Sick badges and feasible indoor doses, future library date preservation, manual Swim 60-minute projection and nearby reservations, reload persistence, correct class-edit headings, a unique Log stage, resistance-only progress rows and intact actual logs. The exploratory audit separately exercised active workout detailed sets/rest, pause/navigation/resume/reload, class-focus editing and Recovery drafts. Current full/time-limited secondary cards and travel calendar were visually inspected. See the current QA report for fixture corrections and platform limits.
+`QA_REPORT_v36.152.md` records exact workflows, arithmetic, fixture corrections and platform limits. The UI suite covers active Open/Start/Resume, full-history/date/family filters, unit conversion and metric selection, class edit/save, source-wave-preserving inline moves, real before/after calendar changes, visible highlights, unchanged-choice reassurance and intact records. Required cache/updater/offline checks also pass.
 
 ### Earlier executed check sets — v36.140–147
 
@@ -827,6 +879,11 @@ npm run audit:export -- '/absolute/path/to/export.json'
 
 ## Architecture and maintenance entry points
 
+`kb-load-layout.js` is the pure physical allocator added in v36.153. Core integration uses `v36153OrganizeKbPlan`, setup HTML/draft helpers and `kbGroupMatchingLoads`. Cache keys contain exact doses/hardware/mode; cached results are cloned. Tests use an independent exhaustive reference and actual logging controls. Group only presets; never reorder an already loaded session or a user-owned routine. Changes to manual or actual loads must not resurrect stale Keep instructions. `barbell-plate-layout.js` is the exact shared-prefix optimizer; core helpers use `v36153ApplyBarbellPlatePlan` and `v36153RefreshBarbellPlateVisuals`. Eligible visuals are scoped by both session and exercise. Preserve the fixed squat/deadlift/row sequence, handle missing deadlift, read edited actual weights and never round a load to make a diagram possible. Startup workspace restoration must follow all synchronous model extensions. Keep the stable filename, release query, required bundle list and worker precache synchronized.
+
+
+`ui-workflows.js` is the v36.152 presentation module. Keep its stable filename, release query, `version.json` required entry and service-worker precache synchronized. Narrow core helpers provide selected/context data, class classification, filtered History reset, metric evidence and the existing protected actions. The final successful save wrapper emits the presentation event; never hook only the superseded legacy save. Schedule comparison checks ±3 days and both ends of a one-off move, with no second optimizer or record writes.
+
 | File / area | Purpose and cautions |
 | --- | --- |
 | `index.html` | Main static app, scoped training engine, saved state, builders, persistence, calendar, Log, manual intent, and narrow `HybridCore` bridge. Later wrappers are authoritative; changing only an earlier implementation may be undone by a later wrapper. |
@@ -838,7 +895,7 @@ npm run audit:export -- '/absolute/path/to/export.json'
 | Recent effort / Barbell reasons | `v36150EffortBand`, `v36150EffortDose`, `v36150EffortRows`, `v36150RecentEffortCalibration`, `v36150EffortReview`, `v36150BarbellTargetReason` and `v36150ShowPullupReview`. Shared helpers must be in the outer app scope so the programmed builder can call them. Keep exact exercise/slot/dose, bounded cached history, actual-only evidence, fixed waves and saved reason authority. |
 | Target/RIR/calibration | `v36149TargetEvidenceHtml`, `v36149SetTarget`, `v36149RefreshTarget`, `v36149StoredTargetHtml`, `v36149RirRpe`, `v36149SyncRir`, `v36149KbObservedRows`, `v36149KbCalibration`. Keep raw data separate, uncertainty-weight residuals, exact slot history, manual authority and no forecast graduation. |
 | Forecast | `ensureRollingForecastRowsBefore`, `withRollingForecastForDate`, `v36117ForecastFixedAnchorRows`, `v36141ForecastSessionRows`, final `rollingOpenDayRecommendation`. Shadow rows have `projectedForecast`; they must never be appended to real logs or treated as observed outcomes. |
-| Manual intent / reflow | `manualScheduleConstraintForDate`, `futureManualCadenceReservations`, and generated-recommendation freshness/evidence helpers. Manual same-type activity/dose choices count; future generated snapshots are revisable advice. The current recommendation model stamp is 17; no stamp turns generated snapshots into manual locks. |
+| Manual intent / reflow | `manualScheduleConstraintForDate`, `futureManualCadenceReservations`, and generated-recommendation freshness/evidence helpers. Manual same-type activity/dose choices count; future generated snapshots are revisable advice. The current recommendation model stamp is 19; no stamp turns generated snapshots into manual locks. |
 | Dated travel / optional full / exact date | `v36151IndoorContext`, `v36151ConditioningAvailability`, `v36151EasyContextDose`, `v36151CalendarContextHtml`, `v36151OptionalFullState`, `v36151SyncConditioningDate`. Share dated feasibility across automatic candidate paths; keep optional selection separate from automatic Barbell policy. Preserve the target date through More/library filters and store exact manual prescriptions. `explicitConditioningCommitmentForDate` supplies the actual target to forecast and reservation paths. |
 | Secondary selection | `v36141FullCandidatePlans`, `v36141AerobicSecondPlans`, `v36119CandidateScore`, weekday/weekend allocation, and `__v36123SecondaryMatrix` presentation. Family eligibility does not imply an automatic full recommendation. |
 | Secondary logistics / spacing / duration | `v36142WorkoutLocation`, `v36142PairLocation`, `v36142SESecondaryEquipment`, `v36142SESpacing`, and `v36142ConditioningMinutes`. Read actual/resolved primary, explicit location, hardware, and forecast context. Minute parsing must not interpret circuits/reps/meters/seconds as minutes. |
@@ -856,13 +913,13 @@ npm run audit:export -- '/absolute/path/to/export.json'
 | `stretching-flexibility-v36.119.*` | Separate stretching support/assets; remain present in coherent deployment. |
 | `sw.js`, `version.json`, `manifest-v36.webmanifest` | Current deployment build/query/precache agreement. Keep all existing required assets and coherent update verification. |
 | `tests/` / `package.json` | New `ui-audit-qa.js` / `test:ui` is in `test:all`, covering physical mobile context/secondary/manual-date/History/effort flows with export and empty history. Test-only state replacement must invalidate index/query state and advance its persisted stamp. `model-freshness-qa.js` / `test:freshness` covers the four v150 improvements and is included in `test:all`. `feedback-calibration-qa.js` covers the four features and original-plan draft restoration. Runnable static, browser, KB, forecast, Barbell, secondary-logic, secondary-frequency, core, class-focus, substitution, and export-audit commands. Keep nested helpers. Private exports are supplied via `HYBRID_TEST_EXPORT` or an explicit local audit path. |
-| Release / research documents | Current `UPDATE_NOTES_v36.151.md`, `QA_REPORT_v36.151.md`, `UI_AUDIT_v36.151.md`; retain v36.149/v36.150 notes/QA, `KETTLEBELL_HYBRID_AUDIT_v36.147.md`, and `RELEASE_HISTORY_AND_CHAT_HANDOFF.md`; retain the v36.146 variety research/notes/QA; retain `KETTLEBELL_PROGRAM_REVIEW_v36.143.md`; retain the v36.141 KB research and older reports. Update current scope/evidence and handoff each release; preserve older evidence as history. |
+| Release / research documents | Current `UPDATE_NOTES_v36.153.md`, `QA_REPORT_v36.153.md`, `UI_AUDIT_v36.153.md`; retain v36.152 notes/QA/audit; retain v36.149/v36.150/v36.151 notes/QA, `KETTLEBELL_HYBRID_AUDIT_v36.147.md`, and `RELEASE_HISTORY_AND_CHAT_HANDOFF.md`; retain the v36.146 variety research/notes/QA; retain `KETTLEBELL_PROGRAM_REVIEW_v36.143.md`; retain the v36.141 KB research and older reports. Update current scope/evidence and handoff each release; preserve older evidence as history. |
 | KB swing/movement attribution | `v36147ApplySwingDose`, `utmRowStimulus`, `utmRowFitnessQualities`, `utmFingerprint`, `utmFunctionalAnatomy`, and `utmExerciseMechanics`. Conservative swing credit must retain fatigue and disclose work/rest assumptions; do not assign mixed-session minutes to each row or invent aerobic outcomes. Floor presses are horizontal; the RDL abbreviation reaches hip-extensor/eccentric paths. |
 
 ## Installation and delivery
 
-1. Extract `Hybrid_Training_v36_151_GitHub_Update.zip` and upload its contents into the existing repository, preserving nested folders. Commit the bundle together.
-2. Keep every other existing app asset. This is a cumulative delta from v36.139, not a replacement full repository; it can also update v36.140/v36.141/v36.142/v36.143/v36.144/v36.145/v36.146/v36.147/v36.148/v36.149/v36.150. Its 58 new/modified paths include the expanded core module and new core/class/substitution tests. It restores tests omitted from the later v36.140 GitHub upload.
+1. Extract `Hybrid_Training_v36_153_GitHub_Update.zip` and upload its contents into the existing repository, preserving nested folders. Commit the bundle together.
+2. Keep every other existing app asset. This is a cumulative delta from v36.139, not a replacement full repository; it can also update v36.140/v36.141/v36.142/v36.143/v36.144/v36.145/v36.146/v36.147/v36.148/v36.149/v36.150/v36.151/v36.152. Its current new/modified paths include the expanded core module and new core/class/substitution tests. It restores tests omitted from the later v36.140 GitHub upload.
 3. Wait for GitHub Pages deployment, then reopen the installed app at the existing address. The repaired v140+ updater can notify a newer coherent bundle; a client still running an older build may need an initial normal refresh before it receives that updater.
 4. Check the loaded build and saved data. Keep the existing browser/origin so local workout data remains available. Export Data remains the portable backup.
 
@@ -870,8 +927,8 @@ The standalone handoff file and the repository’s `RELEASE_HISTORY_AND_CHAT_HAN
 
 ## Remaining limits and next-chat priorities
 
-- The last repository verification, during v36.141 preparation, found v36.140. Export (24) reports v36.149, while v36.151 is prepared locally; no fresh current HEAD, installed phone build, or completed deployment was independently verified in this continuation. Check them before diagnosing a reported live issue against the new source.
-- Remaining UI redesign recommendations are prioritized in `UI_AUDIT_v36.151.md`. They include earlier Open/Resume, shorter/clearer Trends, History filters and compact setup/class fields; do not describe them as already implemented. Saved context constrains automatic advice while fixed/manual prescriptions retain authority. Obtain the actual loaded build if a live screenshot still shows the old behavior.
+- Fresh GitHub verification found v36.151 at 73eee7b and a successful Pages job. Its 13 changed files match the delivered source. The earlier zero-change upload explains the original v36.149 report. v36.153 is prepared locally; inspect the loaded phone build/export before diagnosing a live issue against it. The installed client and public origin bytes remain uninspected.
+- All nine approved UI candidates from v36.152 are included in v36.153 and mapped in the current audit. The 70 lb adjustments are prioritized; 40 lb dial changes are easy. Review new UI candidates with the user before changing additional scope. Fixed/manual authority and exact saved controls stay protected; bounded recalculation can truthfully leave an automatic recommendation unchanged.
 - Freshness expiry and recent-effort correction are bounded app estimates. Obtain the next actual class/pull-up observations before judging prediction accuracy; missing actual grip prevents grip-specific conclusions. Preserve the fixed wave and separate block-end review.
 - No new KB completion data was supplied. v36.147 follows the deeper-audit request: controlled hinges on A/B, reduced Sunday overlap, 24 resistance sets and 170 swings. Calibrate against actual exact-exercise response and recovery. Four hinge sets are a starting addition, dedicated knee-flexion work remains absent, and the app's swing-credit coefficients are not validated physiological conversions. Research does not prove this exact routine optimal or superior for the individual.
 - Farther previews assume scheduled work, estimated effort, and current availability. They update when real completion/recovery/manual context changes; a long forecast is not a guarantee of future readiness.
