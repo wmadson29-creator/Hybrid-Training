@@ -28,6 +28,10 @@ Counts assume the displayed initial settings. The app does not measure current p
 
 This feature changes plate graphics and setup guidance. It does not alter the workout order, total loads, sets, reps, rest, training maxima, progression or recorded history. It assumes the displayed plate sizes and quantities are available, as the existing plate helper does; it does not track a physical plate inventory.
 
+## Clarified October 8 — minimum plates on other exercises
+
+Other plate-loaded exercise visuals use the minimum number of standard 45/25/10/5/2.5 lb plates for the exact target load. The existing helper already meets this rule. It applies independently to each ordinary barbell, plate-loaded chest-machine and landmine visual. Only the Barbell Strength squat → deadlift → row sequence prioritizes switching and allows purple 55 lb plates. App behavior and build remain v36.153.
+
 ## Installation
 
 Extract `Hybrid_Training_v36_153_GitHub_Update.zip` and upload its contents into the existing repository root, preserving nested folders and other assets. Commit the bundle together, wait for deployment, then reopen and use Update if offered. Uploading the ZIP alone does not replace app files. Keep the existing app origin and saved data.

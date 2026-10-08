@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <style id="hybrid-boot-paint">html,body{margin:0;min-height:100%;background:#0b0f14;color:#f6f8fb}html{background:#0b0f14}
 #recovery .recovery-daily-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px}.recovery-wide{grid-column:1/-1}.recovery-daily-fields .hint{font-size:.7rem}.recovery-save-actions{margin:14px 0}.recovery-soreness-field{margin-top:8px}.recovery-soreness-field[open]>summary{margin-bottom:10px}#recoveryMoreDetails,#recoveryAnalysisDetails{margin-top:10px}#recoveryMoreDetails[open]>.form-grid{margin-top:12px}#recoveryAnalysisDetails .notice{margin-top:10px}#recoveryHelpDetails[open]>.recovery-rule-grid{margin-top:12px}
-/* v36.153: compact evidence and optional effort/focus detail. */
+/* v36.154: compact evidence and optional effort/focus detail. */
 .target-evidence{margin:12px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:.86rem;line-height:1.5}
 .target-evidence>summary{padding:10px 12px;color:var(--accent);font-weight:700;cursor:pointer;overflow-wrap:anywhere}
 .target-evidence-body{padding:0 12px 12px;overflow-wrap:anywhere}
@@ -22,18 +22,18 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.153">
-<script src="decision-integrity-v36.131.js?v=36.153"></script>
-<script src="actual-load-feedback-v36.126.js?v=36.153"></script>
-<script src="forecast-balance-v36.127.js?v=36.153"></script>
-<script src="exercise-expansion-v36.128.js?v=36.153"></script>
-<script src="kb-load-layout.js?v=36.153"></script>
-<script src="barbell-plate-layout.js?v=36.153"></script>
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.154">
+<script src="decision-integrity-v36.131.js?v=36.154"></script>
+<script src="actual-load-feedback-v36.126.js?v=36.154"></script>
+<script src="forecast-balance-v36.127.js?v=36.154"></script>
+<script src="exercise-expansion-v36.128.js?v=36.154"></script>
+<script src="kb-load-layout.js?v=36.154"></script>
+<script src="barbell-plate-layout.js?v=36.154"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
 <meta name="apple-mobile-web-app-title" content="Hybrid Training">
-<link rel="stylesheet" href="app-shell-v36.119.css?v=36.153">
+<link rel="stylesheet" href="app-shell-v36.119.css?v=36.154">
 <style>
 :root{
   --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
@@ -2080,7 +2080,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.153</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
+      <div class="notice"><strong>Adaptive Engine v36.154</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -4048,9 +4048,9 @@ function utmPlannedDemandIndex(exercise,plan={},dateISO=""){
  }
  return reps?Math.log1p(reps)*15:0;
 }
-function utmCapabilityState(name,dateISO){
- const cacheKey=utmModelRevision+"|"+dateISO+"|"+name+"|"+modelAsOfTimestamp(dateISO);if(utmCapabilityCache.has(cacheKey))return utmCapabilityCache.get(cacheKey);
- const rows=historyRowsBefore(dateISO,3650).filter(x=>x.exercise===name&&!["skipped","missed"].includes(String(x.status||"").toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).slice(-12),
+function utmCapabilityState(name,dateISO,grip=null){
+ const cacheKey=utmModelRevision+"|"+dateISO+"|"+name+"|"+String(grip)+"|"+modelAsOfTimestamp(dateISO);if(utmCapabilityCache.has(cacheKey))return utmCapabilityCache.get(cacheKey);
+ const all=historyRowsBefore(dateISO,3650).filter(x=>x.exercise===name&&(name!=='Weighted Pull-up'||!x.projectedForecast)&&!["skipped","missed"].includes(String(x.status||"").toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)),rows=v36154PullupGripEvidence(all,name,grip===null?all.at(-1)?.pullupGrip:grip).rows.slice(-12),
    vals=rows.map(x=>({row:x,value:utmPerformanceIndex(x,name)})).filter(x=>x.value>0),n=vals.length;
  if(!n){const z={exposures:0,capability:0,best:0,trendPct:0,confidence:.18,uncertainty:1,plateau:false,latest:0};utmCapabilityCache.set(cacheKey,z);return z}
  const recent=vals.slice(-6),weights=recent.map((_,i)=>Math.pow(.72,recent.length-1-i)),ws=weights.reduce((a,b)=>a+b,0),
@@ -4102,10 +4102,44 @@ function v36150EffortDose(row){
   if(Array.isArray(row.setDetails)&&row.setDetails.length){if(row.setDetails.length!==sets||row.setDetails.some(x=>String(x.reps??row.reps).trim().toLowerCase().replace(/\s+/g,'')!==reps||parseLb(x.weight??row.weight)!==n))return ''}
   return sets+'|'+reps+'|'+n+'|'+(/kg/i.test(load)?'kg':'lb');
 }
+// v36.154: prescribed grip is provenance; only an explicitly recorded grip is evidence.
+function v36154NormalizePullupGrip(value){
+ const key=String(value??'').trim().toLowerCase();
+ if(['neutral','side / neutral','side/neutral','side'].includes(key))return 'neutral';
+ return key==='overhand'?'overhand':'';
+}
+function v36154PullupGripLabel(value){return ({neutral:'Side / Neutral',overhand:'Overhand'})[v36154NormalizePullupGrip(value)]||'Not recorded'}
+function v36154PullupGripEvidence(rows,name,grip){
+ if(name!=='Weighted Pull-up')return {rows};
+ const selected=v36154NormalizePullupGrip(grip),matched=selected?rows.filter(r=>v36154NormalizePullupGrip(r.pullupGrip)===selected):[];
+ return {rows:matched,grip:selected,observedN:rows.length,excludedGripRows:rows.length-matched.length,gripEvidence:selected?'Comparing recorded '+v36154PullupGripLabel(selected)+' grip only.':'Actual pull-up grip was not recorded; a comparable grip trend is unavailable.'};
+}
+function v36154PlannedPullupGrip(plan,dateISO,session='Barbell Strength'){if(typeof plan?.pullupGrip==='string')return v36154NormalizePullupGrip(plan.pullupGrip);return v36154NormalizePullupGrip(plan?.modelPlannedPullupGrip||plan?.meta)||(session==='Barbell Strength'?v36154NormalizePullupGrip(pullupForWeek(programPrescriptionWeek(dateISO))[3]):'')}
+function v36154WirePullupGrip(card){
+ if(!card||card.dataset.conditioning==='1')return;
+ const sync=()=>{
+  let field=card.querySelector('.pullup-grip-field');
+  if(currentCardExercise(card)!=='Weighted Pull-up'){field?.remove();return}
+  if(!field){field=document.createElement('div');field.className='field pullup-grip-field';field.innerHTML='<label>Actual pull-up grip<select class="le-pullup-grip"><option value="">Not recorded</option><option value="neutral">Side / Neutral</option><option value="overhand">Overhand</option></select></label><div class="hint pullup-grip-plan"></div>';card.querySelector('.le-weight')?.closest('.field')?.insertAdjacentElement('afterend',field)}
+  const hint=field.querySelector('.pullup-grip-plan'),planned=v36154NormalizePullupGrip(card.dataset.plannedPullupGrip),text=planned?'Prescribed: '+v36154PullupGripLabel(planned)+'. Record the grip you used.':'Choose the grip you used; older unrecorded grips stay unknown.';if(hint.textContent!==text)hint.textContent=text;
+ };
+ sync();if(card.dataset.grip154Wired==='1')return;card.dataset.grip154Wired='1';
+ card.addEventListener('change',event=>{if(event.target.matches('.le-ex,.le-custom'))sync();if(event.target.matches('.le-pullup-grip')){v36149RefreshTarget(card);writeLogWorkspace()}});
+ card.addEventListener('input',event=>{if(event.target.matches('.le-custom'))sync()});
+}
+function v36154CompletedDose(row){
+ const status=String(row?.status||'').toLowerCase();if(['missed','skipped'].includes(status))return {credit:0,known:false,reduced:false};
+ const plannedName=String(row?.modelPlannedExercise||row?.modelTargetExercise||row?.exercise||''),plannedSets=Number(row?.modelPlannedSets||row?.modelTargetSets),plannedReps=utmRepAverage(row?.modelPlannedReps||row?.modelTargetReps),details=Array.isArray(row?.setDetails)?row.setDetails.filter(s=>s&&utmRepAverage(s.reps??row.reps)>0):[],actualSets=details.length||Number(row?.sets),actualReps=utmRepAverage(row?.reps);
+ if(plannedName!==row?.exercise||!(plannedSets>0)||!Number.isFinite(actualSets)||actualSets<0||(!details.length&&!(actualReps>0)))return {credit:status==='complete'?1:0,known:false,reduced:false};
+ // Cap each set's credit: heavier loads or extra reps cannot replace an omitted set.
+ const credit=utmClamp(details.length?details.slice(0,plannedSets).reduce((sum,s)=>sum+(plannedReps>0?Math.min(1,utmRepAverage(s.reps??row.reps)/plannedReps):1),0)/plannedSets:Math.min(1,actualSets/plannedSets)*(plannedReps>0?Math.min(1,actualReps/plannedReps):1),0,1);
+ return {credit,known:true,reduced:credit<.999};
+}
 const v36150EffortRowsCache=new Map();
 function v36150EffortRows(name,dateISO,session,plan=null){
-  const key=[utmModelRevision,name,dateISO,session||'',plan?v36150EffortDose(plan):'latest',modelAsOfTimestamp(dateISO)].join('|');if(v36150EffortRowsCache.has(key))return v36150EffortRowsCache.get(key);
-  const source=historyRowsBefore(dateISO,42).filter(r=>r.exercise===name&&!r.projectedForecast&&!v36140ShortSecondaryRow(r)&&(!session||r.session===session)).sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a)),dose=plan?v36150EffortDose(plan):v36150EffortDose(source[0]);
+  const grip=name==='Weighted Pull-up'&&plan?v36154PlannedPullupGrip(plan,dateISO,session):'';
+  const key=[utmModelRevision,name,dateISO,session||'',plan?v36150EffortDose(plan):'latest',grip,modelAsOfTimestamp(dateISO)].join('|');if(v36150EffortRowsCache.has(key))return v36150EffortRowsCache.get(key);
+  const all=historyRowsBefore(dateISO,42).filter(r=>r.exercise===name&&!r.projectedForecast&&!v36140ShortSecondaryRow(r)&&(!session||r.session===session)).sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a)),source=v36154PullupGripEvidence(all,name,plan?grip:all[0]?.pullupGrip).rows,dose=plan?v36150EffortDose(plan):v36150EffortDose(source[0]);
   if(!dose||!source.length||String(source[0].status||'').toLowerCase()!=='complete')return [];
   const seen=new Set(),out=[];
   for(const r of source){if(v36150EffortDose(r)!==dose)continue;const id=r.sessionId||r.date+'|'+r.session;if(seen.has(id))continue;seen.add(id);out.push({row:r,band:v36150EffortBand(r)});if(out.length===4)break}
@@ -4124,7 +4158,7 @@ function v36150RecentEffortCalibration(raw,session,exercise,dateISO,plan){
 function v36150EffortReview(name,dateISO,session='Barbell Strength'){
   const rows=v36150EffortRows(name,dateISO,session);
   if(rows.length<2||rows.slice(0,2).some(x=>!x.band||!(x.band.low>=8.45||effectiveEffortRpe(x.row)>=9)||String(x.row.status||'').toLowerCase()!=='complete'))return null;
-  const r=rows[0].row;return {exercise:name,dates:rows.slice(0,2).map(x=>x.row.date),dose:v36149DoseText(r),label:'Recent effort review: '+name+' was very hard in the last two completed sessions at '+v36149DoseText(r)+'. Review this exercise separately before increasing its load. Current Barbell Strength prescriptions stay as scheduled.'};
+  const r=rows[0].row,grip=name==='Weighted Pull-up'?v36154NormalizePullupGrip(r.pullupGrip):'';return {exercise:name,grip,dates:rows.slice(0,2).map(x=>x.row.date),dose:v36149DoseText(r),label:'Recent effort review: '+name+' was very hard in the last two completed sessions at '+v36149DoseText(r)+(grip?' using recorded '+v36154PullupGripLabel(grip)+' grip':'')+'. Review this exercise separately before increasing its load. Current Barbell Strength prescriptions stay as scheduled.'};
 }
 function v36150BarbellTargetReason(exercise,dateISO,week,target={}){
   const lift=({'Squat':'squat','Deadlift':'deadlift','Barbell Row':'row','Chest Machine':'chest','Incline Chest Machine':'incline'})[exercise],w=Math.max(1,Number(week)||programPrescriptionWeek(dateISO)),bi=blockInfo(w),prefix='Barbell Strength · Block '+bi.block+' · week '+bi.wib+' of 6 (training week '+w+'). ';
@@ -4138,7 +4172,8 @@ function v36150BarbellTargetReason(exercise,dateISO,week,target={}){
 }
 function v36150ShowPullupReview(dateISO){
   let host=document.getElementById('recentPullupEffortReview');if(!host){host=document.createElement('div');host.id='recentPullupEffortReview';host.className='hint';transitionPullups.insertAdjacentElement('afterend',host)}
-  const review=v36150EffortReview('Weighted Pull-up',dateISO);host.textContent=review?.label||'';host.hidden=!review;
+  const review=v36150EffortReview('Weighted Pull-up',dateISO),recent=historyRowsBefore(dateISO,42).filter(r=>r.exercise==='Weighted Pull-up'&&r.session==='Barbell Strength'&&!r.projectedForecast&&!v36140ShortSecondaryRow(r)&&String(r.status||'').toLowerCase()==='complete').sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a)),unknownHard=recent.slice(0,4).filter(r=>!v36154NormalizePullupGrip(r.pullupGrip)&&effectiveEffortRpe(r)>=9).length>=2;
+  const label=review?.label||(unknownHard?'Very hard pull-up effort was logged recently. Actual grip was not recorded, so a comparable grip trend cannot be established. Review the effort and record the grip you use. The dedicated pull-up schedule stays in place.':'');host.textContent=label;host.hidden=!label;
 }
 
 function v36150ClassPrior(exercise){
@@ -4156,7 +4191,7 @@ function utmBaseExpectedRpe(session,exercise,week){
  return 7.5;
 }
 function utmPredictRpe(session,exercise,dateISO,week,plan={}){
- let base=utmBaseExpectedRpe(session,exercise,week),cap=utmCapabilityState(exercise,dateISO),demand=utmPlannedDemandIndex(exercise,plan,dateISO),prediction=base,parts=[];
+ let base=utmBaseExpectedRpe(session,exercise,week),cap=utmCapabilityState(exercise,dateISO,exercise==='Weighted Pull-up'?v36154PlannedPullupGrip(plan,dateISO,session):null),demand=utmPlannedDemandIndex(exercise,plan,dateISO),prediction=base,parts=[];
  if(cap.capability>0&&demand>0&&cap.confidence>=.35){
    const ratio=demand/cap.capability,capRpe=utmClamp(1.5+ratio*7.7,5,9.8),blend=utmClamp(cap.confidence*.70,.20,.65);
    prediction=prediction*(1-blend)+capRpe*blend;parts.push("capability");
@@ -4247,9 +4282,9 @@ function utmPrescriptionComparable(actualExercise,actualPlan,plannedExercise,pla
    loadSame=!loadA||!loadP||Math.abs(loadA-loadP)<.01;
  return setsSame&&repsSame&&loadSame;
 }
-function utmProgressionState(name,dateISO,_internal=false){
- const rows=historyRowsBefore(dateISO,3650).filter(x=>x.exercise===name&&!["skipped","missed"].includes(String(x.status||"").toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).slice(-12),
-   recent=rows.slice(-5),cap=utmCapabilityState(name,dateISO);let good=0,bad=0,predErr=[];
+function utmProgressionState(name,dateISO,_internal=false,grip=null){
+ const all=historyRowsBefore(dateISO,3650).filter(x=>x.exercise===name&&(name!=='Weighted Pull-up'||!x.projectedForecast)&&!["skipped","missed"].includes(String(x.status||"").toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)),rows=v36154PullupGripEvidence(all,name,grip===null?all.at(-1)?.pullupGrip:grip).rows.slice(-12),
+   recent=rows.slice(-5),cap=utmCapabilityState(name,dateISO,grip);let good=0,bad=0,predErr=[];
  recent.forEach(x=>{const r=effectiveEffortRpe(x),feel=String(x.feel||"").toLowerCase(),tech=String(x.technique||"").toLowerCase(),status=String(x.status||"complete").toLowerCase(),isBad=status==="partial"||r>=9.5||effortBad(feel)||tech==="sloppy",isGood=status==="complete"&&!isBad&&((r>0&&r<=8.5)||feel==="good"||feel==="easy"||feel==="too easy");if(isGood)good++;if(isBad)bad++;if(r&&Number(x.modelPredictionVersion)>=UTM_PREDICTION_MODEL_VERSION&&Number.isFinite(Number(x.modelPredictionError)))predErr.push(Number(x.modelPredictionError))});
  const fixedWaveNames=new Set(["Weighted Pull-up","Squat","Deadlift","Barbell Row","Chest Machine","Incline Chest Machine"]),
    waveRows=recent.filter(x=>x.session==="Barbell Strength").length,waveProtected=fixedWaveNames.has(name)&&waveRows>=3,
@@ -6427,7 +6462,7 @@ function visualLoad(total,bar,exercise="",plateLayout=null){
  const side=(total-45)/2,c=plates(side),cap='<div class="load-caption"><strong>'+side+' / side</strong><span>'+plateText(c)+'</span></div>';
  return '<div class="load-helper">'+cap+'<div class="barbell"><div class="bar-side left">'+plateSpans(c,true)+'</div><div class="bar"></div><div class="bar-side right">'+plateSpans(c,false)+'</div></div></div>';
 }
-// v36.153 — visual plate reuse for the fixed squat → deadlift → row sequence.
+// v36.154 — visual plate reuse for the fixed squat → deadlift → row sequence.
 function v36153BarbellPlateExercise(name){return ['Squat','Deadlift','Barbell Row'].includes(String(name||'').trim())}
 function v36153BarbellVisualTotal(value){const text=String(value??'').trim(),match=text.match(/^(\d+(?:\.\d+)?)\s*(kg|lb|lbs)?$/i);return match?Number(match[1])*(String(match[2]||'').toLowerCase()==='kg'?2.2046226218:1):NaN}
 function v36153ApplyBarbellPlatePlan(rows,session){
@@ -6514,28 +6549,30 @@ function tbBlockPerformance(lift,block){
  if(currentTrainingWeek()<=hi)return {rows:0,delta:tbStandardIncrement(lift),reason:"Block still in progress; provisional standard increase"};
  const rows=state.logs.filter(x=>x.session==="Barbell Strength"&&Number(x.week)>=lo&&Number(x.week)<=hi&&tbLiftExerciseMatch(lift,x.exercise)&&String(x.status||"").toLowerCase()!=="skipped");
  if(!rows.length)return {rows:0,delta:tbStandardIncrement(lift),reason:"No logged data; using standard progression"};
- let good=0,bad=0,complete=0,rpes=[],predErrors=[],perf=[];
+ let good=0,bad=0,complete=0,knownDoseRows=0,reducedDoseRows=0,rpes=[],predErrors=[],perf=[];
  rows.forEach(x=>{
    const r=effectiveEffortRpe(x),feel=String(x.feel||"").toLowerCase(),tech=String(x.technique||"").toLowerCase(),status=String(x.status||"").toLowerCase(),pi=utmPerformanceIndex(x,x.exercise);
    if(r>0)rpes.push(r);{const pe=window.utmPredictionResidualValue(x);if(Number.isFinite(pe))predErrors.push(pe)}if(pi>0)perf.push(pi);
-   if(status==="complete")complete++;
+   const dose=v36154CompletedDose(x);complete+=dose.credit;if(dose.known)knownDoseRows++;if(dose.reduced)reducedDoseRows++;
    const isBad=status==="partial"||status==="missed"||r>=9.5||effortBad(feel)||tech==="sloppy";
    const positive=(r>0&&r<=8.5)||effortGood(feel);
-   const isGood=status==="complete"&&positive&&!isBad;if(isBad)bad++;else if(isGood)good++;
+   const isGood=status==="complete"&&positive&&!isBad;if(isBad)bad++;else if(isGood)good+=dose.credit;
  });
  const avg=rpes.length?utmMean(rpes):0,goodRate=good/rows.length,badRate=bad/rows.length,completeRate=complete/rows.length,avgPred=predErrors.length?utmMean(predErrors):0,
    split=Math.max(1,Math.floor(perf.length/2)),early=utmMean(perf.slice(0,split)),late=utmMean(perf.slice(split)),capTrend=early&&late?(late-early)/early*100:0;
  let delta=0,reason="";
- if(rows.length<2){delta=tbStandardIncrement(lift);reason:"Only one logged exposure; using standard progression"}
- else if(badRate>=.34||completeRate<.60){
-   if(completeRate>=.80&&capTrend>=2&&avgPred<1){delta=0;reason:"The block had strain flags, but capability still improved; hold TM instead of automatically reducing"}
-   else{delta=-5;reason:"Repeated grind/miss signals plus non-improving capability; reducing next block one 5-unit step"}
+ if(rows.length<2){delta=reducedDoseRows?0:tbStandardIncrement(lift);reason=reducedDoseRows?"Only one reduced-dose exposure; holding TM for review":"Only one logged exposure; using standard progression"}
+ else if(badRate>=.34){
+   if(completeRate>=.80&&capTrend>=2&&avgPred<1){delta=0;reason="The block had strain flags, but capability still improved; hold TM instead of automatically reducing"}
+   else{delta=-5;reason="Repeated grind/miss signals plus non-improving capability; reducing next block one 5-unit step"}
  }
- else if((avg&&avg>=9)||goodRate<.50){delta=0;reason:"Block was demanding; holding TM"}
- else if(goodRate>=.70&&(!avg||avg<=8.5)){delta=tbStandardIncrement(lift);reason:"Block completed cleanly; standard increase earned"}
- else if(goodRate>=.55&&capTrend>=1.5&&avgPred<=.5){delta=tbStandardIncrement(lift);reason:"Mixed subjective results, but objective capability improved and effort was not worse than predicted; standard increase earned"}
- else {delta=0;reason:"Mixed performance; holding TM"}
- return {rows,delta,reason,avgRpe:avg,goodRate,badRate,capabilityTrendPct:Math.round(capTrend*10)/10,avgPredictionError:Math.round(avgPred*10)/10};
+ else if(completeRate<.60){delta=0;reason="Reduced completed volume alone does not prove a strength loss; holding TM for review"}
+ else if((avg&&avg>=9)||goodRate<.50){delta=0;reason="Block was demanding; holding TM"}
+ else if(goodRate>=.70&&(!avg||avg<=8.5)){delta=tbStandardIncrement(lift);reason="Block completed cleanly; standard increase earned"}
+ else if(goodRate>=.55&&capTrend>=1.5&&avgPred<=.5){delta=tbStandardIncrement(lift);reason="Mixed subjective results, but objective capability improved and effort was not worse than predicted; standard increase earned"}
+ else {delta=0;reason="Mixed performance; holding TM"}
+ if(knownDoseRows)reason+=' · '+Math.round(completeRate*100)+'% planned set/rep completion credit'+(reducedDoseRows?' across '+reducedDoseRows+' reduced-dose '+(reducedDoseRows===1?'exposure':'exposures'):'')+'.';
+ return {rows,delta,reason,avgRpe:avg,goodRate,badRate,completeRate,knownDoseRows,reducedDoseRows,capabilityTrendPct:Math.round(capTrend*10)/10,avgPredictionError:Math.round(avgPred*10)/10};
 }
 function automaticTM(lift,block){
  const target=Math.max(1,Math.floor(Number(block)||1)),overrides=state.settings.tbOverrides||{};
@@ -6564,7 +6601,7 @@ function getTBPlan(gw,dateOrDay=""){
  const squat=round5(effectiveTM("squat",bi.block)*p),row=round5(effectiveTM("row",bi.block)*p),chest=round5(effectiveTM("chest",bi.block)*p),incl=round5(effectiveTM("incline",bi.block)*p);
  const optionalPrimer=p>=.95?{sets:1,reps:3,weight:String(round5(squat*.50)),note:"Optional single primer only — not a working set and not counted toward Barbell Strength volume."}:null;
  const plan=[
-  {exercise:"Weighted Pull-up",sets:pu[4],reps:pu[5],weight:"+"+pu[6],numeric:null,bar:false,meta:pu[3]},
+  {exercise:"Weighted Pull-up",sets:pu[4],reps:pu[5],weight:"+"+pu[6],numeric:null,bar:false,meta:pu[3],modelPlannedPullupGrip:v36154NormalizePullupGrip(pu[3])},
   {exercise:"Squat",sets,reps,weight:String(squat),numeric:squat,bar:true,meta:Math.round(p*100)+"%",optionalPrimer}
  ];
  // The KB/hybrid phase has no programmed barbell Deadlift, including moved
@@ -6924,6 +6961,20 @@ function cadenceReasonText(item,capacity){
 }
 function fixedAnchorBaseForDate(dateISO){const sf=shortFocusBlockForDate(dateISO);if(sf)return {fixed:false,session:shortFocusSessionForDate(dateISO),shortFocus:true};if(isManualProgramPauseDate(dateISO))return {fixed:false,session:'Open Training',programPause:true};const movedTo=programMoveToDate(dateISO);if(movedTo)return {fixed:true,session:movedTo.sourceSession,programMove:true,sourceDate:movedTo.sourceDate,gw:movedTo.sourceTrainingWeek||Math.max(1,trainingWeekForDate(parseLocalISO(movedTo.sourceDate))),day:movedTo.sourceDay||dayNameFromDate(movedTo.sourceDate)};const movedFrom=programMoveFromDate(dateISO);if(movedFrom)return {fixed:false,session:movedFrom.replacement||'Open Training',programMove:true,source:true};const bb=baseBuildingForDate(dateISO);if(bb)return {fixed:true,session:baseBuildingSessionForDate(dateISO),baseBuilding:true};const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),base=baseExpectedSession(day,gw);return {fixed:base==='Barbell Strength'||String(base).startsWith('KB '),session:base,baseBuilding:false,gw,day}}
 function nextFixedTrainingAnchor(dateISO,maxDays=5){for(let i=1;i<=maxDays;i++){const iso=localISO(addDays(parseLocalISO(dateISO),i)),a=fixedAnchorBaseForDate(iso);if(a.fixed)return {days:i,date:iso,session:a.session}}return {days:9999,date:'',session:''}}
+function v36154ClassOverlap(dateISO){
+ if(!validIsoDateValue(dateISO))return null;
+ let classDate=dateISO,name=selectedClassForDate(classDate);
+ if(!name){classDate=localISO(addDays(parseLocalISO(dateISO),-1));name=selectedClassForDate(classDate);if(!name)return null}
+ const anchor=nextFixedTrainingAnchor(classDate,1);if(anchor.session!=='Barbell Strength'||(dateISO!==classDate&&dateISO!==anchor.date))return null;
+ const commitment=manualScheduleConstraintForDate(anchor.date);if(commitment&&!commitment.additional&&commitment.session!=='Barbell Strength')return null;
+ const logged=state.logs.filter(r=>r.date===classDate&&r.date<=localISO(new Date())&&r.exercise===name&&!r.projectedForecast).sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a)),actual=logged.find(r=>!['skipped','missed'].includes(String(r.status||'').toLowerCase())),prior=v36150ClassPrior(name),effort=actual?effectiveEffortRpe(actual):0,focus=actual?v36145ResolveClassFocus(actual.metrics):{names:[]},levels=actual?v36149NormalizeClassIntensity(actual.metrics?.classFocusIntensity,actual.metrics?.classFocusExercises):{},hardFocus=Object.values(levels).includes('hard'),hard=effort>0?effort>=8:(prior?.mid||0)>=7.5;
+ if(logged.length&&!actual)return null;
+ if(!hard&&!hardFocus)return null;
+ const fp=actual?utmRowFingerprint(actual):utmFingerprint(name),muscles=fp?.muscles||{},peak=Math.max(0,...Object.values(muscles).map(Number)),sourceWeek=programPrescriptionWeek(anchor.date),sourceDay=dayNameFromDate(programPrescriptionDate(anchor.date)),plan=['Weighted Pull-up','Squat',...(blockModeForWeek(sourceWeek)==='tb'&&['Monday','Friday'].includes(sourceDay)?['Deadlift']:[]),'Barbell Row','Chest Machine','Incline Chest Machine','Ab Crunch Machine'].map(exercise=>({exercise})),overlap=plan.filter(r=>{const target=utmFingerprint(r.exercise)?.muscles||{};return peak>0&&Object.entries(muscles).some(([muscle,value])=>{const explicit=(focus.profiles||[]).map((profile,i)=>({amount:Number(profile.muscles?.[muscle])||0,level:levels[focus.names[i]]||'moderate'})).filter(x=>x.amount>=.55);return !(explicit.length&&explicit.every(x=>x.level==='light'))&&Number(value)>=peak*.65&&Number(target[muscle])>=.55})}).map(r=>r.exercise);
+ if(!overlap.length)return null;
+ const directEffort=effort>0||hardFocus,source=actual&&directEffort?(effort>0?'logged class effort':'logged local class intensity')+(focus.names.length?' and muscle focus':''):'the class library’s expected effort'+(focus.names.length?' and logged muscle focus':' and muscle profile'),text=name+' on '+classDate+' may overlap '+anchor.date+' Barbell Strength ('+overlap.join(', ')+'). Based on '+source+'. Consider a lighter class effort or another workout if those areas need recovery. The Barbell anchor stays scheduled.';
+ return {classDate,className:name,anchorDate:anchor.date,overlap,source:actual&&directEffort?'logged':'expected',text};
+}
 function rollingOpenDayEligible(dateISO,base=''){if(!validIsoDateValue(dateISO)||programMoveToDate(dateISO))return false;const movedFrom=programMoveFromDate(dateISO);if(baseBuildingForDate(dateISO)&&!movedFrom)return false;const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO),b=base||programScheduledSessionForDate(dateISO)||baseExpectedSession(day,gw);return ['Conditioning','Open Training','Active Recovery','Recovery / Rest'].includes(b)}
 function rollingDayPriors(mode,day){
  // v36.47: weekday identity is only a tiny suitability tie-breaker. Non-anchor dates are
@@ -7504,7 +7555,7 @@ function v36131RecommendationEvidence(dateISO){
   futurePlanRecord=source=>Object.fromEntries(Object.entries(futureRecord(source)).map(([date,plan])=>{const rows=Array.isArray(plan?.rows)?plan.rows:Array.isArray(plan?.circuit)?plan.circuit:[];return [date,[plan?.session||'',plan?.name||'',plan?.minutesAvailable||plan?.duration||'',plan?.profile?.focus||plan?.focus||'',rows.slice(0,20).map(r=>[r?.exercise||'',r?.sets||'',r?.reps||'',r?.weight||r?.manualLb||''])]]}));
  return {
   date:dateISO,
-  logs:(state.logs||[]).filter(row=>validIsoDateValue(row?.date)&&row.date>=start&&row.date<=dateISO).map(row=>[row.date,row.sessionId,row.completedAt,row.session,row.exercise,row.status,row.rpe,row.feel,row.sets,row.reps,row.weight,row.metrics?.time,row.metrics?.distance,row.metrics?.intervals,row.painLevel,row.changeReason]),
+  logs:(state.logs||[]).filter(row=>validIsoDateValue(row?.date)&&row.date>=start&&row.date<=dateISO).map(row=>[row.date,row.sessionId,row.completedAt,row.session,row.exercise,row.status,row.rpe,row.feel,row.sets,row.reps,row.weight,row.pullupGrip,row.modelPlannedPullupGrip,row.metrics?.time,row.metrics?.distance,row.metrics?.intervals,row.painLevel,row.changeReason]),
   recovery:Object.entries(state.dailyRecovery||{}).filter(([date])=>date>=start&&date<=dateISO),
   recoveryHistory:Object.entries(settings.recoveryObservationHistory||{}).filter(([date])=>date>=start&&date<=dateISO),
   recoveryFreshness:freshness.carried?{sourceDate:freshness.sourceDate,observedAt:freshness.observedAt,fields:freshness.fields}:null,
@@ -7519,7 +7570,7 @@ function v36131EvidenceRevision(dateISO){return window.HybridDecisionIntegrity?.
 // Recommendation snapshots and generated Gym plans must survive ordinary re-renders, but
 // they cannot remain authoritative after the recommendation logic itself changes. These are
 // semantic model versions (not app-build numbers) so unrelated UI releases do not churn plans.
-const OPEN_DAY_RECOMMENDATION_MODEL_VERSION=19;
+const OPEN_DAY_RECOMMENDATION_MODEL_VERSION=20;
 const GYM_AUTOMATIC_PLAN_MODEL_VERSION=3;
 // A recommendation the model generated can remain stable while its evidence is unchanged,
 // but it is not a permanent user lock. A later manual rest/workout/activity, completed
@@ -8929,10 +8980,10 @@ function setRepeatabilitySnapshot(row){
  return {sets:d.length,observedSets:vals.length,dropPct:Math.round(drop*10)/10,rpeRise:Math.round(rpeRise*10)/10,medianRest:Math.round(medianRest),quality};
 }
 function strengthCapabilityProfile(name,dateISO=localISO(new Date())){
- const rows=historyRowsBefore(dateISO,3650).filter(r=>r.exercise===name&&!['skipped','missed'].includes(String(r.status||'').toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).slice(-12),vals=rows.map(r=>{const raw=utmPerformanceIndex(r,name),order=exerciseOrderContext(r),absolute=raw*(order.adjustment||1),bw=estimatedBodyweightForDate(r.date,120)?.lb||0;return {r,raw,absolute,relative:absolute>0&&bw>0?absolute/Math.pow(bw,2/3):0,rep:setRepeatabilitySnapshot(r),order,stim:strengthStimulusChannels(r)}}).filter(x=>x.absolute>0);
- if(!vals.length)return {name,n:0,absoluteTrendPct:0,relativeTrendPct:0,repeatabilityDrop:0,repeatabilityObservations:0,comparison:null,confidence:.18,noise:{n:0,noisePct:0,meaningfulPct:3,confidence:.12}};
+ const all=historyRowsBefore(dateISO,3650).filter(r=>r.exercise===name&&(name!=='Weighted Pull-up'||!r.projectedForecast)&&!['skipped','missed'].includes(String(r.status||'').toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)),gripEvidence=v36154PullupGripEvidence(all,name,all.at(-1)?.pullupGrip),rows=gripEvidence.rows.slice(-12),vals=rows.map(r=>{const raw=utmPerformanceIndex(r,name),order=exerciseOrderContext(r),absolute=raw*(order.adjustment||1),bw=estimatedBodyweightForDate(r.date,120)?.lb||0;return {r,raw,absolute,relative:absolute>0&&bw>0?absolute/Math.pow(bw,2/3):0,rep:setRepeatabilitySnapshot(r),order,stim:strengthStimulusChannels(r)}}).filter(x=>x.absolute>0);
+ if(!vals.length)return {...(name==='Weighted Pull-up'?{grip:gripEvidence.grip,observedN:gripEvidence.observedN,excludedGripRows:gripEvidence.excludedGripRows,gripEvidence:gripEvidence.gripEvidence}:{}),name,n:0,absoluteTrendPct:0,relativeTrendPct:0,repeatabilityDrop:0,repeatabilityObservations:0,comparison:null,confidence:.18,noise:{n:0,noisePct:0,meaningfulPct:3,confidence:.12}};
  const recent=vals.slice(-6),half=Math.max(1,Math.floor(recent.length/2)),early=recent.slice(0,half),late=recent.slice(half),trend=key=>{const a=utmMean(early.map(x=>x[key]).filter(x=>x>0)),b=utmMean(late.map(x=>x[key]).filter(x=>x>0));return a&&b?(b-a)/a*100:0},drops=recent.filter(x=>x.rep.quality!=='unknown').map(x=>x.rep.dropPct),rests=recent.map(x=>x.rep.medianRest).filter(x=>x>0),noise=utmNoiseFloor(recent.map(x=>x.absolute)),stim={strength:utmMean(recent.map(x=>x.stim.strength)),hypertrophy:utmMean(recent.map(x=>x.stim.hypertrophy)),power:utmMean(recent.map(x=>x.stim.power)),fatigue:utmMean(recent.map(x=>x.stim.fatigue))},conf=utmClamp(.2+Math.min(8,vals.length)*.08,.2,.92),absTrend=trend('absolute'),relTrend=trend('relative'),windowFor=arr=>arr.length?{from:arr[0].r.date,to:arr.at(-1).r.date,n:arr.length}:null;
- return {name,n:vals.length,absoluteTrendPct:Math.round(absTrend*10)/10,relativeTrendPct:Math.round(relTrend*10)/10,meaningfulAbsoluteTrend:Math.abs(absTrend)>=(noise.meaningfulPct||3),comparison:late.length?{early:windowFor(early),late:windowFor(late)}:null,latestAbsolute:Math.round(recent.at(-1).absolute*10)/10,latestRelative:Math.round(recent.at(-1).relative*100)/100,latestOrder:recent.at(-1).order,repeatabilityDrop:drops.length?Math.round(utmMean(drops)*10)/10:0,repeatabilityObservations:drops.length,medianRest:rests.length?Math.round(utmQuantile(rests,.5)):0,stimulus:Object.fromEntries(Object.entries(stim).map(([k,v])=>[k,Math.round((v||0)*100)/100])),noise,confidence:Math.round(conf*100)/100};
+ return {...(name==='Weighted Pull-up'?{grip:gripEvidence.grip,observedN:gripEvidence.observedN,excludedGripRows:gripEvidence.excludedGripRows,gripEvidence:gripEvidence.gripEvidence}:{}),name,n:vals.length,absoluteTrendPct:Math.round(absTrend*10)/10,relativeTrendPct:Math.round(relTrend*10)/10,meaningfulAbsoluteTrend:Math.abs(absTrend)>=(noise.meaningfulPct||3),comparison:late.length?{early:windowFor(early),late:windowFor(late)}:null,latestAbsolute:Math.round(recent.at(-1).absolute*10)/10,latestRelative:Math.round(recent.at(-1).relative*100)/100,latestOrder:recent.at(-1).order,repeatabilityDrop:drops.length?Math.round(utmMean(drops)*10)/10:0,repeatabilityObservations:drops.length,medianRest:rests.length?Math.round(utmQuantile(rests,.5)):0,stimulus:Object.fromEntries(Object.entries(stim).map(([k,v])=>[k,Math.round((v||0)*100)/100])),noise,confidence:Math.round(conf*100)/100};
 }
 function predictionCalibrationKey(exercise){const cls=v36150ClassPrior(exercise);if(cls)return 'class:'+cls.kind;const fp=utmFingerprint(exercise),q=conditioningQualityForName(exercise);return fp.type==="conditioning"||entryForName(exercise)?"cond:"+q:"type:"+(fp.type||"strength")}
 function utmPredictionCalibrationForType(exercise,dateISO=localISO(new Date())){const key=predictionCalibrationKey(exercise),rows=historyRowsBefore(dateISO,180).filter(r=>Number(r.modelPredictionVersion)>=UTM_PREDICTION_MODEL_VERSION&&Number.isFinite(Number(r.modelPredictionError))&&predictionCalibrationKey(r.exercise)===key).slice(-30);if(rows.length<4)return {key,n:rows.length,bias:0,confidence:0};const vals=rows.map((r,i)=>({v:Number(r.modelPredictionError),w:Math.pow(.94,rows.length-1-i)})),ws=vals.reduce((s,x)=>s+x.w,0),mean=vals.reduce((s,x)=>s+x.v*x.w,0)/Math.max(.01,ws),confidence=utmClamp((rows.length-3)/14,0,.8);return {key,n:rows.length,bias:Math.round(mean*10)/10,confidence:Math.round(confidence*100)/100,adjustment:Math.round(utmClamp(mean*.22*confidence,-.45,.45)*10)/10};}
@@ -10165,7 +10216,7 @@ function v36141KbRoutinePlan(session,gw,dateISO,options={}){
  return v36153OrganizeKbPlan(v36141FitKbMinutes(rows,options.minutes),equipment,{group:!custom&&state.settings.kbGroupMatchingLoads!==false});
 }
 
-// v36.153 — reuse physical bell settings without changing training doses.
+// v36.154 — reuse physical bell settings without changing training doses.
 function v36153BellWeight(action){const lb=action.kind==='dial'?kb40DialLbForKg(action.kg):0;return action.kg+' kg'+(lb?' ('+lb+' lb dial)':'')}
 function v36153SetupAction(actions){
  if(actions.length===2&&actions.every(a=>a.kind==='heavy'&&a.action===actions[0].action))return ({set:'Set',adjust:'Adjust',keep:'Keep'})[actions[0].action]+' both 70 lb bells '+(actions[0].action==='keep'?'at ':'to ')+actions[0].kg+' kg each.';
@@ -11655,7 +11706,7 @@ function appendExerciseCard(x){
  tbList.appendChild(d);
 }
 function v36149DoseText(row){const raw=String(row.weight||'').trim(),weight=raw&&!/\bkg\b|\blb\b|bodyweight|\bBW\b|band/i.test(raw)&&/\d/.test(raw)?(/\//.test(raw)?raw.replace(/\s*\//,' lb /'):raw+' lb'):raw;return [row.sets&&row.reps?row.sets+' × '+row.reps:'',weight].filter(Boolean).join(' · ')||'Dose not recorded'}
-function v36149EffortSummary(row){const rir=v36149NormalizeRir(row?.rir);return [row?.feel||'',rir?rir+' clean '+(rir==='1'?'rep':'reps')+' left':'',numberRpe(row?.rpe)?'RPE '+row.rpe:''].filter(Boolean).join(' · ')||'Effort not recorded'}
+function v36149EffortSummary(row){const rir=v36149NormalizeRir(row?.rir);return [row?.exercise==='Weighted Pull-up'?'Actual grip: '+v36154PullupGripLabel(row.pullupGrip):'',row?.feel||'',rir?rir+' clean '+(rir==='1'?'rep':'reps')+' left':'',numberRpe(row?.rpe)?'RPE '+row.rpe:''].filter(Boolean).join(' · ')||'Effort not recorded'}
 function v36149StoredTargetHtml(row){if(!row.modelTargetReason)return '';return '<details class="target-evidence history-target"><summary>Saved target · '+htmlSafe(v36149DoseText({sets:row.modelTargetSets,reps:row.modelTargetReps,weight:row.modelTargetWeight}))+'</summary><div class="target-evidence-body">'+htmlSafe(row.modelTargetExercise||row.exercise)+'<div class="target-reason">'+htmlSafe(row.modelTargetReason)+'</div></div></details>'}
 function v36149TargetRows(exercise,dateISO,session){
  if(String(session).startsWith('KB '))return v36149KbObservedRows(exercise,dateISO,session);
@@ -12140,7 +12191,7 @@ function addLogCardControls(card){
   title.appendChild(box);
  }
 	 ensureLogSwapAction(card);ensureLogEquipmentAvailabilityAction(card);v3687RefreshInlineLogGuide(card);wireEffortChips(card);v36144WireExerciseRecalculation(card);
- v36149WireFeedback(card);
+ v36149WireFeedback(card);v36154WirePullupGrip(card);
 }
 function v36144WireExerciseRecalculation(card){
  if(card.dataset.conditioning==='1'||card.dataset.exerciseRecalculationWired==='1')return;
@@ -12265,10 +12316,11 @@ function loadPlannedSession(){
   d.dataset.plannedSets=safePlainText(x.sets??"",80);
   d.dataset.plannedReps=safePlainText(x.reps??x.plannedTarget??"",160);
   d.dataset.plannedWeight=safePlainText(x.weight??"",120);
+  d.dataset.plannedPullupGrip=x.exercise==='Weighted Pull-up'?v36154NormalizePullupGrip(x.modelPlannedPullupGrip||x.meta):'';
   v36149SetTarget(d,x,x.targetReason||x.note||'');
   d.dataset.plannedRestSeconds=String(Math.max(0,Number(x.restSeconds)||0));
   const effectiveModelSession=adaptiveSecondaryModelSession(x,session);
-  d.dataset.expectedRpe=String(utmModelExpectedRpe(effectiveModelSession,x.exercise,gw,logDate.value,{sets:x.sets,reps:x.reps??x.plannedTarget,weight:x.weight}));
+  d.dataset.expectedRpe=String(utmModelExpectedRpe(effectiveModelSession,x.exercise,gw,logDate.value,{sets:x.sets,reps:x.reps??x.plannedTarget,weight:x.weight,modelPlannedPullupGrip:d.dataset.plannedPullupGrip}));
   plannedExercises.appendChild(d);addLogCardControls(d);if(x.kbSetup)v36153RestoreKbSetup(d,x.kbSetup);
   const sel=d.querySelector(".le-ex"), custom=d.querySelector(".le-custom");
   function syncCustom(){
@@ -14255,7 +14307,7 @@ function captureLogDraft(){
    sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,recommendationFeedback:recommendationFeedback?.value||"",recommendationFeedbackNote:recommendationFeedbackNote?.value||"",
    wearable:Object.fromEntries(Object.entries(wearableSessionElements()).map(([k,el])=>[k,el?el.value:""])),
    cards:[...plannedExercises.querySelectorAll(".log-exercise")].map(c=>({
-     conditioning:c.dataset.conditioning||"0",unplannedExercise:c.dataset.unplannedExercise==="1",plannedExercise:c.dataset.plannedExercise||"",plannedTarget:c.dataset.plannedTarget||"",plannedDurationMinutes:c.dataset.plannedDurationMinutes||"",plannedSets:c.dataset.plannedSets,plannedReps:c.dataset.plannedReps,plannedWeight:c.dataset.plannedWeight,plannedRestSeconds:c.dataset.plannedRestSeconds,expectedRpe:c.dataset.expectedRpe,plannedComponents:v36130PlannedComponentsForCard(c,currentCardExercise(c)),userSubstituted:c.dataset.userSubstituted==="1",classFocusExercises:v36144CollectClassFocus(c).classFocusExercises,classFocusIntensity:v36144CollectClassFocus(c).classFocusIntensity||{},targetExercise:c.dataset.targetExercise||"",targetSets:c.dataset.targetSets||"",targetReps:c.dataset.targetReps||"",targetWeight:c.dataset.targetWeight||"",targetReason:c.dataset.targetReason||"",targetSaved:c.dataset.targetSaved==="1",kbBellSetup:v36153ReadKbSetup(c),
+     conditioning:c.dataset.conditioning||"0",unplannedExercise:c.dataset.unplannedExercise==="1",plannedExercise:c.dataset.plannedExercise||"",plannedTarget:c.dataset.plannedTarget||"",plannedDurationMinutes:c.dataset.plannedDurationMinutes||"",plannedSets:c.dataset.plannedSets,plannedReps:c.dataset.plannedReps,plannedWeight:c.dataset.plannedWeight,plannedRestSeconds:c.dataset.plannedRestSeconds,expectedRpe:c.dataset.expectedRpe,plannedComponents:v36130PlannedComponentsForCard(c,currentCardExercise(c)),userSubstituted:c.dataset.userSubstituted==="1",classFocusExercises:v36144CollectClassFocus(c).classFocusExercises,classFocusIntensity:v36144CollectClassFocus(c).classFocusIntensity||{},targetExercise:c.dataset.targetExercise||"",targetSets:c.dataset.targetSets||"",targetReps:c.dataset.targetReps||"",targetWeight:c.dataset.targetWeight||"",targetReason:c.dataset.targetReason||"",targetSaved:c.dataset.targetSaved==="1",plannedPullupGrip:c.dataset.plannedPullupGrip||'',kbBellSetup:v36153ReadKbSetup(c),
      untimedCoreFinisher:c.dataset.untimedCoreFinisher==="1",adaptiveAccessoryFinisher:c.dataset.adaptiveAccessoryFinisher==="1",accessoryFinisherType:c.dataset.accessoryFinisherType||"",adaptiveSecondaryBlock:c.dataset.adaptiveSecondaryBlock==="1",secondaryTrainingType:c.dataset.secondaryTrainingType||"",secondaryFocus:c.dataset.secondaryFocus||"",secondaryCadenceCredit:Number(c.dataset.secondaryCadenceCredit)||0,isShortSecondary:c.dataset.isShortSecondary==="1",isFullSecondary:c.dataset.isFullSecondary==="1",secondarySessionRole:c.dataset.secondarySessionRole||"primary",fields:classFieldValues(c,"le-"),setDetails:collectSetDetails(c),components:collectConditioningComponents(c),swimStrokeBlocks:collectSwimStrokeBlocks(c)
    }))
  };
@@ -14375,11 +14427,12 @@ function appendSavedExerciseCard(row){
  d.dataset.plannedSets=safePlainText(Object.prototype.hasOwnProperty.call(row,"modelPlannedSets")?row.modelPlannedSets:"",80);
  d.dataset.plannedReps=safePlainText(Object.prototype.hasOwnProperty.call(row,"modelPlannedReps")?row.modelPlannedReps:"",160);
  d.dataset.plannedWeight=safePlainText(Object.prototype.hasOwnProperty.call(row,"modelPlannedWeight")?row.modelPlannedWeight:"",120);
+ d.dataset.plannedPullupGrip=v36154NormalizePullupGrip(row.modelPlannedPullupGrip);
  v36149SetTarget(d,{exercise:row.modelTargetExercise||row.modelPlannedExercise||row.exercise,sets:row.modelTargetSets??row.modelPlannedSets??row.sets,reps:row.modelTargetReps??row.modelPlannedReps??row.reps,weight:row.modelTargetWeight??row.modelPlannedWeight??row.weight},row.modelTargetReason||'The original decision reason was not recorded for this older workout.',true);
  d.dataset.plannedRestSeconds=String(Math.max(0,Number(row.modelPlannedRestSeconds)||0));
  d.dataset.expectedRpe=String(Number(row.modelExpectedRpe)||utmModelExpectedRpe(row.session,row.exercise,row.week,row.date,{sets:row.sets,reps:row.reps,weight:row.weight}));
  plannedExercises.appendChild(d);addLogCardControls(d);
- setExerciseSelectForSavedCard(d,row.exercise);
+ setExerciseSelectForSavedCard(d,row.exercise);v36154WirePullupGrip(d);const grip=d.querySelector('.le-pullup-grip');if(grip)grip.value=v36154NormalizePullupGrip(row.pullupGrip);
 
  if(conditioning){
    wireAutomaticDistanceTimeRate(d,row.exercise);
@@ -14475,12 +14528,12 @@ function restoreLogDraft(d){
    const restoredName=currentCardExercise(card),restoredTitle=card.querySelector(".log-title strong");if(restoredTitle&&restoredName)restoredTitle.textContent=restoredName;
    if(card.dataset.conditioning!=="1"){wireSetDetailLogging(card);restoreSetDetails(card,Array.isArray(src.setDetails)?src.setDetails:[])}
    else{const seed=(src.userSubstituted&&src.plannedExercise&&restoredName!==src.plannedExercise)?[]:(Array.isArray(src.components)?src.components:[]);renderConditioningComponentEditor(card,restoredName,seed);card.dataset.conditioningActivity=restoredName;wireAutomaticDistanceTimeRate(card,restoredName);renderSwimStrokeBlocks(card,src.swimStrokeBlocks);v36144RestoreClassFocus(card,{classFocusExercises:src.classFocusExercises,classFocusIntensity:src.classFocusIntensity,classFocusOther:f['le-class-focus-other']||'',activities:f['le-activities']||''})}
-   ['plannedExercise','plannedTarget','plannedSets','plannedReps','plannedWeight','plannedRestSeconds','expectedRpe'].forEach(key=>{if(src[key]!==undefined)card.dataset[key]=safePlainText(src[key],key==='plannedExercise'?240:160)});
+   ['plannedExercise','plannedTarget','plannedSets','plannedReps','plannedWeight','plannedPullupGrip','plannedRestSeconds','expectedRpe'].forEach(key=>{if(src[key]!==undefined)card.dataset[key]=safePlainText(src[key],key==='plannedExercise'?240:160)});
    if(src.userSubstituted!==undefined)card.dataset.userSubstituted=src.userSubstituted?'1':'0';
    if(!d.editingSessionId&&card.dataset.conditioning!=='1'&&src.plannedSets!==undefined){const line=card.querySelector('.planned');if(line)line.textContent='Planned: '+v36149DoseText({sets:src.plannedSets,reps:src.plannedReps,weight:src.plannedWeight})+(Number(src.plannedRestSeconds)>0?' · Rest '+Math.round(Number(src.plannedRestSeconds))+' sec':'')}
    if(Object.prototype.hasOwnProperty.call(src,'kbBellSetup'))v36153RestoreKbSetup(card,src.kbBellSetup);
    if(card.dataset.conditioning!=="1"){if(src.targetExercise!==undefined)v36149SetTarget(card,{exercise:src.targetExercise,sets:src.targetSets,reps:src.targetReps,weight:src.targetWeight},src.targetReason||"",!!src.targetSaved);v36149SyncRir(card);v36149RefreshTarget(card)}
-   refreshLogSwapTrigger(card);syncExerciseCompletionState(card);
+   v36154WirePullupGrip(card);refreshLogSwapTrigger(card);syncExerciseCompletionState(card);
  });
  if(d.kbSetupChanged&&!plannedExercises.querySelector('.kb-setup-changed'))plannedExercises.insertAdjacentHTML('afterbegin','<p class="kb-setup-changed muted" role="status">Bell targets changed. Use your entered weights; the original setup sequence is hidden.</p>');
  v36153RefreshBarbellPlateVisuals();
@@ -14837,7 +14890,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.153";
+const HYBRID_APP_BUILD="36.154";
 function hybridBuildParts(v){return String(v||"").replace(/^v/,"").split(".").map(x=>Number(x)||0)}
 function compareHybridBuilds(a,b){
  const aa=hybridBuildParts(a),bb=hybridBuildParts(b),n=Math.max(aa.length,bb.length);
@@ -15190,6 +15243,8 @@ function completeWorkout(){
      customWorkoutType:safePlainText(manualPlan?.type||"",80),
      untimedCoreFinisher:c.dataset.untimedCoreFinisher==="1",adaptiveAccessoryFinisher:c.dataset.adaptiveAccessoryFinisher==="1",accessoryFinisherType:safePlainText(c.dataset.accessoryFinisherType||"",32),adaptiveSecondaryBlock:c.dataset.adaptiveSecondaryBlock==="1",secondaryTrainingType:safePlainText(c.dataset.secondaryTrainingType||"",32),secondaryFocus:safePlainText(c.dataset.secondaryFocus||"",32),secondaryCadenceCredit:Number(c.dataset.secondaryCadenceCredit)||0,isShortSecondary:c.dataset.isShortSecondary==="1"||!!activeGuided?.secondaryOnly,isFullSecondary:c.dataset.isFullSecondary==="1"||!!activeGuided?.secondFullWorkout,secondarySessionRole:safePlainText(c.dataset.secondarySessionRole||(activeGuided?.secondaryOnly?"short":activeGuided?.secondFullWorkout?"full":"primary"),20),modelExposureClass:(c.dataset.adaptiveSecondaryBlock==="1"||c.dataset.isShortSecondary==="1"||c.dataset.isFullSecondary==="1"||!!activeGuided?.secondaryOnly||!!activeGuided?.secondFullWorkout)?"secondary":"primary",contextTimeOfDay:safePlainText(dayContext.timeOfDay||"auto",20),contextFedState:safePlainText(dayContext.fedState||"auto",20),contextEnvironment:safePlainText(dayContext.environment||"normal",24),contextKbMode:safePlainText(dayContext.kbMode||"all",20),contextGymAccess:safePlainText(dayContext.gymAccess||"auto",20)};
    base.modelExerciseOverride=!base.modelUnplannedExercise&&base.modelPlannedExercise!==exercise;
+   if(exercise==='Weighted Pull-up')base.pullupGrip=notDone?'':v36154NormalizePullupGrip(valueOf(c,'.le-pullup-grip'));
+   const prescribedGrip=v36154NormalizePullupGrip(c.dataset.plannedPullupGrip);if(prescribedGrip)base.modelPlannedPullupGrip=prescribedGrip;
    if(c.dataset.conditioning==="1"){
      base.technique="";base.sets="";base.reps="";base.weight="";
      base.metrics=notDone?{}:{
@@ -15216,8 +15271,8 @@ function completeWorkout(){
      base.sets=notDone?"":valueOf(c,".le-sets");base.reps=notDone?"":valueOf(c,".le-reps");base.weight=notDone?"":valueOf(c,".le-weight");
      base.technique=notDone?"":valueOf(c,".le-tech");base.metrics={};base.setDetails=notDone?[]:collectSetDetails(c);
    }
-   const actualPlan={sets:base.sets,reps:base.reps,weight:base.weight,setDetails:Array.isArray(base.setDetails)?base.setDetails:[]},
-     plannedPlan={sets:c.dataset.plannedSets,reps:c.dataset.plannedReps,weight:c.dataset.plannedWeight};
+   const actualPlan={sets:base.sets,reps:base.reps,weight:base.weight,pullupGrip:base.pullupGrip,setDetails:Array.isArray(base.setDetails)?base.setDetails:[]},
+     plannedPlan={sets:c.dataset.plannedSets,reps:c.dataset.plannedReps,weight:c.dataset.plannedWeight,modelPlannedPullupGrip:c.dataset.plannedPullupGrip};
    base.modelExpectedRpe=utmPerformedExpectedRpe(rowModelSession,exercise,+logWeek.value,logDate.value,actualPlan,base.modelPlannedExercise,plannedPlan,base.modelPlannedExpectedRpe);
    base.modelPredictionVersion=UTM_PREDICTION_MODEL_VERSION;
    base.modelPredictionConfidence=Math.round((Number(utmPredictRpe(rowModelSession,exercise,logDate.value,+logWeek.value,actualPlan)?.confidence)||0)*100)/100;
@@ -15402,6 +15457,7 @@ exportJson.addEventListener("click",()=>{
  unifiedTrainingModel:{type:"latent-fitness-fatigue-adaptive-programming",version:32,rules:["confidence-shrunk personal muscular-recovery modifiers require repeated informative exposures and stay bounded around the research prior","personal recovery learning changes local muscle performance-fatigue persistence only; systemic/impact/tissue channels keep their established models","performance-fatigue v2 treats residual muscle fatigue as a graded readiness modifier, not an untrainable state","routine subfailure work uses shorter performance-fatigue half-lives while failure/high-volume/high-velocity-loss/novel-eccentric work extends persistence","same-session overlapping exercise fatigue accumulates with saturation instead of linearly slamming shared muscles into a hard cap","repeated familiar exposures modestly shorten persistence while poor objective recovery can still lengthen it","soreness/tissue/impact signals remain separate from neuromuscular performance fatigue","low-to-moderate residual overlap has dead zones before RPE/recommendation penalties apply","bodyweight-performance coupling for concurrent strength + conditioning adaptation","mass change is neutral unless accompanied by meaningful performance change","noise- and uncertainty-gated productive gain/loss/tradeoff classification","hybrid trajectory can make only modest open-day goal corrections and never overrides fixed Barbell Strength / KB anchors","separate capacity, fatigue, efficiency and uncertainty states","session-time and same-day awareness","completed workouts snapshot day-specific time/fed/environment/equipment context so later personalization can learn from the context that actually accompanied the session","live Start / Pause / Resume / Complete workout tracking preserves in-progress logging across navigation and supplies pause-adjusted actual session duration without replacing activity/watch time","richer set/rep/RPE/duration stimulus estimation","slow fitness vs fast fatigue states","muscle-specific and stress-system-specific fatigue half-lives","recovery-constrained fatigue decay","directional multichannel relationship vectors: capability/strength, hypertrophy, fatigue, technique, tissue/mechanics and power","functional anatomy splits for hamstring knee-flexion vs hip-extension, gastrocnemius vs soleus, triceps long-head context, adductors, tibialis and serratus","fractional direct/indirect effective-set accounting with diminishing-return dose utility","directional strength transfer","weak learned personal transfer after sufficient paired history","localized conditioning overlap","richer effective muscle volume","continuous exercise capability estimates","capability-aware progression","planned-vs-performed RPE separation","per-exercise plus modality-level prediction-residual calibration","prediction calibration is versioned; obsolete saved RPE residuals never contaminate the current model","categorical Easy / Comfortable / Challenging / Very hard effort bands contribute interval-censored calibration evidence without pretending to be exact RPE","prediction error is confidence-weighted so low-confidence first exposures cannot dominate personalization","deload prediction-error evidence is grouped by session so a multi-exercise strength workout counts as one readiness exposure rather than many independent warnings","three-exposure decline gate","reason-aware substitution learning","exercise substitutions are re-prescribed from the new exercise's own movement-specific set/rep-or-time window, adaptive history, load and rest rather than inheriting the old exercise's dose","direct recommendation feedback learning","recommendation feedback is confidence-shrunk so one subjective response nudges rather than dominates; repeated consistent feedback progressively gains authority","sparse dedicated bodyweight measurements modeled as noisy observations of a robust latent trend","bodyweight observation confidence uses time-of-day, food/fluid, bathroom, exercise and clothing context; raw scale values are never fake-corrected by an assumed number of pounds","standardized morning-after-bathroom pre-food/pre-exercise measurements get the highest trend weight while post-workout, fed, dehydrated or late-night observations get wider uncertainty","absolute plus bodyweight-allometric performance views","goal-aware priorities","adaptive rolling 7-day stress budgets without ACWR injury claims","stress-budget confidence reflects how many prior rolling windows exist; provisional budgets require recovery/performance corroboration before heavy suppression","single prior stress windows contribute conservatively instead of being ignored","repeated high-load windows followed by physically fresh/normal body-fatigue reports + normal objective recovery can raise learned capacity","overlap-aware historical stress windows improve robustness without pretending overlapping windows are independent evidence","physical/body fatigue, energy/sleepiness, and soreness are stored as separate recovery signals; body fatigue carries the strongest muscular-capacity weight, low energy primarily affects alertness/anaerobic-systemic readiness, and soreness primarily affects tissue/impact loading","subjective recovery channels are counted once, not once inside wearable recovery and again inside readiness","body-vs-objective concordance uses the pre-subjective objective recovery channel so subjective fatigue never corroborates itself","fixed Barbell Strength wave exercises require bad-session or prediction-error evidence before a raw trend alone is called a decline","future-schedule interference weighted by relationship-vector overlap, endurance dose, training status, same-session proximity and upcoming priority","concurrent resistance/endurance overlap uses a smooth proximity gradient; trained same-session work is penalized most, >2 h separation helps, and sequence is only a modest tie-breaker because umbrella evidence does not support a large universal order effect","acute sleep loss is counted once in overall recovery plus a small domain-specific tie-breaker that de-emphasizes speed/power/high-intensity or high-skill work more than easy aerobic work; it never creates an automatic rest day by itself","a multi-signal low-energy/fueling watch suppresses optional secondary volume before it changes primary training; bodyweight loss alone is never enough to trigger it","whole-workout local optimization","evidence-gated dose-response learning","conditioning fitness-quality portfolio","modality-specific efficiency and repeatability trends","personal HR thresholds and evidence-gated critical speed/power","aerobic decoupling and environment normalization","training-intensity distribution by time as context only","interval volume/density/speed overlays","evidence-gated adaptive deload detection","counterfactual workout evaluation","personal recovery-signal weighting","longitudinal HRV/RHR statistics","personalized rest/active-recovery and exercise-spacing response learning","graduated background-step load with purposeful locomotion credit","modality-cost-adjusted aerobic dose and fatigue","walking aerobic dose is separated from recovery toll","easy LSS walking uses sublinear fatigue accumulation after 60 minutes while brisk/hilly/high-RPE walking can scale back upward","background steps are a low-weight recovery signal after purposeful locomotion is credited out","active recovery modeled separately from full rest","wearable VO2 and HR-recovery remain low-weight trend signals","wearable calorie estimates never drive training decisions","multi-signal bodyweight/performance/recovery watch is advisory and non-diagnostic","every learned estimate carries evidence-dependent confidence","empirical per-metric noise floors / minimum meaningful change","endurance durability / long-duration efficiency preservation","priority-first exercise ordering when the user specifies a target area","goal-specific RIR/failure and rest interpretation","personal execution-time calibration from completed set/rest timestamps","exercise-order and rest-density normalization","optional set-completion timestamps derive rest automatically","separate strength/hypertrophy/power/fatigue stimulus channels","HR sensor reliability weighting","normalized HR-recovery context","passive wearable respiration support","time-of-day response learning","generic late-day and fasted-morning mode biases are not used; explicit time/fed context can only create a small adjustment after repeated personal performance evidence","altitude-context and decaying altitude acclimation","embedded neuromuscular readiness from ordinary training","regularized interaction learning","held-out shadow-model backtesting gates personalized feature weights","opportunistic core/grip accessory composition is driven by actual logged exposure, local fatigue, primary-session overlap, available equipment and near-term anchor interference; it is never a weekly quota","short complementary strength blocks can follow low-to-moderate conditioning when the primary modality leaves a fresh body region, cadence need exists, and near-term anchor interference remains acceptable; a next-day fixed anchor shrinks this to a 10–15 minute microdose instead of automatically banning it; these blocks provide partial—not full—Gym/Calisthenics cadence credit; Barbell Strength secondary work is restricted to tightly capped low-overlap easy swimming or 1–2-set / 10–12-minute accessory work when recovery, cadence, equipment and anchor-interference checks pass; no special gym trip is created; KB days may very rarely receive only a tiny low-intensity complementary block when recovery and need strongly support it"]},
   adaptiveProgramming:{type:"rolling-horizon-athletic-development-dose-counterfactual",version:15,rules:["worker-preprocessed causal history buckets reduce whole-history scans without changing recommendation outputs","recommendation confidence and alternate-mode comparisons expose score margin/reasons without becoming new scoring inputs","durable storage and restore snapshots are separate from adaptive model state so persistence changes cannot alter prescriptions","hybrid trajectory balancing across bodyweight, absolute strength, relative strength, aerobic fitness and hard conditioning","automatic or user-selected goal profile","fixed Barbell Strength / KB anchors plus continuously re-scored open intervals and weekend capacity stacking","future user-scheduled rest/workouts/classes become planning constraints that trigger full need-based re-optimization of nearby flexible days rather than preserving the displaced session type","fixed six-week Barbell Strength prescriptions never adapt mid-block","Tuesday/Thursday retain moderate conditioning preferences in Barbell Strength only mode, but all flexible modes can win from stronger current need","rolling run-specific aerobic, quality-speed, and total-aerobic dose targets with no Monday reset; other cardio is support/substitution rather than an equal quota","Full Rest has no weekly quota and competes from actual fatigue/recovery evidence","Active Recovery is separate from Full Rest","personalized historical Full Rest vs Active Recovery response is only a small tie-breaker","adaptive one-day Strength-Endurance uses a 16-step 2/3-circuit × 15–50-rep ladder driven by direct adaptive-SE performance, readiness and anchor proximity; higher reps/circuit count reduce load while fixed Base Building SE remains separate","priority-weighted optional training","rolling 7-day stress budgets learned from recent seven-day windows","productive-dose range requires dose diversity","counterfactual run/walk/cycle/swim/row/ruck/rest comparison","deload watch/recommend requires multiple independent warning domains","deload never inserts itself automatically","block review may preselect recovery week when strong deload recommendation exists","no ACWR injury-risk threshold; running progression also checks proposed single-session distance against the longest run in the prior 30 days and warns/caps when estimated progression exceeds about 10%","optional short core/grip finishers are composed only when useful capacity remains; projected accessories participate lightly in future rotation so the model does not repeatedly prescribe the same accessory; smart secondary work is occasional rather than quota-driven, with recency preventing back-to-back use and prolonged absence making it more competitive; Barbell Strength eligibility is restricted to tightly capped low-overlap easy swimming or 1–2-set / 10–12-minute accessory work when recovery, cadence, equipment and interference checks pass; KB days are only rarely eligible","secondary work is bidirectional: short easy cardio can follow Gym, Calisthenics, or non-Base-Building SE when endurance need and lower-body freshness justify it; conditioning can receive complementary resistance; away-from-gym sessions never trigger a special trip for gym machines but can use bodyweight/bands or the user's always-available home kettlebells, while gym-based conditioning may use only enabled on-site gym equipment; automatic running strongly prefers outdoors unless travel/indoor fallback is explicitly selected","completed-day display is sourced from actual saved exercise rows rather than recomputing the original recommendation","past completed dates are log-locked for modeling; later builder edits are retained only as retrospective drafts unless the completed workout itself is explicitly edited","secondary learning stores opportunity → explicit decision → completed outcome rather than treating non-use as dislike","pool-aware swim personalization keeps running as the primary cardio preference while modestly increasing LSS Swim frequency, assumes Auto pool access at home/gym but not travel, and separates useful swim aerobic dose from the user’s usually low recovery toll; direct RPE/HR can override the low-fatigue prior","personal lower-Calisthenics preference uses wider cadence spacing, modest repeat suppression, and lower smart-secondary priority while preserving manual access and goal-priority override"]},workoutIntentModel:{type:"planned-vs-actual-workout",version:6,rules:["planned rest vs confirmed rest","manual future schedule constraints trigger need-based flexible-horizon reflow; the displaced session type is context, not a relocation mandate","change workout directly from Log","adaptive or manual build mode","date-only custom plans","reusable workout templates","custom exercise stimulus definitions","planned-vs-actual session metadata","completed calendar/Today surfaces show actual completed exercises while preserving the original recommendation only as plan-vs-actual metadata","past completed dates use immutable completed-log truth for modeling and builders save retrospective drafts unless History Edit is used"]},tbDeadliftSchedule:{version:1,mode:"tb-only",days:["Monday","Friday"],workSetsPerDay:1,workSetsPerWeek:2,hybridDeadlift:false,note:"Barbell Strength only deadlift uses the current wave percentage/reps but exactly one work set on Monday and Friday; Wednesday has no deadlift. Hybrid has no Barbell Strength deadlift."},relationshipModel:{type:"directional-multichannel-stimulus-graph",version:8,note:"Exact performance is strongest. Relationships now use evidence-informed task-specific priors and transfer ceilings across gym implements/movement variants, calisthenics, kettlebells, and classes. Machine/free-weight strength remains task-specific; accessory work and class exposure can support but cannot prove heavy compound performance. Source-to-target transfer is directional; after enough paired direct history, a small confidence-shrunk personal correlation modifier can refine the prior. Unlike absolute loads are never directly converted."},
  actualLoadFeedbackModel:{type:"actual-vs-planned-dose-response",version:3,rules:["actual work is authoritative for primary, full secondary, short secondary and unplanned sessions","cardio retains planned duration and structured planned components separately from actual duration and performed components","strength rows are never inferred to be cardio from a legacy numeric reps target","structured multi-movement conditioning remains planned when its performed components are present even when no single dose ratio is mathematically valid","partial rows with explicit actual values are not discounted twice","categorical effort is used when exact RPE is blank, so unexpectedly very-hard work raises rolling load without being mistaken for fitness loss","recent session accumulation is dose-weighted rather than counted as identical sessions","repeated well-tolerated over-plan work can cautiously raise stress capacity while costly over-plan work cannot"]},
+ workoutEvidenceModel:{version:1,pullupActualGripField:'pullupGrip',pullupPlannedGripField:'modelPlannedPullupGrip',rules:['block-end review credits actual sets and reps against the saved plan without inferring a strength loss from reduced volume alone','only confirmed matching actual grips supply comparable pull-up effort, capability and trend evidence','class overlap warnings are advisory and preserve manual choices and program anchors']},
  tbEnduranceLibrary,tbHICLibrary,tbPowerLibrary,tbAccessoryLibrary,tbSEClusters,tbSEGuidance,logs:state.logs
 };
   // Optional model metadata can degrade, but it must never block the user's backup.
@@ -15419,6 +15475,7 @@ exportCsv.addEventListener("click",()=>{
  const keys=["date","sessionTime","sessionTimestamp","sessionStartedAt","sessionEndedAt","sessionPausedMs","trackedSessionDurationMinutes","sessionDurationMinutes","completedAt","setDetails","components","untimedCoreFinisher","adaptiveAccessoryFinisher","accessoryFinisherType","adaptiveSecondaryBlock","secondaryTrainingType","secondaryFocus","secondaryCadenceCredit","isShortSecondary","isFullSecondary","secondarySessionRole","modelExposureClass","contextTimeOfDay","contextFedState","contextEnvironment","contextKbMode","contextGymAccess","week","session","exercise","sets","reps","weight","modelPlannedExercise","modelPlannedTarget","modelPlannedDurationMinutes","modelPlannedComponents","modelPlannedSets","modelPlannedReps","modelPlannedWeight","modelExpectedRpe","modelPlannedExpectedRpe","modelPlannedRestSeconds","modelPredictionVersion","modelPredictionConfidence","modelPredictionError","modelPlannedPredictionError","modelActualLoadVersion","modelActualDoseExplicit","modelActualDoseRatio","modelActualLoadRelation","modelActualLoadResponse","modelActualLoadRole","rpeUnknown","rpeConfidence","rir","modelTargetExercise","modelTargetSets","modelTargetReps","modelTargetWeight","modelTargetReason","modelExerciseOverride","modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType","recommendationFeedback","recommendationFeedbackTarget","recommendationFeedbackSession","recommendationFeedbackShownSession","recommendationFeedbackChosenSession","recommendationFeedbackDecisionId","recommendationFeedbackDisposition","recommendationFeedbackNote","changeReason","painLevel","painAreaKey","painArea","sideBalance","leftReps","leftWeight","rightReps","rightWeight","distance","distanceUnit","swimStroke","poolPreset","poolLength","poolLengthUnit","poolLengths","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","environment","surface","altitudeFt","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","activeTime","gamesPlayed","playFormat","courtType","drillType","shotReps","matchContext","activitySteps","firstHalfAvgHr","secondHalfAvgHr","firstHalfPace","secondHalfPace","firstHalfWatts","secondHalfWatts","decouplingPct","humidity","windMph","hillGradeProfile","hillGradePct","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
  keys.splice(keys.indexOf("weight")+1,0,"modelConditioning","modelUnplannedExercise");
  keys.splice(keys.indexOf("activities")+1,0,"classFocusExercises","classFocusIntensity","classFocusOther");
+ keys.push("pullupGrip","modelPlannedPullupGrip");
  keys.splice(keys.indexOf("poolLengths")+1,0,"swimStrokeBlocks");
  const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
  const row=x=>keys.map(k=>{
@@ -15518,6 +15575,7 @@ function normalizeImportedLog(row,index){
  if(row.modelActualDoseRatio!==undefined&&row.modelActualDoseRatio!=="")out.modelActualDoseRatio=importedNumeric(row.modelActualDoseRatio,0,5,false);
  ["modelActualLoadRelation","modelActualLoadResponse","modelActualLoadRole"].forEach(k=>{if(row[k]!==undefined)out[k]=importedScalar(row[k],40)});
  if(row.rpeUnknown!==undefined)out.rpeUnknown=importedBoolean(row.rpeUnknown);
+ ['pullupGrip','modelPlannedPullupGrip'].forEach(key=>{if(row[key]===undefined)return;const raw=importedScalar(row[key],32),grip=v36154NormalizePullupGrip(raw);if(raw&&!grip)throw new Error("Workout log row "+(index+1)+" has invalid pull-up grip.");out[key]=grip});
  if(row.rir!==undefined){const raw=importedScalar(row.rir,8),rir=v36149NormalizeRir(raw);if(raw&&!rir)throw new Error("Workout log row "+(index+1)+" has invalid reps remaining.");out.rir=rir;}
  ['modelTargetExercise','modelTargetSets','modelTargetReps','modelTargetWeight','modelTargetReason'].forEach(k=>{if(row[k]!==undefined)out[k]=importedScalar(row[k],k==='modelTargetReason'?2400:k==='modelTargetExercise'?240:160)});
  if(row.rpeConfidence!==undefined){const rc=importedScalar(row.rpeConfidence,20).toLowerCase();if(rc&&!["rough","confident"].includes(rc))throw new Error("Workout log row "+(index+1)+" has an invalid RPE confidence.");out.rpeConfidence=rc;}
@@ -15785,7 +15843,7 @@ function v3677EnsureStores(){
  if(!Array.isArray(state.settings.secondaryOpportunityLog))state.settings.secondaryOpportunityLog=[];
  state.settings.retrospectiveDraftPlans=state.settings.retrospectiveDraftPlans||{};
 }
-// v36.153 — dated context, feasible conditioning, and optional full-workout choices.
+// v36.154 — dated context, feasible conditioning, and optional full-workout choices.
 function v36151IndoorContext(dateISO){return ['travel_indoor','poor_air','storms','extreme_heat'].includes(dayTrainingContextFor(dateISO).environment)}
 function v36151ConditioningAvailability(name,dateISO){
  const c=dayTrainingContextFor(dateISO),n=String(name||''),indoorEquipment=/stationary|treadmill|elliptical|row machine|stair climber|stair stepper|skierg|versaclimber|air bike/i.test(n);
@@ -16053,7 +16111,7 @@ try{
  if(!readRecoveryDraft()&&validRecoveryDraft(legacyDraft?.recovery))localStorage.setItem(RECOVERY_DRAFT_KEY,JSON.stringify(legacyDraft.recovery));
 }catch(e){}
 
-// v36.153: rebuild saved work only after every model extension is ready.
+// v36.154: rebuild saved work only after every model extension is ready.
 function v36153RestoreStartupWorkspace(){
 const hadRestoredDraft=restoreUiDraft();
 if(!hadRestoredDraft)restoreLastView();
@@ -16156,7 +16214,7 @@ else if(authoritativeStartupView==="log")restorePersistentLogWorkspace();
  const v3679OriginalUtmPredictRpe=utmPredictRpe;
  utmPredictRpe=function(session,exercise,dateISO,week,plan={}){
    if(session!=='Barbell Strength')return v3679OriginalUtmPredictRpe(session,exercise,dateISO,week,plan);
-   const base=v3679TbBaseRpe(week,plan),cap=utmCapabilityState(exercise,dateISO),demand=utmPlannedDemandIndex(exercise,plan,dateISO),recent=v3679TbRecentBias(exercise,dateISO),overlap=utmFatigueOverlap(exercise,dateISO);let prediction=base,parts=['training-max baseline'];
+   const base=v3679TbBaseRpe(week,plan),cap=utmCapabilityState(exercise,dateISO,exercise==='Weighted Pull-up'?v36154PlannedPullupGrip(plan,dateISO,session):null),demand=utmPlannedDemandIndex(exercise,plan,dateISO),recent=v3679TbRecentBias(exercise,dateISO),overlap=utmFatigueOverlap(exercise,dateISO);let prediction=base,parts=['training-max baseline'];
    if(cap.capability>0&&demand>0&&cap.confidence>=.35){const ratio=demand/cap.capability,capRpe=utmClamp(1.8+ratio*7.2,4.8,9.4),blend=utmClamp(cap.confidence*.32,.10,.34);prediction=prediction*(1-blend)+capRpe*blend;parts.push('direct capability')}
    const fatigueAdd=utmFatigueRpePenalty(overlap);if(fatigueAdd>.10){prediction+=fatigueAdd;parts.push('local fatigue')}
    if(Math.abs(recent.bias)>=.15){prediction+=recent.bias;parts.push('recent lift-specific effort')}
@@ -16361,7 +16419,7 @@ function v3679ReconcileSecondaryOutcomes(){
  // Current RPE prediction = physiology/capability first, then small evidence-gated
  // calibration. Split recovery inputs change expected effort in different magnitudes.
  function v3682RawPredictRpe(session,exercise,dateISO,week,plan={}){
-   let base=utmBaseExpectedRpe(session,exercise,week),cap=utmCapabilityState(exercise,dateISO),demand=utmPlannedDemandIndex(exercise,plan,dateISO),prediction=base,parts=[];
+   let base=utmBaseExpectedRpe(session,exercise,week),cap=utmCapabilityState(exercise,dateISO,exercise==='Weighted Pull-up'?v36154PlannedPullupGrip(plan,dateISO,session):null),demand=utmPlannedDemandIndex(exercise,plan,dateISO),prediction=base,parts=[];
    if(cap.capability>0&&demand>0&&cap.confidence>=.35){const ratio=demand/cap.capability,capRpe=utmClamp(1.5+ratio*7.7,5,9.8),blend=utmClamp(cap.confidence*.70,.20,.65);prediction=prediction*(1-blend)+capRpe*blend;parts.push('capability')}
    const overlap=utmFatigueOverlap(exercise,dateISO),fatigueAdd=utmFatigueRpePenalty(overlap);prediction+=fatigueAdd;if(fatigueAdd>.10)parts.push('fatigue');
    const body=subjectiveFatigueProfile(dateISO),energy=subjectiveEnergyProfile(dateISO),sore=subjectiveSorenessProfile(dateISO),fp=utmFingerprint(exercise);
@@ -16375,14 +16433,14 @@ function v3679ReconcileSecondaryOutcomes(){
    return {rpe:Math.round(utmClamp(prediction,1,9.8)*10)/10,confidence:Math.round(utmClamp((cap.confidence||.25)+(parts.length?0.07:0),.25,.94)*100)/100,capability:cap,demand,overlap:Math.round(overlap*100)/100,factors:parts};
  }
  utmPredictRpe=function(session,exercise,dateISO,week,plan={}){
-   const raw=v3682RawPredictRpe(session,exercise,dateISO,week,plan),prog=utmProgressionState(exercise,dateISO,true),typeCal=utmPredictionCalibrationForType(exercise,dateISO);let prediction=raw.rpe,parts=[...(raw.factors||[])];
+   const raw=v3682RawPredictRpe(session,exercise,dateISO,week,plan),prog=utmProgressionState(exercise,dateISO,true,exercise==='Weighted Pull-up'?v36154PlannedPullupGrip(plan,dateISO,session):null),typeCal=utmPredictionCalibrationForType(exercise,dateISO,exercise==='Weighted Pull-up'?v36154PlannedPullupGrip(plan,dateISO,session):null);let prediction=raw.rpe,parts=[...(raw.factors||[])];
    const exerciseBias=utmClamp(Number(prog.avgPredictionError)||0,-1.2,1.2)*.24*utmClamp(Number(prog.predictionEvidenceWeight)||0,0,1);if(Math.abs(exerciseBias)>=.08){prediction+=exerciseBias;parts.push('exercise calibration')}
    if(typeCal.n>=3&&Math.abs(typeCal.adjustment)>=.08){prediction+=typeCal.adjustment;parts.push('modality calibration')}
    return v36150RecentEffortCalibration({...raw,rpe:Math.round(utmClamp(prediction,1,9.8)*10)/10,confidence:Math.round(utmClamp(raw.confidence+(typeCal.confidence||0)*.04,.25,.96)*100)/100,factors:parts,typeCalibration:typeCal},session,exercise,dateISO,plan);
  };
 
- utmProgressionState=function(name,dateISO,_internal=false){
-   const rows=historyRowsBefore(dateISO,3650).filter(x=>x.exercise===name&&!['skipped','missed'].includes(String(x.status||'').toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).slice(-12),recent=rows.slice(-5),cap=utmCapabilityState(name,dateISO);let good=0,bad=0;const residuals=[];
+ utmProgressionState=function(name,dateISO,_internal=false,grip=null){
+   const all=historyRowsBefore(dateISO,3650).filter(x=>x.exercise===name&&(name!=='Weighted Pull-up'||!x.projectedForecast)&&!['skipped','missed'].includes(String(x.status||'').toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)),rows=v36154PullupGripEvidence(all,name,grip===null?all.at(-1)?.pullupGrip:grip).rows.slice(-12),recent=rows.slice(-5),cap=utmCapabilityState(name,dateISO,grip);let good=0,bad=0;const residuals=[];
    recent.forEach(x=>{const r=effectiveEffortRpe(x),feel=normalizeEffortRating(x.feel).toLowerCase(),tech=String(x.technique||'').toLowerCase(),status=String(x.status||'complete').toLowerCase(),isBad=status==='partial'||r>=9.5||feel==='max / failed'||tech==='sloppy',isGood=status==='complete'&&!isBad&&((r>0&&r<=8.5)||['too easy','easy','comfortable','challenging'].includes(feel));if(isGood)good++;if(isBad)bad++;const pr=v3682PredictionResidual(x);if(pr)residuals.push(pr)});
    const fixedWaveNames=new Set(['Weighted Pull-up','Squat','Deadlift','Barbell Row','Chest Machine','Incline Chest Machine']),waveRows=recent.filter(x=>x.session==='Barbell Strength').length,waveProtected=fixedWaveNames.has(name)&&waveRows>=3,
      w=residuals.reduce((s,x)=>s+x.weight,0),avgErr=w?residuals.reduce((s,x)=>s+x.error*x.weight,0)/w:0,evidenceReady=cap.exposures>=3&&cap.confidence>=.5,predReady=w>=.75,meaningful=cap.noise?.meaningfulPct||3,upGate=Math.max(.8,meaningful*.55),downGate=Math.max(3,meaningful*.9),rawTrendDown=cap.trendPct<=-downGate,
@@ -16390,8 +16448,8 @@ function v3679ReconcileSecondaryOutcomes(){
    return {exposures:cap.exposures,recent:recent.length,good,bad,confidence:cap.confidence,evidenceReady,validPredictionErrors:residuals.length,predictionEvidenceWeight:Math.round(utmClamp(w/2.5,0,1)*100)/100,avgPredictionError:Math.round(avgErr*10)/10,plateau:cap.plateau,direction,capability:cap.capability,bestCapability:cap.best,trendPct:cap.trendPct,uncertainty:cap.uncertainty,noise:cap.noise,trendGate:Math.round(upGate*10)/10,waveProtected,rawTrendDown};
  };
 
- utmPredictionCalibrationForType=function(exercise,dateISO=localISO(new Date())){
-   const key=predictionCalibrationKey(exercise),source=historyRowsBefore(dateISO,180).filter(r=>predictionCalibrationKey(r.exercise)===key&&!['skipped','missed'].includes(String(r.status||'').toLowerCase())).slice(-60),bySession=new Map();
+ utmPredictionCalibrationForType=function(exercise,dateISO=localISO(new Date()),grip=null){
+   const key=predictionCalibrationKey(exercise),all=historyRowsBefore(dateISO,180).filter(r=>predictionCalibrationKey(r.exercise)===key&&(exercise!=='Weighted Pull-up'||!r.projectedForecast)&&!['skipped','missed'].includes(String(r.status||'').toLowerCase())).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)),pullupRows=exercise==='Weighted Pull-up'?all.filter(r=>r.exercise===exercise):all,source=v36154PullupGripEvidence(pullupRows,exercise,grip===null?pullupRows.at(-1)?.pullupGrip:grip).rows.slice(-60),bySession=new Map();
    source.forEach(r=>{const pr=v3682PredictionResidual(r);if(!pr)return;const id=r.sessionId||r.date+'|'+r.session,arr=bySession.get(id)||[];arr.push(pr);bySession.set(id,arr)});
    const sessions=[...bySession.values()].map(a=>{const w=a.reduce((s,x)=>s+x.weight,0);return w?{v:a.reduce((s,x)=>s+x.error*x.weight,0)/w,w:Math.min(1,w)}:null}).filter(Boolean).slice(-20);
    if(sessions.length<3)return {key,n:sessions.length,bias:0,confidence:0,adjustment:0,effectiveN:Math.round(sessions.reduce((s,x)=>s+x.w,0)*100)/100};
@@ -16651,7 +16709,7 @@ function v3679ReconcileSecondaryOutcomes(){
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.153';
+const V3691_BUILD='36.154';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -19150,7 +19208,7 @@ const v36140PriorInvalidate=utmInvalidateCaches;utmInvalidateCaches=function(){v
 // Notify presentation after the authoritative asynchronous persistence wrapper succeeds.
 const v36152PriorSave=save;
 save=function(reason='general'){const ok=v36152PriorSave(reason);if(ok)window.dispatchEvent(new CustomEvent('hybrid:state-saved',{detail:{reason}}));return ok};
-// v36.153 UI helpers use the same model and protected scheduling actions as the calendar.
+// v36.154 UI helpers use the same model and protected scheduling actions as the calendar.
 function v36152HistoryFilters(){return {from:document.getElementById('historyFrom')?.value||'',to:document.getElementById('historyTo')?.value||'',family:document.getElementById('historyFamily')?.value||'all',exercise:(document.getElementById('historyExercise')?.value||'').trim().toLowerCase()}}
 function v36152HistoryGroupMatches(g,f=v36152HistoryFilters()){
  if(f.exercise&&!g.rows.some(r=>String(r.exercise||'').toLowerCase().includes(f.exercise)))return false;
@@ -19187,6 +19245,7 @@ window.HybridCore=Object.seal({
  uiMoveProgram:(source,target,replacement)=>moveProgramDayOnce(source,{targetDate:target,replacement}),
  uiScheduleSnapshot:(anchor)=>v36152ScheduleSnapshot(anchor),uiHistoryRender:()=>renderHistory(true),
  uiIsClass:(name)=>!!classActivity(name),uiIsCardio:(row)=>rowUsesConditioningMetrics(row),
+ uiClassOverlap:v36154ClassOverlap,uiPullupGrip:v36154NormalizePullupGrip,
  uiStrengthProfile:(name,date)=>strengthCapabilityProfile(name,date),uiRepeatability:(row)=>setRepeatabilitySnapshot(row),
 
  build:HYBRID_APP_BUILD,
@@ -19692,9 +19751,9 @@ window.HybridCore=Object.seal({
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>scan());else scan();new MutationObserver(items=>items.forEach(m=>m.addedNodes.forEach(queue))).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
-<script src="app-shell-v36.119.js?v=36.153"></script>
-<script src="adaptive-personalization-v36.120.js?v=36.153"></script>
-<script src="ui-workflows.js?v=36.153"></script>
+<script src="app-shell-v36.119.js?v=36.154"></script>
+<script src="adaptive-personalization-v36.120.js?v=36.154"></script>
+<script src="ui-workflows.js?v=36.154"></script>
 
 <script id="v36116-build-note">
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.
