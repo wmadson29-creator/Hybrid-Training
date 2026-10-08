@@ -1,3 +1,19 @@
+# Hybrid Training — current handoff v36.156
+
+## October 8, 2026: lag and compact kettlebell helper
+
+User reported that the app had become slow/laggy and the kettlebell weight helper looked clunky. v36.156 removes the full workout-tracker/preparation/plate rendering from the one-second timer path. `v36156TickWorkoutClock` updates elapsed text only and skips hidden documents. Autosave remains on its existing cadence. Explicit tracker refreshes still run on workout state transitions.
+
+Plate helper DOM is keyed by its generated content instead of comparing browser-serialized innerHTML. Edit-driven refreshes are coalesced in requestAnimationFrame. Plate chips show one physical plate each, identical paired-bell contents/changes share a per-bell row, and add/remove instructions remain compact. Live contents are nested inside the existing Bell setup panel. Shell assumptions appear once in the inventory details.
+
+Preserve v36.155 preparation drafts and exact per-physical-bell session-wide minimum additions/removals logic. The objective and prescribed workouts are unchanged. The 40 lb dial remains distinct, and unavailable contents do not round targets. No completed History is modified by this UI work.
+
+Current build/cache/assets: **36.156**. New regression suite: `tests/kb-helper-performance-qa.js`, `npm run test:kb-helper`, included in test:all. Validation: **243 export checks plus 38 empty-history checks**. 100 clock ticks made zero exercise subtree mutations; ten unchanged helper renders made zero content rebuilds. Phone screenshots reviewed. Chromium timing does not establish real Android device speed. See QA_REPORT_v36.156.md for full scope and limitations.
+
+The cumulative GitHub update ZIP is prepared, not pushed or deployed. Preserve unrelated repository assets. Earlier handoff sections below remain historical evidence.
+
+---
+
 # Hybrid Training — current handoff v36.155
 
 ## October 8, 2026: latest authorized work

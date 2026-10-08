@@ -1,20 +1,20 @@
-const BUILD="36.155";
-const CACHE="hybrid-training-v36-155-kb-load-layout";
-const FALLBACK="./index.html?v=36.155";
-const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.155";
+const BUILD="36.156";
+const CACHE="hybrid-training-v36-156-kb-load-layout";
+const FALLBACK="./index.html?v=36.156";
+const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.156";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.155",
-  "./decision-integrity-v36.131.js?v=36.155",
-  "./actual-load-feedback-v36.126.js?v=36.155",
-  "./forecast-balance-v36.127.js?v=36.155",
-  "./exercise-expansion-v36.128.js?v=36.155",
-  "./app-shell-v36.119.css?v=36.155",
-  "./app-shell-v36.119.js?v=36.155",
+  "./manifest-v36.webmanifest?v=36.156",
+  "./decision-integrity-v36.131.js?v=36.156",
+  "./actual-load-feedback-v36.126.js?v=36.156",
+  "./forecast-balance-v36.127.js?v=36.156",
+  "./exercise-expansion-v36.128.js?v=36.156",
+  "./app-shell-v36.119.css?v=36.156",
+  "./app-shell-v36.119.js?v=36.156",
   "./stretching-flexibility-v36.119.js?v=36.119-sf1",
-  "./ui-workflows.js?v=36.155",
-  "./kb-load-layout.js?v=36.155",
-  "./barbell-plate-layout.js?v=36.155",
+  "./ui-workflows.js?v=36.156",
+  "./kb-load-layout.js?v=36.156",
+  "./barbell-plate-layout.js?v=36.156",
   PERSONALIZATION
 ];
 const OPTIONAL_PRECACHE=[

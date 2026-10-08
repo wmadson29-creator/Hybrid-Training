@@ -1,4 +1,4 @@
-/* v36.155: practical mobile workflows. Presentation never writes training records. */
+/* v36.156: practical mobile workflows. Presentation never writes training records. */
 (()=>{
  'use strict';
  const core=window.HybridCore;if(!core)return;
