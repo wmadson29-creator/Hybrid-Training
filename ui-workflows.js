@@ -1,4 +1,4 @@
-/* v36.154: practical mobile workflows. Presentation never writes training records. */
+/* v36.155: practical mobile workflows. Presentation never writes training records. */
 (()=>{
  'use strict';
  const core=window.HybridCore;if(!core)return;
@@ -29,6 +29,7 @@
   text($('#v36152PrimaryDate'),(d.date===iso()?'Today':'Selected day')+' · '+d.date);text($('#v36152PrimaryTitle'),title);text($('#v36152PrimaryDose'),dose);text($('#v36152PrimaryContext'),d.contextText||'');
   const why=$('.v3691-why-panel',top);let whyMore=$('#v36152Why');if(why){if(!whyMore){whyMore=document.createElement('details');whyMore.id='v36152Why';whyMore.className='v36152-more';whyMore.innerHTML='<summary>Why this workout</summary>';top.append(whyMore)}if(why.parentElement!==whyMore)whyMore.append(why)}else whyMore?.remove();
   const primary=$('#selectedWorkoutActions .primary');if(d.active?.date===d.date)text(primary,'Resume Workout');
+  let edit=$('#editWorkoutBeforeStart');if(!d.active&&!/Full Rest|Recovery \/ Rest/.test(title)){if(!edit){edit=button('Edit workout',()=>core.uiEditWorkout(core.uiDayState().date));edit.id='editWorkoutBeforeStart';$('#selectedWorkoutActions').append(edit)}}else edit?.remove();
   const other=$('#v36152ResumeOther');if(d.active&&d.active.date!==d.date){if(other.dataset.date!==d.active.date){other.replaceChildren(button('Resume '+d.active.date+' workout',()=>core.uiOpenWorkout(d.active.date)));other.dataset.date=d.active.date}}else if(other.childNodes.length){other.replaceChildren();delete other.dataset.date}
   conflicts(d);classOverlap(d);renderRecalc();
  }

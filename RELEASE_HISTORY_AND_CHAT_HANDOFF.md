@@ -1,3 +1,23 @@
+# Hybrid Training — current handoff v36.155
+
+## October 8, 2026: latest authorized work
+
+The user requested editing a recommended SE circuit or Gym workout before starting, then requested an internal-plate helper for the adjustable kettlebells. Both are implemented in v36.155. Earlier release sections below remain historical evidence.
+
+- Today: **Edit workout** opens the loaded recommendation without starting the timer.
+- Log: **Edit workout before starting** exposes Add exercise, Save edits and Reset edits. Remove, reorder and Swap use the existing controls; known substitutions recalculate exercise targets.
+- Explicitly saved preparation drafts are separate from active autosave. They are keyed by date, session and primary/short/full role, reopen without earning training credit, and transfer into active autosave only on Start. The existing active-only autosave rule remains. Preparations are local drafts; they do not constitute new actual History or alter future-workout forecasting.
+- Restoring a draft trims removed trailing cards and cannot autosave an intermediate partially restored plan. Removing/reordering cards invalidates dependent KB setup guidance.
+- 70 lb KB helper: exact shell + internal plates and count per bell, with an editable inventory saved in settings. The detail image shows 0.5, 0.5, 1, 2, 3, 3, 4, 6 kg (20 kg total); 12 kg empty shell is inferred from the pictured 12–32 kg range and visibly labelled as an assumption. The other supplied photo appears to show a different plate set, so preserve editable inventory rather than claim a verified brand/model.
+- The user subsequently clarified that internal loading must prioritize fewer plate changes, like the barbell sequence. `v36155KbSequence` chooses exact contents across each physical bell’s loaded session allocation, minimizing plate additions/removals first, total plate counts second and initial plate count third. It retains each bell’s state across unused gaps. Display Keep/Remove/Add per bell. Standalone targets use minimum plate count; unreachable targets stay unknown without rounding. The solver uses each physical plate once. The 40 lb dial allocation remains distinct. No physical assembly order is inferred from a product image.
+- Prior v36.154, all nine UI improvements, slow 70 lb loading optimization, purple 55 lb plate scope, KB dose/progression and user-owned workout/history protections remain.
+
+Current build/cache/manifest/asset query: **36.155**. No new runtime file. New test: `tests/workout-preparation-qa.js` via `npm run test:preparation`, included in `test:all`. Key preparation helpers are `v36155SavePrepared`, `v36155RestorePrepared`, `v36155RenderPreparation`; plate helpers are `v36155KbInventory`, `v36155KbInternal`, `v36155KbInternalHtml`, `v36155RenderKbContents`. The preparation key is `hybridTrainingPreparedWorkoutsV1`; inventory is `state.settings.kbInternalPlates`.
+
+Current validation: **885 export-based checks and 30 empty-history checks passed (915 unique checks)**. The phone layout was visually reviewed. Full scope and limits are recorded in QA_REPORT_v36.155.md. The package is prepared for upload, not pushed/deployed. Upload extracted contents into the existing repository and preserve other assets.
+
+---
+
 # Hybrid Training — complete release history, decisions, and chat handoff
 
 Prepared October 8, 2026, America/Phoenix; updated for v36.154. Repository: [wmadson29-creator/Hybrid-Training](https://github.com/wmadson29-creator/Hybrid-Training).
