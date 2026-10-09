@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <style id="hybrid-boot-paint">html,body{margin:0;min-height:100%;background:#0b0f14;color:#f6f8fb}html{background:#0b0f14}
 #recovery .recovery-daily-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px}.recovery-wide{grid-column:1/-1}.recovery-daily-fields .hint{font-size:.7rem}.recovery-save-actions{margin:14px 0}.recovery-soreness-field{margin-top:8px}.recovery-soreness-field[open]>summary{margin-bottom:10px}#recoveryMoreDetails,#recoveryAnalysisDetails{margin-top:10px}#recoveryMoreDetails[open]>.form-grid{margin-top:12px}#recoveryAnalysisDetails .notice{margin-top:10px}#recoveryHelpDetails[open]>.recovery-rule-grid{margin-top:12px}
-/* v36.156: compact evidence and optional effort/focus detail. */
+/* v36.158: compact evidence and optional effort/focus detail. */
 .target-evidence{margin:12px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:.86rem;line-height:1.5}
 .target-evidence>summary{padding:10px 12px;color:var(--accent);font-weight:700;cursor:pointer;overflow-wrap:anywhere}
 .target-evidence-body{padding:0 12px 12px;overflow-wrap:anywhere}
@@ -22,18 +22,19 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.156">
-<script src="decision-integrity-v36.131.js?v=36.156"></script>
-<script src="actual-load-feedback-v36.126.js?v=36.156"></script>
-<script src="forecast-balance-v36.127.js?v=36.156"></script>
-<script src="exercise-expansion-v36.128.js?v=36.156"></script>
-<script src="kb-load-layout.js?v=36.156"></script>
-<script src="barbell-plate-layout.js?v=36.156"></script>
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.158">
+<script src="decision-integrity-v36.131.js?v=36.158"></script>
+<script src="actual-load-feedback-v36.126.js?v=36.158"></script>
+<script src="forecast-balance-v36.127.js?v=36.158"></script>
+<script src="exercise-expansion-v36.128.js?v=36.158"></script>
+<script src="kb-load-layout.js?v=36.158"></script>
+<script src="barbell-plate-layout.js?v=36.158"></script>
+<script src="kb-internal-stack.js?v=36.158"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
 <meta name="apple-mobile-web-app-title" content="Hybrid Training">
-<link rel="stylesheet" href="app-shell-v36.119.css?v=36.156">
+<link rel="stylesheet" href="app-shell-v36.119.css?v=36.158">
 <style>
 :root{
   --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
@@ -2080,7 +2081,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.156</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
+      <div class="notice"><strong>Adaptive Engine v36.158</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -3554,6 +3555,9 @@ function utmFingerprint(name){
 function utmDot(a,b,keys){let dot=0,wa=0,wb=0;keys.forEach(k=>{const x=Number(a?.[k]||0),y=Number(b?.[k]||0);dot+=x*y;wa+=x*x;wb+=y*y});return wa&&wb?utmClamp(dot/Math.sqrt(wa*wb),0,1):0}
 function utmDirectionalTransfer(targetName,sourceName,dateISO=localISO(new Date())){
  if(targetName===sourceName)return {strength:1,hypertrophy:1,fatigue:1,technique:1,tissue:1,power:1,overall:1,muscle:1,move:1};
+ utmDirectionalTransfer.geometryCache=utmDirectionalTransfer.geometryCache||new Map();if(utmDirectionalTransfer.geometryRevision!==utmModelRevision){utmDirectionalTransfer.geometryCache.clear();utmDirectionalTransfer.geometryRevision=utmModelRevision}
+ const geometryKey=targetName+'|'+sourceName;let geometry=utmDirectionalTransfer.geometryCache.get(geometryKey);
+ if(!geometry){
  const t=utmFingerprint(targetName),src=utmFingerprint(sourceName),muscle=utmDot(t.muscles,src.muscles,UTM_MUSCLES),move=utmDot(t.moves,src.moves,UTM_MOVES),mechanicKeys=[...new Set([...Object.keys(t.mechanics||{}),...Object.keys(src.mechanics||{})])],mechanical=mechanicKeys.length?utmDot(t.mechanics,src.mechanics,mechanicKeys):0,
   strengthDirection=Math.min(1,(src.strengthDemand+.12)/(Math.max(.2,t.strengthDemand)+.12)),
   strength=Math.max(0,Math.min(.96,(move*.50+muscle*.34+mechanical*.16)*(.55+.45*strengthDirection))),
@@ -3562,8 +3566,11 @@ function utmDirectionalTransfer(targetName,sourceName,dateISO=localISO(new Date(
   technique=Math.max(0,Math.min(1,move*.66+mechanical*.16+muscle*.10+(t.type===src.type?.08:0))),
   tissue=Math.max(0,Math.min(1,mechanical*.66+muscle*.20+move*.14)),
   power=Math.max(0,Math.min(1,Math.min(t.powerDemand||((t.moves.power||0)),src.powerDemand||((src.moves.power||0)))*.55+(t.moves.power||0)*(src.moves.power||0)*.30+move*.15));
+ geometry={strength,hypertrophy,fatigue,technique,tissue,power,muscle,move,mechanical};utmDirectionalTransfer.geometryCache.set(geometryKey,geometry);if(utmDirectionalTransfer.geometryCache.size>16000)utmDirectionalTransfer.geometryCache.delete(utmDirectionalTransfer.geometryCache.keys().next().value);
+ }
+ const {strength,hypertrophy,fatigue,technique,tissue,power,muscle,move,mechanical}=geometry;
  const learned=utmLearnedTransferModifier(targetName,sourceName,dateISO),learnedStrength=utmClamp(strength*learned.modifier,0,.98);
- return {strength:learnedStrength,hypertrophy,fatigue,technique,tissue,power,overall:learnedStrength*.45+hypertrophy*.18+technique*.12+fatigue*.10+tissue*.10+power*.05,muscle,move,mechanical,learned};
+ return {strength:learnedStrength,hypertrophy,fatigue,technique,tissue,power,overall:learnedStrength*.45+hypertrophy*.18+technique*.12+fatigue*.10+tissue*.10+power*.05,muscle,move,mechanical,learned:{...learned}};
 }
 
 let utmModelRevision=0;
@@ -4102,7 +4109,7 @@ function v36150EffortDose(row){
   if(Array.isArray(row.setDetails)&&row.setDetails.length){if(row.setDetails.length!==sets||row.setDetails.some(x=>String(x.reps??row.reps).trim().toLowerCase().replace(/\s+/g,'')!==reps||parseLb(x.weight??row.weight)!==n))return ''}
   return sets+'|'+reps+'|'+n+'|'+(/kg/i.test(load)?'kg':'lb');
 }
-// v36.156: prescribed grip is provenance; only an explicitly recorded grip is evidence.
+// v36.158: prescribed grip is provenance; only an explicitly recorded grip is evidence.
 function v36154NormalizePullupGrip(value){
  const key=String(value??'').trim().toLowerCase();
  if(['neutral','side / neutral','side/neutral','side'].includes(key))return 'neutral';
@@ -4734,8 +4741,9 @@ function utmFutureInterference(name,dateISO,horizon=2){
  const out={penalty:Math.round(penalty*10)/10,maxOverlap:Math.round(maxOverlap*100)/100,reasons:uniqueConditioningReasons(reasons)};utmFutureInterferenceCache.set(cacheKey,out);return out;
 }
 function utmPairRedundancy(a,b,dateISO){
- const fa=utmFingerprint(a),fb=utmFingerprint(b),muscle=utmDot(fa.muscles,fb.muscles,UTM_MUSCLES),move=utmDot(fa.moves,fb.moves,UTM_MOVES),fatigue=utmDot(fa.fatigue,fb.fatigue,UTM_FATIGUE);
- return muscle*.48+move*.36+fatigue*.16;
+ const fn=utmPairRedundancy;if(fn.revision!==utmModelRevision){fn.cache=new Map();fn.revision=utmModelRevision}const key=a<=b?a+'\u0000'+b:b+'\u0000'+a;if(fn.cache.has(key))return fn.cache.get(key);
+ const fa=utmFingerprint(a),fb=utmFingerprint(b),muscle=utmDot(fa.muscles,fb.muscles,UTM_MUSCLES),move=utmDot(fa.moves,fb.moves,UTM_MOVES),fatigue=utmDot(fa.fatigue,fb.fatigue,UTM_FATIGUE),value=muscle*.48+move*.36+fatigue*.16;
+ fn.cache.set(key,value);if(fn.cache.size>12000)fn.cache.delete(fn.cache.keys().next().value);return value;
 }
 function utmWorkoutSetScore(items,dateISO,nameFn,baseFn){
  let score=items.reduce((s,x)=>s+(baseFn?baseFn(x):0),0);
@@ -6436,7 +6444,12 @@ function displayWeightText(value){
  return s.replace(/\s*(?:lb|lbs)\b/gi,"").replace(/\s{2,}/g," ").trim();
 }
 function currentTM(base,inc,b){return base+(b-1)*inc}
-function plates(side){let rem=side,out={45:0,25:0,10:0,5:0,2.5:0};[45,25,10,5,2.5].forEach(p=>{let n=Math.floor((rem+1e-9)/p);out[p]=n;rem-=n*p});return out}
+function plates(side){
+ const sizes=[45,25,10,5,2.5],out={45:0,25:0,10:0,5:0,2.5:0},units=Math.round(Number(side)/2.5);if(!Number.isFinite(units)||units<0||units>400||Math.abs(Number(side)/2.5-units)>1e-7)return out;
+ const key=units;plates.cache=plates.cache||new Map();if(plates.cache.has(key))return {...plates.cache.get(key)};
+ const dp=Array(units+1).fill(null);dp[0]=[];for(let n=1;n<=units;n++)for(const p of sizes){const coin=p/2.5;if(n>=coin&&dp[n-coin]){const candidate=[...dp[n-coin],p];if(!dp[n]||candidate.length<dp[n].length)dp[n]=candidate}}
+ for(const p of dp[units]||[])out[p]++;if(plates.cache.size>150)plates.cache.clear();plates.cache.set(key,out);return {...out};
+}
 function plateSpans(c,rev){let a=[];[45,25,10,5,2.5].forEach(p=>{for(let i=0;i<c[p];i++)a.push('<i class="plate '+(p===2.5?'p2':'p'+p)+'"></i>')});if(rev)a.reverse();return a.join("")}
 function plateText(c){let a=[];[45,25,10,5,2.5].forEach(p=>{if(c[p])a.push(c[p]+"×"+p)});return a.join(" + ")||"0"}
 function isLandmineExercise(exercise){
@@ -6451,18 +6464,21 @@ function visualLoad(total,bar,exercise="",plateLayout=null){
  bar=resolvedPlateVisualMode(exercise,bar);
  if(bar===true&&plateLayout?.session==='Barbell Strength'&&v36153BarbellPlateExercise(exercise))return v36153BarbellPlateHtml(total,exercise,plateLayout);
  if(bar==="machine"){
+   if(total<0||Math.abs(total/5-Math.round(total/5))>1e-7)return '<div class="load-helper muted">No exact plate combination for this load with the available plate sizes.</div>';
    const side=total/2,c=plates(side),cap='<div class="load-caption"><strong>'+side+' / side</strong><span>'+plateText(c)+'</span></div>';
    return '<div class="load-helper">'+cap+'<div class="machine"><div class="machine-side">'+plateSpans(c,true)+'</div><div class="no-bar">plate-loaded<br>machine</div><div class="machine-side">'+plateSpans(c,false)+'</div></div></div>';
  }
  if(bar==="landmine"){
+   if(total<45||Math.abs((total-45)/2.5-Math.round((total-45)/2.5))>1e-7)return '<div class="load-helper muted">No exact plate combination for this load with the available plate sizes.</div>';
    const loaded=Math.max(0,total-45),c=plates(loaded),cap='<div class="load-caption"><strong>'+loaded+' on loaded end</strong><span>'+plateText(c)+' • '+total+' total incl. 45 bar</span></div>';
    return '<div class="load-helper">'+cap+'<div class="landmine-load"><div class="landmine-anchor">anchored end<br>no plates</div><div class="landmine-bar"></div><div class="landmine-loaded-end">'+plateSpans(c,false)+'</div></div></div>';
  }
  if(!bar)return "";
+ if(total<45||Math.abs((total-45)/5-Math.round((total-45)/5))>1e-7)return '<div class="load-helper muted">No exact plate combination for this load with the 45 lb bar and available plate sizes.</div>';
  const side=(total-45)/2,c=plates(side),cap='<div class="load-caption"><strong>'+side+' / side</strong><span>'+plateText(c)+'</span></div>';
  return '<div class="load-helper">'+cap+'<div class="barbell"><div class="bar-side left">'+plateSpans(c,true)+'</div><div class="bar"></div><div class="bar-side right">'+plateSpans(c,false)+'</div></div></div>';
 }
-// v36.156 — visual plate reuse for the fixed squat → deadlift → row sequence.
+// v36.158 — visual plate reuse for the fixed squat → deadlift → row sequence.
 function v36153BarbellPlateExercise(name){return ['Squat','Deadlift','Barbell Row'].includes(String(name||'').trim())}
 function v36153BarbellVisualTotal(value){const text=String(value??'').trim(),match=text.match(/^(\d+(?:\.\d+)?)\s*(kg|lb|lbs)?$/i);return match?Number(match[1])*(String(match[2]||'').toLowerCase()==='kg'?2.2046226218:1):NaN}
 function v36153ApplyBarbellPlatePlan(rows,session){
@@ -8988,7 +9004,7 @@ function strengthCapabilityProfile(name,dateISO=localISO(new Date())){
 function predictionCalibrationKey(exercise){const cls=v36150ClassPrior(exercise);if(cls)return 'class:'+cls.kind;const fp=utmFingerprint(exercise),q=conditioningQualityForName(exercise);return fp.type==="conditioning"||entryForName(exercise)?"cond:"+q:"type:"+(fp.type||"strength")}
 function utmPredictionCalibrationForType(exercise,dateISO=localISO(new Date())){const key=predictionCalibrationKey(exercise),rows=historyRowsBefore(dateISO,180).filter(r=>Number(r.modelPredictionVersion)>=UTM_PREDICTION_MODEL_VERSION&&Number.isFinite(Number(r.modelPredictionError))&&predictionCalibrationKey(r.exercise)===key).slice(-30);if(rows.length<4)return {key,n:rows.length,bias:0,confidence:0};const vals=rows.map((r,i)=>({v:Number(r.modelPredictionError),w:Math.pow(.94,rows.length-1-i)})),ws=vals.reduce((s,x)=>s+x.w,0),mean=vals.reduce((s,x)=>s+x.v*x.w,0)/Math.max(.01,ws),confidence=utmClamp((rows.length-3)/14,0,.8);return {key,n:rows.length,bias:Math.round(mean*10)/10,confidence:Math.round(confidence*100)/100,adjustment:Math.round(utmClamp(mean*.22*confidence,-.45,.45)*10)/10};}
 var v36138ExposureOverlapCache;
-function relatedExposureOverlap(a,b){const cache=v36138ExposureOverlapCache||(v36138ExposureOverlapCache=new Map()),left=String(a||''),right=String(b||''),key=left<=right?left+'\u0000'+right:right+'\u0000'+left;if(cache.has(key))return cache.get(key);const fa=utmFingerprint(left),fb=utmFingerprint(right),out=utmDot(fa.muscles,fb.muscles,UTM_MUSCLES)*.6+utmDot(fa.moves,fb.moves,UTM_MOVES)*.2+utmDot(fa.fatigue,fb.fatigue,UTM_FATIGUE)*.2;cache.set(key,out);if(cache.size>1800)[...cache.keys()].slice(0,600).forEach(k=>cache.delete(k));return out}
+function relatedExposureOverlap(a,b){const cache=v36138ExposureOverlapCache||(v36138ExposureOverlapCache=new Map()),left=String(a||''),right=String(b||''),key=left<=right?left+'\u0000'+right:right+'\u0000'+left;if(cache.has(key))return cache.get(key);const fa=utmFingerprint(left),fb=utmFingerprint(right),out=utmDot(fa.muscles,fb.muscles,UTM_MUSCLES)*.6+utmDot(fa.moves,fb.moves,UTM_MOVES)*.2+utmDot(fa.fatigue,fb.fatigue,UTM_FATIGUE)*.2;cache.set(key,out);if(cache.size>12000)cache.delete(cache.keys().next().value);return out}
 function utmRecoveryResponseProfile(name,dateISO=localISO(new Date())){
  const direct=historyRowsBefore(dateISO,730).filter(r=>r.exercise===name&&String(r.status||'').toLowerCase()==='complete').sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).slice(-24),samples=[];
  for(const r of direct){const rt=rowSessionTimestamp(r),prior=state.logs.filter(x=>rowSessionTimestamp(x)<rt&&!['skipped','missed'].includes(String(x.status||'').toLowerCase())&&relatedExposureOverlap(name,x.exercise)>=.42).sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a))[0];if(!prior)continue;const hours=(rt-rowSessionTimestamp(prior))/3600000;if(!(hours>=0&&hours<=168))continue;const perf=utmPerformanceIndex(r,name);if(!(perf>0))continue;const expected=utmCapabilityState(name,r.date).capability||0,residual=expected>0?(perf/expected-1)*100:null;samples.push({hours,perf,residual})}
@@ -10216,7 +10232,7 @@ function v36141KbRoutinePlan(session,gw,dateISO,options={}){
  return v36153OrganizeKbPlan(v36141FitKbMinutes(rows,options.minutes),equipment,{group:!custom&&state.settings.kbGroupMatchingLoads!==false});
 }
 
-// v36.156 — reuse physical bell settings without changing training doses.
+// v36.158 — reuse physical bell settings without changing training doses.
 function v36153BellWeight(action){const lb=action.kind==='dial'?kb40DialLbForKg(action.kg):0;return action.kg+' kg'+(lb?' ('+lb+' lb dial)':'')}
 function v36153SetupAction(actions){
  if(actions.length===2&&actions.every(a=>a.kind==='heavy'&&a.action===actions[0].action))return ({set:'Set',adjust:'Adjust',keep:'Keep'})[actions[0].action]+' both 70 lb bells '+(actions[0].action==='keep'?'at ':'to ')+actions[0].kg+' kg each.';
@@ -10226,7 +10242,7 @@ function v36153OrganizeKbPlan(rows,equipment,options={}){
  if(!rows.length||!window.HybridKbLoadLayout)return rows;
  const mode=kbSetupFromEquipment(equipment),info=kbSetupInfo(equipment),hardware={dial40:['all','40single'].includes(mode)?KB_40_SELECTTECH_KG:[],heavyCount:mode==='all'||mode==='70pair'?2:mode==='70single'?1:0,heavyWeights:KB_70_ADJUSTABLE_KG};
  const dose=rows.map(r=>({kg:Number(r.kg)||parseKg(r.weight),load:kbExercise(r.exercise)?.load||'single',conditioning:r.kbIntent==='conditioning'}));
- const layout=window.HybridKbLoadLayout.layout(dose,hardware,options);if(!layout)return rows;
+ hardware.heavyWeights=[...new Set([...hardware.heavyWeights,...dose.filter(r=>v36155KbInternal(r.kg)).map(r=>r.kg)])];const layout=window.HybridKbLoadLayout.layout(dose,hardware,options);if(!layout)return rows;
  const start='Before you start: '+layout.initialSetup.map(a=>a.label+' at '+v36153BellWeight(a)).join('; ')+'.';
  const changes=layout.heavyChanges+' change'+(layout.heavyChanges===1?'':'s')+' to the 70 lb bells after initial setup'+(layout.dialChanges?'; '+layout.dialChanges+' change'+(layout.dialChanges===1?'':'s')+' to the 40 lb dial':'')+'.';
  const saving=layout.reordered?' Grouped matching loads saves '+(layout.originalHeavyChanges-layout.heavyChanges)+' change'+(layout.originalHeavyChanges-layout.heavyChanges===1?'':'s')+' to a 70 lb bell.':'';
@@ -10234,21 +10250,21 @@ function v36153OrganizeKbPlan(rows,equipment,options={}){
  return layout.steps.map((step,i)=>{
   const row=rows[step.index],actions=step.actions,action=v36153SetupAction(actions),reason=row.kbSetupBaseReason??row.targetReason??'',note=row.kbSetupBaseNote??row.note??'',ex=kbExercise(row.exercise),kg=dose[step.index].kg;
   const load=ex?.load==='double'?kg+' kg / bell':actions[0].kind==='dial'?kbEquipmentLoadText(kg,['kettlebells','kbSetup:40single'],'single'):kg+' kg';
-  return {...row,weight:load,kbSetupBaseReason:reason,kbSetupBaseNote:note,kbSetup:{exercise:row.exercise,kg,actions,action,internal:internal[i],summary:i===0?start+' '+changes+saving:'',heavyChanges:layout.heavyChanges,originalHeavyChanges:layout.originalHeavyChanges,reordered:layout.reordered},targetReason:reason+' Bell setup: '+action,note:note+' Bell setup: '+action};
+  return {...row,weight:load,kbSetupBaseReason:reason,kbSetupBaseNote:note,kbSetup:{exercise:row.exercise,equipment:equipment.slice(),kg,actions,action,internal:internal[i],summary:i===0?start+' '+changes+saving:'',heavyChanges:layout.heavyChanges,originalHeavyChanges:layout.originalHeavyChanges,reordered:layout.reordered},targetReason:reason+' Bell setup: '+action,note:note+' Bell setup: '+action};
  });
 }
 function v36153KbSetupHtml(setup){if(!setup?.action)return '';return '<div class="kb-bell-setup" data-kb-setup-exercise="'+attrSafe(setup.exercise)+'"><strong>Bell setup</strong><p>'+htmlSafe(setup.action)+'</p>'+(setup.actions?.some(a=>a.kind==='heavy')?'<div class="kb-internal-inline">'+(setup.internal?.length?v36155KbSequenceHtml(setup.internal):v36155KbInternalHtml(setup.kg))+'</div>':'')+(setup.summary?'<details><summary>Session setup & weight changes</summary><p>'+htmlSafe(setup.summary)+'</p></details>':'')+'</div>'}
 function v36153RestoreKbSetup(card,setup){
  if(!card)return;card.querySelector('.kb-bell-setup')?.remove();
  if(!setup?.action||setup.exercise!==currentCardExercise(card)){delete card.dataset.kbBellSetup;return}
- card.dataset.kbBellSetup=JSON.stringify(setup);card.querySelector('.log-title')?.insertAdjacentHTML('afterend',v36153KbSetupHtml(setup));
+ card.dataset.kbBellSetup=JSON.stringify(setup);if(setup.equipment)card.dataset.kbAvailableEquipment=JSON.stringify(setup.equipment);card.querySelector('.log-title')?.insertAdjacentHTML('afterend',v36153KbSetupHtml(setup));
 }
 function v36153ReadKbSetup(card){try{return JSON.parse(card.dataset.kbBellSetup||'null')}catch(_e){return null}}
 function v36153InvalidateKbSetup(card){
  const host=card.closest('#plannedExercises');if(!host)return;
  host.querySelectorAll('.log-exercise[data-kb-bell-setup]').forEach(c=>v36153RestoreKbSetup(c,null));
  if(!host.querySelector('.kb-setup-changed'))host.insertAdjacentHTML('afterbegin','<p class="kb-setup-changed muted" role="status">Bell targets changed. Use your entered weights; the original setup sequence is hidden.</p>');
- writeLogWorkspace();
+ v36156ScheduleKbRefresh();writeLogWorkspace();
 }
 document.addEventListener('input',event=>{const card=event.target.closest?.('.log-exercise');if(!card||!card.dataset.kbBellSetup||!event.target.matches('.le-weight,.le-ex,.le-custom'))return;const setup=v36153ReadKbSetup(card),kg=parseKg(valueOf(card,'.le-weight'));if(!setup||setup.exercise!==currentCardExercise(card)||Math.abs(kg-setup.kg)>.01)v36153InvalidateKbSetup(card)});
 document.addEventListener('change',event=>{const card=event.target.closest?.('.log-exercise');if(card?.dataset.kbBellSetup&&event.target.matches('.le-ex,.le-custom'))v36153InvalidateKbSetup(card)});
@@ -12282,10 +12298,10 @@ function loadPlannedSession(){
   if(!x.conditioning){x.reps=exactRepPrescription(x.reps);x.weight=displayWeightText(x.weight)}
   const restText=!x.conditioning&&Number(x.restSeconds)>0?' • Rest '+Math.round(Number(x.restSeconds))+' sec':'';
   const primerLine=!x.conditioning&&x.optionalPrimer?'<div class="tb-primer"><span class="tag">Optional primer</span><strong>'+htmlSafe(x.optionalPrimer.sets)+' × '+htmlSafe(x.optionalPrimer.reps)+' • '+htmlSafe(x.optionalPrimer.weight)+'</strong><br>'+htmlSafe(x.optionalPrimer.note||'Not counted as a working set.')+'</div>':'';
-  const metaText=x.meta?(' • '+htmlSafe(x.meta)):'';
+  const metaText='';const contextText=x.meta?'<details class="workout-card-context"><summary>Workout context</summary><p>'+htmlSafe(x.meta)+'</p></details>':'';
   const planLine=x.conditioning
     ? '<div class="planned">Planned: '+htmlSafe(x.plannedTarget||"—")+' • '+htmlSafe(x.meta||"")+'</div>'
-    : '<div class="planned">Planned: '+htmlSafe(x.sets||"—")+' × '+htmlSafe(x.reps||"—")+' • '+htmlSafe(x.weight||"no load")+restText+metaText+'</div>'+primerLine;
+    : '<div class="planned">Planned: '+htmlSafe(x.sets||"—")+' × '+htmlSafe(x.reps||"—")+' • '+htmlSafe(x.weight||"no load")+restText+metaText+'</div>'+primerLine+contextText;
 
   if(x.conditioning){
     d.innerHTML='<div class="log-title"><div><strong>'+htmlSafe(x.exercise)+'</strong>'+planLine+'</div></div>'+
@@ -14907,7 +14923,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.156";
+const HYBRID_APP_BUILD="36.158";
 function hybridBuildParts(v){return String(v||"").replace(/^v/,"").split(".").map(x=>Number(x)||0)}
 function compareHybridBuilds(a,b){
  const aa=hybridBuildParts(a),bb=hybridBuildParts(b),n=Math.max(aa.length,bb.length);
@@ -15861,7 +15877,7 @@ function v3677EnsureStores(){
  if(!Array.isArray(state.settings.secondaryOpportunityLog))state.settings.secondaryOpportunityLog=[];
  state.settings.retrospectiveDraftPlans=state.settings.retrospectiveDraftPlans||{};
 }
-// v36.156 — dated context, feasible conditioning, and optional full-workout choices.
+// v36.158 — dated context, feasible conditioning, and optional full-workout choices.
 function v36151IndoorContext(dateISO){return ['travel_indoor','poor_air','storms','extreme_heat'].includes(dayTrainingContextFor(dateISO).environment)}
 function v36151ConditioningAvailability(name,dateISO){
  const c=dayTrainingContextFor(dateISO),n=String(name||''),indoorEquipment=/stationary|treadmill|elliptical|row machine|stair climber|stair stepper|skierg|versaclimber|air bike/i.test(n);
@@ -16129,7 +16145,7 @@ try{
  if(!readRecoveryDraft()&&validRecoveryDraft(legacyDraft?.recovery))localStorage.setItem(RECOVERY_DRAFT_KEY,JSON.stringify(legacyDraft.recovery));
 }catch(e){}
 
-// v36.156: rebuild saved work only after every model extension is ready.
+// v36.158: rebuild saved work only after every model extension is ready.
 function v36153RestoreStartupWorkspace(){
 const hadRestoredDraft=restoreUiDraft();
 if(!hadRestoredDraft)restoreLastView();
@@ -16627,9 +16643,10 @@ function v3679ReconcileSecondaryOutcomes(){
  // ---------------------------------------------------------------------------
  const v3690FuturePlanRowsCache=new Map(),v3690FuturePlanRowsResolving=new Set();
  const v3690OriginalPlannedRowsForDate=utmPlannedRowsForDate;
+ const v36157ForecastSignatures=new WeakMap();
  function v3690ForecastSignature(){
    if(!rollingForecastActive)return 'live';
-   return 'rf:'+rollingForecastVirtualRows.map(r=>String(r?.date||'')+':'+String(r?.session||'')+':'+String(r?.exercise||'')).join(';');
+   const rows=rollingForecastVirtualRows,previous=v36157ForecastSignatures.get(rows),last=rows.at(-1);if(previous&&previous.length===rows.length&&previous.last===last&&previous.revision===utmModelRevision)return previous.value;const value='rf:'+rows.map(r=>String(r?.date||'')+':'+String(r?.session||'')+':'+String(r?.exercise||'')).join(';');v36157ForecastSignatures.set(rows,{length:rows.length,last,revision:utmModelRevision,value});return value;
  }
  function v3690TrimMap(map,max,drop){if(map.size<=max)return;[...map.keys()].slice(0,drop).forEach(k=>map.delete(k))}
  utmPlannedRowsForDate=function(dateISO){
@@ -16727,7 +16744,7 @@ function v3679ReconcileSecondaryOutcomes(){
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.156';
+const V3691_BUILD='36.158';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -17152,7 +17169,7 @@ v3691Init();
     const intent=document.querySelector('#log .workout-intent-bar'),tracker=document.getElementById('workoutSessionTracker'),finish=document.querySelector('#log .session-feel');
     if(!document.getElementById('logSetupDetails'))ensureStage(intent,'Choose / change workout','01');
     ensureStage(tracker,(typeof logDate!=='undefined'&&logDate?.value===localISO(new Date()))?"Today’s workout":'Workout','02');ensureStage(finish,'Finish & feedback','03');
-    const stage=tracker?.previousElementSibling;if(stage?.classList?.contains('v3693-stage')){const label=stage.querySelector('span');if(label)label.textContent=(typeof logDate!=='undefined'&&logDate?.value===localISO(new Date()))?"Today’s workout":'Workout'}
+    const stage=tracker?.previousElementSibling;if(stage?.classList?.contains('v3693-stage')){const label=stage.querySelector('span');if(label){const value=(typeof logDate!=='undefined'&&logDate?.value===localISO(new Date()))?"Today’s workout":'Workout';if(label.textContent!==value)label.textContent=value}}
   }
   function syncRpeRows(root=document){
     root.querySelectorAll('.rpe-optional-row').forEach(row=>{
@@ -17162,7 +17179,7 @@ v3691Init();
   }
   function syncConditioningLabels(root=document){
     root.querySelectorAll('.conditioning-swap-actions .conditioning-swap-btn').forEach(btn=>{
-      const m=btn.dataset.swap;if(m==='similar')btn.textContent='Similar';else if(m==='easier')btn.textContent='Easier';else if(m==='harder')btn.textContent='Harder';
+      const value=({similar:'Similar',easier:'Easier',harder:'Harder'})[btn.dataset.swap];if(value&&btn.textContent!==value)btn.textContent=value;
     });
   }
   function hasQuickCompletableStrength(){
@@ -19218,7 +19235,9 @@ window.v36125WireFormLabels=v36125WireFormLabels;v36125WireFormLabels(document);
 // v36.140: actual row dose is immutable between model saves. Reuse that calculation
 // throughout fatigue/development scoring, returning copies to protect callers' annotations.
 let v36140ActualStimulusMemo=new WeakMap();const v36140PriorRowStimulus=utmRowStimulus;
-utmRowStimulus=function(row){if(!row||typeof row!=='object'||row.projectedForecast)return v36140PriorRowStimulus(row);let out=v36140ActualStimulusMemo.get(row);if(!out){out=v36140PriorRowStimulus(row);v36140ActualStimulusMemo.set(row,out)}return JSON.parse(JSON.stringify(out))};
+function v36157CopyStimulus(value){if(Array.isArray(value))return value.map(v36157CopyStimulus);if(value&&typeof value==='object'){const out={};for(const key in value)out[key]=v36157CopyStimulus(value[key]);return out}return value}
+const v36157ProjectedStimulusMemo=new WeakMap();
+utmRowStimulus=function(row){if(!row||typeof row!=='object')return v36140PriorRowStimulus(row);if(row.projectedForecast){const key=utmModelRevision+'|'+v36126ForecastMemoSignature(),prior=v36157ProjectedStimulusMemo.get(row);if(prior?.key===key)return v36157CopyStimulus(prior.out);const out=v36140PriorRowStimulus(row);v36157ProjectedStimulusMemo.set(row,{key,out});return v36157CopyStimulus(out)}let out=v36140ActualStimulusMemo.get(row);if(!out){out=v36140PriorRowStimulus(row);v36140ActualStimulusMemo.set(row,out)}return v36157CopyStimulus(out)};
 const v36140FitnessMemo=new Map(),v36140PriorLongTermFitness=utmLongTermFitness;
 utmLongTermFitness=function(dateISO){const key=[utmModelRevision,dateISO,modelAsOfTimestamp(dateISO),v36126ForecastMemoSignature()].join('|');if(v36140FitnessMemo.has(key))return v36140FitnessMemo.get(key);const out=v36140PriorLongTermFitness(dateISO);v36140FitnessMemo.set(key,out);if(v36140FitnessMemo.size>96)v36140FitnessMemo.delete(v36140FitnessMemo.keys().next().value);return out};
 const v36140PriorInvalidate=utmInvalidateCaches;utmInvalidateCaches=function(){v36140ActualStimulusMemo=new WeakMap();v36140FitnessMemo.clear();return v36140PriorInvalidate.apply(this,arguments)};
@@ -19226,7 +19245,7 @@ const v36140PriorInvalidate=utmInvalidateCaches;utmInvalidateCaches=function(){v
 // Notify presentation after the authoritative asynchronous persistence wrapper succeeds.
 const v36152PriorSave=save;
 save=function(reason='general'){const ok=v36152PriorSave(reason);if(ok)window.dispatchEvent(new CustomEvent('hybrid:state-saved',{detail:{reason}}));return ok};
-// v36.156 UI helpers use the same model and protected scheduling actions as the calendar.
+// v36.158 UI helpers use the same model and protected scheduling actions as the calendar.
 function v36152HistoryFilters(){return {from:document.getElementById('historyFrom')?.value||'',to:document.getElementById('historyTo')?.value||'',family:document.getElementById('historyFamily')?.value||'all',exercise:(document.getElementById('historyExercise')?.value||'').trim().toLowerCase()}}
 function v36152HistoryGroupMatches(g,f=v36152HistoryFilters()){
  if(f.exercise&&!g.rows.some(r=>String(r.exercise||'').toLowerCase().includes(f.exercise)))return false;
@@ -19292,23 +19311,10 @@ function v36155KbInternal(target,inventory=v36155KbInventory()){
  const result=best===null?null:{baseKg:Number(inventory.baseKg),targetKg:Number(target),plates:best.sort((a,b)=>b-a),count:best.length};if(KB_INTERNAL_CONTENT_CACHE.size>64)KB_INTERNAL_CONTENT_CACHE.clear();KB_INTERNAL_CONTENT_CACHE.set(cacheKey,result);return result;
 }
 function v36155KbSequence(steps,inventory=v36155KbInventory()){
- const key='sequence|'+JSON.stringify([steps.map(s=>(s.actions||[]).filter(a=>a.kind==='heavy').map(a=>[a.id,a.kg])),inventory.baseKg,inventory.plates]);
- if(KB_INTERNAL_CONTENT_CACHE.has(key))return JSON.parse(JSON.stringify(KB_INTERNAL_CONTENT_CACHE.get(key)));
- const plates=inventory.plates,n=plates?.length;if(!n||n>16||plates.some(x=>!Number.isFinite(Number(x))||Number(x)<=0)||!(Number(inventory.baseKg)>0))return steps.map(()=>[]);
- const candidates=new Map(),bits=mask=>{let count=0;while(mask){mask&=mask-1;count++}return count},parts=mask=>plates.filter((_,i)=>mask&(1<<i)).map(Number).sort((a,b)=>b-a),less=(a,b)=>!b||a.some((x,i)=>x!==b[i]&&a.slice(0,i).every((v,j)=>v===b[j])&&x<b[i]);
- for(let mask=0;mask<2**n;mask++){let kg=Number(inventory.baseKg);for(let i=0;i<n;i++)if(mask&(1<<i))kg+=Number(plates[i]);const tag=kg.toFixed(4);if(!candidates.has(tag))candidates.set(tag,[]);candidates.get(tag).push(mask)}
  const output=steps.map(()=>[]),ids=[...new Set(steps.flatMap(s=>(s.actions||[]).filter(a=>a.kind==='heavy').map(a=>a.id)))];
- for(const id of ids){const timeline=steps.flatMap((s,index)=>(s.actions||[]).filter(a=>a.kind==='heavy'&&a.id===id).map(a=>({index,...a})));let states=[];
-  for(let index=0;index<timeline.length;index++){const item=timeline[index],possible=candidates.get(Number(item.kg).toFixed(4))||[];if(!possible.length){states=[];break}const next=[];
-   for(const mask of possible){const count=bits(mask);let best=null;
-    if(!index)best={mask,rank:[0,count,count],path:[mask]};else for(const previous of states){const rank=[previous.rank[0]+bits(previous.mask^mask),previous.rank[1]+count,previous.rank[2]];if(!best||less(rank,best.rank))best={mask,rank,path:[...previous.path,mask]}}
-    next.push(best)
-   }states=next;
-  }
-  let best=null;for(const candidate of states)if(!best||less(candidate.rank,best.rank))best=candidate;if(!best)continue;
-  timeline.forEach((item,i)=>{const mask=best.path[i],from=i?best.path[i-1]:null;output[item.index].push({id,label:item.label||id,result:{baseKg:Number(inventory.baseKg),targetKg:Number(item.kg),plates:parts(mask),count:bits(mask)},keep:from===null?[]:parts(from&mask),remove:from===null?[]:parts(from&~mask),add:from===null?parts(mask):parts(mask&~from),moves:from===null?0:bits(from^mask),initial:from===null,totalChanges:best.rank[0]})});
- }
- if(KB_INTERNAL_CONTENT_CACHE.size>64)KB_INTERNAL_CONTENT_CACHE.clear();KB_INTERNAL_CONTENT_CACHE.set(key,output);return JSON.parse(JSON.stringify(output));
+ for(const id of ids){const timeline=steps.flatMap((s,index)=>(s.actions||[]).filter(a=>a.kind==='heavy'&&a.id===id).map(a=>({index,...a}))),layout=window.HybridKbInternalStack?.optimize(timeline.map(a=>a.kg),inventory);if(!layout)continue;
+ timeline.forEach((item,i)=>{const stack=layout.stacks[i],change=i?layout.changes[i-1]:{keep:[],remove:[],add:stack,moves:0};output[item.index].push({id,label:item.label||id,result:{baseKg:Number(inventory.baseKg),targetKg:Number(item.kg),plates:stack,count:stack.length},...change,initial:i===0,totalChanges:layout.moves,ordered:true})})
+ }return output;
 }
 function v36156PlateChips(plates){return plates.length?plates.map(x=>'<span class="kb-plate-chip">'+htmlSafe(x+' kg')+'</span>').join(''):'<span class="muted">No plates</span>'}
 function v36155KbSequenceHtml(entries){
@@ -19316,11 +19322,11 @@ function v36155KbSequenceHtml(entries){
  for(const e of entries){const key=JSON.stringify([e.result,e.keep,e.remove,e.add,e.initial,e.moves]);const match=groups.find(g=>g.key===key);if(match)match.entries.push(e);else groups.push({key,entries:[e]})}
  return '<div class="kb-internal-plates">'+groups.map(g=>{const e=g.entries[0],list=p=>p.map(x=>x+' kg').join(' + '),label=g.entries.length>1?'Both bells · per bell':e.label;
  const change=e.initial?'Load '+(e.add.length?list(e.add):'empty shell'):!e.moves?'Keep plates · no changes':[(e.remove.length?'Remove '+list(e.remove):''),(e.add.length?'Add '+list(e.add):'')].filter(Boolean).join(' · ');
- return '<div class="kb-plate-row"><div class="kb-plate-heading"><strong>'+htmlSafe(e.result.targetKg+' kg')+'</strong><span>'+htmlSafe(label)+' · '+e.result.count+' plate'+(e.result.count===1?'':'s')+'</span></div><div class="kb-plate-chips" aria-label="Internal plates">'+v36156PlateChips(e.result.plates)+'</div><div class="kb-plate-change">'+htmlSafe(change)+'</div></div>'}).join('')+'</div>';
+ return '<div class="kb-plate-row"><div class="kb-plate-heading"><strong>'+htmlSafe(e.result.targetKg+' kg')+'</strong><span>'+htmlSafe(label)+' · '+e.result.count+' plate'+(e.result.count===1?'':'s')+'</span></div><div class="kb-plate-change">'+htmlSafe(change)+'</div><details class="kb-plate-contents"><summary>'+e.result.count+' plates · contents & order</summary><div class="muted">Retained base → access end</div><div class="kb-plate-chips" aria-label="Internal plates in loading order">'+v36156PlateChips(e.result.plates)+'</div></details></div>'}).join('')+'</div>';
 }
 function v36155KbInternalHtml(kg){const result=v36155KbInternal(kg);return result?v36155KbSequenceHtml([{label:'Per bell',result,keep:[],remove:[],add:result.plates,initial:true,moves:0}]):'<div class="kb-internal-plates">'+htmlSafe('No exact plate combination for '+kg+' kg. Check your inventory.')+'</div>'}
 function v36155RenderKbContents(){
- const cards=[...plannedExercises.querySelectorAll('.log-exercise')],sequence=v36155KbSequence(cards.map(card=>({actions:v36153ReadKbSetup(card)?.actions||[]})));
+ const cards=[...plannedExercises.querySelectorAll('.log-exercise')];v36157RefreshKbLayout(cards);const sequence=v36155KbSequence(cards.map(card=>({actions:v36153ReadKbSetup(card)?.actions||[]})));
  for(const [index,card] of cards.entries()){
   card.querySelector('.kb-internal-inline')?.remove();
   const setup=v36153ReadKbSetup(card),name=currentCardExercise(card),kg=parseKg(valueOf(card,'.le-weight')),eligible=card.dataset.conditioning!=='1'&&(kbExercise(name)||/^Kettlebell |^KB /.test(name)),dial=setup?.actions?.every(a=>a.kind==='dial');let host=card.querySelector('.kb-internal-live');
@@ -19329,19 +19335,68 @@ function v36155RenderKbContents(){
   const html=sequence[index]?.length?v36155KbSequenceHtml(sequence[index]):v36155KbInternalHtml(kg);if(host._kbContentsHtml!==html){host.innerHTML=html;host._kbContentsHtml=html}
  }
  let form=document.getElementById('kbInternalInventory');const has=!!plannedExercises.querySelector('.kb-internal-live');
- if(!form&&has){form=document.createElement('details');form.id='kbInternalInventory';form.className='notice';const inv=v36155KbInventory();form.innerHTML='<summary>Plate inventory & shell weight</summary><p>For each 70 lb bell. Photo-based default: 12 kg shell; verify your markings. Enter each physical plate, including duplicates. The 40 lb bell uses its dial.</p><label>Empty shell (kg)<input type="number" min="0.1" step="0.1" class="kb-shell-kg" value="'+attrSafe(inv.baseKg)+'"></label><label>Internal plates (kg, comma separated)<input class="kb-plate-inventory" value="'+attrSafe(inv.plates.join(', '))+'"></label><button class="btn" type="button">Save inventory</button><p role="status"></p>';plannedExercises.insertAdjacentElement('beforebegin',form);form.querySelector('button').addEventListener('click',()=>{const baseKg=Number(form.querySelector('.kb-shell-kg').value),tokens=form.querySelector('.kb-plate-inventory').value.split(',').map(x=>x.trim()),plates=tokens.map(Number);if(!(baseKg>0)||tokens.some(x=>!x)||plates.length>16||plates.some(x=>!Number.isFinite(x)||x<=0)){form.querySelector('[role=status]').textContent='Enter a positive shell weight and up to 16 positive plate weights.';return}state.settings.kbInternalPlates={baseKg,plates,source:'Your saved plate inventory. Plate counts show contents, not assembly order.'};save('kb-internal-inventory');form.querySelector('[role=status]').textContent='Inventory saved.';v36155RenderKbContents()})}
- form?.classList.toggle('hidden',!has);
+ if(!form&&has){form=document.createElement('details');form.id='kbInternalInventory';form.className='notice';const inv=v36155KbInventory();form.innerHTML='<summary>Plate inventory & shell weight</summary><p>For each 70 lb bell. Photo-based default: 12 kg shell; verify your markings. Enter each physical plate, including duplicates. The 40 lb bell uses its dial. Use a loading order permitted by your bell.</p><label>Empty shell (kg)<input type="number" min="0.1" step="0.1" class="kb-shell-kg" value="'+attrSafe(inv.baseKg)+'"></label><label>Internal plates (kg, comma separated)<input class="kb-plate-inventory" value="'+attrSafe(inv.plates.join(', '))+'"></label><button class="btn" type="button">Save inventory</button><p role="status"></p>';plannedExercises.insertAdjacentElement('beforebegin',form);form.querySelector('button').addEventListener('click',()=>{const baseKg=Number(form.querySelector('.kb-shell-kg').value),tokens=form.querySelector('.kb-plate-inventory').value.split(',').map(x=>x.trim()),plates=tokens.map(Number);if(!(baseKg>0)||tokens.some(x=>!x)||plates.length>16||plates.some(x=>!Number.isFinite(x)||x<=0)){form.querySelector('[role=status]').textContent='Enter a positive shell weight and up to 16 positive plate weights.';return}state.settings.kbInternalPlates={baseKg,plates,source:'Your saved plate inventory. Plate counts show contents, not assembly order.'};save('kb-internal-inventory');form.querySelector('[role=status]').textContent='Inventory saved.';v36155RenderKbContents()})}
+ form?.classList.toggle('hidden',!has);v36157RenderLoadingOverview(cards,sequence);v36157CompactWorkoutCards(cards);
 }
 
+function v36157RefreshKbLayout(cards){
+ const eligible=cards.filter(c=>c.dataset.conditioning!=='1'&&kbExercise(currentCardExercise(c))&&parseKg(valueOf(c,'.le-weight'))>0&&!['skipped','missed'].includes(String(valueOf(c,'.le-status')).toLowerCase()));
+ const equipment=(()=>{for(const c of cards){try{const e=v36153ReadKbSetup(c)?.equipment||JSON.parse(c.dataset.kbAvailableEquipment||'null');if(e)return e}catch(_e){}}return logSession.value==='Strength-Endurance'?baseSEEquipmentForDate(logDate.value):v36141KbEquipment(logDate.value)})();
+ const signature=JSON.stringify([logDate.value,logSession.value,equipment,cards.map(c=>[currentCardExercise(c),valueOf(c,'.le-weight'),valueOf(c,'.le-status')]),v36155KbInventory()]);
+ if(plannedExercises._kbLayoutSignature===signature&&eligible.every(c=>c.dataset.kbBellSetup))return;
+ plannedExercises._kbLayoutSignature=signature;
+ cards.filter(c=>!eligible.includes(c)).forEach(c=>{if(c.dataset.kbBellSetup)v36153RestoreKbSetup(c,null)});
+ if(!eligible.length){plannedExercises.querySelector('.kb-setup-changed')?.remove();return}
+ const rows=eligible.map(c=>({exercise:currentCardExercise(c),kg:parseKg(valueOf(c,'.le-weight')),weight:valueOf(c,'.le-weight'),kbIntent:/swing/i.test(currentCardExercise(c))?'conditioning':'strength'})),plan=v36153OrganizeKbPlan(rows,equipment,{group:false});
+ eligible.forEach((c,i)=>v36153RestoreKbSetup(c,plan[i]?.kbSetup||null));
+ const warning=plannedExercises.querySelector('.kb-setup-changed');
+ if(plan.every(r=>r.kbSetup)){if(warning)warning.textContent='Loading sequence recalculated for your edited workout.'}
+ else if(warning)warning.textContent='Some entered weights do not fit the available bells. Check the loading details; targets have not been rounded.';
+}
+function v36157RenderLoadingOverview(cards,sequence){
+ const kb=cards.flatMap((c,i)=>(v36153ReadKbSetup(c)?.actions||[]).map(a=>({card:c,index:i,action:a,internal:sequence[i]?.find(e=>e.id===a.id)}))),barRows=logSession.value==='Barbell Strength'?v36153ApplyBarbellPlatePlan(cards.map(c=>({exercise:currentCardExercise(c),weight:valueOf(c,'.le-weight'),status:valueOf(c,'.le-status')})),'Barbell Strength').filter(r=>r.plateLayout&&!r.plateLayout.unavailable):[];
+ let host=document.getElementById('workoutLoadingOverview');if(!kb.length&&!barRows.length){host?.remove();return}
+ if(!host){host=document.createElement('section');host.id='workoutLoadingOverview';host.className='notice';plannedExercises.insertAdjacentElement('beforebegin',host)}
+ const list=p=>p.length?p.map(x=>x+' kg').join(' → '):'empty shell',change=e=>e.initial?'Initial load':!e.moves?'No changes':[(e.remove.length?'Remove '+e.remove.join(' → ')+' kg':''),(e.add.length?'Add '+e.add.join(' → ')+' kg':'')].filter(Boolean).join('; ');
+ const initial=kb.filter(x=>x.action.action==='set'),steps=kb.map(x=>'<tr><td>'+htmlSafe(currentCardExercise(x.card))+'</td><td>'+htmlSafe(x.action.label+' · '+v36153BellWeight(x.action))+'</td><td>'+htmlSafe(x.internal?change(x.internal):x.action.action==='keep'?'Keep dial':'Set dial')+'</td></tr>');
+ const start=kb.length?initial.map(x=>'<div><strong>'+htmlSafe(x.action.label+' · '+v36153BellWeight(x.action))+'</strong>'+(x.internal?'<span class="muted"> · '+htmlSafe(list(x.internal.result.plates))+'</span>':'')+'</div>').join(''):barRows[0].plateLayout.sequence.slice(0,1).map(name=>{const row=barRows.find(r=>r.exercise===name);return '<div><strong>'+htmlSafe(name+' · '+row.weight+' total')+'</strong><span class="muted"> · per side: '+htmlSafe(v36153PlateStackText(row.plateLayout.stack))+'</span></div>'}).join('');
+ if(!kb.length){const ordered=barRows[0].plateLayout.sequence;ordered.forEach(name=>{const row=barRows.find(r=>r.exercise===name),c=row.plateLayout.change;steps.push('<tr><td>'+htmlSafe(name)+'</td><td>'+htmlSafe(row.weight+' total')+'</td><td>'+htmlSafe(!c?'Initial load':!c.moves?'No changes':[c.remove.length?'Remove '+v36153PlateStackText(c.remove):'',c.add.length?'Add '+v36153PlateStackText(c.add):''].filter(Boolean).join('; ')+' lb / side')+'</td></tr>')})}
+ const html='<strong>Workout loading plan</strong><div class="loading-start">'+start+'</div><details><summary>'+steps.length+' loading steps · view adjustments</summary><div class="loading-table-wrap"><table><thead><tr><th>Exercise</th><th>Bell / load</th><th>Change</th></tr></thead><tbody>'+steps.join('')+'</tbody></table></div><p class="muted">Order runs from the retained base toward the access end. Remove from the access end first; add in the listed order. This is a plan for the exercise sequence.</p></details>';
+ if(host._loadingHtml!==html){const open=host.querySelector('details')?.open;host.innerHTML=html;host._loadingHtml=html;if(open)host.querySelector('details').open=true}
+}
+function v36157CompactWorkoutCards(cards){
+ for(const card of cards){const guide=card.querySelector('.movement-guide'),why=card.querySelector('.v36149-target-evidence');if(guide)guide.classList.add('workout-optional-explanation');if(why)why.classList.add('workout-optional-explanation');
+ const setup=card.querySelector('.kb-bell-setup');if(setup?.querySelector('.kb-internal-live')){setup.querySelector('p')?.classList.add('kb-loading-context')}
+ }
+}
+// Pure exercise-pair geometry and timestamp parsing dominate cold projections.
+// Preserve model revision invalidation and return caller-owned transfer objects.
+(function(){
+ const exact=rowSessionExactTimestamp,timestamps=new WeakMap();
+ function read(row){if(!row||typeof row!=='object')return {exact:exact(row),ordering:NaN};const prior=timestamps.get(row);if(prior&&prior.date===row.date&&prior.time===row.sessionTime&&prior.timestamp===row.sessionTimestamp)return prior;const value=exact(row),out={date:row.date,time:row.sessionTime,timestamp:row.sessionTimestamp,exact:value,ordering:Number.isFinite(value)?value:validIsoDateValue(row.date)?new Date(row.date+'T12:00:00').getTime():NaN};timestamps.set(row,out);return out}
+ rowSessionExactTimestamp=row=>read(row).exact;
+ // The original ordering function calls the exact parser. Avoid recursive wrappers.
+ rowSessionTimestamp=function(row){const cached=read(row);return Number.isFinite(cached.exact)?cached.exact:cached.ordering};
+ const slot=gymMovementSlot,slots=new Map();gymMovementSlot=function(exercise){const key=typeof exercise==='string'?exercise:JSON.stringify([exercise?.name,exercise?.family]);if(slots.has(key))return slots.get(key);const value=slot(exercise);slots.set(key,value);if(slots.size>512)slots.delete(slots.keys().next().value);return value};
+})();
+
+// Repeated future-date rendering must not redo the same recommendation tree.
+(function(){const prior=renderSelectedWorkout;let stamp='';renderSelectedWorkout=function(){
+ const future=selectedDateISO>localISO(new Date()),key=JSON.stringify([selectedDateISO,utmModelRevision,state._persistedAt,Date.now()/(5*60*1000)|0,logDate.value,logTime.value,logSession.value]);
+ if(future&&stamp===key&&tbList?.children.length)return;
+ const result=prior.apply(this,arguments);stamp=key;return result;
+}})();
+
 let v36156KbRefreshFrame=0;
-function v36156QueueKbContents(event){if(!event.target.closest?.('#plannedExercises'))return;if(event.type!=='click'&&!event.target.matches('.le-weight,.le-ex,.le-custom'))return;if(v36156KbRefreshFrame)return;v36156KbRefreshFrame=requestAnimationFrame(()=>{v36156KbRefreshFrame=0;v36155RenderKbContents()})}
+function v36156ScheduleKbRefresh(){if(v36156KbRefreshFrame)return;v36156KbRefreshFrame=requestAnimationFrame(()=>{v36156KbRefreshFrame=0;v36155RenderKbContents()})}
+function v36156QueueKbContents(event){if(!event.target.closest?.('#plannedExercises'))return;if(event.type!=='click'&&!event.target.matches('.le-weight,.le-ex,.le-custom,.le-status'))return;v36156ScheduleKbRefresh()}
 ['input','change','click'].forEach(type=>document.addEventListener(type,v36156QueueKbContents));
 
 window.HybridCore=Object.seal({
  barbellPlatePlan:v36153ApplyBarbellPlatePlan,refreshBarbellPlateVisuals:v36153RefreshBarbellPlateVisuals,
  organizeKbPlan:v36153OrganizeKbPlan,kbSetupHtml:v36153KbSetupHtml,readKbSetup:v36153ReadKbSetup,
  uiDayState:()=>({date:selectedDateISO,context:dayTrainingContextFor(selectedDateISO),contextText:v36151ContextSummary(selectedDateISO).text,anchor:fixedAnchorBaseForDate(selectedDateISO),active:v3685ReadActiveWorkout()}),
- uiSelectDate:(date)=>{selectedDateISO=date;selectedDateUserTouched=true;showView('dashboard',{preserveDate:true});renderWeek();renderSelectedWorkout()},
+ uiSelectDate:(date)=>{selectedDateISO=date;selectedDateUserTouched=true;showView('dashboard',{preserveDate:true})},
  uiOpenContext:(date)=>openDayContextForDate(date),uiOpenWorkout:(date)=>startSelectedWorkout(date),
  uiEditWorkout:(date)=>{startSelectedWorkout(date);v36155EditWorkout()},
  uiChangeWorkout:(date)=>{startSelectedWorkout(date);v36114LogPanel='build';v36114RenderLogFlowChooser()},
@@ -19854,9 +19909,9 @@ window.HybridCore=Object.seal({
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>scan());else scan();new MutationObserver(items=>items.forEach(m=>m.addedNodes.forEach(queue))).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
-<script src="app-shell-v36.119.js?v=36.156"></script>
-<script src="adaptive-personalization-v36.120.js?v=36.156"></script>
-<script src="ui-workflows.js?v=36.156"></script>
+<script src="app-shell-v36.119.js?v=36.158"></script>
+<script src="adaptive-personalization-v36.120.js?v=36.158"></script>
+<script src="ui-workflows.js?v=36.158"></script>
 
 <script id="v36116-build-note">
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.

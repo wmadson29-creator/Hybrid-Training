@@ -153,7 +153,7 @@ function installWorkoutBar(){
 }
 function latestCompletedSetTime(){let t=0;exerciseCards().forEach(c=>$$('.set-detail-row',c).forEach(r=>t=Math.max(t,Number(r.dataset.completedAt)||0)));return t}
 function syncRestClock(){
- const e=$('#v36101RestClock');if(!e)return;const a=core.readActiveWorkout(),elapsed=sessionElapsed(a),t=latestCompletedSetTime(),parts=[];if(elapsed)parts.push('Session '+fmtClock(elapsed));if(t){const rest=Math.max(0,Math.floor((Date.now()-t)/1000));parts.push('Rest '+fmtClock(rest))}if(a?.status==='paused')parts.push('Paused');e.textContent=parts.join(' • ');
+ const e=$('#v36101RestClock');if(!e)return;const a=core.readActiveWorkout(),elapsed=sessionElapsed(a),t=latestCompletedSetTime(),parts=[];if(elapsed)parts.push('Session '+fmtClock(elapsed));if(t){const rest=Math.max(0,Math.floor((Date.now()-t)/1000));parts.push('Rest '+fmtClock(rest))}if(a?.status==='paused')parts.push('Paused');const value=parts.join(' • ');if(e.textContent!==value)e.textContent=value;
 }
 function syncWorkoutMode(){
  installWorkoutBar();const active=activeMatches()&&$('#log')?.classList.contains('active'),bar=$('#v36101WorkoutModeBar');document.body.classList.toggle('v36101-workout-mode',active);bar?.classList.toggle('active',active);

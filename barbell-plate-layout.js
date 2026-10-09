@@ -17,6 +17,7 @@
   }
   let best=null,bestRank=null;
   function offer(stacks){
+   if(stacks.some((stack,i)=>stack.length!==dp[u[i]].length))return;
    const changes=stacks.slice(1).map((to,i)=>transition(stacks[i],to)),moves=changes.reduce((n,c)=>n+c.moves,0),rank=[moves,Math.max(...stacks.map(s=>s.length)),stacks.reduce((n,s)=>n+s.length,0),stacks[0].length,...stacks.flatMap(s=>[...s.map(p=>-p),0])];
    if(less(rank,bestRank)){best={stacks:stacks.map(s=>s.slice()),changes,movesPerSide:moves,totalPlateMoves:moves*2};bestRank=rank}
   }

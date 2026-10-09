@@ -1,4 +1,4 @@
-/* v36.156: practical mobile workflows. Presentation never writes training records. */
+/* v36.158: practical mobile workflows. Presentation never writes training records. */
 (()=>{
  'use strict';
  const core=window.HybridCore;if(!core)return;
@@ -147,7 +147,7 @@
  document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;if(pendingEdit&&Date.now()-pendingEdit.at>300000)pendingEdit=null;const id=t.id||'',scope=t.closest('#tbList,#workoutIntentPanel,#conditioningLibrary,#dayContextModal,#v3677DayContextModal');if(t.matches('[data-intent]')||t.closest('[data-v3677="context"]')||/save.*context|context.*save|builder.*save|save.*builder|use.*conditioning|switch.*mode/i.test(id)||scope&&t.matches('[data-session],[data-mode],.use-conditioning,.adaptive-mode-btn'))beginEdit(t.matches('.use-conditioning')?$('#conditioningTargetDate')?.value||core.uiDayState().date:core.uiDayState().date)},true);
  document.addEventListener('change',e=>{if(e.target.id==='blockModeSelect')beginEdit(core.uiDayState().date)},true);
  window.addEventListener('hybrid:state-saved',()=>{if(pendingEdit&&pendingEdit.stamp!==programmingStamp())setTimeout(settleEdit,0)});
- const run=()=>{raf=0;today();history();log();trends()};
+ const run=()=>{raf=0;const active=$('.view.active')?.id;if(active==='dashboard')today();else if(active==='history')history();else if(active==='log')log();else if(active==='trends')trends()};
  const queue=()=>{if(!raf)raf=requestAnimationFrame(run)};new MutationObserver(queue).observe(document.body,{childList:true,subtree:true});document.addEventListener('change',queue);document.addEventListener('click',queue);run();
  // Read-only inspection and explicit capture are useful to native controls and QA.
  window.HybridUIWorkflows=Object.freeze({beginScheduleEdit:beginEdit,refresh:queue,scheduleFeedback:()=>({pendingDate:pendingEdit?.date||'',pendingChanged:!!pendingEdit&&pendingEdit.stamp!==programmingStamp(),report:recalc})});

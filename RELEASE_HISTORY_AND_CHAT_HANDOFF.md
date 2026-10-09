@@ -1,3 +1,45 @@
+# Hybrid Training — current handoff v36.158
+
+## October 9, 2026: performance QA/QC
+
+Latest request: “Do some qa qc and see what its so slow and laggy.” Profiled the supplied export, fixed confirmed observer feedback loops and repeated forecast calculations, and ran the broad regression suites. No GitHub push or deployment was requested/performed.
+
+Confirmed root cause: adaptive-personalization-v36.120.js rewrote identical status/weight HTML after each observed document mutation, then observed its own writes, sustaining about 16 update cycles/second including hidden views. Markup now changes only when content changes. Conditioning button labels and stage labels now compare before assigning identical text. Rest-clock writes are conditional. ui-workflows.js decorates only the active view on its queued observer pass; navigation still installs the correct view controls.
+
+utmPairRedundancy is cached symmetrically per utmModelRevision (bounded 12,000 keys). relatedExposureOverlap now has a bounded 12,000-key cache instead of frequent bulk eviction. Timestamp memo compares retained raw date/time/timestamp fields and avoids noon parsing when an exact timestamp exists. No forecast thresholds or exercise-dose logic intentionally changed. Existing freshness/invalidation protections remain.
+
+Controlled headless paired measurements: idle body mutations 128 → 0; Log-view mutations on opening 1,129 → 93; cold October 16/23 selections 1,748/2,393 ms → 1,373/2,061 ms. These are single-run development-machine values, not Android guarantees. A direct long-horizon jump still has a ~3-second main-thread task. Cold future projections remain synchronous and are the next performance limit; do not claim all lag eliminated.
+
+Validation completed: **927 export-based checks + 71 empty-history checks = 998 checks** across 22 suites and focused empty-history runs. Repeated checks are not counted twice.
+
+New test:performance observes mutation stability, confirms actual bodyweight refresh, conditioning controls, hidden-view inactivity, pair-cache reuse/revision invalidation and phone/error checks. Build/cache/assets 36.158. See QA_REPORT_v36.158.md, PERFORMANCE_REVIEW_v36.158.md and UPDATE_NOTES_v36.158.md for validation and limitations.
+
+Preserve all v36.157 preparation, compact helper, exact minimum-count and ordered switching behavior below. Include modified adaptive-personalization-v36.120.js in this cumulative ZIP (new relative to the previous update list). Package excludes the private export, raw CPU profiles and browser binaries.
+
+---
+
+# Hybrid Training — current handoff v36.157
+
+## October 8, 2026: all five approved refinements and ordered loading
+
+The user approved all five candidates: prominent changes with expandable contents, one workout loading overview, loading recalculation after edits, navigation/calendar profiling, and less workout-card clutter. All are implemented in v36.157.
+
+The user additionally required both barbell and kettlebell loading to use the fewest plates, easiest switches, and meaningful adding order. Clarified implementation: **minimum exact plate count is a hard constraint at every target**, then minimize unload/load handling among those combinations across the sequence. This supersedes prior v36.155–156 behavior that could use extra plates to save changes. Count temporary removal/replacement of outer plates when an inner plate changes.
+
+`kb-internal-stack.js` is a new runtime module, loaded by index and included in worker precache/version.required. It uses finite-inventory interval dynamic programming over shared retained bottom-plate lifetimes, avoiding factorial permutation enumeration. Results run from retained base toward access end; removals reverse the exposed suffix and additions follow the new suffix order. Optimize each allocated heavy bell's timeline independently. Do not claim an inferred manufacturer-approved physical geometry; the user's bell must permit the order. The 12 kg shell is still a labelled editable assumption. Dial40 remains distinct.
+
+Barbell loading retains symmetric stacks, fixed squat → deadlift → row sequence and purple 55 lb scope restricted to those three Barbell Strength exercises. The sequence solver now rejects any stack exceeding the standalone minimum count. Ordinary bar/machine/landmine visuals use minimum counts from their usual sizes and do not silently round off-grid totals.
+
+KB edits are reallocated in entered order with group:false, preserve actual weights/exercises/sets/reps, and regenerate exact ordered contents. A loading overview precedes the exercises. Plate-change text is visible; contents/order and workout context are expandable. All History and preparation/active draft protections remain.
+
+Performance profiling reused immutable forecast signatures, transfer geometry per model revision, timestamp parsing with field-change keys, projected stimulus with forecast-context keys and caller-owned copies, and movement slots. Repeated future rendering and duplicate dashboard entry rendering are reduced. A paired headless run measured cold future selections around 1.94/2.87 seconds in v36.156 versus 1.75/2.39 in v36.157; this is not an Android guarantee and cold forecasts still take seconds. Timer-only updates from v36.156 remain.
+
+Current build/cache/assets: **36.157**. New test `tests/ordered-loading-qa.js` uses an independent exhaustive reference in `tests/helpers/ordered-reference.cjs`; test:ordered-loading is in test:all. Updated old checks now expect recalculated edits and minimum-count stacks. Validation: **918 export checks + 62 empty-history checks**. See QA_REPORT_v36.157.md and PERFORMANCE_REVIEW_v36.157.md.
+
+The cumulative update is prepared, not pushed or deployed. Preserve unrelated repository assets and chronological evidence below.
+
+---
+
 # Hybrid Training — current handoff v36.156
 
 ## October 8, 2026: lag and compact kettlebell helper
