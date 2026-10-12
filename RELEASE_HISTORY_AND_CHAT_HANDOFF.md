@@ -1,3 +1,25 @@
+# Hybrid Training — current handoff v36.161
+
+## October 11, 2026: model interaction audit, mixed loaded core and patio context
+
+User authorized general refinements plus extensive QA/QC across muscle relationships, exercise impacts, within-workout fatigue, spacing/rest and recovery. Previous clarification allows KB-loaded core as well as bodyweight. User then specified the 70 lb bell sessions happen on a patio: avoid walking carries, prefer other exercises, and consider minor optional stationary grip finishers.
+
+Confirmed and fixed: within-session timed holds were treated as repetitions; unilateral duration did not count both sides; fatigue primarily tracked muscle overlap without separate shared bracing; all-skipped recorded set details could revert to planned work; explicit day KB setup could assign a KB load to a floor core row. session-fatigue.js now parses timed/rep duration and sides, uses actual set details when supplied, excludes skipped/warmup/zero work, uses known RPE/eligible RIR, and handles explicit before-exercise rest. Shared axial/systemic demands affect automatic Gym/Cal ordering and later targets without consuming muscle volume budgets. Grip already represented as a muscle is not counted twice. Additions are bounded and remain disclosed planning priors. Existing historical-position normalization, manual/actual field protections and stable baseline refresh are preserved.
+
+Core uses a stable three-week rotation mixing bodyweight and stationary Kettlebell Suitcase March / Kettlebell Front Rack March. Suitable already-programmed light settings are preferred, capped by core-specific load eligibility rather than copying heavy main-lift loads. Exact ordered loading includes loaded core. Two comparable comfortable own-movement exposures can earn five hold seconds, capped at 30 sec/side, without automatic load increases. Another carry cannot earn this progression. Excess grip/bracing fatigue, recovery caution or unavailable appropriate light equipment chooses the bodyweight alternative. Core adds the same labelled estimated 3–5 minutes outside the main session time budget.
+
+A/B/C presets already contain no walking carries. Overview now states the patio context; marches are explicitly in place. Optional Double Farmer Hold and Suitcase Hold are catalog/substitution choices with brief two-set 20-second prescriptions, not automatically appended workload. Existing manually selected carries/workouts remain authoritative. Main KB exercise lists, loads, rests, swing conditioning and fixed barbell anchors are unchanged.
+
+Build/cache/assets **36.161** (including worker cache name), recommendation stamp **23**, automatic Gym plan version **5**. No new runtime module. Two added suites: test:model-interactions and test:loaded-core. test:all contains 27 suites. MODEL_INTERACTION_REVIEW_v36.161.md distinguishes research directionality from app coefficients and describes uncertainty; see UPDATE_NOTES_v36.161.md and QA_REPORT_v36.161.md.
+
+Validation: **1,066 export-based checks across 27 suites + 138 focused empty-history checks = 1,204 unique checks passed**. Repeated executions are excluded.
+
+All prior export evidence remains preserved. The initial broad pass stopped on an outdated fixed five-bell-helper expectation when a loaded core row adds a sixth; assertions now count actual eligible KB rows and compare setup change counts with the solver. A new direct-API Log fixture needed an explicit tracker render after changing date/session; final active reload tests use the real tracker sequence. Affected and remaining suites passed. Focused empty-history interaction/core/fatigue/secondary tests also passed. No actual device performance benchmark or physiological accuracy claim is made.
+
+Cumulative ZIP prepared for repository upload; not pushed/deployed. Preserve v36.160 secondary-calendar agreement and recovery near top, v36.159 unique exercise loads/equipment buttons/session fatigue/Trevor research, and all ordered minimum-plate and idle-loop fixes below.
+
+---
+
 # Hybrid Training — current handoff v36.160
 
 ## October 11–12, 2026: weekly KB core, consistent secondary panels and recovery placement
