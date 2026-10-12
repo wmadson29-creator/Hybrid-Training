@@ -1,3 +1,45 @@
+# Hybrid Training — current handoff v36.160
+
+## October 11–12, 2026: weekly KB core, consistent secondary panels and recovery placement
+
+Latest requests: different bodyweight core on each kettlebell day, changing weekly; calendar secondary sometimes disagrees with lower secondary panel after primary completion; return recovery data toward the top of Today.
+
+Full Heavy/Power/Volume KB prescriptions now append one modest floor/bodyweight core finisher, with three different movements per calendar week. The three-week rotation uses the prescribed date's Monday week: Dead Bug / Reverse Crunch / Side Plank; Hollow Body Hold / Bicycle Crunch / Side Plank Hip Lift; RKC Plank / Hollow Rock / Side Plank Reach-Through. It repeats deliberately after three weeks and remains stable within a week. Each movement keeps exercise-specific progression. Two sets normally, one under recovery caution, with 60-second rest. The UI labels the additional 3–5 minutes outside the main KB time budget. Main bell doses, physical loading and conditioning remain intact. Explicit existing core and saved workout edits take priority. Bodyweight rows have no bell/plate helper. Opportunistic core does not duplicate the new finisher.
+
+Confirmed secondary mismatch: historical calendar annotation showed only completed secondary history on a completed-primary day, while the lower panel still offered a pending choice. Today with completed primary but no secondary now uses the same secondary matrix choice in both displays. Completed secondary overrides pending choices in both; past dates use actual history only. Completed secondary panels show recorded work without proposing a third workout. Custom choice labels are shared. No completed records are rewritten.
+
+Recovery snapshot is directly after the primary action panel and before Training Calendar, outside collapsed program details. Primary actions remain first. Existing current-day/carryover/expiry rules are unchanged; no missing recovery observation is invented.
+
+Build/cache/assets **36.160**, recommendation stamp **22**, automatic Gym plan model **4**. No new runtime module. New test:kb-core and test:secondary-consistency are included in test:all. Older KB assertions now separately inspect the original weighted rows and the additional core row. See UPDATE_NOTES_v36.160.md and QA_REPORT_v36.160.md.
+
+Validation: **1,012 export-based checks across 25 suites + 44 focused empty-history checks = 1,056 unique checks passed**. Repeated executions are excluded..
+
+The cumulative ZIP is prepared for repository upload, not pushed/deployed. The supplied screenshot did not show the lower secondary panel or include a new export. Tests use the prior October 8 export, seeded completed October 11 workflows and empty histories; they verify the confirmed logic split, not an exact reconstruction of unseen data. Recovery phone layout was visually inspected. No new Android performance benchmark is claimed. Preserve all v36.159 fatigue, equipment and weight-option work, Trevor research, minimum-count ordered plate switching and idle-loop fixes below.
+
+---
+
+# Hybrid Training — current handoff v36.159
+
+## October 11, 2026: within-workout fatigue, equipment and unique stacks
+
+User reported missing equipment-unavailable buttons (Wrist Roller cable attachment) and excessive same-muscle work in a Generic Gym recommendation. Clarified repeatedly that **triceps is only an example: fatigue accumulates during the same workout for all muscle groups**, including indirect compound overlap. User also requested substantial Trevor Shan / @trevorsinstinct kettlebell research inclusion, and an approach for machine/cable increments that are unique per exercise.
+
+Implemented within-workout planning via new runtime module session-fatigue.js. Generated Gym/Calisthenics volume is capped across shared muscles after duration filling; the builder does not fill the clock again after this cap. Priority-first ordering then considers cumulative and adjacent overlap, using suitable existing exercises for gaps. Timed estimates include added rest. Later automatic targets allow for prior work; gaps/longer prescribed rest partly reduce residual fatigue without resetting it. Baseline and historical position normalization prevent repeated reductions from the same existing fatigue. All coefficients/set budgets are disclosed app priors, not claimed individualized physiology or fitted research values.
+
+Pre-start and live Gym/Calisthenics edits use saved fresh baselines. Manual reps/weights and completed-set fields remain protected. History editing is excluded. Baselines and manual markers are included in preparation/active draft round trips. Refresh runs on user edits, not clock ticks or document-wide observation. Preparation saving now validates the week/date/session so an unusable draft is not reported as saved.
+
+Equipment-unavailable actions now include known loaded gym exercises, including Cable entries and attachments. The action uses the current workout date's gym profile and opens substitutions. It blocks that named exercise, not the entire cable station. Inline collapsed weight-option editors save per-exercise regular increments/min/max or an exact list in gymEquipmentProfiles[profile].exerciseLoads[exercise]. Exact lists take priority; progression/backoff uses actual adjacent weights and fatigue loading uses a permitted lower value. Existing defaults remain fallback. Settings survive reload and JSON backup as nested equipment settings. Same exercise at two physical stations in one profile shares one entry; no pulley-ratio/tension equivalence is claimed.
+
+Added ten Trevor practitioner research references: two public programming examples and eight technique lessons. Links are included in KB research drawers and a detailed review. Scientific evidence remains distinguished from coaching examples; commercial claims are not model inputs. Current heavy/power/volume KB prescription, allocation and loading solver are retained.
+
+Build/cache/assets **36.159**. New asset session-fatigue.js is required/precached. Recommendation stamp **21** and automatic Gym plan version **4** refresh old generated advice; preserve explicit manual commitments and completed records. New npm script test:session-fatigue is in test:all. See QA_REPORT_v36.159.md, SESSION_FATIGUE_MODEL_v36.159.md, TREVOR_INSTINCT_RESEARCH_v36.159.md and UPDATE_NOTES_v36.159.md.
+
+Validation: **968 export-based checks + 111 empty-history checks = 1,079 unique checks passed** across 23 suites and focused empty-history workflows. Repeated executions are excluded.
+
+The cumulative ZIP is prepared for repository upload, not pushed/deployed. No new personal export was supplied for October 11; tests use the previously supplied October 8 export and empty histories. Fixed anchors, minimum plate counts, ordered switching, preparation protections and idle-loop fixes below remain authoritative.
+
+---
+
 # Hybrid Training — current handoff v36.158
 
 ## October 9, 2026: performance QA/QC

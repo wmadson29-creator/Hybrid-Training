@@ -1,4 +1,4 @@
-/* v36.158: practical mobile workflows. Presentation never writes training records. */
+/* v36.160: practical mobile workflows. Presentation never writes training records. */
 (()=>{
  'use strict';
  const core=window.HybridCore;if(!core)return;
@@ -22,9 +22,10 @@
   const dash=$('#dashboard');if(!dash)return;
   let top=$('#v36152Primary');if(!top){
    top=document.createElement('section');top.id='v36152Primary';top.className='panel v36152-primary';top.innerHTML='<div class="label" id="v36152PrimaryDate"></div><h2 id="v36152PrimaryTitle"></h2><p id="v36152PrimaryDose"></p><p id="v36152PrimaryContext"></p><div id="v36152ResumeOther"></div>';dash.prepend(top);top.append($('#selectedWorkoutActions'));
-   const details=document.createElement('details');details.id='v36152RecoveryMore';details.className='v36152-recovery';details.innerHTML='<summary>Recovery, progress & program details</summary><div></div>';dash.append(details);
+   const details=document.createElement('details');details.id='v36152RecoveryMore';details.className='v36152-recovery';details.innerHTML='<summary>Progress & program details</summary><div></div>';dash.append(details);
    const body=$('div',details);[$('.dashboard-priority-grid',dash),$('.program-details',dash),$('#recoverySnapshot')].filter(Boolean).forEach(n=>body.append(n));
   }
+  const recovery=$('#recoverySnapshot');if(recovery&&(recovery.parentElement!==dash||recovery.previousElementSibling!==top))dash.insertBefore(recovery,top.nextElementSibling);
   const d=core.uiDayState(),title=$('#workoutTitle')?.textContent||'Your workout',selected=$('#weekStrip .day-card.selected'),dose=selected?.querySelector('.day-focus')?.textContent||$('#tbSub')?.textContent||'';
   text($('#v36152PrimaryDate'),(d.date===iso()?'Today':'Selected day')+' · '+d.date);text($('#v36152PrimaryTitle'),title);text($('#v36152PrimaryDose'),dose);text($('#v36152PrimaryContext'),d.contextText||'');
   const why=$('.v3691-why-panel',top);let whyMore=$('#v36152Why');if(why){if(!whyMore){whyMore=document.createElement('details');whyMore.id='v36152Why';whyMore.className='v36152-more';whyMore.innerHTML='<summary>Why this workout</summary>';top.append(whyMore)}if(why.parentElement!==whyMore)whyMore.append(why)}else whyMore?.remove();
