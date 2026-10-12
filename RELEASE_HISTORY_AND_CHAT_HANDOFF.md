@@ -1,3 +1,39 @@
+# Hybrid Training — current handoff v36.164
+
+## October 11, 2026 (America/Phoenix): context-aware progression and recovery rebound
+
+After reviewing hybrid-training-export (28).json (loaded build v36.162), the user explicitly clarified that Tuesday F45 disrupted Wednesday/Thursday, followed by normal Friday and weekend performance. They authorized the proposed targeted model refinement with “Do it.”
+
+Additional user clarification during packaging: Sunday’s later triceps exercises were harder because of accumulated same-workout work; each could likely have been performed more strongly if first. The user confirmed this workout preceded the newer fatigue updates. Treat its later loads as position-dependent observations, preserve the logged values and avoid interpreting them as proof of fresh-load capacity. Existing v36.159–162 spacing, shared-muscle fatigue and historical-position normalization address this; no specific higher fresh load is invented.
+
+Implemented bounded, association-labelled hard-class context in block-end progression review, comparable-exercise rebound recognition, local residual class-fatigue attenuation after a rebound, and provisional same-class response history in future pre-Barbell warnings/persistence. See UPDATE_NOTES_v36.164.md and QA_REPORT_v36.164.md. Wednesday's actual reduced sets/effort remain unchanged; actual completion credit is retained. Context discount alone does not earn TM increases. Existing manual maxes, fixed waves and schedules remain intact.
+
+A difficult reduced/sore row shortly after a hard overlapping class has 0.8 progression evidence weight, falling to 0.5 after an actual same-unit, same-exercise/session, full comparable dose at manageable known effort within seven days. Actual grip must match for pull-up rebound. Future, uncompleted, projected, unknown-effort, lighter/reduced work cannot confirm recovery. Pain flags are not discounted as class carryover. Old-class local fatigue is multiplied by 0.65 only for muscle groups with verified major exercise rebound; other workload, impact/systemic/axial stress, unverified muscles and soreness are retained.
+
+One class counts as one episode even if several lifts were affected. Learning is provisional below three episodes, uses prior actual evidence within 56 days and never sees future outcomes. Subsequent same-name class persistence increases modestly by 6% per episode, capped at 18%. The class-overlap warning labels the uncertainty. Context caches are bounded and invalidate with the model.
+
+Validation: **343 checks passed** (321 export/static checks across nine suites plus 22 focused empty-history checks), excluding retries. Latest actual export identifies the Oct. 6 F45/Oct. 7 squat/Oct. 9 rebound and preserves 67% actual completion. Negative/chronological/cache cases and progression, recovery, class, forecast and idle suites passed. The existing stack ceiling fixture was isolated from a newer real pushdown observation; its assertion was retained and all actual rows restored. No Android/physiological accuracy claim.
+
+Build/query/cache 36.164; recommendation stamp 25; Gym model remains 6. No new runtime module. New test:class-recovery extends test:all to 31 suites. All earlier cumulative changes, including v36.163 homepage disclosures, remain included.
+
+Prepared deliverables: Hybrid_Training_v36_164_GitHub_Update.zip and Hybrid_Training_Release_History_and_Chat_Handoff_v36_164.md. Not pushed/deployed. Upload extracted contents together. Private export bytes are excluded. This is the latest status; prior chronology/deployment evidence below is preserved.
+
+---
+
+# Hybrid Training — current handoff v36.163
+
+## October 11, 2026 (America/Phoenix): compact homepage workout disclosure
+
+User requested that Generic Gym and other workout types be collapsible on the homepage because full exercise lists and completed-session actions occupy too much space. The supplied screenshot showed a completed eight-exercise Gym workout. The visible screenshot supplied sufficient context; no source image alteration was needed.
+
+Implemented one native Workout details disclosure containing the selected-day exercise list, completed summaries/actions and plate legend. Workout name/date/status remain outside. The summary reports exercise count and completed-session count. It starts collapsed on reload or another selected date, retaining open/closed state during refresh of the same date. Existing action nodes/listeners remain intact. Applies across workout types, including completed history; no model/data changes.
+
+Build/query/cache **36.163**; recommendation stamp remains **24**, Gym automatic model remains **6**. New test:home-collapse extends test:all to 30 suites. UI audit/workflow tests expand the disclosure before clicking now-hidden controls. **157 focused checks passed**: static 25, disclosure 32, phone UI 41, workflows 50, idle performance 9. Eight-exercise synthetic completed Gym panel visually inspected at phone size. No fresh private export or Android benchmark used; prior QA evidence remains below.
+
+Delivered Hybrid_Training_v36_163_GitHub_Update.zip and Hybrid_Training_Release_History_and_Chat_Handoff_v36_163.md. Cumulative over v36.162. Prepared, not pushed/deployed. See UPDATE_NOTES_v36.163.md and QA_REPORT_v36.163.md. All earlier chronological development records and superseded rules below are preserved.
+
+---
+
 # Hybrid Training — current handoff v36.162
 
 ## October 11, 2026 (America/Phoenix): approved model and usability audit
