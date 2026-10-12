@@ -37,7 +37,7 @@
    const priorSets=Object.entries(weights).reduce((n,[m,v])=>Math.max(n,(used[m]||0)*v),0),scale=clamp(1-Math.max(0,exposure-1.5)*.025,.8,1),extraRest=exposure>2?Math.min(60,Math.ceil((exposure-2)*5/15)*15):0;
    const sets=setRows(row),plannedSeconds=sets.reduce((s,r)=>s+duration(r).seconds+rest(r)+extraRest,0);
    out.push({...row,sessionFatigue:{exposure:Math.round(exposure*100)/100,localExposure:Math.round(local*100)/100,sharedExposure:Math.round(sharedExposure*100)/100,priorSets:Math.round(priorSets*100)/100,scale,extraRest,estimatedSeconds:Math.round(plannedSeconds)}});
-   for(const set of sets){const time=duration(set),dose=time.dose*effortFor(set,effort);for(const [m,v] of Object.entries(weights))residual[m]=(residual[m]||0)+v*dose;for(const [k,v] of Object.entries(demands))shared[k]=(shared[k]||0)+clamp(Number(v)||0,0,1)*dose;const seconds=time.seconds+rest(set)+extraRest;decay(residual,seconds);decay(shared,seconds)}
+   for(const set of sets){const time=duration(set),dose=time.dose*effortFor(set,effort);for(const [m,v] of Object.entries(weights))residual[m]=(residual[m]||0)+v*dose;for(const [k,v] of Object.entries(demands))shared[k]=(shared[k]||0)+clamp(Number(v)||0,0,1)*dose;const elapsed=set.completedAt>set.startedAt&&set.startedAt>0?(set.completedAt-set.startedAt)/1000:time.seconds,seconds=set.completedAt>0?elapsed:time.seconds+rest(set)+extraRest;decay(residual,seconds);decay(shared,seconds)}
    for(const [m,v] of Object.entries(weights))used[m]=(used[m]||0)+v*sets.length;
   }return out;
  }

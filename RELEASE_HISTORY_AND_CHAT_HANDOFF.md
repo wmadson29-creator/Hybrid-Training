@@ -1,3 +1,23 @@
+# Hybrid Training — current handoff v36.162
+
+## October 11, 2026 (America/Phoenix): approved model and usability audit
+
+User approved **everything except proposal 2** from the broader review: implement 1 and 3–10. Machine-specific performance histories were deliberately excluded. The user also confirmed the chronological app creation document should remain the source of continuity. This section is the latest status; all earlier sections below are retained as historical records and earlier deployment evidence.
+
+Implemented evidence-gated volume learning with unknown-feedback exclusion and later comparable holdout windows; live effort/RIR/set-detail fatigue; whole prescribed Gym-combination comparisons and final Gym/Cal stress guards; domain-based penalty aggregation; workout-only equipment exclusions; preview/apply shortening of remaining strength work; alternating-set mode with measured chronology; reversible edit Undo; and pin-aware Gym/Cal accessory rebuilding. Details, scope and limitations are in UPDATE_NOTES_v36.162.md and QA_REPORT_v36.162.md.
+
+Manual/started/completed sets and saved History are protected. A rebuild has one Undo snapshot. Undo cannot erase newly performed work logged after an edit. Performed/manual/pinned rows survive rebuilding; loaded-workout focus is used rather than an unrelated calendar recommendation. Pending linked set prefills can update without replacing completed values. Temporary equipment exclusions remain workout-scoped and survive draft/preparation reloads. Fixed barbell waves/order remain intact. KB alternating sets require matching setups or bodyweight pairing, retaining exact minimum-count ordered plate instructions. Patio/stationary core and all prior module behavior remain included.
+
+New module workout-optimizer.js is required/pre-cached. Build/cache/query 36.162; recommendation model 24; automatic Gym plan model 6. New test:optimizer and test:workout-tools expand test:all to 29 suites. Class/core control tests now dismiss unrelated block-review overlays explicitly; assertions were not weakened.
+
+Validation: **1,120 unique local checks passed** using empty and synthetic histories, excluding retries. No new private export was used. A one-off paired empty-history build measurement was 6 → 89 ms for a 45-minute multi-focus Gym build and 1,472 → 1,823 ms app readiness; this additional whole-plan work is not advertised as a speedup. Idle and timer/loading protections pass. Cold future forecasts remain limited. Fatigue/learning/timing outputs are planning estimates, not measured physiology or causal proof of optimal volume.
+
+Deliverables: Hybrid_Training_v36_162_GitHub_Update.zip and Hybrid_Training_Release_History_and_Chat_Handoff_v36_162.md. ZIP is cumulative over the retrieved 36.161 release. Two unchanged runtime assets and icons omitted from that delta were filled from the existing repository for complete local validation/packaging. No GitHub push or deployment was performed. Upload extracted contents together; preserve the existing origin and data.
+
+Remaining limits: Finish-in is a strength-set planner; conditioning/classes use direct duration/interval fields. Accessory rebuild applies to Gym/Calisthenics; it does not redesign fixed Barbell/KB programs. Held-out validation requires adequate real comparable feedback, so the model may continue using provisional defaults for a long time. The user's installed Android build remains uninspected.
+
+---
+
 # Hybrid Training — current handoff v36.161
 
 ## October 11, 2026: model interaction audit, mixed loaded core and patio context
