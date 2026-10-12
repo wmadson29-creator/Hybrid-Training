@@ -1,24 +1,24 @@
-const BUILD="36.170";
+const BUILD="36.171";
 const CACHE="hybrid-training-v36-167-kb-load-layout";
-const FALLBACK="./index.html?v=36.170";
-const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.170";
+const FALLBACK="./index.html?v=36.171";
+const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.171";
 const REQUIRED_PRECACHE=[
   FALLBACK,
-  "./manifest-v36.webmanifest?v=36.170",
-  "./decision-integrity-v36.131.js?v=36.170",
-  "./actual-load-feedback-v36.126.js?v=36.170",
-  "./forecast-balance-v36.127.js?v=36.170",
-  "./exercise-expansion-v36.128.js?v=36.170",
-  "./app-shell-v36.119.css?v=36.170",
-  "./app-shell-v36.119.js?v=36.170",
+  "./manifest-v36.webmanifest?v=36.171",
+  "./decision-integrity-v36.131.js?v=36.171",
+  "./actual-load-feedback-v36.126.js?v=36.171",
+  "./forecast-balance-v36.127.js?v=36.171",
+  "./exercise-expansion-v36.128.js?v=36.171",
+  "./app-shell-v36.119.css?v=36.171",
+  "./app-shell-v36.119.js?v=36.171",
   "./stretching-flexibility-v36.119.js?v=36.119-sf1",
-  "./ui-workflows.js?v=36.170",
-  "./kb-load-layout.js?v=36.170",
-  "./barbell-plate-layout.js?v=36.170",
-  "./kb-internal-stack.js?v=36.170",
-  "./emom-templates.js?v=36.170",
-  "./session-fatigue.js?v=36.170",
-  "./workout-optimizer.js?v=36.170",
+  "./ui-workflows.js?v=36.171",
+  "./kb-load-layout.js?v=36.171",
+  "./barbell-plate-layout.js?v=36.171",
+  "./kb-internal-stack.js?v=36.171",
+  "./emom-templates.js?v=36.171",
+  "./session-fatigue.js?v=36.171",
+  "./workout-optimizer.js?v=36.171",
   PERSONALIZATION
 ];
 const OPTIONAL_PRECACHE=[
