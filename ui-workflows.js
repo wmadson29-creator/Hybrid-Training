@@ -1,4 +1,4 @@
-/* v36.175: practical mobile workflows. Presentation never writes training records. */
+/* v36.176: practical mobile workflows. Presentation never writes training records. */
 (()=>{
  'use strict';
  const core=window.HybridCore;if(!core)return;
@@ -15,6 +15,47 @@
  .v36152-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.v36152-summary-grid .card{min-width:0;padding:12px}.v36152-summary-grid strong{display:block;font-size:1.25rem;margin:4px 0}.v36152-summary-grid small{color:var(--muted)}.v36152-window{font-size:.72rem;color:var(--muted);margin:8px 0}.v36152-exercise-controls{display:grid;grid-template-columns:2fr 1fr;gap:10px}.v36152-exercise-controls select{width:100%;min-width:0}.v36152-metric-buttons{display:flex;gap:7px;margin:10px 0;flex-wrap:wrap}.v36152-metric-buttons .active{border-color:var(--accent,#4aaff3);color:var(--accent,#4aaff3)}.v36152-chart svg{display:block;width:100%;height:auto}.v36152-chart input[type=range]{width:100%;padding:0}.v36152-result{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;line-height:1.5}.v36152-result p{font-size:.75rem;color:var(--muted);margin:5px 0}.v36152-result dl{display:grid;grid-template-columns:1fr auto;gap:5px;margin:8px 0;font-size:.78rem}.v36152-result dd{margin:0;text-align:right}.v36152-result dt{color:var(--muted)}.v36152-mobile-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.v36152-mobile-metrics .v36152-result{margin:0}
  .v36175-exercise-chooser{grid-column:1/-1;border-bottom:1px solid var(--line);margin:0 0 8px;padding:6px 0}.v36175-exercise-chooser>summary{color:var(--muted);font-size:.72rem;cursor:pointer;padding:8px 0}.v36175-exercise-chooser>.field{margin-top:8px}.v36175-redundant-target{display:none}#v36175WorkoutSettings{display:grid;gap:10px;margin:12px 0}#v36175WorkoutSettings>.btn{width:100%}#v36175WorkoutEquipment>summary{font-size:.76rem;line-height:1.5}#v36175WorkoutEquipment .btn{margin-top:10px}.v36152-class-details{grid-column:1/-1;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}.v36152-class-details>summary{padding:8px 0;font-weight:800;cursor:pointer}.v36152-class-details .log-grid{padding-top:8px}.v36152-class-primary .class-focus-host{grid-column:1/-1}
  .v36152-conflict{border-left:3px solid #e8b459;padding:10px;margin:10px 0;background:rgba(232,180,89,.06);border-radius:8px}.v36152-conflict p{font-size:.78rem;line-height:1.45}.v36152-conflict form{display:grid;gap:8px;margin-top:10px}.v36152-conflict form input,.v36152-conflict form select{width:100%;min-width:0}.v36152-conflict-badge,.v36152-updated-badge{display:block;color:#efc570;font-size:.65rem;font-weight:800;margin:5px 0}.v36152-updated-badge{color:var(--accent,#4aaff3)}.day-card.v36152-updated{box-shadow:inset 0 0 0 2px var(--accent,#4aaff3)}.v36152-recalc{margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.v36152-recalc p{font-size:.78rem;line-height:1.5}.v36152-recalc li{font-size:.75rem;margin:10px 0;line-height:1.5}.v36152-recalc .btn{margin-right:6px}.v36152-more .tablewrap{max-width:100%;overflow:auto}
+ /* v36.176: consistent disclosure sizing and readable secondary screens. */
+ #dashboard #v36152RecoveryMore{padding:0;min-height:72px;border-radius:14px;background:var(--surface);overflow:hidden}
+ #dashboard #v36152RecoveryMore>summary{margin:0;min-height:72px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;line-height:1.4;font-weight:600}
+ #v36152RecoveryMore>summary::-webkit-details-marker{display:none}
+ .v36176-disclosure-copy{display:grid;gap:4px;min-width:0}
+ .v36176-disclosure-copy strong{font-size:1rem;font-weight:650;line-height:1.4}
+ .v36176-disclosure-copy small{font-size:.8125rem;line-height:1.4;color:var(--muted);font-weight:450}
+ .v36176-disclosure-toggle{color:var(--accent2);font-size:1.3rem;flex:0 0 20px;text-align:center}
+ .v36176-disclosure-toggle::before{content:'+'}#v36152RecoveryMore[open] .v36176-disclosure-toggle::before{content:'−'}
+ #dashboard #v36152RecoveryMore>div{padding:0 16px 16px;border-top:1px solid var(--line)}
+ #dashboard .home-workout-details{padding:0 14px;border-radius:14px;background:var(--surface);margin-top:14px}
+ #dashboard .home-workout-details>summary{margin:0;padding:14px 0;min-height:74px;line-height:1.4}
+ #dashboard .home-workout-details>summary strong{font-size:1rem;font-weight:650}
+ #dashboard .home-workout-details>summary span{font-size:.875rem;line-height:1.4;margin-top:4px;font-weight:450}
+ #dashboard .home-workout-details[open]{padding-bottom:14px}
+ #dashboard .v36152-primary h2,.workout-prescription-panel .panel-title{font-weight:700;letter-spacing:-.02em}
+ #history .btn,#trends .btn,#recovery .btn,#mobileMoreSheet .btn{font-size:.875rem;font-weight:600;min-height:44px;border-radius:10px;box-shadow:none}
+ #history .field label,#trends .field label,#recovery .field label{font-size:.8125rem;font-weight:600;line-height:1.4}
+ #history .hint,#trends .hint,#recovery .hint,#v36152HistoryFilters label{font-size:.8125rem;line-height:1.5}
+ #v36152HistoryFilters{background:var(--surface);border-radius:14px;padding:14px}
+ #history .mobile-data-card{padding:14px;border-radius:14px;background:var(--surface);box-shadow:none}
+ #history .mobile-data-card h4{font-size:1rem;font-weight:650}
+ #history .mobile-data-meta,#history .mobile-data-row{font-size:.8125rem;line-height:1.5}
+ #trends .v36152-result strong{font-weight:650}#trends .v36152-result p,#trends .v36152-window{font-size:.8125rem;line-height:1.5}
+ #recovery .optional-details>summary{margin:0;min-height:48px;font-size:.875rem;font-weight:600;line-height:1.4;padding:12px 2px}
+ .v36101-performance-panel>summary,.v36107-diagnostics>summary,.v36107-history-long>summary{margin:0;min-height:64px;padding:14px;gap:12px}
+ .v36101-performance-panel>summary strong,.v36107-diagnostics>summary strong,.v36107-history-long>summary strong{font-size:1rem;font-weight:650;line-height:1.35}
+ .v36101-performance-summary-kicker,.v36107-kicker,.v36107-history-long>summary span{font-size:.75rem;font-weight:600;letter-spacing:.035em;line-height:1.4}
+ .v36101-performance-note,.v36101-context-sub,.v36101-performance-summary-meta,.v36107-context-note{font-size:.8125rem;line-height:1.5;font-weight:450}
+ .v36101-performance-value{font-size:1rem;font-weight:650;line-height:1.35}
+ .v36101-context-chip{font-size:.8125rem;font-weight:550;min-height:40px}
+ #mobileMoreSheet .mobile-more-group-label{font-size:.75rem;font-weight:600;letter-spacing:.035em;margin:8px 2px 2px}
+ #mobileMoreSheet .btn{padding:12px;min-height:48px}
+ #stretching .sf-panel,#stretching .sf-card{background:var(--surface);border-radius:14px;padding:14px;box-shadow:none}
+ #stretching .sf-title{font-weight:650;letter-spacing:-.015em}#stretching .sf-card-name{font-size:1rem;font-weight:650;line-height:1.4}
+ #stretching .sf-copy,#stretching .sf-standalone,#stretching .sf-output-meta,#stretching .sf-how,#stretching .sf-why,#stretching .sf-caution,#stretching .sf-safety{font-size:.8125rem;line-height:1.5}
+ #stretching .sf-step,#stretching .sf-region-label{font-size:.75rem;font-weight:600;letter-spacing:.03em}
+ #stretching .sf-chip{font-size:.8125rem;font-weight:550;min-height:44px;border-radius:10px;padding:9px 11px}
+ #stretching .sf-dose{font-size:.875rem;line-height:1.5;font-weight:550}#stretching .sf-badge{font-size:.75rem;font-weight:500}
+ button:focus-visible,summary:focus-visible{outline:2px solid var(--accent2);outline-offset:3px}
+ @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*,*::before,*::after{scroll-behavior:auto!important;transition-duration:0s!important;animation-duration:0s!important}}
  /* A quieter hierarchy for logging: one surface per exercise, readable support text,
     and plain controls. The existing navigation and training behavior stay intact. */
  #log>.panel{background:transparent;border:0;box-shadow:none;padding:4px 0}
@@ -75,7 +116,7 @@
   const dash=$('#dashboard');if(!dash)return;
   let top=$('#v36152Primary');if(!top){
    top=document.createElement('section');top.id='v36152Primary';top.className='panel v36152-primary';top.innerHTML='<div class="label" id="v36152PrimaryDate"></div><h2 id="v36152PrimaryTitle"></h2><p id="v36152PrimaryDose"></p><p id="v36152PrimaryContext"></p><div id="v36152ResumeOther"></div>';dash.prepend(top);top.append($('#selectedWorkoutActions'));
-   const details=document.createElement('details');details.id='v36152RecoveryMore';details.className='v36152-recovery';details.innerHTML='<summary>Progress & program details</summary><div></div>';dash.append(details);
+   const details=document.createElement('details');details.id='v36152RecoveryMore';details.className='v36152-recovery';details.innerHTML='<summary><span class="v36176-disclosure-copy"><strong>Progress & program details</strong><small>Training balance and plan settings</small></span><span class="v36176-disclosure-toggle" aria-hidden="true"></span></summary><div></div>';dash.append(details);
    const body=$('div',details);[$('.dashboard-priority-grid',dash),$('.program-details',dash),$('#recoverySnapshot')].filter(Boolean).forEach(n=>body.append(n));
   }
   const recovery=$('#recoverySnapshot');if(recovery&&(recovery.parentElement!==dash||recovery.previousElementSibling!==top))dash.insertBefore(recovery,top.nextElementSibling);
@@ -84,6 +125,7 @@
   const why=$('.v3691-why-panel',top);let whyMore=$('#v36152Why');if(why){if(!whyMore){whyMore=document.createElement('details');whyMore.id='v36152Why';whyMore.className='v36152-more';whyMore.innerHTML='<summary>Why this workout</summary>';top.append(whyMore)}if(why.parentElement!==whyMore)whyMore.append(why)}else whyMore?.remove();
   const primary=$('#selectedWorkoutActions .primary');if(d.active?.date===d.date)text(primary,'Resume Workout');
   let edit=$('#editWorkoutBeforeStart');if(!d.active&&!/Full Rest|Recovery \/ Rest/.test(title)){if(!edit){edit=button('Edit workout',()=>core.uiEditWorkout(core.uiDayState().date));edit.id='editWorkoutBeforeStart';$('#selectedWorkoutActions').append(edit)}}else edit?.remove();
+  const saved=core.uiPreparedDraft?.(d.date);let resume=$('#v36176ResumePrepared');if(saved?.custom&&!d.active){if(!resume){resume=button('Resume saved edits',()=>core.uiResumePrepared(core.uiDayState().date));resume.id='v36176ResumePrepared';$('#selectedWorkoutActions').append(resume);}resume.title=saved.name+' · '+saved.role;}else resume?.remove();
   const other=$('#v36152ResumeOther');if(d.active&&d.active.date!==d.date){if(other.dataset.date!==d.active.date){other.replaceChildren(button('Resume '+d.active.date+' workout',()=>core.uiOpenWorkout(d.active.date)));other.dataset.date=d.active.date}}else if(other.childNodes.length){other.replaceChildren();delete other.dataset.date}
   conflicts(d);classOverlap(d);renderRecalc();
  }
