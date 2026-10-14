@@ -4276,7 +4276,7 @@
   }
 ];
 
-  kettlebells.push({"name": "Single-Arm Kettlebell Thruster", "family": "squat", "anatomyFamily": "squat", "defaultKg": 8, "load": "single", "unilateral": true, "power": true, "auto": false, "catalogAdded": "36.172", "primaryMuscles": ["quads", "glutes", "shoulders"], "secondaryMuscles": ["triceps", "core"], "related": ["Kettlebell Thruster", "Double Kettlebell Thruster", "Single-Arm Push Press"], "note": "Squat with one bell in the rack, then use controlled leg drive into an overhead press. Reps and load are per side; the bell stays at the weaker side's comfortable load."});
+  kettlebells.push({"name": "Single-Arm Kettlebell Thruster", "family": "squat", "anatomyFamily": "squat", "defaultKg": 8, "load": "single", "unilateral": true, "power": true, "auto": false, "catalogAdded": "36.173", "primaryMuscles": ["quads", "glutes", "shoulders"], "secondaryMuscles": ["triceps", "core"], "related": ["Kettlebell Thruster", "Double Kettlebell Thruster", "Single-Arm Push Press"], "note": "Squat with one bell in the rack, then use controlled leg drive into an overhead press. Reps and load are per side; the bell stays at the weaker side's comfortable load."});
   // Profiles are anatomical/programming descriptions, never measured activation percentages.
   const sourceCatalog=Object.freeze({
     ace:{title:'ACE exercise library — movement-family guidance',url:'https://www.acefitness.org/resources/everyone/exercise-library/',level:'Professional technique guidance; family-level match'},
