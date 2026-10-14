@@ -18,11 +18,11 @@
     g('Bicycle Crunch','Bodyweight','core',0,'bodyweight',['core'],[],['Reverse Crunch','Dead Bug','Cable Wood Chop'],'Controlled alternating trunk rotation and knee drive. Reps are per side; avoid pulling on the neck.',{increment:5}),
     g('Plate-Loaded Chest Press','Machine','chest_press',90,'total',['chest'],['triceps','shoulders'],['Machine Chest Press','Barbell Bench Press','Dumbbell Bench Press'],'Independent handles can reduce side-to-side compensation; track this machine separately because lever arms vary.'),
     g('Decline Chest Press Machine','Machine','chest_press',90,'total',['chest'],['triceps','shoulders'],['Machine Chest Press','Dumbbell Bench Press','Barbell Bench Press'],'Decline-path machine press with a chest and triceps emphasis.'),
-    g('Iso-Lateral Chest Press','Machine','chest_press',45,'per_side',['chest'],['triceps','shoulders','serratus'],['Plate-Loaded Chest Press','Dumbbell Bench Press','Machine Chest Press'],'Each arm moves independently; log load per side and keep left/right range matched.',{unilateral:true}),
+    g('Iso-Lateral Chest Press','Machine','chest_press',45,'per_side',['chest'],['triceps','shoulders','serratus'],['Plate-Loaded Chest Press','Dumbbell Bench Press','Machine Chest Press'],'Each arm moves independently; log load per side and keep left/right range matched.',{unilateral:false}),
     g('Seated Dip Machine','Machine','triceps',70,'total',['triceps','chest'],['shoulders'],['Bodyweight Dip','Close-Grip Barbell Bench Press','Rope Triceps Pushdown'],'Machine-assisted dip pattern; use a controlled shoulder range rather than forcing extra depth.'),
     g('Assisted Pull-Up Machine','Machine','vertical_pull',70,'assist',['lats','upperBack'],['biceps','grip','core'],['Pull-Up','Neutral-Grip Pull-Up','Lat Pulldown'],'The logged load is assistance, so lower numbers are harder; direct history is kept separate from bodyweight pull-ups.',{assistanceLoad:true}),
     g('Machine Pullover','Machine','vertical_pull',70,'total',['lats'],['tricepsLong','chest','core'],['Straight-Arm Pulldown','Lat Pulldown','Pull-Up'],'Shoulder-extension pull that trains the lats with little elbow-flexor demand.'),
-    g('Iso-Lateral High Row','Machine','horizontal_pull',55,'per_side',['upperBack','lats'],['biceps','shoulders','grip'],['Chest-Supported Row Machine','Lat Pulldown','Single-Arm Cable Row'],'Independent high-to-low row; log load per side and avoid rotating to finish.',{unilateral:true}),
+    g('Iso-Lateral High Row','Machine','horizontal_pull',55,'per_side',['upperBack','lats'],['biceps','shoulders','grip'],['Chest-Supported Row Machine','Lat Pulldown','Single-Arm Cable Row'],'Independent high-to-low row; log load per side and avoid rotating to finish.',{unilateral:false}),
     g('Chest-Supported T-Bar Row','Machine','horizontal_pull',70,'total',['upperBack','lats'],['biceps','grip'],['Chest-Supported Row Machine','Landmine Row','Barbell Row'],'Chest support reduces trunk fatigue while retaining a heavy horizontal-pull stimulus.'),
     g('Low Row Machine','Machine','horizontal_pull',80,'total',['lats','upperBack'],['biceps','grip'],['Cable Seated Row','Chest-Supported Row Machine','Single-Arm Cable Row'],'Low horizontal pull; keep the torso stable and finish with the elbows rather than lumbar extension.'),
     g('Machine Preacher Curl','Machine','biceps',40,'total',['biceps'],['grip'],['Cable Preacher Curl','Barbell Curl','Incline Dumbbell Curl'],'Supported elbow-flexion machine; machine geometry makes direct machine history most useful.'),
@@ -49,7 +49,7 @@
     g('Cable Hip Flexion','Cable','hip_accessory',15,'single',['quads','core'],['adductors','glutes'],['Hanging Knee Raise','Step-Up','Multi-Hip Machine'],'Cable resisted hip flexion; use a stable pelvis and log each side.',{unilateral:true}),
     g('Single-Arm Lat Pulldown','Cable','vertical_pull',35,'single',['lats'],['upperBack','biceps','grip','core'],['Lat Pulldown','Neutral-Grip Lat Pulldown','Single-Arm Cable Row'],'Unilateral vertical pull. Keep the torso quiet and use direct left/right history instead of converting the load to a bilateral pulldown.',{unilateral:true}),
     g('Wide-Grip Lat Pulldown','Cable','vertical_pull',80,'total',['lats','upperBack'],['biceps','grip'],['Lat Pulldown','Pull-Up','Neutral-Grip Lat Pulldown'],'Pronated wide-grip pulldown. It remains a vertical-pull variant; grip width is not treated as automatically superior for lat recruitment.'),
-    g('Plate-Loaded Shoulder Press','Machine','shoulder_press',45,'per_side',['shoulders'],['triceps','upperBack','serratus'],['Machine Shoulder Press','Barbell Overhead Press','Iso-Lateral Chest Press'],'Plate-loaded overhead press. Log load per side and compare progress on the same machine because lever arms differ.',{unilateral:true}),
+    g('Plate-Loaded Shoulder Press','Machine','shoulder_press',45,'per_side',['shoulders'],['triceps','upperBack','serratus'],['Machine Shoulder Press','Barbell Overhead Press','Iso-Lateral Chest Press'],'Plate-loaded overhead press. Log load per side and compare progress on the same machine because lever arms differ.',{unilateral:false}),
     g('Smith Machine Overhead Press','Machine','shoulder_press',65,'total',['shoulders'],['triceps','upperBack','serratus'],['Barbell Overhead Press','Machine Shoulder Press','Plate-Loaded Shoulder Press'],'Guided vertical press; direct Smith-machine history is more useful than converting its load to a free-weight press.'),
     g('Cable Upright Row','Cable','delts',35,'total',['shoulders','upperBack'],['biceps','grip'],['Dumbbell Lateral Raise','Cable Lateral Raise','Face Pull'],'Cable upright row using a comfortable grip and pain-free range. It overlaps lateral-delt and upper-back work but is not treated as an overhead-press substitute.'),
     g('Landmine Squat','Barbell','squat',70,'total',['quads','glutes'],['adductors','core'],['Dumbbell Goblet Squat','Barbell Front Squat','Belt Squat'],'Front-loaded squat using an anchored bar. Log total implement weight (45 lb bar plus plates on the loaded end); direct history stays separate from back squats.',{increment:5,plateVisual:'landmine'}),
@@ -3748,7 +3748,7 @@
     "defaultKg": 8,
     "load": "single",
     "auto": false,
-    "unilateral": true
+    "unilateral": false
   },
   {
     "name": "Dead-Stop Kettlebell Swing",

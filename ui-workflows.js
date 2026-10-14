@@ -1,4 +1,4 @@
-/* v36.174: practical mobile workflows. Presentation never writes training records. */
+/* v36.175: practical mobile workflows. Presentation never writes training records. */
 (()=>{
  'use strict';
  const core=window.HybridCore;if(!core)return;
@@ -13,10 +13,63 @@
  .v36152-primary{border-left:4px solid var(--accent,#4aaff3);margin-bottom:12px}.v36152-primary h2{font-size:1.25rem;margin:5px 0}.v36152-primary p{margin:6px 0;color:var(--muted);line-height:1.4}.v36152-primary .selected-workout-actions{margin:12px 0 0}.v36152-recovery>summary,.v36152-more>summary{cursor:pointer;padding:12px;font-weight:800}.v36152-recovery{border:1px solid var(--line);border-radius:16px;margin:12px 0}.v36152-recovery>div{padding:0 12px 12px}.v36152-recovery .panel{margin-top:12px}
  .v36152-history-filters{margin:0 0 12px;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px}.v36152-filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.v36152-filter-grid label{font-size:.75rem;color:var(--muted);display:block;margin:0 0 4px}.v36152-filter-grid input,.v36152-filter-grid select{width:100%;min-width:0}.v36152-history-filters .inline-actions{margin-top:10px}
  .v36152-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.v36152-summary-grid .card{min-width:0;padding:12px}.v36152-summary-grid strong{display:block;font-size:1.25rem;margin:4px 0}.v36152-summary-grid small{color:var(--muted)}.v36152-window{font-size:.72rem;color:var(--muted);margin:8px 0}.v36152-exercise-controls{display:grid;grid-template-columns:2fr 1fr;gap:10px}.v36152-exercise-controls select{width:100%;min-width:0}.v36152-metric-buttons{display:flex;gap:7px;margin:10px 0;flex-wrap:wrap}.v36152-metric-buttons .active{border-color:var(--accent,#4aaff3);color:var(--accent,#4aaff3)}.v36152-chart svg{display:block;width:100%;height:auto}.v36152-chart input[type=range]{width:100%;padding:0}.v36152-result{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;line-height:1.5}.v36152-result p{font-size:.75rem;color:var(--muted);margin:5px 0}.v36152-result dl{display:grid;grid-template-columns:1fr auto;gap:5px;margin:8px 0;font-size:.78rem}.v36152-result dd{margin:0;text-align:right}.v36152-result dt{color:var(--muted)}.v36152-mobile-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.v36152-mobile-metrics .v36152-result{margin:0}
- .v36152-class-details{grid-column:1/-1;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}.v36152-class-details>summary{padding:8px 0;font-weight:800;cursor:pointer}.v36152-class-details .log-grid{padding-top:8px}.v36152-class-primary .class-focus-host{grid-column:1/-1}
+ .v36175-exercise-chooser{grid-column:1/-1;border-bottom:1px solid var(--line);margin:0 0 8px;padding:6px 0}.v36175-exercise-chooser>summary{color:var(--muted);font-size:.72rem;cursor:pointer;padding:8px 0}.v36175-exercise-chooser>.field{margin-top:8px}.v36175-redundant-target{display:none}#v36175WorkoutSettings{display:grid;gap:10px;margin:12px 0}#v36175WorkoutSettings>.btn{width:100%}#v36175WorkoutEquipment>summary{font-size:.76rem;line-height:1.5}#v36175WorkoutEquipment .btn{margin-top:10px}.v36152-class-details{grid-column:1/-1;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}.v36152-class-details>summary{padding:8px 0;font-weight:800;cursor:pointer}.v36152-class-details .log-grid{padding-top:8px}.v36152-class-primary .class-focus-host{grid-column:1/-1}
  .v36152-conflict{border-left:3px solid #e8b459;padding:10px;margin:10px 0;background:rgba(232,180,89,.06);border-radius:8px}.v36152-conflict p{font-size:.78rem;line-height:1.45}.v36152-conflict form{display:grid;gap:8px;margin-top:10px}.v36152-conflict form input,.v36152-conflict form select{width:100%;min-width:0}.v36152-conflict-badge,.v36152-updated-badge{display:block;color:#efc570;font-size:.65rem;font-weight:800;margin:5px 0}.v36152-updated-badge{color:var(--accent,#4aaff3)}.day-card.v36152-updated{box-shadow:inset 0 0 0 2px var(--accent,#4aaff3)}.v36152-recalc{margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.v36152-recalc p{font-size:.78rem;line-height:1.5}.v36152-recalc li{font-size:.75rem;margin:10px 0;line-height:1.5}.v36152-recalc .btn{margin-right:6px}.v36152-more .tablewrap{max-width:100%;overflow:auto}
+ /* A quieter hierarchy for logging: one surface per exercise, readable support text,
+    and plain controls. The existing navigation and training behavior stay intact. */
+ #log>.panel{background:transparent;border:0;box-shadow:none;padding:4px 0}
+ #log .btn{font-weight:650;border-radius:10px;box-shadow:none;font-size:.875rem;min-height:44px}
+ #log .btn.primary{background:var(--accent);font-weight:750}
+ #log .panel-head h2{font-size:1.375rem;font-weight:700;letter-spacing:-.025em}
+ #log .hint,#log .muted,#log .effort-help,#log .session-fatigue-note{font-size:.8125rem;line-height:1.5}
+ #log .field label{font-size:.8125rem;font-weight:600;line-height:1.4;margin-bottom:6px}
+ #log input,#log select,#log textarea{border-radius:10px;font-weight:450;box-shadow:none}
+ #logFlowChooser{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:8px 0 18px;margin-bottom:16px;box-shadow:none}
+ #log .v36114-flow-kicker{font-size:.75rem;font-weight:600;letter-spacing:.045em}
+ #log .v36114-flow-title{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;line-height:1.25;margin:5px 0}
+ #log .v36114-flow-copy,#log .v36114-inline-copy{font-size:.875rem;line-height:1.5;font-weight:450}
+ #log .v36114-inline-panel{border:0;padding:12px 0 0;background:transparent}
+ #log .v36114-inline-title{font-size:1rem;font-weight:650}
+ #log .v36114-build-grid{gap:8px}
+ #log .v36114-build-btn{text-align:left;padding:12px;background:var(--surface2)}
+ #log .v36114-build-btn strong{font-size:.9375rem;font-weight:650}
+ #log .v36114-build-btn span{font-size:.8125rem;font-weight:450;line-height:1.4;margin-top:4px}
+ #preparedWorkoutEditor{padding:0 14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;margin:14px 0}
+ #preparedWorkoutEditor>summary{border:0;background:transparent;padding:14px 0;font-size:.9375rem;text-align:left;font-weight:650}
+ #preparedWorkoutEditor[open]{padding-bottom:14px}
+ #preparedWorkoutEditor>p{font-size:.875rem;line-height:1.5;color:var(--muted);margin:0 0 10px}
+ #preparedWorkoutEditor .inline-actions{gap:8px}
+ #v36175WorkoutSettings{gap:0;margin:0 0 14px}
+ #v36175WorkoutSettings>details{border:0;border-bottom:1px solid var(--line);border-radius:0;margin:0;padding:0;background:transparent}
+ #v36175WorkoutSettings>details>summary{font-size:.875rem;font-weight:600;padding:13px 0}
+ #v36175WorkoutSettings>.btn{margin:8px 0}
+ #log .v36175-equipment-caption{margin:0 0 10px}
+ #log .gym-choice{font-weight:500;font-size:.875rem;line-height:1.4;min-height:44px}
+ #plannedExercises>.log-exercise{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin:16px 0 0;box-shadow:none}
+ #plannedExercises>.log-exercise::before{display:none}
+ #log .log-title{background:transparent;border:0;border-radius:0;padding:0 0 12px;margin:0;gap:10px}
+ #log .log-title strong{font-size:1.125rem;line-height:1.3;font-weight:650;letter-spacing:-.015em}
+ #plannedExercises>.log-exercise .log-title::before{width:26px;height:26px;flex-basis:26px;font-size:.8125rem;font-weight:600;background:var(--surface2);border:0}
+ #log .planned{font-size:.875rem;line-height:1.5;font-weight:500;margin-top:5px}
+ #log .log-card-controls .btn{min-width:36px;min-height:36px;padding:5px;font-size:.8125rem;background:transparent;border-color:transparent}
+ #log .log-card-controls .btn.danger{color:var(--danger)}
+ #log .log-card-controls .card-remove{font-size:0}#log .log-card-controls .card-remove::after{font-size:1.125rem}
+ #log .log-swap-trigger{background:transparent;border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;padding:12px 0;margin:3px 0 8px}
+ #log .log-swap-copy strong{font-size:.875rem;font-weight:600}
+ #log .log-swap-copy span{font-size:.8125rem;line-height:1.4;font-weight:450}
+ #log .log-swap-icon{background:transparent;border:0}
+ #log .log-grid{gap:12px 10px}
+ #log .v36175-exercise-chooser{margin:0;padding:2px 0 8px}
+ #log .v36175-exercise-chooser>summary,#log .workout-row-tools>summary{font-size:.8125rem;font-weight:500;padding:10px 0}
+ #log .optional-details>summary,#log .log-extra-details>summary,#log .set-detail-box>summary{font-size:.875rem;font-weight:600;line-height:1.4}
+ #log .effort-chips{gap:8px}
+ #log .effort-chip{font-size:.8125rem;min-height:40px;font-weight:550;padding:8px 10px;border-radius:10px}
+ #log.v36175-blank-workout #plannedExercises:empty::before{display:none}
+ #log.v36175-blank-workout:has(#plannedExercises:empty) #addLogExercise{display:none}
+ #log:not(.custom-setup-open):not(.v36114-advanced-open)>.panel>#logGuidedBuilderDetails{display:none}
+ @media(max-width:650px){#log .v36114-build-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#log .v36114-build-btn{min-width:0;overflow-wrap:anywhere}#plannedExercises>.log-exercise{padding:14px}#log .log-title{flex-wrap:wrap}#log .log-card-controls{margin-left:auto}}
  @media(max-width:650px){.v36152-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v36152-mobile-metrics{grid-template-columns:1fr}.v36152-exercise-controls{grid-template-columns:1fr}.v36152-primary .btn{min-height:44px}.v36152-result{overflow-wrap:anywhere}}
- `;document.head.appendChild(uiStyle);
+ `;document.head.appendChild(uiStyle);const mountStyle=()=>document.body.appendChild(uiStyle);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountStyle,{once:true});else mountStyle();
 
  function today(){
   const dash=$('#dashboard');if(!dash)return;
@@ -59,13 +112,15 @@
  }
 
  function log(){
-  const flow=$('#logFlowChooser'),planned=$('#plannedExercises .log-exercise');
-  if(flow&&planned&&$('.v36114-first-actions',flow)&&!$('.v36152-log-change',flow)){
-   const details=document.createElement('details');details.className='v36152-more v36152-log-change';details.innerHTML='<summary>Change workout or setup</summary>';const actions=$('.v36114-first-actions',flow),advanced=$('.v36114-advanced-btn',flow);$$('button[disabled]',actions).forEach(n=>n.remove());if(advanced)details.append(advanced);details.append(actions);flow.append(details);text($('.v36114-flow-copy',flow),'Ready to start. Your first exercise is below.');
-   if($('.v36114-build-choices',flow))details.open=true;
+  const flow=$('#logFlowChooser'),planned=$('#plannedExercises .log-exercise'),blank=core.uiWorkoutEquipment?.().blank;
+  $('#log')?.classList.toggle('v36175-blank-workout',!!blank);
+  if(flow&&(planned||blank)&&$('.v36114-first-actions',flow)&&!$('.v36152-log-change',flow)){
+   const details=document.createElement('details');details.className='v36152-more v36152-log-change';details.innerHTML='<summary>Change workout type</summary>';const actions=$('.v36114-first-actions',flow),advanced=$('.v36114-advanced-btn',flow);$$('button[disabled]',actions).forEach(n=>n.remove());if(advanced)details.append(advanced);details.append(actions);flow.append(details);if(planned)text($('.v36114-flow-copy',flow),'Ready to start. Review or edit your exercises below.');
+   const choices=$('.v36114-build-grid',flow)?.closest('.v36114-inline-panel');if(choices){details.append(choices);details.open=true;actions.classList.add('hidden');if(advanced)details.append(advanced);}else details.addEventListener('click',e=>{if(e.target===$(':scope > summary',details))core.uiShowWorkoutTypes?.();});
   }
-  let emomSetup=$('#editEmomSetup',flow);if(flow&&planned&&$('#logSession')?.value==='EMOM'){if(!emomSetup){emomSetup=button('Edit EMOM equipment & setup',()=>core.uiEditEmomSetup());emomSetup.id='editEmomSetup';flow.insertBefore(emomSetup,$('.v36152-log-change',flow));}emomSetup.disabled=!core.uiCanEditEmomSetup();}else emomSetup?.remove();
-  let customSetup=$('#editCustomSetup',flow);if(flow&&planned&&core.uiCanEditCustomSetup()){if(!customSetup){customSetup=button('Edit equipment & workout setup',()=>core.uiEditCustomSetup());customSetup.id='editCustomSetup';flow.append(customSetup);}}else customSetup?.remove();
+  let emomSetup=$('#editEmomSetup');if(flow&&planned&&$('#logSession')?.value==='EMOM'){if(!emomSetup){emomSetup=button('Edit minute order & EMOM setup',()=>core.uiEditEmomSetup());emomSetup.id='editEmomSetup';flow.insertBefore(emomSetup,$('.v36152-log-change',flow));}emomSetup.disabled=!core.uiCanEditEmomSetup();}else{emomSetup?.remove();emomSetup=null;}
+  let customSetup=$('#editCustomSetup');if(flow&&planned&&core.uiCanEditCustomSetup()){if(!customSetup){customSetup=button('Edit workout preferences',()=>core.uiEditCustomSetup());customSetup.id='editCustomSetup';flow.append(customSetup);}}else{customSetup?.remove();customSetup=null;}
+  simplifyLog(flow,planned,emomSetup,customSetup);
   $$('#plannedExercises .log-exercise[data-conditioning="1"]').forEach(card=>{
    if(!core.uiIsClass(core.currentCardExercise(card)))return;
    const grid=$('.log-grid',card),holder=$('.conditioning-fields',card)||grid;if(!grid||$('.v36152-class-details',holder))return;
@@ -74,6 +129,36 @@
    const primary=['.le-time','.le-rpe','.le-feel','.class-focus-host'].map(s=>{const n=$(s,holder);return n?.closest('.field')}).filter(Boolean);primary.reverse().forEach(n=>holder.insertBefore(n,holder.firstChild));
    const update=()=>{const filled=$$('input,select',details).filter(n=>n.value&&!(n.classList.contains('le-status')&&n.value==='Complete')).length;text($('summary',details),'More class details'+(filled?' · '+filled+' entered':''))};details.addEventListener('input',update);details.addEventListener('change',update);update();
   });
+ }
+
+ function simplifyLog(flow,planned,emomSetup,customSetup){
+  const preparation=$('#preparedWorkoutEditor'),active=core.readActiveWorkout(),emom=$('#logSession')?.value==='EMOM',workout=core.uiWorkoutEquipment?.();
+  const tools=$('#workoutTools');if(tools&&emom&&!tools.classList.contains('hidden'))tools.classList.add('hidden');text($('#addLogExercise'),emom?'+ Add extra exercise after EMOM':'+ Add Exercise');
+  $$('#plannedExercises .workout-pair').forEach(x=>{if(emom)x.disabled=true;});
+  if(preparation&&(planned||workout?.blank)&&!active&&workout?.canEdit){
+   if(preparation.classList.contains('hidden'))preparation.classList.remove('hidden');
+   const add=$('#preparedAddExercise');text(add,'+ Add exercise');if(add)add.classList.toggle('hidden',emom);
+   text($(':scope > summary',preparation),workout.blank&&!planned?'Build your workout':'Edit workout');text($(':scope > p',preparation),workout.blank&&!planned?'Choose the equipment you have, then add your first exercise.':'Change targets or swap exercises below. Save edits to keep this workout for this date.');
+   if(add)text(add,workout.blank&&!planned?'+ Add first exercise':'+ Add exercise');
+   $('#savePreparedWorkout')?.classList.toggle('hidden',!planned);$('#resetPreparedWorkout')?.classList.toggle('hidden',workout.blank);
+   let cancel=$('#v36175CancelBlank');if(workout.canCancelBlank){if(!cancel){cancel=button('Cancel blank workout',()=>core.uiCancelBlankWorkout());cancel.id='v36175CancelBlank';$('.inline-actions',preparation).append(cancel);}}else cancel?.remove();
+   let settings=$('#v36175WorkoutSettings');if(!settings){settings=document.createElement('div');settings.id='v36175WorkoutSettings';preparation.insertBefore(settings,$('.inline-actions',preparation));}
+   const change=$('.v36152-log-change',flow);if(change){$('.v36152-log-change',settings)?.remove();settings.append(change);}
+   if(emomSetup&&emomSetup.parentElement!==settings)settings.prepend(emomSetup);if(customSetup&&customSetup.parentElement!==settings)settings.prepend(customSetup);
+   if(core.uiWorkoutEquipment?.().canEdit){let equipment=$('#v36175WorkoutEquipment');if(!equipment){equipment=document.createElement('details');equipment.id='v36175WorkoutEquipment';equipment.className='optional-details';equipment.innerHTML='<summary>Equipment for this workout</summary><p class="hint">Use these choices for substitutes in this workout.</p><div class="gym-choice-grid"></div><button class="btn" type="button">Apply equipment</button><p role="status"></p>';settings.prepend(equipment);const choices=$('.gym-choice-grid',equipment);for(const [value,label] of Object.entries(core.uiWorkoutEquipment().labels)){const box=document.createElement('label');box.className='gym-choice';box.innerHTML='<input type="checkbox" value="'+value+'">'+esc(label);choices.append(box);}$('button',equipment).addEventListener('click',()=>{core.uiSetWorkoutEquipment($$('input:checked',equipment).map(x=>x.value));equipment.dataset.editing='';text($('[role=status]',equipment),'Equipment updated. Swap any exercise that needs equipment you did not select.');log();});equipment.addEventListener('change',()=>equipment.dataset.editing='1');}
+    const snapshot=core.uiWorkoutEquipment(),eq=snapshot.scope.equipment;const label=eq.map(x=>snapshot.labels[x]).filter(Boolean).join(' · ');text($('summary',equipment),'Equipment for this workout');let caption=$('.v36175-equipment-caption',equipment);if(!caption){caption=document.createElement('p');caption.className='v36175-equipment-caption hint';equipment.insertBefore(caption,$('summary',equipment).nextSibling);}text(caption,label||'No equipment selected');if(!equipment.dataset.editing)$$('input',equipment).forEach(x=>x.checked=eq.includes(x.value));if(snapshot.blank&&!snapshot.hasExercises&&!equipment.dataset.blankOpened){equipment.open=true;equipment.dataset.blankOpened='1';}if(!snapshot.blank)delete equipment.dataset.blankOpened;
+   }
+  }
+  $$('#plannedExercises .log-exercise[data-conditioning="0"]').forEach(card=>{
+   const grid=$(':scope > .log-grid',card),swapAction=$(':scope > .log-swap-action',card);if(grid&&swapAction&&swapAction.nextElementSibling!==grid)swapAction.after(grid);const evidence=$(':scope > .target-evidence',card);if(grid&&evidence&&grid.nextElementSibling!==evidence)grid.after(evidence);
+   const field=$('.le-ex',card)?.closest('.field');if(field&&!field.closest('.v36175-exercise-chooser')){const details=document.createElement('details');details.className='v36175-exercise-chooser';details.innerHTML='<summary>More exercise choices / custom exercise</summary>';field.before(details);details.append(field);details.open=card.dataset.unplannedExercise==='1';}
+   const name=core.currentCardExercise(card),meta=(()=>{try{return JSON.parse(card.dataset.emomPlan||'null')}catch{return null}})();
+   if(meta?.dose){const d=meta.dose,reps=$('.le-reps',card),weight=$('.le-weight',card),sets=$('.le-sets',card);text($('.log-title .planned',card),'Target: '+(sets?.value||'')+' rounds · '+(reps?.value||'')+' each minute · '+(weight?.value||'')+' · '+d.estimatedWorkSeconds+'s total work / '+d.estimatedRestSeconds+'s rest');if(reps){const label=$('label',reps.closest('.field'));text(label,(meta.seconds?'Seconds':'Reps')+(meta.perSide?' per side':' total'));}if(sets)text($('label',sets.closest('.field')),'Rounds');}
+   else if(!active&&name){const sets=$('.le-sets',card)?.value,reps=$('.le-reps',card)?.value,weight=$('.le-weight',card)?.value;text($('.log-title .planned',card),'Target: '+[sets&&reps?sets+' × '+reps:'',weight||'',card.dataset.plannedRestSeconds?card.dataset.plannedRestSeconds+'s rest':''].filter(Boolean).join(' · '));}
+   const swap=$('.log-swap-copy span',card);if(swap)text(swap,'Choose an available '+(meta?'exercise for this minute':'substitute')+'.');
+   const note=$('.substitution-rx-note',card);if(note)note.classList.toggle('v36175-redundant-target',note.textContent.startsWith('Updated substitute target:'));
+  });
+  const gym=$('#logGuidedGymPanel');if(gym&&!$('.v36175-more-preferences',gym)){const extra=document.createElement('details');extra.className='optional-details v36175-more-preferences';extra.innerHTML='<summary>More workout preferences</summary>';['#logGymRepStyle','#logGymPriorityFocus'].forEach(selector=>{const step=$(selector,gym)?.closest('.gym-step');if(step)extra.append(step);});gym.append(extra);}
  }
 
  function trends(){
@@ -151,7 +236,7 @@
  document.addEventListener('change',e=>{if(e.target.id==='blockModeSelect')beginEdit(core.uiDayState().date)},true);
  window.addEventListener('hybrid:state-saved',()=>{if(pendingEdit&&pendingEdit.stamp!==programmingStamp())setTimeout(settleEdit,0)});
  const run=()=>{raf=0;window.hybridWireExerciseSearch?.();const active=$('.view.active')?.id;if(active==='dashboard')today();else if(active==='history')history();else if(active==='log')log();else if(active==='trends')trends()};
- const queue=()=>{if(!raf)raf=requestAnimationFrame(run)};new MutationObserver(queue).observe(document.body,{childList:true,subtree:true});document.addEventListener('change',queue);document.addEventListener('click',queue);run();
+ const queue=()=>{if(!raf)raf=requestAnimationFrame(run)};new MutationObserver(queue).observe(document.body,{childList:true,subtree:true});document.addEventListener('change',queue);document.addEventListener('click',queue);document.addEventListener('input',e=>{if(e.target.closest('#plannedExercises'))queue()});run();
  // Read-only inspection and explicit capture are useful to native controls and QA.
  window.HybridUIWorkflows=Object.freeze({beginScheduleEdit:beginEdit,refresh:queue,scheduleFeedback:()=>({pendingDate:pendingEdit?.date||'',pendingChanged:!!pendingEdit&&pendingEdit.stamp!==programmingStamp(),report:recalc})});
 })();
