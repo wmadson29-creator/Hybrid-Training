@@ -37,8 +37,8 @@ function intervalResidual(prediction,observation){
  if(p<observation.low)return observation.low-p;if(p>observation.high)return observation.high-p;return 0;
 }
 const predicted=r=>Number(r?.modelPredictionVersion)>=PREDICTION_VERSION?(n(r?.modelExpectedRpe)||n(r?.modelPlannedExpectedRpe)):0;
-function calibrationFromRows(exercise,sourceRows,todayISO=new Date().toISOString().slice(0,10)){
- const rows=(sourceRows||[]).filter(r=>r.exercise===exercise&&!['skipped','missed'].includes(String(r.status||'').toLowerCase())).map(r=>({r,o:effortObservation(r),p:predicted(r)})).filter(x=>x.o&&x.p>0);if(!rows.length)return {exercise,n:0,effectiveN:0,correction:0,confidence:0,label:'Learning'};
+function calibrationFromRows(exercise,sourceRows,todayISO=(()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')})()){
+ const rows=(sourceRows||[]).filter(r=>r.exercise===exercise&&!r.projectedForecast&&!r.projectedPlanRow&&r.date<=todayISO&&!r.warmup&&!r.isWarmup&&!['skipped','missed'].includes(String(r.status||'').toLowerCase())&&!(String(r.sets??'').trim()!==''&&Number(r.sets)===0)).map(r=>({r,o:effortObservation(r),p:predicted(r)})).filter(x=>x.o&&x.p>0);if(!rows.length)return {exercise,n:0,effectiveN:0,correction:0,confidence:0,label:'Learning'};
  let sw=0,se=0,sq=0;rows.forEach(x=>{const age=Math.max(0,day(todayISO)-day(x.r.date)),w=x.o.weight*Math.exp(-age/56),err=Math.max(-3,Math.min(3,intervalResidual(x.p,x.o)));sw+=w;se+=w*err;sq+=w*w});
  const eff=sw*sw/(sq||1),raw=se/(sw||1),cor=Math.max(-1.25,Math.min(1.25,raw*(eff/(eff+4)))),conf=Math.min(.86,1-Math.exp(-eff/6));return {exercise,n:rows.length,effectiveN:+eff.toFixed(2),correction:+cor.toFixed(2),confidence:+conf.toFixed(2),label:conf>=.65?'Established':conf>=.35?'Emerging':'Learning'};
 }

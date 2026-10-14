@@ -1,7 +1,35 @@
-/* v36.177: practical mobile workflows. Presentation never writes training records. */
+/* v36.178: practical mobile workflows. Presentation never writes training records. */
 (()=>{
  'use strict';
  const core=window.HybridCore;if(!core)return;
+ // Keep search results and editable fields inside the visible part of a phone.
+ // visualViewport also covers browsers whose layout viewport does not shrink for IME.
+ function keyboardViewport(){
+  const viewport=window.visualViewport,html=document.documentElement;
+  let baseline=innerHeight,width=innerWidth,frame=0;
+  const editable=el=>el instanceof HTMLElement&&!el.matches('[readonly],[disabled]')&&(el.isContentEditable||el.matches('textarea,input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="date"]):not([type="time"]):not([type="hidden"])'));
+  function reveal(el,top,bottom){
+   const rect=el.getBoundingClientRect(),delta=rect.bottom>bottom?rect.bottom-bottom:rect.top<top?rect.top-top:0;
+   if(Math.abs(delta)<2)return;
+   for(let parent=el.parentElement;parent&&parent!==document.body;parent=parent.parentElement){
+    if(/auto|scroll/.test(getComputedStyle(parent).overflowY)&&parent.scrollHeight>parent.clientHeight+1){const before=parent.scrollTop;parent.scrollBy({top:delta,behavior:'instant'});if(parent.scrollTop!==before)return}
+   }
+   window.scrollBy({top:delta,behavior:'instant'});
+  }
+  function update(){
+   frame=0;const height=viewport?.height||innerHeight,top=viewport?.offsetTop||0,el=document.activeElement;
+   if(Math.abs(innerWidth-width)>80){baseline=innerHeight;width=innerWidth}
+   baseline=Math.max(baseline,innerHeight,height);
+   const phone=matchMedia('(max-width:820px), (pointer:coarse)').matches,open=phone&&(editable(el)||document.body.classList.contains('keyboard-open'))&&(viewport?.scale||1)<1.1&&baseline-height>120;
+   html.style.setProperty('--hybrid-visible-height',Math.round(height)+'px');html.style.setProperty('--hybrid-visible-top',Math.round(top)+'px');
+   document.body.classList.toggle('keyboard-open',open);
+   if(open&&editable(el))reveal(el,top+12,top+height-16);
+  }
+  const queue=()=>{if(!frame)frame=requestAnimationFrame(update)};
+  viewport?.addEventListener('resize',queue,{passive:true});viewport?.addEventListener('scroll',queue,{passive:true});window.addEventListener('resize',queue,{passive:true});
+  document.addEventListener('focusin',()=>{queue();setTimeout(queue,300)});document.addEventListener('focusout',queue);queue();
+ }
+ keyboardViewport();
  const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const text=(n,s)=>{if(n&&n.textContent!==String(s??''))n.textContent=s??''};
@@ -15,7 +43,7 @@
  .v36152-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.v36152-summary-grid .card{min-width:0;padding:12px}.v36152-summary-grid strong{display:block;font-size:1.25rem;margin:4px 0}.v36152-summary-grid small{color:var(--muted)}.v36152-window{font-size:.72rem;color:var(--muted);margin:8px 0}.v36152-exercise-controls{display:grid;grid-template-columns:2fr 1fr;gap:10px}.v36152-exercise-controls select{width:100%;min-width:0}.v36152-metric-buttons{display:flex;gap:7px;margin:10px 0;flex-wrap:wrap}.v36152-metric-buttons .active{border-color:var(--accent,#4aaff3);color:var(--accent,#4aaff3)}.v36152-chart svg{display:block;width:100%;height:auto}.v36152-chart input[type=range]{width:100%;padding:0}.v36152-result{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;line-height:1.5}.v36152-result p{font-size:.75rem;color:var(--muted);margin:5px 0}.v36152-result dl{display:grid;grid-template-columns:1fr auto;gap:5px;margin:8px 0;font-size:.78rem}.v36152-result dd{margin:0;text-align:right}.v36152-result dt{color:var(--muted)}.v36152-mobile-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.v36152-mobile-metrics .v36152-result{margin:0}
  .v36175-exercise-chooser{grid-column:1/-1;border-bottom:1px solid var(--line);margin:0 0 8px;padding:6px 0}.v36175-exercise-chooser>summary{color:var(--muted);font-size:.72rem;cursor:pointer;padding:8px 0}.v36175-exercise-chooser>.field{margin-top:8px}.v36175-redundant-target{display:none}#v36175WorkoutSettings{display:grid;gap:10px;margin:12px 0}#v36175WorkoutSettings>.btn{width:100%}#v36175WorkoutEquipment>summary{font-size:.76rem;line-height:1.5}#v36175WorkoutEquipment .btn{margin-top:10px}.v36152-class-details{grid-column:1/-1;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}.v36152-class-details>summary{padding:8px 0;font-weight:800;cursor:pointer}.v36152-class-details .log-grid{padding-top:8px}.v36152-class-primary .class-focus-host{grid-column:1/-1}
  .v36152-conflict{border-left:3px solid #e8b459;padding:10px;margin:10px 0;background:rgba(232,180,89,.06);border-radius:8px}.v36152-conflict p{font-size:.78rem;line-height:1.45}.v36152-conflict form{display:grid;gap:8px;margin-top:10px}.v36152-conflict form input,.v36152-conflict form select{width:100%;min-width:0}.v36152-conflict-badge,.v36152-updated-badge{display:block;color:#efc570;font-size:.65rem;font-weight:800;margin:5px 0}.v36152-updated-badge{color:var(--accent,#4aaff3)}.day-card.v36152-updated{box-shadow:inset 0 0 0 2px var(--accent,#4aaff3)}.v36152-recalc{margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.v36152-recalc p{font-size:.78rem;line-height:1.5}.v36152-recalc li{font-size:.75rem;margin:10px 0;line-height:1.5}.v36152-recalc .btn{margin-right:6px}.v36152-more .tablewrap{max-width:100%;overflow:auto}
- /* v36.177: consistent disclosure sizing and readable secondary screens. */
+ /* v36.178: consistent disclosure sizing and readable secondary screens. */
  #dashboard #v36152RecoveryMore{padding:0;min-height:72px;border-radius:14px;background:var(--surface);overflow:hidden}
  #dashboard #v36152RecoveryMore>summary{margin:0;min-height:72px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;line-height:1.4;font-weight:600}
  #v36152RecoveryMore>summary::-webkit-details-marker{display:none}
