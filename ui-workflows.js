@@ -1,4 +1,4 @@
-/* v36.173: practical mobile workflows. Presentation never writes training records. */
+/* v36.174: practical mobile workflows. Presentation never writes training records. */
 (()=>{
  'use strict';
  const core=window.HybridCore;if(!core)return;
@@ -64,6 +64,8 @@
    const details=document.createElement('details');details.className='v36152-more v36152-log-change';details.innerHTML='<summary>Change workout or setup</summary>';const actions=$('.v36114-first-actions',flow),advanced=$('.v36114-advanced-btn',flow);$$('button[disabled]',actions).forEach(n=>n.remove());if(advanced)details.append(advanced);details.append(actions);flow.append(details);text($('.v36114-flow-copy',flow),'Ready to start. Your first exercise is below.');
    if($('.v36114-build-choices',flow))details.open=true;
   }
+  let emomSetup=$('#editEmomSetup',flow);if(flow&&planned&&$('#logSession')?.value==='EMOM'){if(!emomSetup){emomSetup=button('Edit EMOM equipment & setup',()=>core.uiEditEmomSetup());emomSetup.id='editEmomSetup';flow.insertBefore(emomSetup,$('.v36152-log-change',flow));}emomSetup.disabled=!core.uiCanEditEmomSetup();}else emomSetup?.remove();
+  let customSetup=$('#editCustomSetup',flow);if(flow&&planned&&core.uiCanEditCustomSetup()){if(!customSetup){customSetup=button('Edit equipment & workout setup',()=>core.uiEditCustomSetup());customSetup.id='editCustomSetup';flow.append(customSetup);}}else customSetup?.remove();
   $$('#plannedExercises .log-exercise[data-conditioning="1"]').forEach(card=>{
    if(!core.uiIsClass(core.currentCardExercise(card)))return;
    const grid=$('.log-grid',card),holder=$('.conditioning-fields',card)||grid;if(!grid||$('.v36152-class-details',holder))return;
