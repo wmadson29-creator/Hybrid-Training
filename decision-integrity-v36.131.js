@@ -170,7 +170,8 @@
     }
     const caps=plan.blocks.filter(b=>b.mode==='amrap'&&b.capSeconds>0),capSeconds=caps.reduce((n,b)=>n+b.capSeconds,0),capUnverified=capSeconds>0&&(caps.length>1||!(Number(actualMinutes)>0)),capIncomplete=capSeconds>0&&Number(actualMinutes)>0&&Number(actualMinutes)*60+1<capSeconds,capRatio=capSeconds>0&&!capUnverified?clamp(Number(actualMinutes)*60/capSeconds,0,3):null;
     const quantified=rows.filter(x=>x.comparable),ratio=quantified.length?clamp((quantified.reduce((n,x)=>n+x.ratio,0)+extraRatio)/quantified.length,0,3):capRatio,performed=performedStructureEntries(s),complete=!capIncomplete&&slots.length>0&&structureSlots(s).filter(x=>x.kind!=='rest').every(slot=>entries.get(slot.id)?.status==='complete');
-    return {version:1,tracking:s.tracking,rows,ratio,capSeconds,capUnverified,capIncomplete,relation:substituted?'substituted':ratio===null?'planned-unquantified':ratio<.82?'under':ratio>1.18?'over':'as-planned',substituted,complete,performed:performed.length,total:slots.length,quantified:quantified.length,coverage:rows.length?quantified.length/rows.length:0};
+    const completedAMRAP=s.activity==='AMRAP Circuit'&&capSeconds>0&&!capUnverified&&!capIncomplete&&performed.length>0;
+    return {version:1,tracking:s.tracking,rows,ratio,capSeconds,capUnverified,capIncomplete,relation:substituted?'substituted':ratio===null?'planned-unquantified':ratio<.82?'under':ratio>1.18?'over':'as-planned',substituted,complete:completedAMRAP||complete,performed:performed.length,total:slots.length,quantified:quantified.length,coverage:rows.length?quantified.length/rows.length:0};
   }
 
   const PAIN_AREA_MUSCLES={

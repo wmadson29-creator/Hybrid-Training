@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <style id="hybrid-boot-paint">html,body{margin:0;min-height:100%;background:#0b0f14;color:#f6f8fb}html{background:#0b0f14}
 #recovery .recovery-daily-fields{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px}.recovery-wide{grid-column:1/-1}.recovery-daily-fields .hint{font-size:.7rem}.recovery-save-actions{margin:14px 0}.recovery-soreness-field{margin-top:8px}.recovery-soreness-field[open]>summary{margin-bottom:10px}#recoveryMoreDetails,#recoveryAnalysisDetails{margin-top:10px}#recoveryMoreDetails[open]>.form-grid{margin-top:12px}#recoveryAnalysisDetails .notice{margin-top:10px}#recoveryHelpDetails[open]>.recovery-rule-grid{margin-top:12px}
-/* v36.181: compact evidence and optional effort/focus detail. */
+/* v36.182: compact evidence and optional effort/focus detail. */
 .target-evidence{margin:0;border:0;border-top:1px solid var(--line);border-radius:0;font-size:.86rem;line-height:1.5}
 .target-evidence>summary{padding:10px 12px;color:var(--accent);font-weight:700;cursor:pointer;overflow-wrap:anywhere}
 .target-evidence-body{padding:0 0 12px;overflow-wrap:anywhere}
@@ -22,22 +22,22 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.181">
-<script src="decision-integrity-v36.131.js?v=36.181"></script>
-<script src="actual-load-feedback-v36.126.js?v=36.181"></script>
-<script src="forecast-balance-v36.127.js?v=36.181"></script>
-<script src="exercise-expansion-v36.128.js?v=36.181"></script>
-<script src="kb-load-layout.js?v=36.181"></script>
-<script src="barbell-plate-layout.js?v=36.181"></script>
-<script src="kb-internal-stack.js?v=36.181"></script>
-<script src="emom-templates.js?v=36.181"></script>
-<script src="session-fatigue.js?v=36.181"></script>
-<script src="workout-optimizer.js?v=36.181"></script>
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.182">
+<script src="decision-integrity-v36.131.js?v=36.182"></script>
+<script src="actual-load-feedback-v36.126.js?v=36.182"></script>
+<script src="forecast-balance-v36.127.js?v=36.182"></script>
+<script src="exercise-expansion-v36.128.js?v=36.182"></script>
+<script src="kb-load-layout.js?v=36.182"></script>
+<script src="barbell-plate-layout.js?v=36.182"></script>
+<script src="kb-internal-stack.js?v=36.182"></script>
+<script src="emom-templates.js?v=36.182"></script>
+<script src="session-fatigue.js?v=36.182"></script>
+<script src="workout-optimizer.js?v=36.182"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
 <meta name="apple-mobile-web-app-title" content="Hybrid Training">
-<link rel="stylesheet" href="app-shell-v36.119.css?v=36.181">
+<link rel="stylesheet" href="app-shell-v36.119.css?v=36.182">
 <style>
 :root{
   --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
@@ -2106,7 +2106,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.181</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
+      <div class="notice"><strong>Adaptive Engine v36.182</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Fixed Barbell Strength and KB program days remain fixed.</div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -3645,12 +3645,13 @@ function utmPlannedDurationMinutes(value){return Number(window.HybridActualLoadF
 function rowIsAdaptiveSecondary(row){return !!(row?.adaptiveSecondaryBlock||row?.secondaryTrainingType)}
 function rowUsesConditioningMetrics(row){
  if(!row)return false;
+ if(row.session==='AMRAP'||row.secondaryTrainingType==='amrap'||row.metrics?.amrap)return true;
  if(typeof row.modelConditioning==="boolean")return row.modelConditioning;
  if(rowIsAdaptiveSecondary(row))return String(row.secondaryTrainingType||"").toLowerCase()==="conditioning";
  if(['Barbell Strength','Generic Gym','Calisthenics','Strength-Endurance','EMOM'].includes(row.session)||String(row.session||'').startsWith('KB '))return false;
  return row.session==="Conditioning"||row.session==="Active Recovery"||row.session==="Class / Activity"||Object.keys(row.metrics||{}).length>0;
 }
-function adaptiveSecondaryModelSession(row,fallback=''){if(!rowIsAdaptiveSecondary(row))return fallback;const type=String(row?.secondaryTrainingType||'').toLowerCase();if(type==='emom')return 'EMOM';if(type==='conditioning')return 'Conditioning';if(type==='calisthenics')return 'Calisthenics';if(type==='se'||type==='strength-endurance')return 'Strength-Endurance';if(type==='kettlebell')return /^KB (Heavy|Power|Volume)$/.test(row?.session||fallback)?(row?.session||fallback):'KB Volume';return 'Generic Gym'}
+function adaptiveSecondaryModelSession(row,fallback=''){if(!rowIsAdaptiveSecondary(row))return fallback;const type=String(row?.secondaryTrainingType||'').toLowerCase();if(type==='amrap')return 'AMRAP';if(type==='emom')return 'EMOM';if(type==='conditioning')return 'Conditioning';if(type==='calisthenics')return 'Calisthenics';if(type==='se'||type==='strength-endurance')return 'Strength-Endurance';if(type==='kettlebell')return /^KB (Heavy|Power|Volume)$/.test(row?.session||fallback)?(row?.session||fallback):'KB Volume';return 'Generic Gym'}
 function utmRpeProximity(rpe,goal="mixed"){
  const r=Number(rpe);if(!Number.isFinite(r)||r<=0)return .80;
  // v36.119: effort changes how much completed resistance work counts as useful dose.
@@ -4169,7 +4170,7 @@ function v36150EffortDose(row){
   if(Array.isArray(row.setDetails)&&row.setDetails.length){const details=utmWorkingSetDetails(row);if(details.length!==sets||details.some(x=>utmRepAverage(x.reps??row.reps)!==utmRepAverage(reps)||Math.abs(utmExerciseLoadLb(row.exercise,x.weight??row.weight)-n)>.00002))return ''}
   return sets+'|'+reps+'|'+n+'|'+(n>0?'lb':load.toLowerCase());
 }
-// v36.181: prescribed grip is provenance; only an explicitly recorded grip is evidence.
+// v36.182: prescribed grip is provenance; only an explicitly recorded grip is evidence.
 function v36154NormalizePullupGrip(value){
  const key=String(value??'').trim().toLowerCase();
  if(['neutral','side / neutral','side/neutral','side'].includes(key))return 'neutral';
@@ -4254,7 +4255,7 @@ function utmBaseExpectedRpe(session,exercise,week){
  if(session==="Active Recovery")return 2.5;
  if(session==="Conditioning"||session==="Class / Activity"){const cls=v36150ClassPrior(exercise);if(cls)return cls.mid;const v=conditioningTargetRpe(exercise),nums=String(v||"").match(/\d+(?:\.\d+)?/g)?.map(Number)||[];return nums.length?utmMean(nums):5}
  if(session.startsWith("KB "))return /Swing|Snatch|High Pull/.test(exercise||'')?7:session==="KB Heavy"?8:7.5;
- if(session==="EMOM")return 7;
+ if(session==="EMOM"||session==="AMRAP")return 7;
  if(session==="Generic Gym"||session==="Calisthenics"||session==="Custom Workout")return 8;
  if(session==="Barbell Strength"){const bi=blockInfo(Number(week)||1),pct=wave[bi.wib-1]?.[0]||.8;return pct>=.95?9:pct>=.9?8.75:pct>=.85?8.25:pct>=.8?8:pct>=.75?7.5:7}
  return 7.5;
@@ -6563,7 +6564,7 @@ function visualLoad(total,bar,exercise="",plateLayout=null){
  const side=(total-45)/2,c=plates(side),cap='<div class="load-caption"><strong>'+side+' / side</strong><span>'+plateText(c)+'</span></div>';
  return '<div class="load-helper">'+cap+'<div class="barbell"><div class="bar-side left">'+plateSpans(c,true)+'</div><div class="bar"></div><div class="bar-side right">'+plateSpans(c,false)+'</div></div></div>';
 }
-// v36.181 — visual plate reuse for the fixed squat → deadlift → row sequence.
+// v36.182 — visual plate reuse for the fixed squat → deadlift → row sequence.
 function v36153BarbellPlateExercise(name){return ['Squat','Deadlift','Barbell Row'].includes(String(name||'').trim())}
 function v36153BarbellVisualTotal(value){const text=String(value??'').trim(),match=text.match(/^(\d+(?:\.\d+)?)\s*(kg|lb|lbs)?$/i);return match?Number(match[1])*(String(match[2]||'').toLowerCase()==='kg'?2.2046226218:1):NaN}
 function v36153ApplyBarbellPlatePlan(rows,session){
@@ -7361,12 +7362,12 @@ function rollingOpenDayRecommendation(dateISO,options={}){
    why.Conditioning.push('Recent training is counted by days elapsed, not by calendar week.');
    why['Recovery / Rest'].push('Full Rest earns its score only from current fatigue/load/recovery evidence; there is no weekly rest quota.');
    why['Active Recovery'].push('Active Recovery competes separately from Full Rest and carries a small training load rather than full-rest credit.');
-   const emomOption=v36168EmomPrimaryOption(dateISO);scores.EMOM=emomOption.score;why.EMOM=emomOption.why;
+   const emomOption=v36182DensityPrimaryOption(dateISO);scores[emomOption.session]=emomOption.score;why[emomOption.session]=emomOption.why;
    const optionsList=Object.entries(scores).map(([session,score])=>({session,score:Math.round(score*10)/10,label:session,why:uniqueConditioningReasons(why[session]||[])})).sort((a,b)=>b.score-a.score||a.session.localeCompare(b.session));
    const best={...optionsList[0]};
    if(best.session==='Conditioning'){const p=conditioningFor(day,gw,dateISO,cadence.conditioningLane);best.plan=p;best.label=p.activity||'Adaptive Cardio';best.conditioningCadenceLane=cadence.conditioningLane;best.why=uniqueConditioningReasons([...(best.why||[]),...(p.whyFactors||[])]);}
    else if(best.session==='Generic Gym'){const p=recommendedAdaptiveGymForDate(dateISO);best.plan=p.plan;best.label=p.label;best.why=uniqueConditioningReasons([...(best.why||[]),...(p.why||[])]);}
-   else if(best.session==='EMOM'){const p=v36168AutomaticEMOM(dateISO);best.plan=p;best.label=p?.label||'EMOM';best.why=uniqueConditioningReasons([...(best.why||[]),...(p?.why||[])]);}
+   else if(['EMOM','AMRAP'].includes(best.session)){const p=best.session==='AMRAP'?v36182AutomaticAMRAP(dateISO):v36168AutomaticEMOM(dateISO);best.plan=p;best.label=p?.label||'EMOM';best.why=uniqueConditioningReasons([...(best.why||[]),...(p?.why||[])]);}
    else if(best.session==='Calisthenics'){const p=recommendedAdaptiveCalisthenicsForDate(dateISO);best.plan=p.plan;best.label=p.label;best.why=uniqueConditioningReasons([...(best.why||[]),...(p.why||[])]);}
    else if(best.session==='Strength-Endurance'){const w=adaptiveSEWorkoutFor(dateISO),rx=adaptiveSEPrescription(dateISO);best.plan=w?adaptiveSEPlanForDate(dateISO):null;best.label=w?(w.name||'Adaptive Strength-Endurance'):'Adaptive Strength-Endurance • choose equipment';best.why=uniqueConditioningReasons([...(best.why||[]),...rx.why,'Equipment is chosen for this individual SE day; outside Base Building the circuit does not become an eight-week fixed progression.']);}
    else if(best.session==='Active Recovery'){const p=activeRecoveryPick(dateISO);best.plan=p;best.label=p.activity+' • '+p.target;best.why=uniqueConditioningReasons([...(best.why||[]),...(p.whyFactors||[])]);}
@@ -7446,6 +7447,7 @@ function clearDateProgrammingForIntent(dateISO,keep=""){
  if(keep!=="calisthenics")delete state.settings.calisthenicsWorkouts[dateISO];
  if(keep!=="se")delete state.settings.adaptiveSEWorkouts[dateISO];
  if(keep!=="emom"&&state.settings.emomWorkouts)delete state.settings.emomWorkouts[dateISO];
+ if(keep!=="amrap"&&state.settings.amrapWorkouts)delete state.settings.amrapWorkouts[dateISO];
  if(keep!=="conditioning"){delete state.settings.conditioningOverrides[dateISO];delete state.settings.conditioningSwapMeta[dateISO]}
  if(keep!=="manual")delete state.settings.customDayWorkouts[dateISO];
  // A mode/family switch calculates its replacement before the final save. Invalidate now so
@@ -7597,7 +7599,7 @@ function draftExerciseName(card){
 function expectedSession(day,gw,dateISO=""){
  const liveDraft=dateISO?activeUserLogDraftForDate(dateISO):null;if(liveDraft?.session)return liveDraft.session;
  const intent=dateISO?workoutIntentForDate(dateISO):null,generatedStale=!!dateISO&&v36139GeneratedRecommendationStale(dateISO,intent),override=generatedStale?"":(state.settings.dayOverrides||{})[dateISO],noRest=!!(dateISO&&((state.settings.noRestDates||{})[dateISO])),rawBbBase=dateISO?baseBuildingSessionForDate(dateISO):"",shortFocus=dateISO?shortFocusBlockForDate(dateISO):null,moveFrom=dateISO?programMoveFromDate(dateISO):null,moveTo=dateISO?programMoveToDate(dateISO):null,base=dateISO?programScheduledSessionForDate(dateISO):(rawBbBase||baseExpectedSession(day,gw)),scheduledClass=dateISO?selectedClassForDate(dateISO):"",priorityBase=!!moveTo||base==="Barbell Strength"||base==="Strength-Endurance"||String(base).startsWith("KB "),
-   explicitAdaptiveSwitch=v36139IntentAuthoritativeForDate(dateISO,intent)&&["Conditioning","Generic Gym","Calisthenics","Strength-Endurance","EMOM"].includes(intent?.selectedSession)?intent.selectedSession:"";
+   explicitAdaptiveSwitch=v36139IntentAuthoritativeForDate(dateISO,intent)&&["Conditioning","Generic Gym","Calisthenics","Strength-Endurance","EMOM","AMRAP"].includes(intent?.selectedSession)?intent.selectedSession:"";
  if(override==="Recovery / Rest"&&!noRest)return "Recovery / Rest";
  if(scheduledClass&&!priorityBase)return "Class / Activity";
  if(explicitAdaptiveSwitch)return explicitAdaptiveSwitch;
@@ -7722,7 +7724,7 @@ function v36131EvidenceRevision(dateISO){return window.HybridDecisionIntegrity?.
 // Recommendation snapshots and generated Gym plans must survive ordinary re-renders, but
 // they cannot remain authoritative after the recommendation logic itself changes. These are
 // semantic model versions (not app-build numbers) so unrelated UI releases do not churn plans.
-const OPEN_DAY_RECOMMENDATION_MODEL_VERSION=31;
+const OPEN_DAY_RECOMMENDATION_MODEL_VERSION=32;
 const GYM_AUTOMATIC_PLAN_MODEL_VERSION=7;
 // A recommendation the model generated can remain stable while its evidence is unchanged,
 // but it is not a permanent user lock. A later manual rest/workout/activity, completed
@@ -7833,6 +7835,7 @@ function recommendedAdaptiveConditioningForDate(dateISO){
  return {session:"Conditioning",label:(c.activity||v36114ConditioningFamilyLabel(c.activity))+(addOn?" + "+addOn.label:""),plan:c,addOn,accessory:addOn?.kind==='accessory'?addOn:null,why};
 }
 function recommendedAdaptiveModePlan(dateISO,session){
+ if(session==="AMRAP"){const plan=v36182AutomaticAMRAP(dateISO);return {session,label:plan?.label||"AMRAP",plan,why:plan?.why||[]}}
  if(session==="EMOM"){const plan=v36168AutomaticEMOM(dateISO);return {session,label:plan?.label||"EMOM",plan,why:plan?.why||[]}}
  if(session==="Generic Gym"){const p=recommendedAdaptiveGymForDate(dateISO),a=smartDailyAddOnFor("Generic Gym",dateISO,p.plan);return a?{...p,label:(p.label||"Adaptive Gym")+" + "+a.label,addOn:a,accessory:a.kind==='accessory'?a:null,why:uniqueConditioningReasons([...(p.why||[]),"An optional "+a.label.toLowerCase()+" is added from actual grip/core exposure and interference context."])}:p}
  if(session==="Calisthenics"){const p=recommendedAdaptiveCalisthenicsForDate(dateISO),a=smartDailyAddOnFor("Calisthenics",dateISO,p.plan);return a?{...p,label:(p.label||"Adaptive Calisthenics")+" + "+a.label,addOn:a,accessory:a.kind==='accessory'?a:null,why:uniqueConditioningReasons([...(p.why||[]),"An optional "+a.label.toLowerCase()+" is added from actual grip/core exposure and interference context."])}:p}
@@ -7848,13 +7851,14 @@ function confirmAdaptiveModeDraftReplacement(dateISO){
 }
 function refreshLogAfterAdaptiveModeChange(dateISO,forcedSession=""){
  if(logDate.value!==dateISO)return;
- const x=adaptiveModeSwitchBase(dateISO),intent=workoutIntentForDate(dateISO),explicit=v36139IntentAuthoritativeForDate(dateISO,intent)&&["Conditioning","Generic Gym","Calisthenics","Strength-Endurance","EMOM"].includes(intent?.selectedSession)?intent.selectedSession:"";
+ const x=adaptiveModeSwitchBase(dateISO),intent=workoutIntentForDate(dateISO),explicit=v36139IntentAuthoritativeForDate(dateISO,intent)&&["Conditioning","Generic Gym","Calisthenics","Strength-Endurance","EMOM","AMRAP"].includes(intent?.selectedSession)?intent.selectedSession:"";
  logWorkspaceUserTouched=false;logWorkspaceSessionUserChanged=false;logWorkspacePlanEdited=false;
  logSession.value=forcedSession||explicit||expectedSession(x.day,x.gw,dateISO);blankNextWorkout=false;loadPlannedSession();renderWorkoutIntentUi();writeLogWorkspace();
 }
 function switchAdaptiveTrainingMode(dateISO,session){
+ if(session==="AMRAP"){v36182OpenAMRAP(dateISO);return true;}
  if(session==="Strength-Endurance"&&adaptiveModeSwitchEligible(dateISO)){openBaseBuildingEquipmentModal("adaptive",dateISO);return true}
- if(!["Conditioning","Generic Gym","Calisthenics","EMOM"].includes(session)||!adaptiveModeSwitchEligible(dateISO))return false;
+ if(!["Conditioning","Generic Gym","Calisthenics","EMOM","AMRAP"].includes(session)||!adaptiveModeSwitchEligible(dateISO))return false;
  const emomRecommendation=session==="EMOM"?recommendedAdaptiveModePlan(dateISO,session):null;
  if(session==="EMOM"&&!emomRecommendation?.plan?.rows?.length){v36167OpenEMOM(dateISO);return false}
  if(!confirmAdaptiveModeDraftReplacement(dateISO))return false;
@@ -7883,6 +7887,7 @@ function useRecommendedAdaptiveTraining(dateISO,recommendation=null){
  if(session==="Generic Gym"&&rec?.plan)state.settings.genericGymWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true,_automaticPlanModelVersion:GYM_AUTOMATIC_PLAN_MODEL_VERSION};
  if(session==="Calisthenics"&&rec?.plan)state.settings.calisthenicsWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true};
  if(session==="EMOM"&&rec?.plan){state.settings.emomWorkouts=state.settings.emomWorkouts||{};state.settings.emomWorkouts[dateISO]={...JSON.parse(JSON.stringify(rec.plan)),_adaptiveRecommended:true}}
+ if(session==="AMRAP"&&rec?.plan){state.settings.amrapWorkouts=state.settings.amrapWorkouts||{};state.settings.amrapWorkouts[dateISO]={...v36182Clone(rec.plan),_adaptiveRecommended:true};}
  state.settings.dayOverrides[dateISO]=session;
  if(session==="Recovery / Rest"){delete state.settings.noRestDates[dateISO];setRestRecord(dateISO,dateISO<localISO(new Date())?"confirmed":"planned","adaptive-recommended")}
  else{if(x.base==="Recovery / Rest")state.settings.noRestDates[dateISO]=true;else delete state.settings.noRestDates[dateISO]}
@@ -7932,6 +7937,7 @@ function appendAdaptiveModeSwitcher(dateISO,session){
    {mode:"conditioning-speed",family:"speed",label:"Sprints / HIC",desc:"Hard conditioning • hills, sprints, resets and similar work"},
    {mode:"Strength-Endurance",label:"SE Circuit",desc:"Choose equipment, then build today’s circuit"},
    {mode:"EMOM",label:"EMOM",desc:"Every minute on the minute • adaptive reps, loads and equipment"},
+   {mode:"AMRAP",label:"AMRAP",desc:"Repeat a varied circuit within a time cap • record rounds and reps"},
    {mode:"Calisthenics",label:"Calisthenics",desc:"Recommended bodyweight session"},
    {mode:"Generic Gym",label:"Generic Gym",desc:"Recommended weight session"},
    {mode:"class-picker",label:scheduledType==="class"?"Change Class":"Classes",desc:scheduledType==="class"&&scheduledItem?('Scheduled: '+scheduledItem):"Browse and schedule researched classes"},
@@ -9517,7 +9523,7 @@ const CONDITIONING_COMPONENT_ALTERNATIVES={
  upperPull:["Pull-Up","Inverted Row","Ring Row","Lat Pulldown"],
  squat:["Bodyweight Squat","Goblet Squat","Step-Up","Walking Lunge"]
 }
-// v36.181 — ordered conditioning patterns and explicit performed-step evidence.
+// v36.182 — ordered conditioning patterns and explicit performed-step evidence.
 function v36180WorkoutDefinition(activity){
  const components=[],seed=CONDITIONING_COMPONENT_PRESETS[activity]||[],entry=entryForName(activity),blocks=[];
  const step=(name,dose='',unit='reps',cue='',extra={})=>{
@@ -10587,7 +10593,7 @@ function v36141KbRoutinePlan(session,gw,dateISO,options={}){
  return v36160AppendKbCore(v36153OrganizeKbPlan(v36141FitKbMinutes(rows,options.minutes),equipment,{group:!custom&&state.settings.kbGroupMatchingLoads!==false}),session,dateISO);
 }
 
-// v36.181 — reuse physical bell settings without changing training doses.
+// v36.182 — reuse physical bell settings without changing training doses.
 function v36153BellWeight(action){const lb=action.kind==='dial'?kb40DialLbForKg(action.kg):0;return action.kg+' kg'+(lb?' ('+lb+' lb dial)':'')}
 function v36153SetupAction(actions){
  if(actions.length===2&&actions.every(a=>a.kind==='heavy'&&a.action===actions[0].action))return ({set:'Set',adjust:'Adjust',keep:'Keep'})[actions[0].action]+' both 70 lb bells '+(actions[0].action==='keep'?'at ':'to ')+actions[0].kg+' kg each.';
@@ -11074,7 +11080,7 @@ function accessoryCoreRow(dateISO,primaryPlan,why=[]){
  row.meta="ADAPTIVE CORE FINISHER • outside primary session time";row.note="Optional core accessory selected because the primary session leaves useful capacity and recent actual core work is low enough to justify it. "+why.join(" ")+" "+(row.note||"");row.adaptiveAccessoryFinisher=true;row.accessoryFinisherType="core";row.untimedCoreFinisher=true;return row;
 }
 function smartAccessoryFinisherFor(session,dateISO,primaryPlan=null){
- if(!session||baseBuildingForDate(dateISO)||["Recovery / Rest","Active Recovery","Barbell Strength","Strength-Endurance","Open Training","Custom Workout","Class / Activity","EMOM"].includes(session))return null;
+ if(!session||baseBuildingForDate(dateISO)||["Recovery / Rest","Active Recovery","Barbell Strength","Strength-Endurance","Open Training","Custom Workout","Class / Activity","EMOM","AMRAP"].includes(session))return null;
  const readiness=adaptiveReadiness(dateISO);if(readiness.recoveryGuard||readiness.caution)return null;
  const mins=accessoryPrimaryMinutes(primaryPlan,session),fat=utmRecentFatigue(dateISO,4),candidates=[];
  const coreEligible=(session==="Conditioning"||String(session).startsWith("KB "))&&!accessoryContextRows(primaryPlan,session).some(r=>r.kbWeeklyCore),gripEligible=session==="Conditioning"||session==="Generic Gym"||session==="Calisthenics";
@@ -11318,6 +11324,7 @@ function conditioningSummary(x){
 
 function selectedClassForDate(dateISO){const v=(state.settings.classOverrides||{})[dateISO];return typeof v==="string"?v:(v&&typeof v==="object"?String(v.name||v.activity||""):"")}
 function planFor(session,gw){
+ if(session==="AMRAP")return v36182PlanForDate(logDate.value).rows;
  if(session==="EMOM")return v36167EMOMRows(logDate.value);
  const manual=(state.settings.customDayWorkouts||{})[logDate.value];
  if(manual&&manual.session===session&&Array.isArray(manual.rows)&&manual.rows.length){
@@ -12090,6 +12097,7 @@ function renderWeek(){
    else if(session.startsWith("KB ")){const acc=window.__v36123UseSecondaryMatrix?null:v3678CalendarSecondaryFor(session,iso);if(acc)focus+=(focus?" • ":"")+"+ "+acc.label}
    else if(session==="Generic Gym"){const g=genericGymWorkoutFor(iso),acc=window.__v36123UseSecondaryMatrix?null:v3678CalendarSecondaryFor("Generic Gym",iso);focus=(g.name||"Generic Gym")+" • "+g.rows.length+" exercises"+(acc?" + "+acc.label:"")}
    else if(session==="Calisthenics"){const c=calWorkoutForDate(iso),acc=window.__v36123UseSecondaryMatrix?null:v3678CalendarSecondaryFor("Calisthenics",iso);focus=(c.name||"Calisthenics")+" • "+c.rows.length+" exercises"+(acc?" + "+acc.label:"")}
+   else if(session==="AMRAP"){const p=v36119CanonicalOpenRecommendationForDate(iso,'AMRAP')?.plan||v36182PlanForDate(iso);focus=p.minutes+' min AMRAP • '+(p.slots||[]).slice(0,3).map(s=>s.exercise).join(' • ')}
    else if(session==="EMOM"){const e=v36119CanonicalOpenRecommendationForDate(iso,'EMOM')?.plan||v36167EMOMPlanForDate(iso);focus=(e?.minutes?e.minutes+' min • ':'')+(e?.slots||[]).filter(r=>!r.rest).slice(0,3).map(r=>r.exercise).join(' • ')}
    else if(session==="Class / Activity"){focus=selectedClassForDate(iso)||"Class / Activity"}
    const scheduledClass=selectedClassForDate(iso);if(scheduledClass&&session!=="Class / Activity")focus+=(focus?" • ":"")+"+ "+scheduledClass+" (2nd workout)";
@@ -12219,6 +12227,7 @@ function renderSelectedWorkout(){
  workoutTitle.textContent=session==='Conditioning'?v36124DisplaySessionLabel(session,v36119CanonicalConditioningPlanForDate(selectedDateISO,dayNameFromDate(selectedDateISO),Math.max(1,gw))):session;tbSub.textContent=d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"})+(manualPause?" • Program Paused • flexible training":bb?" • Base Building Week "+bb.week+" of 8 • Standard SE-first":paused?" • Recovery / Open Week • before Block "+(bi.block+1):" • Week "+Math.max(1,gw)+" • Block "+bi.block+" W"+bi.wib);
  selectedDateBadge.textContent=selectedDateISO===localISO(new Date())?"TODAY":"SELECTED DAY";plateLegend.classList.toggle("hidden",session!=="Barbell Strength");tbList.innerHTML="";const contextSummary=v36151ContextSummary(selectedDateISO);if(contextSummary.text){const notice=document.createElement("div");notice.className="notice v36151-selected-context";notice.innerHTML="<strong>Day context:</strong> "+htmlSafe(contextSummary.text);const edit=document.createElement("button");edit.type="button";edit.className="btn";edit.textContent="Edit context";edit.addEventListener("click",()=>window.__v3679OpenContextForDate?.(selectedDateISO));notice.appendChild(edit);tbList.appendChild(notice)}renderSelectedWorkoutPrimaryActions(session);const completedPrimary=completedPrimaryGroupForDate(selectedDateISO,session)||completedPrimaryGroupForDate(selectedDateISO);appendCompletedSessionsBox(selectedDateISO);appendProgramExceptionNotice(selectedDateISO,session);if(!completedPrimary){try{appendAdaptiveOpenDayNotice(selectedDateISO,session)}catch(e){v36109Diag('adaptive-open-notice',e)}try{appendAdaptiveModeSwitcher(selectedDateISO,session)}catch(e){v36109Diag('adaptive-mode-switcher',e)}}
  if(completedPrimary){appendCompletedActualRows(completedPrimary);const scheduled=selectedClassForDate(selectedDateISO),classDone=completedPrimaryGroupForDate(selectedDateISO,"Class / Activity");if(scheduled&&session!=="Class / Activity"&&!classDone)appendScheduledClassSidecar(selectedDateISO);appendDayControls(session);return}
+ if(session==="AMRAP"){const p=v36182PlanForDate(selectedDateISO),notice=document.createElement("div");notice.className="notice";notice.innerHTML=v36182PreviewHtml(p);tbList.appendChild(notice);p.rows.forEach(appendExerciseCard);appendScheduledClassSidecar(selectedDateISO);appendDayControls(session);return}
  if(session==="EMOM"){const p=v36167EMOMPlanForDate(selectedDateISO),notice=document.createElement("div");notice.className="notice";notice.innerHTML=v36167EmomScheduleHtml(p);tbList.appendChild(notice);p.rows.forEach(appendExerciseCard);appendScheduledClassSidecar(selectedDateISO);appendDayControls(session);return}
  if(session==="Barbell Strength"){(bbPrescription?baseBuildingMaxStrengthPlan(prescriptionDate):getTBPlan(prescriptionGw,prescriptionDate)).forEach(appendExerciseCard);if(bbPrescription){const n=document.createElement("div");n.className="notice";n.innerHTML="<strong>Base Building Max Strength:</strong> two maintenance-strength sessions are used in Weeks 6–8. The app uses a conservative three-movement maintenance cluster so Base Building remains the priority.";tbList.appendChild(n)}appendScheduledClassSidecar(selectedDateISO);appendDayControls(session);return}
  if(session==="Strength-Endurance"){
@@ -12268,7 +12277,7 @@ function renderSelectedWorkout(){
  appendExerciseCard({exercise:session==="Recovery / Rest"?"Full Rest Day":"Other",meta:session==="Recovery / Rest"?"No formal training prescribed. Full rest receives recovery credit; Active Recovery is available as a separate lower-strain option.":"No programmed workout for this day."});appendDayControls(session);
 }
 function populateSessionOptions(){
- const opts=["Barbell Strength","Strength-Endurance","KB Heavy","Conditioning","Active Recovery","KB Power","KB Volume","Generic Gym","Calisthenics","Class / Activity","EMOM","Custom Workout","Open Training","Recovery / Rest","Other"];logSession.innerHTML=opts.map(x=>'<option>'+x+'</option>').join("");
+ const opts=["Barbell Strength","Strength-Endurance","KB Heavy","Conditioning","Active Recovery","KB Power","KB Volume","Generic Gym","Calisthenics","Class / Activity","EMOM","AMRAP","Custom Workout","Open Training","Recovery / Rest","Other"];logSession.innerHTML=opts.map(x=>'<option>'+x+'</option>').join("");
 }
 
 
@@ -12806,7 +12815,7 @@ function loadPlannedSession(){
   wireExerciseCompletionState(d);
   if(d.dataset.conditioning==="1"){
    renderConditioningComponentEditor(d,x.exercise);d.dataset.conditioningActivity=x.exercise;wireConditioningLogHelper(d);wireAutomaticDistanceTimeRate(d,x.exercise);
-   const initial=x.initialMetrics||{},initialFields={swimStroke:".le-swimstroke",poolPreset:".le-poolpreset",poolLength:".le-poollength",poolLengthUnit:".le-poollengthunit"};Object.entries(initialFields).forEach(([key,selector])=>{const el=d.querySelector(selector);if(el&&initial[key]!==undefined)el.value=initial[key]});if(Object.keys(initial).length)wireAutomaticDistanceTimeRate(d,x.exercise);
+   const initial=x.initialMetrics||{},initialFields={swimStroke:".le-swimstroke",poolPreset:".le-poolpreset",poolLength:".le-poollength",poolLengthUnit:".le-poollengthunit"};Object.entries(initialFields).forEach(([key,selector])=>{const el=d.querySelector(selector);if(el&&initial[key]!==undefined)el.value=initial[key]});if(Object.keys(initial).length)wireAutomaticDistanceTimeRate(d,x.exercise);if(x.amrap||initial.amrap)v36182Hydrate(d,x.amrap||initial.amrap,{initial:true});
   }
   else{wireLogPlateVisual(d);wireSetDetailLogging(d)}
  });
@@ -14689,7 +14698,7 @@ function openLogGuidedSecondaryBuilder(dateISO=localISO(new Date()),type="calist
  return v36174OpenCustomSetup(dateISO,type,kind);
 }
 
-// v36.181 — one-time setup shared by primary and secondary custom workouts.
+// v36.182 — one-time setup shared by primary and secondary custom workouts.
 let v36174CustomReturn=null,v36174EmomReturn=null;
 function v36174SetupValues(){return Object.fromEntries([...document.querySelectorAll('#logGuidedBuilderDetails input[id],#logGuidedBuilderDetails select[id],#logGuidedBuilderDetails input[type=checkbox]')].map((el,i)=>[el.id||el.className+'|'+(el.dataset.name||el.value),el.type==='checkbox'?el.checked:el.value]));}
 function v36174RestoreSetupValues(values={}){document.querySelectorAll('#logGuidedBuilderDetails input[id],#logGuidedBuilderDetails select[id],#logGuidedBuilderDetails input[type=checkbox]').forEach(el=>{const key=el.id||el.className+'|'+(el.dataset.name||el.value);if(Object.prototype.hasOwnProperty.call(values,key)){if(el.type==='checkbox')el.checked=values[key];else el.value=values[key];}});}
@@ -14848,7 +14857,7 @@ function captureLogDraft(){
    sessionFeel:sessionFeel.value,sessionNotes:sessionNotes.value,recommendationFeedback:recommendationFeedback?.value||"",recommendationFeedbackNote:recommendationFeedbackNote?.value||"",
    wearable:Object.fromEntries(Object.entries(wearableSessionElements()).map(([k,el])=>[k,el?el.value:""])),
    cards:[...plannedExercises.querySelectorAll(".log-exercise")].map(c=>({
-     savedLogRow:v36179SavedLogRow(c),equipmentContext:(()=>{try{return JSON.parse(c.dataset.equipmentContext||'null')}catch{return null}})(),emom:(()=>{try{return JSON.parse(c.dataset.emomPlan||'null')}catch(_e){return null}})(),workoutPinned:c.dataset.workoutPinned||'',alternatingGroup:c.dataset.alternatingGroup||'',sessionFatigueManual:c.dataset.sessionFatigueManual||"",sessionFatigueBase:c.dataset.sessionFatigueBase||"",sessionFatigueLast:c.dataset.sessionFatigueLast||"",conditioning:c.dataset.conditioning||"0",unplannedExercise:c.dataset.unplannedExercise==="1",plannedExercise:c.dataset.plannedExercise||"",plannedTarget:c.dataset.plannedTarget||"",plannedDurationMinutes:c.dataset.plannedDurationMinutes||"",plannedSets:c.dataset.plannedSets,plannedReps:c.dataset.plannedReps,plannedWeight:c.dataset.plannedWeight,plannedRestSeconds:c.dataset.plannedRestSeconds,expectedRpe:c.dataset.expectedRpe,plannedComponents:v36130PlannedComponentsForCard(c,currentCardExercise(c)),userSubstituted:c.dataset.userSubstituted==="1",classFocusExercises:v36144CollectClassFocus(c).classFocusExercises,classFocusIntensity:v36144CollectClassFocus(c).classFocusIntensity||{},targetExercise:c.dataset.targetExercise||"",targetSets:c.dataset.targetSets||"",targetReps:c.dataset.targetReps||"",targetWeight:c.dataset.targetWeight||"",targetReason:c.dataset.targetReason||"",targetSaved:c.dataset.targetSaved==="1",plannedPullupGrip:c.dataset.plannedPullupGrip||'',kbBellSetup:v36153ReadKbSetup(c),
+     savedLogRow:v36179SavedLogRow(c),amrap:v36182ReadPlan(c),amrapRound:Number(c.dataset.wsRound0)||1,equipmentContext:(()=>{try{return JSON.parse(c.dataset.equipmentContext||'null')}catch{return null}})(),emom:(()=>{try{return JSON.parse(c.dataset.emomPlan||'null')}catch(_e){return null}})(),workoutPinned:c.dataset.workoutPinned||'',alternatingGroup:c.dataset.alternatingGroup||'',sessionFatigueManual:c.dataset.sessionFatigueManual||"",sessionFatigueBase:c.dataset.sessionFatigueBase||"",sessionFatigueLast:c.dataset.sessionFatigueLast||"",conditioning:c.dataset.conditioning||"0",unplannedExercise:c.dataset.unplannedExercise==="1",plannedExercise:c.dataset.plannedExercise||"",plannedTarget:c.dataset.plannedTarget||"",plannedDurationMinutes:c.dataset.plannedDurationMinutes||"",plannedSets:c.dataset.plannedSets,plannedReps:c.dataset.plannedReps,plannedWeight:c.dataset.plannedWeight,plannedRestSeconds:c.dataset.plannedRestSeconds,expectedRpe:c.dataset.expectedRpe,plannedComponents:v36130PlannedComponentsForCard(c,currentCardExercise(c)),userSubstituted:c.dataset.userSubstituted==="1",classFocusExercises:v36144CollectClassFocus(c).classFocusExercises,classFocusIntensity:v36144CollectClassFocus(c).classFocusIntensity||{},targetExercise:c.dataset.targetExercise||"",targetSets:c.dataset.targetSets||"",targetReps:c.dataset.targetReps||"",targetWeight:c.dataset.targetWeight||"",targetReason:c.dataset.targetReason||"",targetSaved:c.dataset.targetSaved==="1",plannedPullupGrip:c.dataset.plannedPullupGrip||'',kbBellSetup:v36153ReadKbSetup(c),
      untimedCoreFinisher:c.dataset.untimedCoreFinisher==="1",adaptiveAccessoryFinisher:c.dataset.adaptiveAccessoryFinisher==="1",accessoryFinisherType:c.dataset.accessoryFinisherType||"",adaptiveSecondaryBlock:c.dataset.adaptiveSecondaryBlock==="1",secondaryTrainingType:c.dataset.secondaryTrainingType||"",secondaryFocus:c.dataset.secondaryFocus||"",secondaryCadenceCredit:Number(c.dataset.secondaryCadenceCredit)||0,isShortSecondary:c.dataset.isShortSecondary==="1",isFullSecondary:c.dataset.isFullSecondary==="1",secondarySessionRole:c.dataset.secondarySessionRole||"primary",fields:classFieldValues(c,"le-"),setDetails:collectSetDetails(c),components:collectConditioningComponents(c),workoutStructure:v36180CollectStructure(c),plannedStructure:v36180PlannedStructure(c),swimStrokeBlocks:collectSwimStrokeBlocks(c)
    }))
  };
@@ -15003,7 +15012,7 @@ function appendSavedExerciseCard(row){
  d.dataset.plannedTarget=safePlainText(row.modelPlannedTarget||row.modelPlannedReps||"",160);
  d.dataset.plannedDurationMinutes=conditioning?String(Math.max(0,Number(row.modelPlannedDurationMinutes)||utmPlannedDurationMinutes(row.modelPlannedTarget||row.modelPlannedReps))||""):"";
  d.dataset.plannedComponents=conditioning?JSON.stringify(v36130NormalizePlannedComponents(row.modelPlannedComponents||conditioningComponentsFor(row.modelPlannedExercise||row.exercise))):"[]";
- if(row.emom){d.dataset.emomPlan=JSON.stringify(row.emom);if(row.emom.equipment)d.dataset.kbAvailableEquipment=JSON.stringify(row.emom.equipment)}if(row.sessionFatigueManual)d.dataset.sessionFatigueManual=row.sessionFatigueManual;if(row.sessionFatigueBase)d.dataset.sessionFatigueBase=row.sessionFatigueBase;if(row.sessionFatigueLast)d.dataset.sessionFatigueLast=row.sessionFatigueLast;
+ if(row.emom){d.dataset.emomPlan=JSON.stringify(row.emom);if(row.emom.equipment)d.dataset.kbAvailableEquipment=JSON.stringify(row.emom.equipment)}if(row.metrics?.amrap)d.dataset.amrapPlan=JSON.stringify(window.HybridAMRAP.normalize(row.metrics.amrap));if(row.sessionFatigueManual)d.dataset.sessionFatigueManual=row.sessionFatigueManual;if(row.sessionFatigueBase)d.dataset.sessionFatigueBase=row.sessionFatigueBase;if(row.sessionFatigueLast)d.dataset.sessionFatigueLast=row.sessionFatigueLast;
  d.dataset.plannedSets=safePlainText(Object.prototype.hasOwnProperty.call(row,"modelPlannedSets")?row.modelPlannedSets:"",80);
  d.dataset.plannedReps=safePlainText(Object.prototype.hasOwnProperty.call(row,"modelPlannedReps")?row.modelPlannedReps:"",160);
  d.dataset.plannedWeight=safePlainText(Object.prototype.hasOwnProperty.call(row,"modelPlannedWeight")?row.modelPlannedWeight:"",120);
@@ -15116,7 +15125,7 @@ function v36155RestoreLogDraftUnsafe(d){
      if(el.type==="checkbox")el.checked=!!val;else el.value=val;
    });
    if(custom&&f["le-ex"]==="__custom__"&&f["le-custom"]!==undefined)custom.value=f["le-custom"];
-   if(src.emom){card.dataset.emomPlan=JSON.stringify(src.emom);if(src.emom.equipment)card.dataset.kbAvailableEquipment=JSON.stringify(src.emom.equipment)}const restoredName=currentCardExercise(card),restoredTitle=card.querySelector(".log-title strong");if(restoredTitle&&restoredName)restoredTitle.textContent=restoredName;
+   if(src.emom){card.dataset.emomPlan=JSON.stringify(src.emom);if(src.emom.equipment)card.dataset.kbAvailableEquipment=JSON.stringify(src.emom.equipment)}if(src.amrap){card.dataset.amrapPlan=JSON.stringify(window.HybridAMRAP.normalize(src.amrap));card.dataset.wsRound0=String(Math.max(1,Number(src.amrapRound)||1));}const restoredName=currentCardExercise(card),restoredTitle=card.querySelector(".log-title strong");if(restoredTitle&&restoredName)restoredTitle.textContent=restoredName;
    if(card.dataset.conditioning!=="1"){wireSetDetailLogging(card);restoreSetDetails(card,Array.isArray(src.setDetails)?src.setDetails:[])}
    else{const seed=Array.isArray(src.components)?src.components:[];renderConditioningComponentEditor(card,restoredName,seed);card.dataset.conditioningActivity=restoredName;if(src.plannedStructure)card.dataset.plannedStructure=JSON.stringify(src.plannedStructure);v36180RenderStructure(card,src.workoutStructure||null);wireAutomaticDistanceTimeRate(card,restoredName);renderSwimStrokeBlocks(card,src.swimStrokeBlocks);v36144RestoreClassFocus(card,{classFocusExercises:src.classFocusExercises,classFocusIntensity:src.classFocusIntensity,classFocusOther:f['le-class-focus-other']||'',activities:f['le-activities']||''})}
    ['workoutPinned','alternatingGroup','sessionFatigueBase','sessionFatigueLast','sessionFatigueManual'].forEach(key=>{if(typeof src[key]==='string')card.dataset[key]=src[key];else delete card.dataset[key]});
@@ -15484,7 +15493,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.181";
+const HYBRID_APP_BUILD="36.182";
 function hybridBuildParts(v){return String(v||"").replace(/^v/,"").split(".").map(x=>Number(x)||0)}
 function compareHybridBuilds(a,b){
  const aa=hybridBuildParts(a),bb=hybridBuildParts(b),n=Math.max(aa.length,bb.length);
@@ -15860,7 +15869,7 @@ function completeWorkout(){
        lastRep:valueOf(c,".le-lastrep"),sprint100:valueOf(c,".le-sprint100"),secondWork:valueOf(c,".le-secondwork"),clusterType:valueOf(c,".le-clustertype"),
        temperature:valueOf(c,".le-temperature"),environment:valueOf(c,".le-environment"),surface:valueOf(c,".le-surface"),altitudeFt:valueOf(c,".le-altitude"),avgWatts:valueOf(c,".le-avgwatts"),maxWatts:valueOf(c,".le-maxwatts"),cadence:valueOf(c,".le-cadence"),
        strokeRate:valueOf(c,".le-strokerate"),floors:valueOf(c,".le-floors"),runDistance:valueOf(c,".le-rundistance"),rowDistance:valueOf(c,".le-rowdistance"),activeTime:valueOf(c,".le-activetime"),gamesPlayed:valueOf(c,".le-gamesplayed"),playFormat:valueOf(c,".le-playformat"),courtType:valueOf(c,".le-courttype"),drillType:valueOf(c,".le-drilltype"),shotReps:valueOf(c,".le-shotreps"),matchContext:valueOf(c,".le-matchcontext"),activitySteps:valueOf(c,".le-activitysteps"),firstHalfAvgHr:valueOf(c,".le-first-half-hr"),secondHalfAvgHr:valueOf(c,".le-second-half-hr"),firstHalfPace:valueOf(c,".le-first-half-pace"),secondHalfPace:valueOf(c,".le-second-half-pace"),firstHalfWatts:valueOf(c,".le-first-half-watts"),secondHalfWatts:valueOf(c,".le-second-half-watts"),decouplingPct:valueOf(c,".le-decoupling"),humidity:valueOf(c,".le-humidity"),windMph:valueOf(c,".le-wind"),hillGradeProfile:valueOf(c,".le-hillgradeprofile"),hillGradePct:valueOf(c,".le-hillgradepct"),
-       components:collectConditioningComponents(c),...(v36180CollectStructure(c)?{workoutStructure:v36180CollectStructure(c)}:{}),swimStrokeBlocks:collectSwimStrokeBlocks(c),...v36144CollectClassFocus(c)
+       ...(v36182ReadPlan(c)?{amrap:v36182ReadPlan(c)}:{}),components:collectConditioningComponents(c),...(v36180CollectStructure(c)?{workoutStructure:v36180CollectStructure(c)}:{}),swimStrokeBlocks:collectSwimStrokeBlocks(c),...v36144CollectClassFocus(c)
      };
      if(original?.metrics&&!notDone)Object.entries(original.metrics).forEach(([key,value])=>{const cls=savedMetricClassMap[key];if(cls&&!c.querySelector('.'+cls))base.metrics[key]=value});
      if(!notDone){
@@ -16086,10 +16095,11 @@ exportCsv.addEventListener("click",()=>{
  const keys=["date","sessionTime","sessionTimestamp","sessionStartedAt","sessionEndedAt","sessionPausedMs","trackedSessionDurationMinutes","sessionDurationMinutes","completedAt","setDetails","components","untimedCoreFinisher","adaptiveAccessoryFinisher","accessoryFinisherType","adaptiveSecondaryBlock","secondaryTrainingType","secondaryFocus","secondaryCadenceCredit","isShortSecondary","isFullSecondary","secondarySessionRole","modelExposureClass","contextTimeOfDay","contextFedState","contextEnvironment","contextKbMode","contextGymAccess","week","session","exercise","sets","reps","weight","modelPlannedExercise","modelPlannedTarget","modelPlannedDurationMinutes","modelPlannedComponents","modelPlannedSets","modelPlannedReps","modelPlannedWeight","modelExpectedRpe","modelPlannedExpectedRpe","modelPlannedRestSeconds","modelPredictionVersion","modelPredictionRetrospective","modelPredictionConfidence","modelPredictionError","modelPlannedPredictionError","modelActualLoadVersion","modelActualDoseExplicit","modelActualDoseRatio","modelActualLoadRelation","modelActualLoadResponse","modelActualLoadRole","rpeUnknown","rpeConfidence","rir","modelTargetExercise","modelTargetSets","modelTargetReps","modelTargetWeight","modelTargetReason","modelExerciseOverride","modelOriginalScheduledSession","modelWorkoutIntentSession","modelWorkoutIntentSource","customWorkoutName","customWorkoutType","recommendationFeedback","recommendationFeedbackTarget","recommendationFeedbackSession","recommendationFeedbackShownSession","recommendationFeedbackChosenSession","recommendationFeedbackDecisionId","recommendationFeedbackDisposition","recommendationFeedbackNote","changeReason","painLevel","painAreaKey","painArea","sideBalance","leftReps","leftWeight","rightReps","rightWeight","distance","distanceUnit","swimStroke","poolPreset","poolLength","poolLengthUnit","poolLengths","time","avgHr","maxHr","pace","speed","elevation","intervals","workInterval","restInterval","ruckWeight","vestWeight","kbWeight","secondWeight","sledgeWeight","activities","circuitRest","lowRung","sprintDistance","bestRep","avgRep","lastRep","sprint100","secondWork","clusterType","temperature","environment","surface","altitudeFt","avgWatts","maxWatts","cadence","strokeRate","floors","runDistance","rowDistance","activeTime","gamesPlayed","playFormat","courtType","drillType","shotReps","matchContext","activitySteps","firstHalfAvgHr","secondHalfAvgHr","firstHalfPace","secondHalfPace","firstHalfWatts","secondHalfWatts","decouplingPct","humidity","windMph","hillGradeProfile","hillGradePct","rpe","feel","technique","status","notes","sessionFeel","sessionNotes"];
  keys.splice(keys.indexOf("weight")+1,0,"modelConditioning","modelUnplannedExercise");
  keys.splice(keys.indexOf("activities")+1,0,"classFocusExercises","classFocusIntensity","classFocusOther");
- keys.push("pullupGrip","modelPlannedPullupGrip","workoutStructure","modelPlannedStructure","modelPredictionScope");
+ keys.push("pullupGrip","modelPlannedPullupGrip","workoutStructure","modelPlannedStructure","modelPredictionScope","amrapPlan","amrapResult");
  keys.splice(keys.indexOf("poolLengths")+1,0,"swimStrokeBlocks");
  const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
  const row=x=>keys.map(k=>{
+   if(k==='amrapPlan')return esc(x.metrics?.amrap?JSON.stringify(x.metrics.amrap):'');if(k==='amrapResult')return esc(x.metrics?.amrap?JSON.stringify(window.HybridAMRAP.score(x.metrics.amrap,x.metrics.workoutStructure,Number(x.metrics.time)*60)):'');
    if(k==="classFocusExercises"||k==="classFocusIntensity")return esc((x.metrics||{})[k]!==undefined?JSON.stringify(x.metrics[k]):"");
    if(k==="classFocusOther")return esc((x.metrics||{}).classFocusOther);
    if(k==="setDetails")return esc(Array.isArray(x.setDetails)?JSON.stringify(x.setDetails):"");
@@ -16232,6 +16242,7 @@ function normalizeImportedLog(row,index){
    if(row.metrics.classFocusIntensity!==undefined){const levels=row.metrics.classFocusIntensity;if(!isPlainRecord(levels)||Object.keys(levels).length>32||Object.values(levels).some(v=>!['light','moderate','hard'].includes(v)))throw new Error("Workout log row "+(index+1)+" has invalid class focus intensity.");out.metrics.classFocusIntensity=v36149NormalizeClassIntensity(levels,out.metrics.classFocusExercises);}
    if(row.metrics.classFocusOther!==undefined)out.metrics.classFocusOther=importedScalar(row.metrics.classFocusOther,500);
    if(row.metrics.workoutStructure!==undefined)out.metrics.workoutStructure=window.HybridDecisionIntegrity.normalizeWorkoutStructure(row.metrics.workoutStructure,{strict:true});
+   if(row.metrics.amrap!==undefined)out.metrics.amrap=window.HybridAMRAP.normalize(row.metrics.amrap,{strict:true});
    if(row.metrics.components!==undefined){
      if(!Array.isArray(row.metrics.components)||row.metrics.components.length>24)throw new Error("Workout log row "+(index+1)+" has invalid conditioning components.");
      out.metrics.components=row.metrics.components.map((c,j)=>{
@@ -16326,6 +16337,8 @@ function normalizeImportedState(raw){
  if(!isPlainRecord(raw.settings)||!Array.isArray(raw.logs))throw new Error("Import is missing settings or workout logs.");
  if(raw.logs.length>IMPORT_MAX_LOGS)throw new Error("Import has too many workout log rows.");
  const safeSettings=sanitizeImportedTree(raw.settings);
+ for(const store of ['amrapWorkouts','amrapSecondaryWorkouts'])if(safeSettings[store]!==undefined){if(!isPlainRecord(safeSettings[store])||Object.keys(safeSettings[store]).length>10000)throw Error('Invalid AMRAP plan store.');for(const [date,entry] of Object.entries(safeSettings[store])){if(!validIsoDateValue(date))throw Error('Invalid AMRAP plan date.');if(store==='amrapWorkouts'){const plan=window.HybridAMRAP.normalize(entry,{strict:true});safeSettings[store][date]={...plan,...(entry._adaptiveRecommended?{_adaptiveRecommended:true}:{})};}else{if(!isPlainRecord(entry)||Object.keys(entry).some(k=>!['short','full'].includes(k)))throw Error('Invalid AMRAP secondary role.');for(const role of Object.keys(entry))entry[role]=window.HybridAMRAP.normalize(entry[role],{strict:true});}}}
+
  safeSettings.bodyProfile=v36127ValidBodyProfile(safeSettings.bodyProfile);
  safeSettings.bodyCompositionMeasurements=v36127ValidCompositionMeasurements(safeSettings.bodyCompositionMeasurements);
  const sourceSchemaRaw=raw.schemaVersion!==undefined?Number(raw.schemaVersion):Number(raw.exportVersion||0),sourceSchema=Number.isFinite(sourceSchemaRaw)?Math.max(0,Math.min(54,Math.floor(sourceSchemaRaw))):0;
@@ -16460,7 +16473,7 @@ function v3677EnsureStores(){
  if(!Array.isArray(state.settings.secondaryOpportunityLog))state.settings.secondaryOpportunityLog=[];
  state.settings.retrospectiveDraftPlans=state.settings.retrospectiveDraftPlans||{};
 }
-// v36.181 — dated context, feasible conditioning, and optional full-workout choices.
+// v36.182 — dated context, feasible conditioning, and optional full-workout choices.
 function v36151IndoorContext(dateISO){return ['travel_indoor','poor_air','storms','extreme_heat'].includes(dayTrainingContextFor(dateISO).environment)}
 function v36151ConditioningAvailability(name,dateISO){
  const c=dayTrainingContextFor(dateISO),n=String(name||''),indoorEquipment=/stationary|treadmill|elliptical|row machine|stair climber|stair stepper|skierg|versaclimber|air bike/i.test(n);
@@ -16607,7 +16620,7 @@ function v3677PlannedPrimaryFor(session,dateISO){
  // and the selected-day Optional Secondary panel cannot score two different primaries.
  window.__v3677SuppressEmbeddedSecondary=true;
  try{
-  if(session==='EMOM')return v36167EMOMRows(dateISO);if(session==='Conditioning')return conditioningFor(day,gw,dateISO);if(session==='Generic Gym')return getGenericGymPlan(dateISO).filter(r=>!r.adaptiveSecondaryBlock);if(session==='Calisthenics')return getCalisthenicsPlan(dateISO).filter(r=>!r.adaptiveSecondaryBlock);if(session==='Strength-Endurance')return (baseBuildingForDate(dateISO)?baseSEPlanForDate(dateISO):adaptiveSEPlanForDate(dateISO)).filter(r=>!r.adaptiveSecondaryBlock);if(String(session).startsWith('KB '))return getKbPlan(session,pGw,pDate).filter(r=>!r.adaptiveSecondaryBlock);if(session==='Barbell Strength')return (baseBuildingForDate(dateISO)?baseBuildingMaxStrengthPlan(dateISO):getTBPlan(gw,dateISO));return null;
+  if(session==='AMRAP')return v36182PlanForDate(dateISO).rows;if(session==='EMOM')return v36167EMOMRows(dateISO);if(session==='Conditioning')return conditioningFor(day,gw,dateISO);if(session==='Generic Gym')return getGenericGymPlan(dateISO).filter(r=>!r.adaptiveSecondaryBlock);if(session==='Calisthenics')return getCalisthenicsPlan(dateISO).filter(r=>!r.adaptiveSecondaryBlock);if(session==='Strength-Endurance')return (baseBuildingForDate(dateISO)?baseSEPlanForDate(dateISO):adaptiveSEPlanForDate(dateISO)).filter(r=>!r.adaptiveSecondaryBlock);if(String(session).startsWith('KB '))return getKbPlan(session,pGw,pDate).filter(r=>!r.adaptiveSecondaryBlock);if(session==='Barbell Strength')return (baseBuildingForDate(dateISO)?baseBuildingMaxStrengthPlan(dateISO):getTBPlan(gw,dateISO));return null;
  }finally{window.__v3677SuppressEmbeddedSecondary=priorSuppress}
 }
 function v3677SpacingAdvice(session,dateISO,primaryPlan,finalized){
@@ -16728,7 +16741,7 @@ try{
  if(!readRecoveryDraft()&&validRecoveryDraft(legacyDraft?.recovery))localStorage.setItem(RECOVERY_DRAFT_KEY,JSON.stringify(legacyDraft.recovery));
 }catch(e){}
 
-// v36.181: rebuild saved work only after every model extension is ready.
+// v36.182: rebuild saved work only after every model extension is ready.
 function v36153RestoreStartupWorkspace(){
 const hadRestoredDraft=restoreUiDraft();
 if(!hadRestoredDraft)restoreLastView();
@@ -17324,7 +17337,7 @@ function v3679ReconcileSecondaryOutcomes(){
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.181';
+const V3691_BUILD='36.182';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -17862,7 +17875,7 @@ function weakLinkDiagnostics(dateISO=localISO(new Date())){
 function v36105WeakLinkBoost(name,dateISO){const fp=utmFingerprint(name),hits=weakLinkDiagnostics(dateISO).filter(x=>x.confidence>=.52&&x.target!==name&&(Number(fp?.muscles?.[x.muscle])||0)>=.65);if(!hits.length)return {score:0,hits:[]};const score=Math.min(3.2,Math.max(...hits.map(x=>x.confidence*(Number(fp.muscles[x.muscle])||0)*3.4)));return {score:Math.round(score*100)/100,hits}}
 const v36105PriorBuilderContext=utmBuilderContext;utmBuilderContext=function(name,dateISO){const out=v36105PriorBuilderContext(name,dateISO),weak=v36105WeakLinkBoost(name,dateISO);if(weak.score>0){out.score=Math.round(((Number(out.score)||0)+weak.score)*100)/100;out.weakLinkPriority=weak}return out};
 
-function v36105SecondPlan(dateISO,session,primary=null){if(session==='EMOM')return v36168AutomaticEMOM(dateISO,'full',primary);const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO);if(session==='Generic Gym'){const p=recommendedAdaptiveGymForDate(dateISO),rows=(p.plan?.rows||[]).filter(r=>!r.adaptiveSecondaryBlock).map(r=>({...r,conditioning:false}));return {session,label:p.label||'Adaptive Gym',rows,minutes:Number(p.plan?.profile?.duration)||45,why:p.why||[]}}
+function v36105SecondPlan(dateISO,session,primary=null){if(['EMOM','AMRAP'].includes(session))return session===v36182PreferredDensity(dateISO)?v36182AutomaticDensity(dateISO,'full',primary):null;const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),day=dayNameFromDate(dateISO);if(session==='Generic Gym'){const p=recommendedAdaptiveGymForDate(dateISO),rows=(p.plan?.rows||[]).filter(r=>!r.adaptiveSecondaryBlock).map(r=>({...r,conditioning:false}));return {session,label:p.label||'Adaptive Gym',rows,minutes:Number(p.plan?.profile?.duration)||45,why:p.why||[]}}
  if(/^KB (Heavy|Power|Volume)$/.test(session)){const equipment=v36141KbEquipment(dateISO),rows=v36141KbRoutinePlan(session,gw,dateISO,{equipment,minutes:40,secondary:true});if(rows.length<2)return null;return {session,label:session+' • '+kbWorkoutFor(session,gw).name,rows,minutes:v36141KbPlanMinutes(rows),why:['This full-body kettlebell session can be a complete second workout when resistance and conditioning needs fit today.','Actual effort, available bells, same-day overlap, and fixed anchors still determine whether it is advised.']}}
  if(session==='Calisthenics'){const p=recommendedAdaptiveCalisthenicsForDate(dateISO),rows=(p.plan?.rows||[]).filter(r=>!r.adaptiveSecondaryBlock).map(r=>({...r,conditioning:false}));return {session,label:p.label||'Adaptive Calisthenics',rows,minutes:Number(p.plan?.profile?.duration)||40,why:p.why||[]}}
  if(session==='Strength-Endurance'){const rx=adaptiveSEPrescription(dateISO),equipment=v36142SESecondaryEquipment(dateISO,primary),circuit=generateAdaptiveSECircuit(equipment,dateISO+'|second-full-se',rx.reps),rows=circuit.map(r=>({exercise:r.exercise,sets:rx.circuits,reps:rx.reps,weight:adaptiveSELoadText(r.exercise,dateISO,equipment,rx.reps,rx.circuits),numeric:null,bar:false,meta:'FULL SECOND SESSION • ADAPTIVE SE • '+rx.circuits+' circuits × '+rx.reps+' reps',note:'Standalone same-day second session generated from current readiness, fatigue, equipment, and nearby anchors.'}));return {session,label:'Adaptive Strength-Endurance',rows,minutes:Number(rx.estimatedMinutes||rx.minutesAvailable)||45,why:rx.why||[]}}
@@ -18059,7 +18072,7 @@ function v36114OpenAdvanced(){const log=document.getElementById("log");if(!log)r
 function v36114CloseAdvanced(){document.getElementById("log")?.classList.remove("v36114-advanced-open");if(logSetupDetails)logSetupDetails.open=false;v36114RenderLogFlowChooser()}
 function v36114RenderBuildChoices(host,dateISO){
  const box=document.createElement('div');box.className='v36114-inline-panel';box.innerHTML='<div class="v36114-inline-title">Choose a workout type</div><div class="v36114-inline-copy">Choose equipment and session settings, then build and review before starting.</div><div class="v36114-build-grid"></div>';const grid=box.querySelector('.v36114-build-grid'),guided=currentLogGuidedPlan(),role=guided?.secondaryOnly?'short':guided?.secondFullWorkout?'full':v36114FullWorkoutGroups(dateISO).length?'full':'primary';
- for(const [label,type] of [['LSS / Aerobic','aerobic'],['Sprints / HIC','speed'],['Generic Gym','gym'],['Calisthenics','calisthenics'],['Strength-Endurance','se'],['Kettlebell','kettlebell'],['Class / Activity','class'],['EMOM','emom'],['Custom workout','blank']]){const b=document.createElement('button');b.type='button';b.className='btn v36114-build-btn';b.innerHTML='<strong>'+htmlSafe(label)+'</strong><span>'+(type==='blank'?'Start blank and add exercises':'Choose your setup')+'</span>';b.addEventListener('click',()=>type==='emom'?v36167OpenEMOM(dateISO,role==='primary'?'auto':role):type==='blank'?v36114StartCustomWorkout(dateISO,role):v36174OpenCustomSetup(dateISO,type,role));grid.append(b);}host.append(box);
+ for(const [label,type] of [['LSS / Aerobic','aerobic'],['Sprints / HIC','speed'],['Generic Gym','gym'],['Calisthenics','calisthenics'],['Strength-Endurance','se'],['Kettlebell','kettlebell'],['Class / Activity','class'],['EMOM','emom'],['AMRAP','amrap'],['Custom workout','blank']]){const b=document.createElement('button');b.type='button';b.className='btn v36114-build-btn';b.innerHTML='<strong>'+htmlSafe(label)+'</strong><span>'+(type==='blank'?'Start blank and add exercises':'Choose your setup')+'</span>';b.addEventListener('click',()=>type==='amrap'?v36182OpenAMRAP(dateISO,role):type==='emom'?v36167OpenEMOM(dateISO,role==='primary'?'auto':role):type==='blank'?v36114StartCustomWorkout(dateISO,role):v36174OpenCustomSetup(dateISO,type,role));grid.append(b);}host.append(box);
 }
 
 function v36114RenderFullSecondChoices(host,dateISO){
@@ -18133,7 +18146,7 @@ function v36141ForecastSessionRows(dateISO,session,plan=null){
  let rows=Array.isArray(plan)?plan:Array.isArray(plan?.rows)?plan.rows:null;
  if(!rows&&manual?.session===session&&Array.isArray(manual.rows))rows=manual.rows;
  if(!rows){
-  if(session==='EMOM')rows=v36167EMOMRows(dateISO);
+  if(session==='AMRAP')rows=v36182PlanForDate(dateISO).rows;if(session==='EMOM')rows=v36167EMOMRows(dateISO);
   if(session==='Barbell Strength'||String(session||'').startsWith('KB '))return v36117ForecastFixedAnchorRows(dateISO,session);
   if(session==='Generic Gym')rows=getGenericGymPlan(dateISO);
   else if(session==='Calisthenics')rows=getCalisthenicsPlan(dateISO);
@@ -18142,13 +18155,13 @@ function v36141ForecastSessionRows(dateISO,session,plan=null){
  }
  return (rows||[]).filter(r=>r?.exercise).map((r,i)=>{
   const out=r.conditioning?rollingForecastConditioningRow(dateISO,{activity:r.exercise,target:r.plannedTarget||r.reps||'45 min',rpe:r.rpe||r.targetRpe||5}):v36117ForecastStrengthRows(dateISO,session,[r])[0];
-  if(!out)return null;if(r.emom)out.emom=JSON.parse(JSON.stringify(r.emom));out.session=session;out.forecastOrder=i;
+  if(!out)return null;if(r.amrap){out.metrics={...out.metrics,amrap:v36182Clone(r.amrap),components:v36182Components(r.amrap),workoutStructure:window.HybridAMRAP.structure(r.amrap)};out.modelPlannedStructure=window.HybridAMRAP.structure(r.amrap);out.modelPlannedComponents=v36182Components(r.amrap);out.modelPredictionScope='structured-actual-unestimated';}if(r.emom)out.emom=JSON.parse(JSON.stringify(r.emom));out.session=session;out.forecastOrder=i;
   if(r.adaptiveSecondaryBlock||r.isShortSecondary||r.isFullSecondary){out.adaptiveSecondaryBlock=!!r.adaptiveSecondaryBlock;out.secondaryTrainingType=r.secondaryTrainingType||'';out.isShortSecondary=!!r.isShortSecondary;out.isFullSecondary=!!r.isFullSecondary;out.secondarySessionRole=r.secondarySessionRole||(r.isFullSecondary?'full':'short')}
   return out;
  }).filter(Boolean);
 }
 function v36117ForecastFlexiblePlanRows(dateISO,rec){
- if(!rec||!['Generic Gym','Calisthenics','Strength-Endurance','EMOM'].includes(rec.session))return [];
+ if(!rec||!['Generic Gym','Calisthenics','Strength-Endurance','EMOM','AMRAP'].includes(rec.session))return [];
  return v36141ForecastSessionRows(dateISO,rec.session,rec.plan).filter(r=>!r.adaptiveSecondaryBlock);
 }
 function v36117CardioMinutes(row){
@@ -18253,10 +18266,10 @@ function v36140DuplicatesCompletedCardio(plan,rows){
  return (plan.rows||[]).some(r=>modalities.has(v36140ConditioningModality(r.exercise)));
 }
 function v36140OptionalResistanceGap(dateISO,session){
- const rows=historyRowsBefore(dateISO,120).filter(r=>rollingCompletedRow(r)&&(r.session===session||(session==='Calisthenics'&&r.secondaryTrainingType==='calisthenics')||(session==='EMOM'&&r.secondaryTrainingType==='emom'))),groups=new Map();
+ const rows=historyRowsBefore(dateISO,120).filter(r=>rollingCompletedRow(r)&&(['EMOM','AMRAP'].includes(session)?v36182IsDensity(r):r.session===session||(session==='Calisthenics'&&r.secondaryTrainingType==='calisthenics'))),groups=new Map();
  for(const r of rows){const key=r.sessionId||r.date+'|'+r.session;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r)}
  let lastFull='',partialCredit=0;
- for(const group of groups.values()){const date=group[0]?.date,age=daysBetweenISO(date,dateISO),short=group.every(v36140ShortSecondaryRow)||(session==='EMOM'&&v36168EmomCompletedFraction(group)<.6);
+ for(const group of groups.values()){const date=group[0]?.date,age=daysBetweenISO(date,dateISO),short=group.every(v36140ShortSecondaryRow)||(['EMOM','AMRAP'].includes(session)&&v36168EmomCompletedFraction(group)<.6);
   if(!short){if(date>lastFull)lastFull=date}else if(age>=0&&age<=21){const dose=utmActualLoadSessionProfile(group);partialCredit+=utmClamp(Number(dose.doseWeight)||.25,.1,.55)*Math.pow(.5,age/10)}
  }
  const tracking=state.settings.trackingStartDate||(state.logs||[]).map(r=>r.date).filter(Boolean).sort()[0]||dateISO,age=utmClamp(daysBetweenISO(lastFull||tracking,dateISO),0,120);
@@ -18324,7 +18337,7 @@ rollingCadencePortfolio=function(dateISO){
  const lanes=JSON.parse(JSON.stringify(base.lanes||{}));
  const set=(k,urg,target,label)=>{if(!lanes[k])lanes[k]={lane:k};lanes[k].urgency=Math.round(Number(urg||0)*10)/10;lanes[k].targetDays=target;lanes[k].label=label||lanes[k].label;lanes[k].athleticDevelopment=true};
  set('run',a.runNeed,3.5,'Run / aerobic base');set('swim',a.swimNeed,10,'Swim endurance');set('speed',a.qualityNeed,7,'Speed / quality');set('cardio',a.otherAerobicNeed,14,'Cycling / rowing aerobic support');
- const emomCadence=v36168EmomNeed(dateISO);set('emom',emomCadence.need,28,'EMOM • occasional / about monthly');
+ const emomCadence=v36168EmomNeed(dateISO);set('emom',emomCadence.need,28,'EMOM / AMRAP • shared occasional allowance');
  set('gym',a.gymNeed,0,'Generic Gym • need-driven');set('se',a.seNeed,0,'Strength-Endurance • need-driven');set('calisthenics',a.calNeed,0,'Calisthenics • need-driven');
  const conditioning=[lanes.run,lanes.swim,lanes.speed,lanes.cardio].filter(Boolean).sort((x,y)=>y.urgency-x.urgency||((CONDITIONING_CADENCE_TIE_PRIORITY[x.lane]??9)-(CONDITIONING_CADENCE_TIE_PRIORITY[y.lane]??9))),chosen=conditioning.find(x=>x.lane===a.conditioningLane)||conditioning[0];
  return {...base,capacity:{...base.capacity,model:'athletic-development-dose',targetDays:null},lanes,conditioningLane:chosen?.lane||'run',conditioningLabel:chosen?.label||'Run / aerobic base',conditioningUrgency:Number(chosen?.urgency)||0,ordered:Object.values(lanes).sort((x,y)=>Number(y.urgency)-Number(x.urgency)),athleticDevelopment:a};
@@ -18373,7 +18386,7 @@ function v36142WorkoutLocation(workout,dateISO,secondary=false){
  if(session==='Generic Gym'||session==='Barbell Strength')return 'gym';
  if(session.startsWith('KB '))return 'home';
  if(!secondary&&ctx.gymAccess==='on_site')return 'gym';
- if(session==='EMOM')return rows.some(r=>gymExercise(r.exercise)&&/Machine|Cable/.test(gymExercise(r.exercise).equipment))?'gym':secondary?'either':'home';if(session==='Calisthenics')return secondary?'either':'home';
+ if(session==='AMRAP')return rows.some(r=>(r.amrap?.equipment||r.metrics?.amrap?.equipment||[]).some(e=>['machines','dumbbells','barbell'].includes(e)))?'gym':secondary?'either':'home';if(session==='EMOM')return rows.some(r=>gymExercise(r.exercise)&&/Machine|Cable/.test(gymExercise(r.exercise).equipment))?'gym':secondary?'either':'home';if(session==='Calisthenics')return secondary?'either':'home';
  if(session==='Strength-Endurance'){return rows.some(r=>{const ex=gymExercise(r.exercise);return ex&&/Machine|Cable|Barbell|Landmine/.test(ex.equipment)})?'gym':secondary?'either':'home'}
  if(/stationary|treadmill|elliptical|row machine|rowing machine|stair climber|stair stepper|skierg|air bike|Triples/i.test(activity))return 'gym';
  if(/swim/i.test(activity))return ctx.gymAccess==='no'?'home':'either';
@@ -18429,7 +18442,7 @@ rollingOpenDayRecommendation=function(dateISO,options={}){
   if(day==='Sunday'&&mode==='tb'&&o.session==='Conditioning'&&!readiness.recoveryGuard){score-=4;why.push('Sunday endurance remains useful, but when Gym need is meaningful the full Gym session is placed first and low-impact aerobic work is reserved for the second-session slot.');}
   return {...o,score:Math.round(score*10)/10,why:uniqueConditioningReasons(why)};});
  list.sort((x,y)=>y.score-x.score||x.session.localeCompare(y.session));const top=list[0];
- const build=(opt)=>{const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),best={...opt,options:list,athleticDevelopment:a,cadence:rollingCadencePortfolio(dateISO),nextAnchor:r.nextAnchor,scheduleConstraints:r.scheduleConstraints,endurance:r.endurance};if(best.session==='Conditioning'){const p=conditioningFor(day,gw,dateISO,a.conditioningLane);best.plan=p;best.label=p.activity||'Adaptive Cardio';best.conditioningCadenceLane=conditioningCadenceLaneForActivity(p.activity)||a.conditioningLane;best.why=uniqueConditioningReasons([...(opt.why||[]),a.explanation,...(p.whyFactors||[])]);}else if(best.session==='Generic Gym'){const p=recommendedAdaptiveGymForDate(dateISO);best.plan=p.plan;best.label=p.label;best.why=uniqueConditioningReasons([...(opt.why||[]),a.explanation,...(p.why||[])]);}else if(best.session==='EMOM'){const p=v36168AutomaticEMOM(dateISO);best.plan=p;best.label=p?.label||'EMOM';best.why=uniqueConditioningReasons([...(best.why||[]),...(p?.why||[])]);}
+ const build=(opt)=>{const d=parseLocalISO(dateISO),gw=Math.max(1,trainingWeekForDate(d)),best={...opt,options:list,athleticDevelopment:a,cadence:rollingCadencePortfolio(dateISO),nextAnchor:r.nextAnchor,scheduleConstraints:r.scheduleConstraints,endurance:r.endurance};if(best.session==='Conditioning'){const p=conditioningFor(day,gw,dateISO,a.conditioningLane);best.plan=p;best.label=p.activity||'Adaptive Cardio';best.conditioningCadenceLane=conditioningCadenceLaneForActivity(p.activity)||a.conditioningLane;best.why=uniqueConditioningReasons([...(opt.why||[]),a.explanation,...(p.whyFactors||[])]);}else if(best.session==='Generic Gym'){const p=recommendedAdaptiveGymForDate(dateISO);best.plan=p.plan;best.label=p.label;best.why=uniqueConditioningReasons([...(opt.why||[]),a.explanation,...(p.why||[])]);}else if(['EMOM','AMRAP'].includes(best.session)){const p=best.session==='AMRAP'?v36182AutomaticAMRAP(dateISO):v36168AutomaticEMOM(dateISO);best.plan=p;best.label=p?.label||'EMOM';best.why=uniqueConditioningReasons([...(best.why||[]),...(p?.why||[])]);}
    else if(best.session==='Calisthenics'){const p=recommendedAdaptiveCalisthenicsForDate(dateISO);best.plan=p.plan;best.label=p.label;best.why=uniqueConditioningReasons([...(opt.why||[]),a.explanation,...(p.why||[])]);}else if(best.session==='Strength-Endurance'){const w=adaptiveSEWorkoutFor(dateISO),rx=adaptiveSEPrescription(dateISO);best.plan=w?adaptiveSEPlanForDate(dateISO):null;best.label=w?(w.name||'Adaptive Strength-Endurance'):'Adaptive Strength-Endurance • choose equipment';best.why=uniqueConditioningReasons([...(opt.why||[]),a.explanation,...rx.why]);}else if(best.session==='Active Recovery'){const p=activeRecoveryPick(dateISO);best.plan=p;best.label=p.activity+' • '+p.target;best.why=uniqueConditioningReasons([...(opt.why||[]),a.explanation,...(p.whyFactors||[])]);}else{best.label='Full Rest';best.why=uniqueConditioningReasons([...(opt.why||[]),a.explanation]);}const reserveFullSecond=day==='Sunday'&&mode==='tb'&&best.session==='Generic Gym'&&!readiness.recoveryGuard;const addOn=reserveFullSecond?null:smartDailyAddOnFor(best.session,dateISO,best.plan);if(addOn){best.addOn=addOn;if(addOn.kind==='accessory')best.accessory=addOn;best.label+=(best.label?' + ':'')+addOn.label;}if(reserveFullSecond){best.weekendSecondMain=v36117WeekendAerobicPlan(dateISO,['Generic Gym']);best.why=uniqueConditioningReasons([...(best.why||[]),'Weekend structure: if the Gym session is completed and recovery still looks normal, the standard second full session is low-impact aerobic work, normally a true swim.']);}return best;};
  const best=build(top);return best;
 };
@@ -18593,7 +18606,7 @@ renderSelectedWorkout=function(){const out=v36118PriorRenderSelectedWorkout();if
 // work earns development dose, the unmet quality naturally stays eligible for a later day.
 function v36119WeekendDay(dateISO){const d=dayNameFromDate(dateISO);return d==='Saturday'||d==='Sunday'}
 function v36119StateSig(){const logs=state.logs||[],last=logs.length?logs[logs.length-1]:null,rec=Object.values(state.dailyRecovery||{}),lastRec=rec.reduce((m,x)=>Math.max(m,Number(x?._savedAt)||0),0);return [logs.length,Number(last?.completedAt)||Number(last?.sessionTimestamp)||0,lastRec,Object.keys(state.restDays||{}).length].join(':')}
-function v36119StrengthSession(session){return session==='EMOM'||session==='Barbell Strength'||session==='Generic Gym'||session==='Calisthenics'||session==='Strength-Endurance'||String(session||'').startsWith('KB ')}
+function v36119StrengthSession(session){return session==='AMRAP'||session==='EMOM'||session==='Barbell Strength'||session==='Generic Gym'||session==='Calisthenics'||session==='Strength-Endurance'||String(session||'').startsWith('KB ')}
 function v36119LowImpactName(name){return /swim|cycle|bike|row|elliptical|walk/i.test(String(name||''))}
 function v36119FullGroups(dateISO){return completedSessionGroupsForDate(dateISO).filter(g=>completedUsableRows(g).some(r=>!rowIsAdaptiveSecondary(r)&&r.exercise!=='Rest Day'))}
 function v36119DoubleHistory(dateISO,days=28){
@@ -18622,7 +18635,7 @@ function v36119BuildOpenRecommendation(base,opt,dateISO,options){
  const best={...base,...opt,options,athleticDevelopment:a,cadence:rollingCadencePortfolio(dateISO)};delete best.weekendSecondMain;delete best.weekendStandard;
  if(best.session==='Conditioning'){const p=conditioningFor(day,gw,dateISO,a?.conditioningLane||'');best.plan=p;best.label=p.activity||'Adaptive Cardio';best.conditioningCadenceLane=conditioningCadenceLaneForActivity(p.activity)||a?.conditioningLane;best.why=uniqueConditioningReasons([...(opt.why||[]),a?.explanation||'',...(p.whyFactors||[])])}
  else if(best.session==='Generic Gym'){const p=recommendedAdaptiveGymForDate(dateISO);best.plan=p.plan;best.label=p.label;best.why=uniqueConditioningReasons([...(opt.why||[]),a?.explanation||'',...(p.why||[])])}
- else if(best.session==='EMOM'){const p=v36168AutomaticEMOM(dateISO);best.plan=p;best.label=p?.label||'EMOM';best.why=uniqueConditioningReasons([...(best.why||[]),...(p?.why||[])]);}
+ else if(['EMOM','AMRAP'].includes(best.session)){const p=best.session==='AMRAP'?v36182AutomaticAMRAP(dateISO):v36168AutomaticEMOM(dateISO);best.plan=p;best.label=p?.label||'EMOM';best.why=uniqueConditioningReasons([...(best.why||[]),...(p?.why||[])]);}
    else if(best.session==='Calisthenics'){const p=recommendedAdaptiveCalisthenicsForDate(dateISO);best.plan=p.plan;best.label=p.label;best.why=uniqueConditioningReasons([...(opt.why||[]),a?.explanation||'',...(p.why||[])])}
  else if(best.session==='Strength-Endurance'){const w=adaptiveSEWorkoutFor(dateISO),rx=adaptiveSEPrescription(dateISO);best.plan=w?adaptiveSEPlanForDate(dateISO):null;best.label=w?(w.name||'Adaptive Strength-Endurance'):'Adaptive Strength-Endurance • choose equipment';best.why=uniqueConditioningReasons([...(opt.why||[]),a?.explanation||'',...(rx.why||[])])}
  else if(best.session==='Active Recovery'){const p=activeRecoveryPick(dateISO);best.plan=p;best.label=p.activity+' • '+p.target;best.why=uniqueConditioningReasons([...(opt.why||[]),a?.explanation||'',...(p.whyFactors||[])])}
@@ -18644,9 +18657,9 @@ function v36119AerobicSecondPlan(dateISO,primarySession,weekend=false){
 }
 function v36119GymSecondPlan(dateISO){const p=v36105SecondPlan(dateISO,'Generic Gym');if(!p)return null;return {...p,why:[...(p.why||[]),'Full Gym is paired only when resistance stimulus need is high enough and same-day/future interference remains acceptable.']}}
 const v36141SecondaryPlanCache=new Map(),v36141SecondaryResolving=new Set(),v36143WeekendPackageResolving=new Set();
-const V36141_RESISTANCE_SECONDARIES=['Generic Gym','Calisthenics','Strength-Endurance','KB Heavy','KB Power','KB Volume','EMOM'];
+const V36141_RESISTANCE_SECONDARIES=['Generic Gym','Calisthenics','Strength-Endurance','KB Heavy','KB Power','KB Volume','EMOM','AMRAP'];
 function v36141SecondaryNeed(session,dateISO,a=v36117AthleticDevelopmentState(dateISO)){
- if(session==='EMOM')return v36168EmomNeed(dateISO).need;if(session==='Generic Gym')return Number(a.gymNeed)||0;if(session==='Calisthenics')return Number(a.calNeed)||0;if(session==='Strength-Endurance')return Number(a.seNeed)||0;
+ if(['EMOM','AMRAP'].includes(session))return v36168EmomNeed(dateISO).need;if(session==='Generic Gym')return Number(a.gymNeed)||0;if(session==='Calisthenics')return Number(a.calNeed)||0;if(session==='Strength-Endurance')return Number(a.seNeed)||0;
  const q=v36131SupplementalQualityNeeds(dateISO),gym=Number(a.gymNeed)||0,power=Number(q.powerNeed)||0,work=Number(q.workCapacityNeed)||0;
  let need=session==='KB Power'?gym*.7+work*.35+power*.15-2:session==='KB Volume'?gym*.85+work*.2-1:gym*.8+work*.15-2;
  const goals=utmGoalWeights(dateISO).weights||{};if(session==='KB Heavy')need+=utmClamp(((Number(goals.strength)||1)-(Number(goals.workCapacity)||1))*5,-2,3);if(session==='KB Power')need+=utmClamp(((Number(goals.power)||1)-1)*3,-2,2);
@@ -18708,7 +18721,7 @@ function v36119CandidateScore(dateISO,primary,second,weekend=false,options={}){
  const a=v36117AthleticDevelopmentState(dateISO),t=v36118TissueStressState(dateISO),hist=v36119DoubleHistory(dateISO,28),anchor=nextFixedTrainingAnchor(dateISO,2),ps=String(primary?.session||primary||''),pAct=primary?.plan?.activity||primary?.label||'',pLane=ps==='Conditioning'?conditioningCadenceLaneForActivity(pAct):'',sAct=second?.plan?.activity||second?.rows?.[0]?.exercise||second?.label||'',sLane=second.session==='Conditioning'?conditioningCadenceLaneForActivity(sAct):'',low=second.session==='Conditioning'&&v36119LowImpactName(sAct);let need=0;
  const resistance=V36141_RESISTANCE_SECONDARIES.includes(second.session);
  if(resistance)need=v36141SecondaryNeed(second.session,dateISO,a);else if(second.session==='Conditioning')need=v36141AerobicSecondNeed(sAct,dateISO,a);
- if(second.session==='EMOM'&&(ps==='Strength-Endurance'||v36168EmomNeed(dateISO).recent<=7))return {score:-999,eligible:false,reasons:['Recent EMOM or a same-day SE circuit makes another density session low-value.']};
+ if(['EMOM','AMRAP'].includes(second.session)&&(second.session!==v36182PreferredDensity(dateISO)||ps==='Strength-Endurance'||v36168EmomNeed(dateISO).recent<=7))return {score:-999,eligible:false,reasons:['Recent EMOM / AMRAP, format alternation or a same-day SE circuit holds this density option.']};
  if(second.session==='Strength-Endurance'){const spacing=v36142SESpacing(dateISO);if(spacing.blocked)return {score:-999,eligible:false,reasons:[spacing.reason]}}
  const location=v36142PairLocation(primary,second,dateISO),actualCost=v3677ActualPrimaryCost(primary?.plan,dateISO,ps);if(actualCost.severe)return {score:-999,eligible:false,reasons:actualCost.reasons||['Actual primary work leaves too little capacity for a full second workout.']};
  const primaryMinutes=Number(primary?.plan?.actualMetrics?.time)||Number(primary?.plan?.actualMinutes)||Number(primary?.plan?.estimatedMinutes)||Number(primary?.plan?.profile?.duration)||(ps==='Conditioning'?v36142ConditioningMinutes(primary?.plan,40):40),totalMinutes=primaryMinutes+(Number(second.minutes)||40)+5+location.transferMinutes;
@@ -19372,6 +19385,7 @@ window.__v36130SecondaryStrengthEquipmentContext=secondaryStrengthEquipmentConte
     const g=wrap.querySelector('.v36123-family-grid');
     for(const [type,label,copy] of [['aerobic','Customize LSS / Aerobic','Choose your activity, time and effort'],['speed','Customize Sprints / HIC','Choose your session and work / rest'],['gym','Customize Gym','Choose equipment, muscles and time'],['calisthenics','Customize Calisthenics','Choose available gear, focus and time'],['se','Customize Strength-Endurance','Choose equipment and circuit dose'],['kettlebell','Customize Kettlebell','Choose bells, style and time'],['class','Build Class / Activity','Choose an activity and planned dose']])addFamily(g,label,copy,()=>customGuidedFamily(dateISO,kind,type));
     addFamily(g,'Customize EMOM','Choose equipment, duration and minute slots',()=>customEMOM(dateISO,kind,true));
+    addFamily(g,'Customize AMRAP','Choose equipment, a time cap and circuit movements',()=>v36182OpenAMRAP(dateISO,kind));
     addFamily(g,'Start blank','Add and edit your own exercises',()=>customBlank(dateISO,kind));
     const quick=document.createElement('details');quick.className='optional-details v36174-quick-plans';quick.style.gridColumn='1 / -1';quick.innerHTML='<summary>Use an optimized plan without setup</summary><div class="gym-choice-grid"></div>';const q=quick.querySelector('div');
     addFamily(q,'Use optimized LSS / Aerobic','Load the model-selected aerobic session',()=>customLss(dateISO,kind));addFamily(q,'Use optimized Sprints / HIC','Load the model-selected interval session',()=>customSpeed(dateISO,kind));
@@ -19731,7 +19745,7 @@ function v36127FlexiblePrimaryPortfolio(dateISO,days=7){
   if(['Barbell Strength','KB Heavy','KB Power','KB Volume'].includes(group.session))continue;
   if(group.session==='Conditioning'){
    out.conditioningPrimaries++;const lane=conditioningCadenceLaneForActivity(group.rows.find(r=>cardioRowEligible(r))?.exercise||group.rows[0]?.exercise||'',group.rows[0]);if(lane==='speed')out.speedPrimaries++;else if(['run','swim','cardio'].includes(lane))out.aerobicPrimaries++;
-  }else if(['Generic Gym','Strength-Endurance','Calisthenics','EMOM'].includes(group.session))out.flexibleStrengthPrimaries++;
+  }else if(['Generic Gym','Strength-Endurance','Calisthenics','EMOM','AMRAP'].includes(group.session))out.flexibleStrengthPrimaries++;
   else continue;
   out.dates.push(group.date);
  }
@@ -19772,7 +19786,7 @@ rollingOpenDayRecommendation=function(dateISO,options={}){
  let rec=v36127PriorRollingOpenDayRecommendation(dateISO,options);if(!rec||rec.session!=='Conditioning'||baseBuildingForDate(dateISO)||shortFocusBlockForDate(dateISO)||!window.HybridForecastBalance)return rec;
  const intent=workoutIntentForDate(dateISO),manual=!!manualScheduleConstraintForDate(dateISO)||['manual','user-selected','explicit'].includes(String(intent?.mode||'')),profile=state.settings.trainingGoalProfile||'automatic';let readiness=null;try{readiness=adaptiveReadiness(dateISO)}catch(_e){}
  const portfolio=v36127FlexiblePrimaryPortfolio(dateISO,7),force=HybridForecastBalance.shouldPrioritizeFlexibleStrength({...portfolio,recoveryGuard:!!readiness?.recoveryGuard,explicitConditioningPriority:profile==='conditioning',manualSelection:manual});if(!force)return {...rec,forecastPortfolio:portfolio};
- const candidates=(rec.options||[]).filter(x=>['Generic Gym','Strength-Endurance','Calisthenics','EMOM'].includes(x.session)),emom=candidates.find(x=>x.session==='EMOM'),gymBase=candidates.find(x=>x.session==='Generic Gym'),gym=emom&&v36168EmomNeed(dateISO).age>=28&&Number(emom.score)>=Number(gymBase?.score||0)-2?emom:gymBase||candidates.sort((a,b)=>Number(b.score||0)-Number(a.score||0))[0];if(!gym)return {...rec,forecastPortfolio:portfolio};
+ const candidates=(rec.options||[]).filter(x=>['Generic Gym','Strength-Endurance','Calisthenics','EMOM','AMRAP'].includes(x.session)),emom=candidates.find(x=>['EMOM','AMRAP'].includes(x.session)),gymBase=candidates.find(x=>x.session==='Generic Gym'),gym=emom&&v36168EmomNeed(dateISO).age>=28&&Number(emom.score)>=Number(gymBase?.score||0)-2?emom:gymBase||candidates.sort((a,b)=>Number(b.score||0)-Number(a.score||0))[0];if(!gym)return {...rec,forecastPortfolio:portfolio};
  rec=v36119BuildOpenRecommendation(rec,gym,dateISO,rec.options||[]);rec.why=uniqueConditioningReasons([...(rec.why||[]),'Two recent flexible primary slots already went to conditioning. This slot restores strength-mode variety instead of repeating cardio again.']);return {...rec,forecastPortfolio:portfolio,forecastBalanceOverride:'flexible-strength-after-two-conditioning'};
 };
 
@@ -19856,7 +19870,7 @@ const v36140PriorInvalidate=utmInvalidateCaches;utmInvalidateCaches=function(){v
 // Notify presentation after the authoritative asynchronous persistence wrapper succeeds.
 const v36152PriorSave=save;
 save=function(reason='general'){const ok=v36152PriorSave(reason);if(ok)window.dispatchEvent(new CustomEvent('hybrid:state-saved',{detail:{reason}}));return ok};
-// v36.181 UI helpers use the same model and protected scheduling actions as the calendar.
+// v36.182 UI helpers use the same model and protected scheduling actions as the calendar.
 function v36152HistoryFilters(){return {from:document.getElementById('historyFrom')?.value||'',to:document.getElementById('historyTo')?.value||'',family:document.getElementById('historyFamily')?.value||'all',exercise:(document.getElementById('historyExercise')?.value||'').trim().toLowerCase()}}
 function v36152HistoryGroupMatches(g,f=v36152HistoryFilters()){
  if(f.exercise&&!g.rows.some(r=>String(r.exercise||'').toLowerCase().includes(f.exercise)))return false;
@@ -19881,7 +19895,7 @@ function v36152ScheduleSnapshot(anchor){
  return out;
 }
 
-// v36.181 — association-based context, never a claim of proven causality.
+// v36.182 — association-based context, never a claim of proven causality.
 const v36164ContextCache=new Map();
 function v36164ContextRows(dateISO){const key=utmModelRevision+'|'+dateISO+'|'+modelAsOfTimestamp(dateISO);if(v36164ContextCache.has(key))return v36164ContextCache.get(key);const rows=historyRowsBefore(dateISO,56).filter(r=>!r.projectedForecast&&!(Number(r.completedAt)>modelAsOfTimestamp(dateISO))&&!v36140ShortSecondaryRow(r)&&!['skipped','missed'].includes(String(r.status||'').toLowerCase()));v36164ContextCache.set(key,rows);if(v36164ContextCache.size>60)v36164ContextCache.delete(v36164ContextCache.keys().next().value);return rows}
 function v36164MuscleOverlap(a,b){const left=utmRowFingerprint(a).muscles||{},right=utmRowFingerprint(b).muscles||{};const peak=Math.max(0,...Object.values(left).map(Number));return peak>0&&Object.entries(right).some(([m,v])=>Number(v)>=.55&&Number(left[m])>=Math.max(.1,peak*.65))}
@@ -19906,7 +19920,7 @@ utmFatiguePersistenceProfile=function(row,stim,fp){const result=v36164PriorClass
 const v36164PriorClassOverlap=v36154ClassOverlap;
 v36154ClassOverlap=function(dateISO){const result=v36164PriorClassOverlap(dateISO);if(!result)return result;const lesson=v36164ClassLesson(result.className,dateISO);return lesson.count?{...result,classResponseEvidence:lesson,text:result.text+' '+lesson.count+' prior '+(lesson.count===1?'session was':'sessions were')+' followed by overlapping soreness/reduced performance. '+(lesson.provisional?'This is provisional context; it does not prove every class will have the same effect.':'Repeated responses support extra recovery caution.')} :result};
 
-// v36.181 — compact homepage; preserve existing card/actions and native disclosure access.
+// v36.182 — compact homepage; preserve existing card/actions and native disclosure access.
 function v36165HomeState(){return {date:document.getElementById('homePrimaryWorkout')?.dataset.date,primary:!!document.getElementById('homePrimaryWorkout')?.open,secondary:!!document.getElementById('homeSecondaryWorkout')?.open}}
 function v36165SplitHomeSections(previous){
  if(!tbList)return;let primary=document.getElementById('homePrimaryWorkout'),secondary=document.getElementById('homeSecondaryWorkout');
@@ -19925,7 +19939,7 @@ function v36165SplitHomeSections(previous){
 const v36165PriorSelectedWorkout=renderSelectedWorkout;renderSelectedWorkout=function(){const previous=v36165HomeState(),out=v36165PriorSelectedWorkout.apply(this,arguments);v36165SplitHomeSections(previous);return out};
 
 
-// v36.181 — reversible, workout-scoped editing. Never writes completed history.
+// v36.182 — reversible, workout-scoped editing. Never writes completed history.
 let v36162Blocked=[],v36162UndoBusy=false;
 // Replace the late legacy outcome wrapper as well as its original definition.
 utmWeekOutcomeForMuscle=function(muscle,startISO){const end=localISO(addDays(parseLocalISO(startISO),7)),rows=state.logs.filter(r=>r.date>=startISO&&r.date<end&&!r.projectedForecast&&(utmFingerprint(r.exercise).muscles[muscle]||0)>=.45).map(r=>{const residual=window.utmPredictionResidualForRow?.(r);return {...r,modelPredictionError:residual?residual.error:null}}),result=HybridWorkoutOptimizer.outcome(rows,effectiveEffortRpe);return result.known?result:null};
@@ -20058,7 +20072,7 @@ function v36155EditWorkout(){
 function v36155RenderPreparation(){
  let panel=document.getElementById('preparedWorkoutEditor');
  if(!panel){panel=document.createElement('details');panel.id='preparedWorkoutEditor';panel.className='notice';panel.innerHTML='<summary class="btn">Edit workout before starting</summary><p>Add, remove, reorder or swap exercises below. Swaps update their targets. Save edits to keep this plan for this date without starting the timer.</p><div class="inline-actions"><button class="btn" type="button" id="preparedAddExercise">+ Add exercise</button><button class="btn primary" type="button" id="savePreparedWorkout">Save edits</button><button class="btn" type="button" id="resetPreparedWorkout">Reset edits</button></div><p id="preparedWorkoutStatus" role="status"></p>';document.getElementById('workoutSessionTracker')?.insertAdjacentElement('afterend',panel);
- panel.querySelector('#preparedAddExercise').addEventListener('click',()=>{if(logSession.value==='EMOM'){v36174EditEmomSetupFromLog();return;}logWorkspacePlanEdited=true;appendAdditionalLogExercise();plannedExercises.lastElementChild?.scrollIntoView({behavior:'smooth',block:'start'})});panel.querySelector('#savePreparedWorkout').addEventListener('click',v36155SavePrepared);panel.querySelector('#resetPreparedWorkout').addEventListener('click',()=>{v36155ClearPrepared();loadPlannedSession();document.getElementById('preparedWorkoutStatus').textContent='Loaded the original plan. The timer has not started.'})}
+ panel.querySelector('#preparedAddExercise').addEventListener('click',()=>{if(logSession.value==='AMRAP'){v36182EditSetup();return;}if(logSession.value==='EMOM'){v36174EditEmomSetupFromLog();return;}logWorkspacePlanEdited=true;appendAdditionalLogExercise();plannedExercises.lastElementChild?.scrollIntoView({behavior:'smooth',block:'start'})});panel.querySelector('#savePreparedWorkout').addEventListener('click',v36155SavePrepared);panel.querySelector('#resetPreparedWorkout').addEventListener('click',()=>{v36155ClearPrepared();loadPlannedSession();document.getElementById('preparedWorkoutStatus').textContent='Loaded the original plan. The timer has not started.'})}
  panel.classList.toggle('hidden',!!editingSessionId||!!v3685ReadActiveWorkout()||logSession.value==='Recovery / Rest'||!plannedExercises.querySelector('.log-exercise'));
 }
 
@@ -20327,14 +20341,15 @@ const v36167PriorLogPlan=loadPlannedSession;loadPlannedSession=function(){const 
 // A soft four-week exposure preference, shared by primary/full-secondary use.
 // Short blocks reduce urgency proportionally instead of pretending to be full sessions.
 function v36168EmomCompletedFraction(rows){
+ const amrap=rows.find(r=>r.metrics?.amrap);if(amrap){const projected=rows.every(r=>r.projectedForecast===true),minutes=Math.max(0,projected?Number(amrap.metrics.amrap.minutes)||0:Number(amrap.metrics.time)||0),performed=window.HybridDecisionIntegrity.performedStructureEntries(amrap.metrics.workoutStructure).length;return projected||performed?Math.min(1,minutes/20):0;}
  const m=rows.find(r=>Array.isArray(r.emom?.minuteSlots))?.emom;if(!m)return 1;if(m.purpose==='recovery'&&Number(m.plannedMinutes)<=12&&rows.every(r=>(effectiveEffortRpe(r)||5)<=6))return .25;try{const p=window.HybridEMOM.build({slots:m.minuteSlots,minutes:m.plannedMinutes,preservePartial:true}),expected=p.rows.reduce((n,r)=>n+Number(r.sets),0),actual=rows.reduce((n,r)=>n+Math.max(0,Number(r.sets)||0),0);return expected?Math.min(1,actual/expected):0}catch(_e){return 0}
 }
 function v36168EmomNeed(date){
- const gap=v36140OptionalResistanceGap(date,'EMOM'),recent=rollingDaysSince(date,r=>rollingCompletedRow(r)&&(r.session==='EMOM'||r.secondaryTrainingType==='emom'),45);
+ const gap=v36140OptionalResistanceGap(date,'EMOM'),recent=rollingDaysSince(date,r=>rollingCompletedRow(r)&&v36182IsDensity(r),45);
  let need=-5+utmClamp((gap.age-14)/21,0,1.25)*20;
- const future=Object.entries(state.settings.dayOverrides||{}).filter(([d,session])=>session==='EMOM'&&d>date&&daysBetweenISO(date,d)<=14&&(!workoutIntentForDate(d)||v36139IntentAuthoritativeForDate(d))).map(([d])=>daysBetweenISO(date,d));if(future.length)need-=10*(1-Math.min(...future)/21);
+ const future=Object.entries(state.settings.dayOverrides||{}).filter(([d,session])=>['EMOM','AMRAP'].includes(session)&&d>date&&daysBetweenISO(date,d)<=14&&(!workoutIntentForDate(d)||v36139IntentAuthoritativeForDate(d))).map(([d])=>daysBetweenISO(date,d));if(future.length)need-=10*(1-Math.min(...future)/21);
  need-=gap.partialCredit*8;if(recent<=3)need-=8;else if(recent<=7)need-=3;
- return {need:Math.round(utmClamp(need,-13,20)*10)/10,targetDays:28,lastFull:gap.lastFull,age:gap.age,partialCredit:gap.partialCredit,recent,why:'EMOM has a soft roughly monthly cadence, similar to occasional Calisthenics and below SE circuits. HIC/LSS retain their independent higher-frequency development needs. Short blocks receive partial credit; recovery, equipment and fixed anchors win.'};
+ return {need:Math.round(utmClamp(need,-13,20)*10)/10,targetDays:28,lastFull:gap.lastFull,age:gap.age,partialCredit:gap.partialCredit,recent,why:'EMOM and AMRAP share one soft roughly monthly allowance and alternate formats; each receives half of density opportunities over time. The combined allowance is unchanged, similar to occasional Calisthenics and below SE circuits. HIC/LSS retain their independent higher-frequency development needs. Short blocks receive partial credit; recovery, equipment and fixed anchors win.'};
 }
 function v36168EmomEquipment(date,primary=null){
  const c=dayTrainingContextFor(date),venue=primary?v36142WorkoutLocation(primary,date):c.workoutLocation==='gym'||c.gymAccess==='on_site'?'gym':'home',equipment=['bodyweight'];
@@ -20347,7 +20362,7 @@ const v36168EmomAutoCache=new Map(),v36168EmomAutoResolving=new Set();
 function v36168AutomaticEMOM(date,kind='primary',primary=null){
  const key=[utmModelRevision,date,kind,v36126ForecastMemoSignature(),primary?.session||'',v36142WorkoutLocation(primary||{},date),JSON.stringify(v36168EmomEquipment(date,primary))].join('|');
  if(v36168EmomAutoCache.has(key))return v36168EmomAutoCache.get(key);if(v36168EmomAutoResolving.has(key))return null;v36168EmomAutoResolving.add(key);
- try{const ctx=dayTrainingContextFor(date),rd=adaptiveReadiness(date);if(baseBuildingForDate(date)||ctx.sickReturn||ctx.verySore||rd.recoveryGuard||kind!=='primary'&&(primary?.session==='Barbell Strength'||String(primary?.session).startsWith('KB ')||primary?.session==='EMOM'))return null;
+ try{const ctx=dayTrainingContextFor(date),rd=adaptiveReadiness(date);if(baseBuildingForDate(date)||ctx.sickReturn||ctx.verySore||rd.recoveryGuard||kind!=='primary'&&(primary?.session==='Barbell Strength'||String(primary?.session).startsWith('KB ')||['EMOM','AMRAP'].includes(primary?.session)))return null;
  if(kind==='full'&&v36168EmomNeed(date).need<7)return null;
  const available=Number(ctx.timeBudget)||0,minutes=kind==='short'?8:Math.min(20,available||20);if(minutes<6)return null;
  const plan=v36167RecommendEMOM(date,v36168EmomEquipment(date,primary),'auto',minutes,false,true);if(!plan?.rows?.length||plan.blocked)return null;
@@ -20373,9 +20388,9 @@ function v36168ShortEMOM(session,date,primary){
  if(cadence.need<7||cadence.recent<=7||rd.caution||rd.recoveryGuard||cost.severe||cost.penalty>=9||secondaryPrimaryRpe(primary)>=8||v36143CompletedFullCount(date)>=2)return null;
  if(rollingDaysSince(date,r=>rollingCompletedRow(r)&&v36140ShortSecondaryRow(r),14)<=2)return null;
  const recentSE=rollingDaysSince(date,r=>rollingCompletedRow(r)&&(r.session==='Strength-Endurance'||r.secondaryTrainingType==='se'),14);if(recentSE<=2||session==='Strength-Endurance')return null;
- const p=v36168AutomaticEMOM(date,'short',{session,plan:primary});if(!p)return null;
+ const p=v36182AutomaticDensity(date,'short',{session,plan:primary});if(!p)return null;
  const primaryRows=Array.isArray(primary)?primary:primary.rows||[{exercise:primary.activity,conditioning:true}],overlap=v36105SecondOverlap(p.rows,primaryRows,date);
- if(overlap>.7)return null;const out={...p,score:Math.round((p.score-overlap*15-cost.penalty)*10)/10,why:[...p.why,'Short EMOM is an eight-minute submaximal block; same-day overlap and actual primary effort reduce its value.']};
+ if(overlap>.7)return null;const out={...p,score:Math.round((p.score-overlap*15-cost.penalty)*10)/10,why:[...p.why,'This eight-minute EMOM / AMRAP block uses the shared density allowance; same-day overlap and actual primary effort reduce its value.']};
  return v36143ShortFits(date,session,primary,out)?out:null;
 }
 
@@ -20396,7 +20411,7 @@ const v36172PriorInvalidate=utmInvalidateCaches;
 utmInvalidateCaches=function(){v36172ForecastEffortCache.clear();return v36172PriorInvalidate.apply(this,arguments)};
 
 
-// v36.181 — dated EMOM setup and safe return to the unfinished draft.
+// v36.182 — dated EMOM setup and safe return to the unfinished draft.
 const v36174PriorOpenEmom=v36167OpenEMOM;v36167OpenEMOM=function(date=selectedDateISO,role='auto'){
  if(v3685ReadActiveWorkout()||editingSessionId){alert('Finish or discard the active workout, or close the saved-workout editor, before changing EMOM setup.');return false;}
  date=date||localISO(new Date());if(!v36174EmomReturn)v36174EmomReturn={view:document.querySelector('.view.active')?.id||'dashboard',draft:captureLogDraft(),guided:logGuidedPlan?JSON.parse(JSON.stringify(logGuidedPlan)):null};
@@ -20410,7 +20425,7 @@ function v36174EmomContextLabel(){const role=document.getElementById('emomRole')
 document.getElementById('emomBackToChoices').addEventListener('click',()=>{const back=v36174EmomReturn;v36174EmomReturn=null;if(back?.view==='log'){logGuidedPlan=back.guided;restoreLogDraft(back.draft);writeLogWorkspace();}showView(back?.view==='emom'?'dashboard':back?.view||'dashboard',{preserveDate:true});});
 const v36174PriorSaveEmom=v36167SaveEMOM;v36167SaveEMOM=function(){const out=v36174PriorSaveEmom.apply(this,arguments);if(out)v36174EmomReturn=null;return out;};
 
-// v36.181 — workout-scoped equipment and canonical replacement prescriptions.
+// v36.182 — workout-scoped equipment and canonical replacement prescriptions.
 function v36175NeedsBench(name){return /bench|chair|step[- ]?up|bulgarian|feet[- ]elevated|elevated pike|decline push|squat to box|incline bodyweight/i.test(name||'');}
 function v36175RepSemantics(name){
  const k=kbExercise(name),c=calisthenicsExercise(name),g=gymExercise(name),n=String(name).toLowerCase();
@@ -20522,7 +20537,7 @@ plannedExercises.addEventListener('change',e=>{if(e.target.matches('.le-reps,.le
 function v36175PlanCanStart(){const unavailable=[...plannedExercises.querySelectorAll('.log-exercise')].find(c=>!v36162Protected(c)&&v36175EquipmentScope(c).explicit&&currentCardExercise(c)&&!['__custom__','Other'].includes(c.querySelector('.le-ex')?.value)&&!v36175SubstitutionAvailable(currentCardExercise(c),c));if(unavailable){v36175RejectSubstitution(unavailable);document.getElementById('preparedWorkoutEditor').open=true;unavailable.scrollIntoView({block:'center'});return false;}return true;}
 document.addEventListener('click',e=>{if(e.target.closest('#startWorkoutTracker,#savePreparedWorkout')&&!v36175PlanCanStart()){e.preventDefault();e.stopImmediatePropagation();}},true);
 
-// v36.181 — one-day resistance recommendations with explicit user constraints.
+// v36.182 — one-day resistance recommendations with explicit user constraints.
 const V36181_BUILDERS={
  logGym:{type:'gym',panel:'logGuidedGymPanel',time:'logGymDuration',range:'logGymDurationRange'},
  logCal:{type:'calisthenics',panel:'logGuidedCalPanel',time:'logCalDuration',range:'logCalDurationRange'},
@@ -20636,6 +20651,144 @@ function v36181InitRecommendations(){
 v36181InitRecommendations();
 for(const id of ['logGuidedRole','logDate'])document.getElementById(id)?.addEventListener('change',()=>{const key=v36181Key(logGuidedEl('logGuidedBuilderType')?.value);if(key&&v36181Mode(key)!=='manual')v36181Prepare(key);});
 
+
+// v36.182 — AMRAP circuits share the existing EMOM opportunity, with explicit actual work.
+let v36182Draft=null,v36182Return=null,v36182Variation=0;
+const v36182Clone=x=>JSON.parse(JSON.stringify(x));
+function v36182IsDensity(row){return ['EMOM','AMRAP'].includes(row?.session)||['emom','amrap'].includes(row?.secondaryTrainingType)}
+function v36182PreferredDensity(date){
+ const rows=historyRowsBefore(date,730).filter(r=>v36182IsDensity(r)&&rollingCompletedRow(r));
+ rows.sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)||String(a.sessionId||'').localeCompare(String(b.sessionId||'')));
+ const last=rows.at(-1);return last&&(last.session==='EMOM'||last.secondaryTrainingType==='emom')?'AMRAP':'EMOM';
+}
+function v36182History(date){return historyRowsBefore(date,730).filter(r=>r.date<=localISO(new Date())&&!r.projectedForecast&&!r.projectedPlanRow&&r.metrics?.amrap&&!v36107PainFlag(r)&&!/poor|sloppy/i.test(r.technique||'')).sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).map(r=>({row:r,signature:window.HybridAMRAP.signature(r.metrics.amrap),score:window.HybridAMRAP.score(r.metrics.amrap,r.metrics.workoutStructure,Number(r.metrics.time)*60),status:r.status,effort:effectiveEffortRpe(r)>0?Math.max(effectiveEffortRpe(r),...(r.metrics.workoutStructure?.entries||[]).filter(e=>['complete','partial'].includes(e.status)).map(e=>Number(e.rpe)||0),...(r.metrics.components||[]).filter(c=>!['skipped','missed'].includes(String(c.status).toLowerCase())).map(c=>Number(c.rpe)||0)):0,projectedForecast:false}));}
+function v36182Family(name){const k=kbExercise(name),c=calisthenicsExercise(name),g=gymExercise(name),f=k?.anatomyFamily||g?.family||c?.family||k?.family||'';
+ if(/core|abdom|rotation/.test(f)||/plank|dead bug|hollow|pallof|crunch|leg raise|knee raise/i.test(name))return 'core';if(/pull|row|biceps|rear_delt|back/.test(f)||/back widow|superman|snow angel/i.test(name))return 'pull';if(/press|chest|triceps|delts/.test(f)||/push.up|dip|press/i.test(name))return 'push';if(/squat|lunge|hinge|hamstring|glute|calves|quads|hip|lower/.test(f))return 'lower';return '';
+}
+function v36182Components(plan){return plan.slots.map((s,i)=>({id:'c'+(i+1),label:'Movement '+(i+1),planned:s.exercise,actual:s.exercise,category:'AMRAP movement',manual:false,plannedDose:'',actualDose:'',doseUnit:s.unit,load:s.load,status:'',rpe:'',feel:'',notes:''}));}
+function v36182Row(plan,kind='primary'){
+ const short=kind==='short',full=kind==='full';return {exercise:'AMRAP Circuit',conditioning:true,plannedTarget:plan.minutes+' min AMRAP',meta:'Repeat the circuit in order · target '+window.HybridAMRAP.targetText(plan),note:'Rest as needed. Keep going after the target; stop at '+plan.minutes+' minutes. Record complete rounds and the final partial round.',amrap:v36182Clone(plan),initialMetrics:{amrap:v36182Clone(plan),components:v36182Components(plan),workoutStructure:window.HybridAMRAP.structure(plan)},modelPlannedComponents:v36182Components(plan),modelPlannedStructure:window.HybridAMRAP.structure(plan),modelPredictionScope:'structured-actual-unestimated',...(short?{adaptiveSecondaryBlock:true,isShortSecondary:true,secondarySessionRole:'short',secondaryTrainingType:'amrap',secondaryCadenceCredit:Math.min(.55,plan.minutes/32)}:full?{isFullSecondary:true,secondarySessionRole:'full'}:{}),equipmentContext:{version:1,date:'',kind:'amrap',explicit:true,equipment:plan.equipment,gymTypes:[],availabilityOverride:{}}};
+}
+function v36182WrapPlan(plan,kind='primary',date=''){
+ const row=v36182Row(plan,kind);row.equipmentContext.date=date;return {...v36182Clone(plan),session:'AMRAP',label:'AMRAP · '+plan.minutes+' min',rows:[row],estimatedMinutes:plan.minutes,why:[plan.target?.why||'A varied, time-capped circuit.',v36168EmomNeed(date||localISO(new Date())).why],kind:kind==='short'?'secondary':kind,...(kind==='short'?{type:'secondary',secondaryTrainingType:'amrap',secondaryCadenceCredit:Math.min(.55,plan.minutes/32),score:31+Math.max(0,v36168EmomNeed(date).need)*.6}:{})};
+}
+function v36182Generate(date,equipment,minutes=20,focus='auto',allowed=null,variation=0,manual=false){
+ if(date>localISO(new Date())&&!rollingForecastActive)return withRollingForecastForDate(date,()=>v36182Generate(date,equipment,minutes,focus,allowed,variation,manual));
+ minutes=Number(minutes);if(!Number.isFinite(minutes)||minutes<1||minutes>60)return {blocked:true,why:['Choose a time cap from 1 to 60 minutes.']};
+ const rd=adaptiveReadiness(date),ctx=dayTrainingContextFor(date),anchor=fixedAnchorBaseForDate(date);if(!manual&&(rd.recoveryGuard||ctx.verySore||ctx.sickReturn||baseBuildingForDate(date)||anchor.fixed&&anchor.session==='Barbell Strength'&&state.settings.dayOverrides?.[date]!=='AMRAP'))return {blocked:true,why:['Current recovery or the fixed strength plan holds automatic AMRAP today. A deliberate custom circuit remains available.']};
+ const allowedSet=Array.isArray(allowed)?new Set(allowed):null,pool=v36167EmomPool(equipment,date).filter(n=>(!allowedSet||allowedSet.has(n))&&v36182Family(n)&&!/negative pull|wrist|forearm|roller|carry|march|turkish|get.up/i.test(n));
+ if(pool.length<2)return {blocked:true,why:['Select at least two suitable movements, or add available equipment.']};
+ const needs=v36131MuscleDevelopmentProfile(date).areas||[],fatigue=utmRecentFatigue(date,7)?.muscles||{},history=historyRowsBefore(date,180).filter(r=>v36182IsDensity(r)&&rollingCompletedRow(r)),frequency=new Map(),recent=[];
+ for(const r of history.slice(-24)){const names=r.metrics?.amrap?.slots?.map(x=>x.exercise)||r.emom?.minuteSlots?.filter(x=>!x.rest).map(x=>x.exercise)||[];if(names.length)recent.push([...new Set(names)].sort().join('|'));for(const n of new Set(names))frequency.set(n,(frequency.get(n)||0)+1);}
+ const score=n=>{const fp=utmFingerprint(n),keys=Object.keys(fp.muscles||{}).filter(k=>fp.muscles[k]>=.4),need=needs.reduce((s,a)=>s+(a.channels.some(k=>keys.includes(k))?Math.max(-2,a.priority):0),0)/Math.max(1,keys.length),fat=keys.reduce((s,k)=>s+(Number(fatigue[k])||0),0)/Math.max(1,keys.length),easy=n==='Wall Push-Up'&&v36170EmomEvidence('Push-Up',date)?5:0;return need-fat*3-easy-Math.min(5,frequency.get(n)||0)*.8+(calisthenicsExercise(n)?1.2:kbExercise(n)?.2:0)+tinyTie(date+'|amrap|'+variation+'|'+n)*6;};
+ const focusFamily=['upper','push','pull','lower','core'].includes(focus)?focus:null,count=minutes<=10?4:minutes>=15?6:5,groups=['push','lower','core','pull'];
+ const ranked=pool.slice().sort((a,b)=>score(b)-score(a)||a.localeCompare(b));let chosen=[];
+ for(const group of groups){const n=ranked.find(n=>!chosen.includes(n)&&v36182Family(n)===group);if(n)chosen.push(n);}
+ while(chosen.length<Math.min(count,pool.length)){const n=ranked.find(n=>!chosen.includes(n)&&(!focusFamily||focusFamily==='upper'? !focusFamily||['push','pull'].includes(v36182Family(n)):v36182Family(n)===focusFamily))||ranked.find(n=>!chosen.includes(n));if(!n)break;chosen.push(n);}
+ if(recent.includes(chosen.slice().sort().join('|'))){for(let i=chosen.length-1;i>=0;i--){const alternate=ranked.find(n=>!chosen.includes(n)&&v36182Family(n)===v36182Family(chosen[i])&&!recent.includes([...chosen.slice(0,i),n,...chosen.slice(i+1)].sort().join('|')));if(alternate){chosen[i]=alternate;break;}}}
+ const loads=v36167EmomWeights(equipment,chosen.map(exercise=>({exercise})),date,false),slots=chosen.map((n,i)=>{const prescribed=v36167EmomSlot(n,0,equipment,date,loads),semantics=v36175RepSemantics(n),dose=semantics.seconds?Math.min(30,prescribed.dose.reps):Math.min(/pull.up|chin.up/i.test(n)?5:20,prescribed.dose.reps);return {id:'s'+(i+1),exercise:n,dose,unit:semantics.seconds?'sec':'reps',perSide:semantics.perSide,load:prescribed.weight,variant:prescribed.bellSetup?prescribed.bellSetup+' bell setup':'' ,unsuitable:prescribed.dose.unsuitable};}).filter(s=>!s.unsuitable);
+ if(slots.length<2)return {blocked:true,why:['The selected loads do not support a repeatable circuit. Choose lighter equipment or other movements.']};
+ const plan=window.HybridAMRAP.normalize({version:1,id:'amrap-'+date+'-'+variation,name:'Varied AMRAP circuit',minutes,focus,equipment,slots,source:'App-authored circuit inspired by the supplied Daily Reps blueprint'}),roundSeconds=slots.reduce((s,x)=>s+x.dose*(x.unit==='sec'?1:/swing/i.test(x.exercise)?1.3:2)*(x.perSide?2:1)+8,0);
+ plan.target=window.HybridAMRAP.target(plan,v36182History(date),roundSeconds,rd.caution);return plan;
+}
+function v36182AutomaticAMRAP(date,kind='primary',primary=null){
+ const rd=adaptiveReadiness(date),ctx=dayTrainingContextFor(date);if(baseBuildingForDate(date)||ctx.sickReturn||ctx.verySore||rd.recoveryGuard||kind!=='primary'&&(primary?.session==='Barbell Strength'||String(primary?.session).startsWith('KB ')||['EMOM','AMRAP'].includes(primary?.session)))return null;
+ if(kind==='full'&&v36168EmomNeed(date).need<7)return null;const minutes=kind==='short'?8:Math.min(20,Number(ctx.timeBudget)||20);if(minutes<6)return null;
+ const equipment=v36168EmomEquipment(date,primary),key=[utmModelRevision,date,kind,primary?.session||'',v36126ForecastMemoSignature(),JSON.stringify(equipment),minutes].join('|');if(v36182AutoCache.has(key))return v36182AutoCache.get(key);if(v36182Resolving.has(key))return null;v36182Resolving.add(key);
+ try{const p=v36182Generate(date,equipment,minutes,'auto');if(p.blocked)return null;const out=v36182WrapPlan(p,kind,date);out.rows.forEach(r=>r.workoutLocation=v36142WorkoutLocation(primary||{session:'AMRAP'},date)||'home');v36182AutoCache.set(key,out);if(v36182AutoCache.size>64)v36182AutoCache.delete(v36182AutoCache.keys().next().value);return out;}finally{v36182Resolving.delete(key)}
+}
+const v36182AutoCache=new Map(),v36182Resolving=new Set();
+function v36182AutomaticDensity(date,kind='primary',primary=null){return v36182PreferredDensity(date)==='AMRAP'?v36182AutomaticAMRAP(date,kind,primary):v36168AutomaticEMOM(date,kind,primary)}
+function v36182DensityPrimaryOption(date){const previous=v36168EmomPrimaryOption(date),session=v36182PreferredDensity(date);if(session==='EMOM')return previous;const plan=previous.score>-999?v36182AutomaticAMRAP(date):null;return {...previous,session:'AMRAP',label:plan?.label||'AMRAP',plan,score:plan?previous.score:-999,why:uniqueConditioningReasons([v36168EmomNeed(date).why,...(plan?.why||[]),'EMOM and AMRAP alternate within the same existing density-workout allowance.'])};}
+function v36182PlanForDate(date){const raw=state.settings.amrapWorkouts?.[date],saved=window.HybridAMRAP.normalize(raw),keep=saved&&(!raw._adaptiveRecommended||!v36139GeneratedRecommendationStale(date)||completedSessionGroupsForDate(date).some(g=>g.session==='AMRAP')||v3685ReadActiveWorkout()?.date===date);if(keep)return v36182WrapPlan(saved,'primary',date);return v36182AutomaticAMRAP(date)||v36182WrapPlan(v36182Generate(date,v36168EmomEquipment(date),20,'auto',null,0,true),'primary',date)}
+function v36182ReadPlan(card){try{return window.HybridAMRAP.normalize(JSON.parse(card?.dataset.amrapPlan||'null'))}catch{return null}}
+function v36182Hydrate(card,value,{initial=false}={}){
+ const plan=window.HybridAMRAP.normalize(value);if(!plan)return;card.dataset.amrapPlan=JSON.stringify(plan);card.dataset.plannedDurationMinutes=String(plan.minutes);card.dataset.expectedRpe='0';
+ if(!card.dataset.equipmentContext)card.dataset.equipmentContext=JSON.stringify({version:1,date:logDate.value,kind:'amrap',explicit:true,equipment:plan.equipment,gymTypes:[],availabilityOverride:{}});
+ if(initial){card.dataset.plannedComponents=JSON.stringify(v36182Components(plan));renderConditioningComponentEditor(card,'AMRAP Circuit',v36182Components(plan),{force:true});card.dataset.plannedStructure=JSON.stringify(window.HybridAMRAP.structure(plan));v36180RenderStructure(card,{...window.HybridAMRAP.structure(plan),tracking:true});const time=card.querySelector('.le-time');if(time){time.value='';time.placeholder='Actual circuit minutes · cap '+plan.minutes;}}
+ v36182RenderCard(card);
+}
+function v36182RenderCard(card){
+ const plan=v36182ReadPlan(card);if(!plan)return;let host=card.querySelector('.amrap-guide');if(!host){host=document.createElement('section');host.className='amrap-guide notice';card.querySelector('.conditioning-components-host')?.before(host);}
+ card.querySelector('.le-ex')?.closest('.field')?.classList.add('hidden');card.querySelector('.ws-use-totals')?.remove();host.innerHTML='<strong>'+plan.minutes+' min AMRAP · '+htmlSafe(window.HybridAMRAP.targetText(plan))+'</strong><p class="hint">'+htmlSafe(plan.target?.why||'Record a baseline for this circuit.')+'</p><p>Repeat the circuit in order. Rest as needed. Continue after the target; stop at the time cap.</p><div class="amrap-clock" role="status"></div><button type="button" class="btn amrap-start">Start AMRAP after warm-up</button><div class="amrap-score" role="status"></div><button type="button" class="btn primary amrap-round-done">Record complete round</button><p class="hint amrap-message">Use the step tracker below for a partial final round or a substituted movement. Hold seconds stay separate from rep totals.</p>';
+ host.querySelector('.amrap-start').onclick=()=>v36182StartClock(card);host.querySelector('.amrap-round-done').onclick=()=>v36182RecordRound(card);v36182UpdateCard(card);
+}
+function v36182RecordRound(card){
+ const plan=v36182ReadPlan(card),structure=v36180ReadStructure(card),message=card.querySelector('.amrap-message');if(!plan||!structure)return false;
+ const b=structure.blocks[0],components=new Map(collectConditioningComponents(card).map(c=>[c.id,c]));if(structure.blocks.length!==1||b.mode!=='amrap'||b.steps.some(s=>s.kind==='rest'||!(Number(s.dose)>0))){message.textContent='Use the step tracker to record this edited pattern.';return false;}
+ let round=Math.max(1,...structure.entries.map(e=>Number(e.round)||1)),existing=structure.entries.filter(e=>e.round===round);if(existing.length&&b.steps.every(s=>existing.some(e=>e.stepId===s.id&&e.status==='complete'&&Number(e.dose)>0))){round++;existing=[];}
+ if(existing.length){message.textContent='Finish or edit the current partial round in the step tracker before recording another full round.';return false;}if(round>200)return false;
+ const entries=b.steps.map((s,i)=>({id:b.id+':'+round+':'+s.id,blockId:b.id,stepId:s.id,componentId:s.componentId,round,actual:components.get(s.componentId)?.actual||s.label,dose:s.dose,unit:s.unit,load:s.load||components.get(s.componentId)?.load||'',side:s.perSide?'both':'total',status:'complete'}));
+ const before=v36182Clone(structure);structure.entries.push(...entries);structure.tracking=true;b.rounds=Math.max(b.rounds,round+1);card.dataset.wsRound0=String(round+1);v36180StoreStructure(card,structure);v36180RenderStructure(card);v36180MarkDirty();v36182UpdateCard(card);offerUndo('AMRAP round recorded.',()=>{v36180StoreStructure(card,before);v36180RenderStructure(card);v36180MarkDirty();v36182UpdateCard(card)});return true;
+}
+function v36182StartClock(card){const active=v3685ReadActiveWorkout();if(!active||!v3685TrackerMatchesLog(active)||active.status!=='active'||Number.isFinite(active.amrapStartedElapsedMs)||editingSessionId)return false;active.amrapStartedElapsedMs=v3685WorkoutElapsedMs(active);active.amrapCardId=card.dataset.cardId||'amrap';v3685WriteActiveWorkout(active);writeLogWorkspace(true);v36182UpdateCard(card);return true;}
+function v36182UpdateCard(card){
+ const p=v36182ReadPlan(card);if(!p)return;const host=card.querySelector('.amrap-guide');if(!host)return;const active=v3685ReadActiveWorkout(),matches=active&&v3685TrackerMatchesLog(active),started=matches&&Number.isFinite(active.amrapStartedElapsedMs),clock=started?window.HybridAMRAP.clock(p.minutes,v3685WorkoutElapsedMs(active)-active.amrapStartedElapsedMs):null;
+ const clockText=clock?(clock.done?'Time cap reached. Stop the circuit and review actual rounds and reps.':(active.status==='paused'?'Paused · ':'')+Math.floor(Math.ceil(clock.remainingMs/1000)/60)+':'+String(Math.ceil(clock.remainingMs/1000)%60).padStart(2,'0')+' remaining'):'Start the workout timer, then start this circuit after your warm-up.';host.querySelector('.amrap-clock').textContent=editingSessionId?'Saved circuit · original session timing retained':clockText;
+ const start=host.querySelector('.amrap-start');start.disabled=!!(editingSessionId||!matches||active.status!=='active'||started);start.hidden=!!started||!!editingSessionId;
+ const time=card.querySelector('.le-time');if(clock?.done&&time&&time.value===''&&!editingSessionId&&!card.dataset.amrapTimeFilled){time.value=String(p.minutes);card.dataset.amrapTimeFilled='1';writeLogWorkspace(true);}
+ const score=window.HybridAMRAP.score(p,v36180ReadStructure(card),Number(time?.value)*60);host.querySelector('.amrap-score').textContent=(score.recorded?score.rounds+' complete rounds'+(score.partialReps?' + '+score.partialReps+' partial-round reps':'')+' · '+score.totalReps+' total reps'+(score.holdSeconds?' · '+score.holdSeconds+' hold seconds':''):'No completed rounds or reps recorded yet.')+(score.recorded?' · '+score.reason:'');
+}
+const v36182PriorRenderStructure=v36180RenderStructure;v36180RenderStructure=function(card){const out=v36182PriorRenderStructure.apply(this,arguments);if(v36182ReadPlan(card)){card.querySelector('.ws-use-totals')?.remove();if(!card.querySelector('.amrap-guide'))v36182RenderCard(card);else v36182UpdateCard(card);}return out;};
+const v36182PriorTracker=v3685RenderWorkoutTracker;v3685RenderWorkoutTracker=function(){const out=v36182PriorTracker.apply(this,arguments);plannedExercises.querySelectorAll('[data-amrap-plan]').forEach(v36182UpdateCard);return out;};
+plannedExercises.addEventListener('change',e=>{const card=e.target.closest('[data-amrap-plan]');if(card)v36182UpdateCard(card);});
+const v36182PriorSummary=conditioningSummary;conditioningSummary=function(row){const text=v36182PriorSummary.apply(this,arguments),p=window.HybridAMRAP.normalize(row?.metrics?.amrap);if(!p)return text;const s=window.HybridAMRAP.score(p,row.metrics.workoutStructure,Number(row.metrics.time)*60);return text+' · AMRAP '+p.minutes+' min · target '+window.HybridAMRAP.targetText(p)+' · '+(s.recorded?s.rounds+' rounds + '+s.partialReps+' partial-round reps · '+s.totalReps+' total reps'+(s.holdSeconds?' · '+s.holdSeconds+' hold sec':'')+' · '+(s.comparable?'comparable circuit':'modified / incomplete benchmark'):'no round-by-round result recorded');};
+function v36182Controls(){return {date:document.getElementById('amrapDate').value,role:document.getElementById('amrapRole').value,minutes:Number(document.getElementById('amrapMinutes').value),focus:document.getElementById('amrapFocus').value,equipment:[...document.querySelectorAll('#amrapEquipment input:checked')].map(x=>x.value)};}
+function v36182ExerciseChoices(){const c=v36182Controls(),host=document.getElementById('amrapExerciseChoices'),previous=new Map([...host.querySelectorAll('input')].map(x=>[x.value,x.checked])),pool=v36167EmomPool(c.equipment,c.date);host.innerHTML=pool.map(n=>'<label class="toggle-line"><input type="checkbox" value="'+attrSafe(n)+'"'+(previous.get(n)!==false?' checked':'')+'>'+htmlSafe(n)+'</label>').join('');document.getElementById('amrapSearch').dispatchEvent(new Event('input'));}
+function v36182Build(manual=false){const c=v36182Controls(),allowed=[...document.querySelectorAll('#amrapExerciseChoices input:checked')].map(x=>x.value),p=v36182Generate(c.date,c.equipment,c.minutes,c.focus,allowed,++v36182Variation,manual);if(p.blocked){document.getElementById('amrapStatus').textContent=p.why.join(' ');return false;}v36182Draft=p;v36182RenderBuilder();return true;}
+function v36182Retarget(){if(!v36182Draft)return;const p=window.HybridAMRAP.normalize(v36182Draft);if(!p)return;const rd=adaptiveReadiness(v36182Controls().date),seconds=p.slots.reduce((n,s)=>n+s.dose*(s.unit==='sec'?1:2)*(s.perSide?2:1)+8,0);p.target=window.HybridAMRAP.target(p,v36182History(v36182Controls().date),seconds,rd.caution);v36182Draft=p;}
+function v36182RenderBuilder(){
+ const host=document.getElementById('amrapCircuit'),status=document.getElementById('amrapStatus'),c=v36182Controls();host.innerHTML='';if(!v36182Draft){status.textContent='Choose equipment, then recommend a circuit or build your own.';return;}const p=v36182Draft,valid=p.slots.every(s=>v36167EmomAvailable(s.exercise,c.equipment,c.date));status.textContent=valid?p.minutes+' min · target '+window.HybridAMRAP.targetText(p)+' · '+(p.target?.why||''):'One or more movements needs equipment that is not selected. Generate a compatible circuit or edit the movement.';
+ const pool=[...new Set([...v36167EmomPool(c.equipment,c.date,true),...p.slots.map(s=>s.exercise)])];
+ p.slots.forEach((s,i)=>{const row=document.createElement('div');row.className='amrap-slot';row.innerHTML='<label>Movement '+(i+1)+'<select class="amrap-ex">'+pool.map(n=>'<option'+(n===s.exercise?' selected':'')+'>'+htmlSafe(n)+'</option>').join('')+'</select></label><label>Amount<input class="amrap-dose" type="number" min="1" max="1000" step="any" value="'+s.dose+'"></label><label>Unit<select class="amrap-unit"><option value="reps"'+(s.unit==='reps'?' selected':'')+'>Reps</option><option value="sec"'+(s.unit==='sec'?' selected':'')+'>Seconds</option></select></label><label>Load / band setup<input class="amrap-load" value="'+attrSafe(s.load)+'"></label><label class="toggle-line"><input type="checkbox" class="amrap-side"'+(s.perSide?' checked':'')+'>Each side</label><label>Grip / variation<input class="amrap-variant" value="'+attrSafe(s.variant)+'" placeholder="Keep consistent for comparisons"></label><button type="button" class="btn amrap-up" aria-label="Move movement up">↑</button><button type="button" class="btn amrap-down" aria-label="Move movement down">↓</button><button type="button" class="btn amrap-remove">Remove</button>';host.append(row);
+ row.querySelector('.amrap-ex').onchange=e=>{const n=e.target.value,weights=v36167EmomWeights(c.equipment,[{exercise:n}],c.date,false),newSlot=v36167EmomSlot(n,0,c.equipment,c.date,weights),sem=v36175RepSemantics(n);Object.assign(s,{exercise:n,dose:newSlot.dose.reps,unit:sem.seconds?'sec':'reps',perSide:sem.perSide,load:newSlot.weight,variant:newSlot.bellSetup||''});v36182Retarget();v36182RenderBuilder();};
+ for(const [cls,key] of [['amrap-dose','dose'],['amrap-unit','unit'],['amrap-load','load'],['amrap-variant','variant'],['amrap-side','perSide']])row.querySelector('.'+cls).onchange=e=>{s[key]=key==='perSide'?e.target.checked:key==='dose'?Number(e.target.value):e.target.value;v36182Retarget();status.textContent=window.HybridAMRAP.normalize(v36182Draft)?'Target: '+window.HybridAMRAP.targetText(v36182Draft)+' · '+v36182Draft.target.why:'Enter a valid positive amount for every movement.';};
+ row.querySelector('.amrap-up').onclick=()=>{if(i>0){[p.slots[i-1],p.slots[i]]=[p.slots[i],p.slots[i-1]];v36182Retarget();v36182RenderBuilder();}};row.querySelector('.amrap-down').onclick=()=>{if(i<p.slots.length-1){[p.slots[i+1],p.slots[i]]=[p.slots[i],p.slots[i+1]];v36182Retarget();v36182RenderBuilder();}};row.querySelector('.amrap-remove').onclick=()=>{if(p.slots.length<=2){status.textContent='Keep at least two movements in this circuit.';return;}p.slots.splice(i,1);v36182Retarget();v36182RenderBuilder();};
+ });
+}
+function v36182OpenAMRAP(date=selectedDateISO,role='primary'){
+ if(v3685ReadActiveWorkout()||editingSessionId){alert('Finish or discard the active workout, or close the saved-workout editor, before changing AMRAP setup.');return false;}
+ if(!v36182Return)v36182Return={view:document.querySelector('.view.active')?.id||'dashboard',draft:captureLogDraft(),guided:logGuidedPlan?v36182Clone(logGuidedPlan):null};date=date||localISO(new Date());role=['short','full'].includes(role)?role:'primary';const saved=role==='primary'?state.settings.amrapWorkouts?.[date]:state.settings.amrapSecondaryWorkouts?.[date]?.[role],p=window.HybridAMRAP.normalize(saved),eq=p?.equipment||v36168EmomEquipment(date);
+ document.getElementById('amrapDate').value=date;document.getElementById('amrapRole').value=role;document.getElementById('amrapMinutes').value=p?.minutes||(role==='short'?8:20);document.getElementById('amrapFocus').value=p?.focus||'auto';document.querySelectorAll('#amrapEquipment input').forEach(x=>x.checked=eq.includes(x.value));v36182Draft=p;v36182ExerciseChoices();v36182RenderBuilder();showView('amrap',{preserveDate:true});return true;
+}
+function v36182LoadAMRAP(schedule=false){
+ const c=v36182Controls(),p=window.HybridAMRAP.normalize(v36182Draft),status=document.getElementById('amrapStatus');
+ if(!p){status.textContent='Build a valid circuit before continuing.';return false;}
+ if(!p.slots.every(s=>v36167EmomAvailable(s.exercise,c.equipment,c.date))){status.textContent='Select equipment for every movement, or generate a compatible circuit.';return false;}
+ if(v3685ReadActiveWorkout()||editingSessionId)return false;
+ if(schedule&&completedSessionGroupsForDate(c.date).length){status.textContent='This date already has completed work. Prepare a separate workout instead.';return false;}
+ if(schedule&&c.role!=='primary'){status.textContent='Choose Primary workout to schedule this circuit on the calendar.';return false;}
+ p.equipment=c.equipment;p.minutes=c.minutes;const normalized=window.HybridAMRAP.normalize(p);
+ if(!normalized){status.textContent='Choose a valid 1–60 minute cap.';return false;}
+ const role=c.role==='primary'&&v36114FullWorkoutGroups(c.date).length>0?'full':c.role;
+ if(role==='short'&&normalized.minutes>20){status.textContent='Use up to 20 minutes for a short secondary.';return false;}
+ const wrapped=v36182WrapPlan(normalized,role,c.date);
+ if(role==='primary'){state.settings.amrapWorkouts=state.settings.amrapWorkouts||{};state.settings.amrapWorkouts[c.date]=normalized;}
+ else{state.settings.amrapSecondaryWorkouts=state.settings.amrapSecondaryWorkouts||{};state.settings.amrapSecondaryWorkouts[c.date]=state.settings.amrapSecondaryWorkouts[c.date]||{};state.settings.amrapSecondaryWorkouts[c.date][role]=normalized;}
+ if(schedule){clearDateProgrammingForIntent(c.date,'amrap');clearRestRecord(c.date);state.settings.noRestDates[c.date]=true;state.settings.customDayWorkouts[c.date]={session:'AMRAP',name:normalized.name,rows:wrapped.rows,createdAt:Date.now()};recordWorkoutIntent(c.date,'AMRAP','manual',normalized.name,'amrap-builder');state.settings.dayOverrides[c.date]='AMRAP';save('schedule-amrap');v36182Return=null;selectedDateISO=c.date;showView('dashboard',{preserveDate:true});return true;}
+ save('prepare-amrap');v36182Return=null;v36114LoadRows(c.date,'AMRAP',wrapped.rows,normalized.name,'Time cap '+normalized.minutes+' min. Keep going after the target and record actual completed work.');if(logGuidedPlan)logGuidedPlan.amrap=normalized;writeLogWorkspace(true);return true;
+}
+
+function v36182Init(){
+ const section=document.createElement('section');section.id='amrap';section.className='view';section.innerHTML='<div class="panel"><div class="panel-head"><div><h2>AMRAP circuits</h2><p>As many rounds and reps as possible within your time cap. Use a sustainable pace and clean repetitions.</p></div></div><button type="button" class="btn" id="amrapCancel">Cancel setup</button><div class="form-grid"><label>Date<input type="date" id="amrapDate"></label><label>Workout role<select id="amrapRole"><option value="primary">Primary workout</option><option value="full">Full secondary</option><option value="short">Short secondary</option></select></label><label>Time cap (minutes)<input type="number" id="amrapMinutes" min="1" max="60" value="20" step="1"></label><label>Extra focus<select id="amrapFocus"><option value="auto">Recommend from fatigue and training needs</option><option value="fullbody">Balanced full body</option><option value="upper">Upper body</option><option value="push">Pushing</option><option value="pull">Pulling</option><option value="lower">Lower body</option><option value="core">Core</option></select></label></div><details open><summary>Available equipment</summary><div id="amrapEquipment" class="form-grid"></div></details><details id="amrapMovementSetup"><summary>Choose exercises to include</summary><label>Search available movements<input type="search" id="amrapSearch" placeholder="e.g. push-up, band row, kettlebell"></label><div class="inline-actions"><button class="btn" type="button" id="amrapSelectAll">Select all</button><button class="btn" type="button" id="amrapSelectNone">Clear choices</button></div><p class="hint">Checked movements are eligible for recommendations. The editor also allows deliberate custom choices.</p><div id="amrapExerciseChoices"></div></details><div class="inline-actions"><button type="button" class="btn primary" id="amrapRecommend">Recommend a varied circuit</button><button type="button" class="btn" id="amrapCustom">Build your own</button><button type="button" class="btn" id="amrapRepeat">Repeat last comparable circuit</button></div><p id="amrapStatus" role="status"></p><div id="amrapCircuit"></div><button type="button" class="btn" id="amrapAdd">+ Movement</button><p class="hint">New mixes get provisional targets. Comparisons require the same ordered exercises, doses, loads, grip and duration. Holds are measured in seconds, separately from repetitions.</p><div class="inline-actions"><button type="button" class="btn primary" id="amrapLoad">Prepare this workout</button><button type="button" class="btn" id="amrapSchedule">Schedule as primary</button></div><p class="hint">EMOM and AMRAP alternate within the existing occasional density-workout allowance. Adding AMRAP does not create a second frequency quota.</p></div>';
+ document.getElementById('emom').after(section);document.head.insertAdjacentHTML('beforeend','<style>.amrap-slot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:14px 0;border-bottom:1px solid var(--line)}.amrap-slot label,.amrap-slot input,.amrap-slot select{min-width:0;width:100%}.amrap-slot>label:first-child{grid-column:1/-1}.amrap-slot button{min-width:0}.amrap-clock{font-size:1.2rem;font-weight:700;margin:12px 0}.amrap-score{margin:12px 0}#amrapExerciseChoices{max-height:40dvh;overflow:auto;overscroll-behavior:contain}#amrap .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px}#amrapEquipment .toggle-line{display:flex;align-items:center;gap:8px}#amrapEquipment input,#amrapExerciseChoices input,.amrap-slot .toggle-line input{width:auto}#amrap button{white-space:normal;max-width:100%}#amrap input,#amrap select{max-width:100%;box-sizing:border-box}#amrap .inline-actions{flex-wrap:wrap}</style>');
+ document.getElementById('amrapDate').value=selectedDateISO||localISO(new Date());document.getElementById('amrapEquipment').innerHTML=v36167EMOM_EQUIPMENT.map(([v,l])=>'<label class="toggle-line"><input type="checkbox" value="'+v+'"'+(v==='bodyweight'?' checked':'')+'>'+htmlSafe(l)+'</label>').join('');
+ for(const selector of ['.tabs [data-view="emom"]','#mobileMoreSheet [data-mobile-view="emom"]']){const old=document.querySelector(selector);if(old){const b=old.cloneNode(true);if(old.dataset.mobileView)b.dataset.mobileView='amrap';else b.dataset.view='amrap';b.textContent='AMRAP';old.after(b);b.onclick=()=>v36182OpenAMRAP(selectedDateISO);}}
+ document.getElementById('amrapRecommend').onclick=()=>v36182Build(false);document.getElementById('amrapCustom').onclick=()=>v36182Build(true);document.getElementById('amrapLoad').onclick=()=>v36182LoadAMRAP(false);document.getElementById('amrapSchedule').onclick=()=>v36182LoadAMRAP(true);
+ document.getElementById('amrapCancel').onclick=()=>{const back=v36182Return;v36182Return=null;if(back?.view==='log'){logGuidedPlan=back.guided;restoreLogDraft(back.draft);writeLogWorkspace();}showView(back?.view==='amrap'?'dashboard':back?.view||'dashboard',{preserveDate:true});};
+ document.getElementById('amrapRepeat').onclick=()=>{const c=v36182Controls(),last=v36182History(c.date).filter(x=>x.score.comparable&&x.status==='Complete').at(-1);if(!last){document.getElementById('amrapStatus').textContent='No comparable completed AMRAP yet. Build a circuit and record a baseline first.';return;}const p=window.HybridAMRAP.normalize(last.row.metrics.amrap);if(!p.slots.every(s=>v36167EmomAvailable(s.exercise,c.equipment,c.date))){document.getElementById('amrapStatus').textContent='That circuit needs equipment that is not currently selected.';return;}p.equipment=c.equipment;v36182Draft=p;document.getElementById('amrapMinutes').value=p.minutes;v36182Retarget();v36182RenderBuilder();};
+ document.getElementById('amrapAdd').onclick=()=>{if(!v36182Draft){v36182Build(true);return;}if(v36182Draft.slots.length>=8)return;const c=v36182Controls(),n=v36167EmomPool(c.equipment,c.date,true).find(n=>!v36182Draft.slots.some(s=>s.exercise===n));if(n){let id=1;while(v36182Draft.slots.some(s=>s.id==='s'+id))id++;const sem=v36175RepSemantics(n);v36182Draft.slots.push({id:'s'+id,exercise:n,dose:sem.seconds?20:8,unit:sem.seconds?'sec':'reps',perSide:sem.perSide,load:kbExercise(n)?formatKbWeight(n,8):'Bodyweight',variant:''});v36182Retarget();v36182RenderBuilder();}};
+ document.getElementById('amrapSearch').oninput=e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('#amrapExerciseChoices label').forEach(el=>el.hidden=!el.textContent.toLowerCase().includes(q));};
+ for(const [id,checked] of [['amrapSelectAll',true],['amrapSelectNone',false]])document.getElementById(id).onclick=()=>document.querySelectorAll('#amrapExerciseChoices input').forEach(x=>x.checked=checked);
+ document.getElementById('amrapEquipment').onchange=()=>{v36182ExerciseChoices();v36182RenderBuilder();};document.getElementById('amrapDate').onchange=()=>{v36182ExerciseChoices();v36182Draft=null;v36182RenderBuilder();};document.getElementById('amrapMinutes').onchange=()=>{if(v36182Draft){v36182Draft.minutes=Number(document.getElementById('amrapMinutes').value);v36182Retarget();v36182RenderBuilder();}};document.getElementById('amrapFocus').onchange=()=>{v36182Draft=null;v36182RenderBuilder();};
+ document.getElementById('amrapRole').onchange=e=>{if(e.target.value==='short'){document.getElementById('amrapMinutes').value=8;if(v36182Draft){v36182Draft.minutes=8;v36182Retarget();v36182RenderBuilder();}}};v36182ExerciseChoices();
+}
+
+function v36182PreviewHtml(plan){return '<strong>'+htmlSafe(plan.label||plan.name)+'</strong><p>Repeat for '+plan.minutes+' minutes · target '+htmlSafe(window.HybridAMRAP.targetText(plan))+'</p><ol>'+plan.slots.map(s=>'<li>'+htmlSafe(s.exercise)+' · '+s.dose+' '+s.unit+(s.perSide?' / side':'')+' · '+htmlSafe(s.load)+'</li>').join('')+'</ol><p class="hint">Continue after the target; stop at the cap. Your actual rounds and reps determine the result.</p>';}
+function v36182EditSetup(){const card=plannedExercises.querySelector('[data-amrap-plan]'),p=v36182ReadPlan(card);if(!p||v3685ReadActiveWorkout()||editingSessionId)return false;const role=card.dataset.isShortSecondary==='1'?'short':card.dataset.isFullSecondary==='1'?'full':'primary';v36182OpenAMRAP(logDate.value,role);v36182Draft=p;document.getElementById('amrapMinutes').value=p.minutes;document.querySelectorAll('#amrapEquipment input').forEach(el=>el.checked=p.equipment.includes(el.value));v36182ExerciseChoices();v36182RenderBuilder();return true;}
+const v36182PriorEntry=entryForName;entryForName=function(name){return name==='AMRAP Circuit'?{num:30,name,prescription:'Repeat your selected circuit to the time cap. Rest as needed; record complete rounds and the final partial round.',logging:'generic'}:v36182PriorEntry(name);};
+const v36182PriorTick=v36156TickWorkoutClock;v36156TickWorkoutClock=function(x){v36182PriorTick(x);if(!document.hidden&&document.querySelector('.view.active')?.id==='log')plannedExercises.querySelectorAll('[data-amrap-plan]').forEach(v36182UpdateCard);};
+v36182Init();
 
 window.HybridCore=Object.seal({
  barbellPlatePlan:v36153ApplyBarbellPlatePlan,refreshBarbellPlateVisuals:v36153RefreshBarbellPlateVisuals,
@@ -21144,7 +21297,7 @@ window.HybridCore=Object.seal({
 @media(max-width:760px){.swim-stroke-block{grid-template-columns:repeat(2,minmax(0,1fr))!important}.swim-stroke-block .sb-remove{grid-column:2;justify-self:end}}
 .v36128-picker-search{min-height:40px!important;margin:0 0 6px!important;font-size:15px!important;background:#101b25!important}.v36128-picker-count{display:block;margin:-2px 0 6px;font-size:.62rem;line-height:1.2;color:var(--muted)}
 
-/* v36.181: corrections to a finished workout retain its performed exercises. */
+/* v36.182: corrections to a finished workout retain its performed exercises. */
 #log.saved-session-editing #logSetupDetails .log-setup-body>:not(.log-toolbar),#log.saved-session-editing #loadPlan,#log.saved-session-editing #logRestDay{display:none!important}
 </style>
 <script id="v36128-searchable-exercise-pickers">
@@ -21161,9 +21314,9 @@ window.HybridCore=Object.seal({
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>scan());else scan();new MutationObserver(items=>items.forEach(m=>m.addedNodes.forEach(queue))).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
-<script src="app-shell-v36.119.js?v=36.181"></script>
-<script src="adaptive-personalization-v36.120.js?v=36.181"></script>
-<script src="ui-workflows.js?v=36.181"></script>
+<script src="app-shell-v36.119.js?v=36.182"></script>
+<script src="adaptive-personalization-v36.120.js?v=36.182"></script>
+<script src="ui-workflows.js?v=36.182"></script>
 
 <script id="v36116-build-note">
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.

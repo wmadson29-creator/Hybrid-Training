@@ -163,7 +163,7 @@
   }
 
   function predictionUnestimated(row){
-    if(row?.modelPredictionScope==='structured-actual-unestimated')return true;
+    if(row?.modelPredictionScope==='structured-actual-unestimated'||row?.metrics?.amrap)return true;
     if(!isCardioRow(row))return false;
     const m=metrics(row),components=Array.isArray(m.components)?m.components:[];
     if(!m.workoutStructure&&!components.length)return false;
