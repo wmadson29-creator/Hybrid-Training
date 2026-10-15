@@ -28,7 +28,10 @@
   function noPerformedWork(row){
     if(nonWorking(row))return true;
     if(isCardioRow(row)){
-      const m=metrics(row),knownZero=explicitZero(m.time)||explicitZero(m.duration)||explicitZero(row?.effectiveDurationMinutes)||explicitZero(row?.trackedSessionDurationMinutes)||explicitZero(row?.sessionDurationMinutes);
+      const m=metrics(row),structure=decisionApi?.normalizeWorkoutStructure?.(m.workoutStructure);
+      if(structure?.tracking&&decisionApi.performedStructureEntries(structure).length===0)return true;
+      if(!structure?.tracking&&Array.isArray(m.components)&&m.components.length&&m.components.every(c=>nonWorking(c)||explicitZero(c?.actualDose)))return true;
+      const knownZero=explicitZero(m.time)||explicitZero(m.duration)||explicitZero(row?.effectiveDurationMinutes)||explicitZero(row?.trackedSessionDurationMinutes)||explicitZero(row?.sessionDurationMinutes);
       return knownZero&&actualMinutes(row)===0&&!structuredActualDoseExists(row)&&!(number(m.distance)>0||number(m.intervals)>0||number(m.poolLengths)>0);
     }
     if(Array.isArray(row?.setDetails)&&row.setDetails.length)return workingSetDetails(row).length===0;
@@ -84,7 +87,9 @@
 
   function structuredActualDoseExists(row){
     const m=metrics(row);
-    return (Array.isArray(m.components)&&m.components.some(c=>String(c?.actual||c?.planned||'').trim()||number(c?.actualDose)>0))||
+    const structure=decisionApi?.normalizeWorkoutStructure?.(m.workoutStructure);
+    if(structure?.tracking)return decisionApi.performedStructureEntries(structure).length>0;
+    return (Array.isArray(m.components)&&m.components.some(c=>!nonWorking(c)&&!explicitZero(c?.actualDose)&&(String(c?.actual||c?.planned||'').trim()||number(c?.actualDose)>0)))||
       (Array.isArray(m.swimStrokeBlocks)&&m.swimStrokeBlocks.length>0)||number(m.intervals)>0;
   }
 
@@ -97,6 +102,8 @@
   function actualMinutes(row){
     const m=metrics(row),direct=Number(m.time)||Number(m.duration)||0;
     if(direct>0)return direct;
+    const structure=decisionApi?.normalizeWorkoutStructure?.(m.workoutStructure);
+    if(structure?.tracking){const entries=decisionApi.performedStructureEntries(structure),seconds=entries.reduce((sum,e)=>sum+(Number(e.durationSeconds)||(['sec','min'].includes(e.unit)?Number(e.dose)*(e.unit==='min'?60:1):0)),0);if(seconds>0)return seconds/60}
     const fallback=Number(row?.effectiveDurationMinutes)||Number(row?.trackedSessionDurationMinutes)||Number(row?.sessionDurationMinutes)||0;
     return fallback>0?fallback:0;
   }
@@ -155,8 +162,19 @@
     return 1;
   }
 
+  function predictionUnestimated(row){
+    if(row?.modelPredictionScope==='structured-actual-unestimated')return true;
+    if(!isCardioRow(row))return false;
+    const m=metrics(row),components=Array.isArray(m.components)?m.components:[];
+    if(!m.workoutStructure&&!components.length)return false;
+    const structure=decisionApi?.structureDoseProfile?.(m.workoutStructure,row?.modelPlannedStructure,components,Number(m.time)||Number(m.duration)||null);
+    if(structure?.tracking)return !structure.complete||structure.substituted||structure.capUnverified||Number.isFinite(structure.ratio)&&Math.abs(structure.ratio-1)>.001;
+    const dose=decisionApi?.componentDoseProfile?.(components,row?.modelPlannedComponents);
+    return !!(dose?.substituted||dose?.skipped||Number.isFinite(dose?.ratio)&&Math.abs(dose.ratio-1)>.001);
+  }
+
   function responseQuality(row){
-    const m=metrics(row),rpe=effortRpe(row),plannedRpe=Number(row?.modelPlannedExpectedRpe)||Number(row?.modelExpectedRpe)||0,feel=lower(row?.feel),technique=lower(row?.technique),pain=lower(row?.painLevel),decoupling=Number(m.decouplingPct),state=status(row),
+    const m=metrics(row),rpe=effortRpe(row),plannedRpe=predictionUnestimated(row)?0:Number(row?.modelPlannedExpectedRpe)||Number(row?.modelExpectedRpe)||0,feel=lower(row?.feel),technique=lower(row?.technique),pain=lower(row?.painLevel),decoupling=Number(m.decouplingPct),state=status(row),
       unexpectedlyVeryHard=feel==='very hard'&&plannedRpe>0&&plannedRpe<=7.25&&rpe-plannedRpe>=1.75,
       costly=state==='missed'||rpe>=9.5||validSetDetails(row).some(set=>Number(set.rpe)>=9.5)||unexpectedlyVeryHard||/(?:too hard|bad|grindy|failed|maximal)/.test(feel)||technique==='sloppy'||/(?:moderate|sharp|stop)/.test(pain)||(Number.isFinite(decoupling)&&decoupling>=10),
       positiveFeel=/(?:too easy|easy|comfortable|challenging|good|hard but good)/.test(feel),
@@ -190,9 +208,12 @@
 
   function rowProfile(row){
     const cardio=isCardioRow(row),none=noPerformedWork(row),actual=none?0:cardio?actualMinutes(row):actualSets(row),planned=cardio?plannedMinutes(row):Math.max(0,number(row?.modelPlannedSets)),comparable=comparableExercise(row);
-    const componentDose=cardio&&decisionApi?.componentDoseProfile?decisionApi.componentDoseProfile(metrics(row).components,row?.modelPlannedComponents):null;
+    const structureDose=cardio&&decisionApi?.structureDoseProfile?decisionApi.structureDoseProfile(metrics(row).workoutStructure,row?.modelPlannedStructure,metrics(row).components,Number(metrics(row).time)||Number(metrics(row).duration)||null):null,
+      componentDose=cardio&&decisionApi?.componentDoseProfile?decisionApi.componentDoseProfile(metrics(row).components,row?.modelPlannedComponents):null;
     let ratio=null;
     if(none&&planned>0&&comparable)ratio=0;
+    else if(structureDose?.tracking&&comparable)ratio=structureDose.substituted?null:structureDose.ratio;
+    else if(!structureDose?.tracking&&(componentDose?.substituted||componentDose?.skipped))ratio=null;
     else if(cardio&&actual>0&&planned>0&&comparable)ratio=clamp(actual/planned,.05,3);
     else if(cardio&&Number.isFinite(componentDose?.ratio)&&comparable)ratio=clamp(componentDose.ratio,.05,3);
     else if(!cardio)ratio=strengthDoseRatio(row);
@@ -200,13 +221,13 @@
       plannedExists=cardio?(planned>0||structuredPlanned):plannedStrengthExists(row),actualExists=cardio?(actual>0||structuredActual):actualStrengthExists(row);
     let relation='insufficient';
     if(actualExists&&!plannedExists)relation='unplanned';
-    else if(actualExists&&plannedExists&&!comparable)relation='substituted';
+    else if(actualExists&&plannedExists&&(!comparable||structureDose?.substituted||!structureDose?.tracking&&componentDose?.substituted))relation='substituted';
     else if(ratio!==null)relation=ratio<.82?'under':ratio>1.18?'over':'as-planned';
     else if(actualExists&&plannedExists)relation='planned-unquantified';
     return {
       version:4,role:rowRole(row),cardio,actual,planned,ratio:ratio===null?null:Math.round(ratio*1000)/1000,
       relation,response:responseQuality(row),explicitActual:explicitActualDose(row),comparable,
-      structuredActual,structuredPlanned,componentDose,actualDoseUnits:actual,plannedDoseUnits:planned
+      structuredActual,structuredPlanned,componentDose,structureDose,actualDoseUnits:actual,plannedDoseUnits:planned
     };
   }
 
@@ -230,5 +251,5 @@
     return {version:3,rows:profiles.length,profiles,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation,response,cardioMinutes:Math.round(cardioMinutes*10)/10,strengthSets:Math.round(strengthSets*10)/10,doseWeight:Math.round(doseWeight*100)/100,avgRpe:Math.round(avgRpe*10)/10};
   }
 
-  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,effortRpe,responseQuality,rowRole,rowProfile,sessionProfile,loadPounds,repQuantity:averageNumbers,workingSetDetails,noPerformedWork};
+  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,effortRpe,responseQuality,rowRole,rowProfile,sessionProfile,loadPounds,repQuantity:averageNumbers,workingSetDetails,noPerformedWork,predictionUnestimated};
 });

@@ -79,14 +79,98 @@
       const key=String(item?.planned||item?.label||'').trim().toLowerCase();if(key)byName.set(key,row);
     });
     const rows=actual.map((item,index)=>{
-      const key=String(item?.planned||item?.label||'').trim().toLowerCase(),base=(item?.id&&byId.get(String(item.id)))||byName.get(key)||planned[index]||{},plannedDose=doseNumber(item?.plannedDose??base?.plannedDose),actualDose=doseNumber(item?.actualDose),plannedUnit=normalizeUnit(item?.doseUnit||base?.doseUnit),actualUnit=normalizeUnit(item?.actualDoseUnit||item?.doseUnit||base?.doseUnit),comparable=plannedDose>0&&actualDose>=0&&plannedUnit&&plannedUnit===actualUnit,ratio=comparable?clamp(actualDose/plannedDose,0,3):null;
+      const key=String(item?.planned||item?.label||'').trim().toLowerCase(),base=(item?.id&&byId.get(String(item.id)))||byName.get(key)||planned[index]||{},plannedDose=doseNumber(base?.plannedDose??item?.plannedDose),actualDose=doseNumber(item?.actualDose),plannedUnit=normalizeUnit(base?.doseUnit||item?.doseUnit),actualUnit=normalizeUnit(item?.actualDoseUnit||item?.doseUnit||base?.doseUnit),sameMovement=!item?.actual||!base?.planned||item.actual===base.planned,comparable=String(item?.actualDose??'').trim()!==''&&plannedDose>0&&actualDose>=0&&plannedUnit&&plannedUnit===actualUnit&&sameMovement,ratio=comparable?clamp(actualDose/plannedDose,0,3):null;
       return {id:String(item?.id||base?.id||'c'+(index+1)),plannedDose,actualDose,doseUnit:actualUnit||plannedUnit,comparable,ratio:ratio===null?null:Math.round(ratio*1000)/1000};
     });
     const comparable=rows.filter(row=>Number.isFinite(row.ratio)),ratio=comparable.length?comparable.reduce((sum,row)=>sum+row.ratio,0)/comparable.length:null;
     let relation='planned-unquantified';
     if(ratio!==null)relation=ratio<.82?'under':ratio>1.18?'over':'as-planned';
     else if(actual.some(item=>doseNumber(item?.actualDose)>0)&&!planned.some(item=>doseNumber(item?.plannedDose)>0))relation='unplanned';
-    return {version:1,rows,comparable:comparable.length,total:rows.length,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation};
+    const substituted=actual.some(item=>item?.actual&&item?.planned&&item.actual!==item.planned&&!['skipped','missed'].includes(String(item.status||'').toLowerCase())),skipped=actual.filter(item=>['skipped','missed'].includes(String(item?.status||'').toLowerCase())).length;
+    return {version:1,rows,comparable:comparable.length,total:rows.length,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation:substituted?'substituted':relation,substituted,skipped};
+  }
+
+  // Structured conditioning records targets separately from explicitly logged work.
+  // Units are converted only within the same physical quantity and same movement.
+  const STRUCTURE_UNITS=['reps','sec','min','m','yd','km','mi','rounds','sets','lengths'];
+  const structureText=(value,max=500)=>String(value??'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,'').slice(0,max);
+  function normalizeWorkoutStructure(value,{strict=false,planOnly=false}={}){
+    if(value===undefined||value===null)return null;
+    const fail=message=>{if(strict)throw new Error('Invalid workout structure: '+message);return null};
+    if(!record(value)||value.version!==1||!Array.isArray(value.blocks)||value.blocks.length>16)return fail('blocks or version');
+    const ids=new Set(),blocks=[];
+    for(const [i,b] of value.blocks.entries()){
+      if(!record(b)||!Array.isArray(b.steps)||b.steps.length>64||!Number.isInteger(Number(b.rounds))||Number(b.rounds)<1||Number(b.rounds)>200)return fail('block '+(i+1));
+      const id=structureText(b.id||'b'+(i+1),40),stepIds=new Set(),steps=[];
+      if(ids.has(id))return fail('duplicate block');ids.add(id);
+      for(const [j,s] of b.steps.entries()){
+        if(!record(s))return fail('step');
+        const sid=structureText(s.id||'s'+(j+1),40),unit=normalizeUnit(s.unit||'reps');
+        if(stepIds.has(sid)||!STRUCTURE_UNITS.includes(unit))return fail('step identity or unit');stepIds.add(sid);
+        const dose=structureText(s.dose??'',40),pattern=Array.isArray(s.doses)?s.doses.map(x=>structureText(x,40)):[];
+        if(pattern.length>200||[dose,...pattern].some(x=>x!==''&&(!Number.isFinite(Number(x))||Number(x)<0||Number(x)>1e7)))return fail('step amount');
+        steps.push({id:sid,componentId:structureText(s.componentId,40),kind:s.kind==='rest'?'rest':'work',label:structureText(s.label,160),dose,unit,doses:pattern,perSide:s.perSide===true,load:structureText(s.load,120),cue:structureText(s.cue,500)});
+      }
+      blocks.push({id,label:structureText(b.label||'Block '+(i+1),160),mode:['rounds','ladder','amrap','sequence','intervals','until-distance'].includes(b.mode)?b.mode:'rounds',rounds:Number(b.rounds),capSeconds:clamp(b.capSeconds,0,86400),cue:structureText(b.cue,1000),steps});
+    }
+    if(blocks.reduce((n,b)=>n+b.rounds*b.steps.length,0)>2048)return fail('too many target steps');
+    const out={version:1,activity:structureText(value.activity,240),source:structureText(value.source||'custom',24),prescription:structureText(value.prescription,3000),tracking:!planOnly&&value.tracking===true,blocks,entries:[]};
+    if(planOnly)return out;
+    if(value.entries!==undefined&&(!Array.isArray(value.entries)||value.entries.length>2048))return fail('entries');
+    const entryIds=new Set();
+    for(const e of value.entries||[]){
+      if(!record(e))return fail('entry');
+      const b=blocks.find(b=>b.id===e.blockId),s=b?.steps.find(s=>s.id===e.stepId),round=Number(e.round),id=structureText(e.id,120);
+      if(!s||!Number.isInteger(round)||round<1||round>b.rounds||id!==b.id+':'+round+':'+s.id||entryIds.has(id))return fail('entry reference');entryIds.add(id);
+      const dose=structureText(e.dose??'',40),unit=normalizeUnit(e.unit||s.unit),status=String(e.status||'');
+      if(!STRUCTURE_UNITS.includes(unit)||!['','started','complete','partial','skipped'].includes(status)||dose!==''&&(!Number.isFinite(Number(dose))||Number(dose)<0||Number(dose)>1e7))return fail('entry amount, unit or status');
+      const r={id,blockId:b.id,stepId:s.id,round,componentId:structureText(e.componentId||s.componentId,40),actual:structureText(e.actual,160),dose,unit,load:structureText(e.load,120),side:['both','left','right','total'].includes(e.side)?e.side:(s.perSide?'both':'total'),status,rpe:structureText(e.rpe,12),notes:structureText(e.notes,500),durationSeconds:structureText(e.durationSeconds??'',40)};
+      if(r.rpe!==''&&(!Number.isFinite(Number(r.rpe))||Number(r.rpe)<1||Number(r.rpe)>10))return fail('entry effort');
+      if(r.durationSeconds!==''&&(!Number.isFinite(Number(r.durationSeconds))||Number(r.durationSeconds)<0||Number(r.durationSeconds)>86400))return fail('entry time');
+      for(const k of ['startedAt','completedAt','startedElapsedMs'])if(e[k]!==undefined){if(!Number.isFinite(Number(e[k]))||Number(e[k])<0||Number(e[k])>1e15)return fail('entry timestamp');r[k]=Number(e[k])}
+      out.entries.push(r);
+    }
+    return out;
+  }
+  function structureSlots(value){
+    const s=normalizeWorkoutStructure(value);if(!s)return [];
+    const out=[];for(const b of s.blocks)for(let round=1;round<=b.rounds;round++)for(const step of b.steps){
+      if(out.length>=2048)return out;
+      out.push({...step,id:b.id+':'+round+':'+step.id,blockId:b.id,round,stepId:step.id,dose:step.doses.length?String(step.doses[(round-1)%step.doses.length]):step.dose});
+    }return out;
+  }
+  function performedStructureEntries(value){
+    const s=normalizeWorkoutStructure(value);if(!s?.tracking)return [];
+    const byStep=new Map(s.blocks.flatMap(b=>b.steps.map(step=>[b.id+':'+step.id,step])));
+    return s.entries.filter(e=>byStep.get(e.blockId+':'+e.stepId)?.kind!=='rest'&&['complete','partial'].includes(e.status)&&!(e.dose!==''&&Number(e.dose)===0));
+  }
+  function structureQuantity(value,unit){
+    const u=normalizeUnit(unit),scales={sec:['time',1],min:['time',60],m:['distance',1],yd:['distance',.9144],km:['distance',1000],mi:['distance',1609.344]};
+    const [kind,factor]=scales[u]||[u,1];return {kind,amount:Number(value)*factor};
+  }
+  function structureDoseProfile(value,plannedValue,components=[],actualMinutes=null){
+    const s=normalizeWorkoutStructure(value),plan=normalizeWorkoutStructure(plannedValue)||s;
+    if(!s||!plan)return null;
+    const names=new Map((Array.isArray(components)?components:[]).map(c=>[c.id,c])),entries=new Map(s.entries.map(e=>[e.id,e])),slots=structureSlots(plan).filter(x=>x.kind!=='rest'),rows=[],variableBlocks=new Set(plan.blocks.filter(b=>['amrap','until-distance'].includes(b.mode)).map(b=>b.id));
+    let substituted=false;
+    for(const slot of slots){
+      const e=entries.get(slot.id),c=names.get(slot.componentId)||{},actualName=e?.actual||c.actual||c.planned||'',plannedName=slot.label||c.planned||actualName,performed=e&&['complete','partial'].includes(e.status),sameMovement=!performed||!actualName||!plannedName||actualName===plannedName;
+      if(performed&&!sameMovement)substituted=true;
+      const p=structureQuantity(slot.dose,slot.unit),a=structureQuantity(e?.dose,e?.unit||slot.unit),sameLoad=!slot.load||String(e?.load||'')===slot.load;
+      const known=!variableBlocks.has(slot.blockId)&&slot.dose!==''&&p.amount>0,zero=s.tracking&&(!e||['started','skipped',''].includes(e.status)||e.dose!==''&&Number(e.dose)===0),sideFactor=e?.side==='both'&&slot.perSide?1:slot.perSide?.5:1;
+      const comparable=s.tracking&&known&&sameMovement&&sameLoad&&(zero||performed&&e.dose!==''&&p.kind===a.kind),ratio=comparable?(zero?0:clamp(a.amount*sideFactor/p.amount,0,3)):null;
+      rows.push({id:slot.id,componentId:slot.componentId,comparable,ratio,performed:!!performed,substituted:performed&&!sameMovement});
+    }
+    let extraRatio=0;
+    for(const e of s.entries.filter(e=>['complete','partial'].includes(e.status)&&!slots.some(slot=>slot.id===e.id))){
+      const b=plan.blocks.find(b=>b.id===e.blockId),step=b?.steps.find(step=>step.id===e.stepId);if(!step||step.kind==='rest'||variableBlocks.has(b.id))continue;
+      const c=names.get(step.componentId)||{},plannedName=step.label||c.planned,sameMovement=(!e.actual||!plannedName||e.actual===plannedName);if(!sameMovement){substituted=true;continue}
+      const dose=step.doses.length?step.doses[(e.round-1)%step.doses.length]:step.dose,p=structureQuantity(dose,step.unit),a=structureQuantity(e.dose,e.unit);
+      if(dose!==''&&p.amount>0&&e.dose!==''&&p.kind===a.kind)extraRatio+=clamp(a.amount/p.amount,0,3)*(step.perSide&&e.side!=='both'?.5:1);
+    }
+    const caps=plan.blocks.filter(b=>b.mode==='amrap'&&b.capSeconds>0),capSeconds=caps.reduce((n,b)=>n+b.capSeconds,0),capUnverified=capSeconds>0&&(caps.length>1||!(Number(actualMinutes)>0)),capIncomplete=capSeconds>0&&Number(actualMinutes)>0&&Number(actualMinutes)*60+1<capSeconds,capRatio=capSeconds>0&&!capUnverified?clamp(Number(actualMinutes)*60/capSeconds,0,3):null;
+    const quantified=rows.filter(x=>x.comparable),ratio=quantified.length?clamp((quantified.reduce((n,x)=>n+x.ratio,0)+extraRatio)/quantified.length,0,3):capRatio,performed=performedStructureEntries(s),complete=!capIncomplete&&slots.length>0&&structureSlots(s).filter(x=>x.kind!=='rest').every(slot=>entries.get(slot.id)?.status==='complete');
+    return {version:1,tracking:s.tracking,rows,ratio,capSeconds,capUnverified,capIncomplete,relation:substituted?'substituted':ratio===null?'planned-unquantified':ratio<.82?'under':ratio>1.18?'over':'as-planned',substituted,complete,performed:performed.length,total:slots.length,quantified:quantified.length,coverage:rows.length?quantified.length/rows.length:0};
   }
 
   const PAIN_AREA_MUSCLES={
@@ -265,6 +349,6 @@
 
   return Object.freeze({
     version:VERSION,schemaVersion:SCHEMA_VERSION,stableStringify,hashString,evidenceRevision,snapshotValid,recommendationPreference,evidenceQuality,
-    normalizeUnit,doseNumber,componentDoseProfile,painFlag,painConstraint,summarizeReasons,recommendationDecision,developmentHorizon,selectRecoveryObservation,mergeDayContext,dayContextSummary,migrateState,normalizeEquipmentProfiles,repairHistoricalPrimaryIntent
+    normalizeUnit,doseNumber,componentDoseProfile,normalizeWorkoutStructure,structureSlots,performedStructureEntries,structureDoseProfile,painFlag,painConstraint,summarizeReasons,recommendationDecision,developmentHorizon,selectRecoveryObservation,mergeDayContext,dayContextSummary,migrateState,normalizeEquipmentProfiles,repairHistoricalPrimaryIntent
   });
 });
