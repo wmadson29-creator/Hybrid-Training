@@ -106,5 +106,12 @@
  function targetText(value,t=value?.target){const p=normalize(value);if(!p||!t)return '';const rounds=Math.floor(t.progress+1e-7),extra=(t.progress-rounds)*p.slots.length,whole=Math.floor(extra+1e-6),fraction=extra-whole,next=p.slots[Math.min(whole,p.slots.length-1)],amount=Math.round(fraction*next.dose);return rounds+' rounds'+(whole?' + '+whole+' movement'+(whole===1?'':'s'):'')+(amount?' + '+amount+' '+next.unit+' '+next.exercise+(next.perSide?' / side':''):'');}
  function roundEntries(value,round){const p=normalize(value,{strict:true});if(!Number.isInteger(round)||round<1||round>200)throw Error('AMRAP: invalid round');return p.slots.map((s,i)=>({id:'b1:'+round+':'+s.id,blockId:'b1',stepId:s.id,round,componentId:'c'+(i+1),actual:s.exercise,dose:s.dose,unit:s.unit,load:s.load,side:s.perSide?'both':'total',status:'complete'}));}
  function clock(minutes,elapsedMs){const cap=Number(minutes)*60000,elapsed=Math.max(0,Number(elapsedMs)||0);return {remainingMs:Math.max(0,cap-elapsed),elapsedMs:Math.min(cap,elapsed),done:elapsed>=cap};}
- return Object.freeze({version:1,normalize,signature,structure,score,target,targetText,roundEntries,clock});
+ // A date-keyed fair draw stays stable on refresh. Previous workouts never choose its side.
+ function densityFormat(opportunityKey){
+  const text='density-format-v1|'+String(opportunityKey);let h=2166136261;
+  for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}
+  h^=h>>>16;h=Math.imul(h,0x85ebca6b);h^=h>>>13;h=Math.imul(h,0xc2b2ae35);h^=h>>>16;
+  return (h>>>31)===0?'EMOM':'AMRAP';
+ }
+ return Object.freeze({version:1,normalize,signature,structure,score,target,targetText,roundEntries,clock,densityFormat});
 });
