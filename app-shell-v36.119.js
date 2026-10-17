@@ -153,7 +153,7 @@ function installWorkoutBar(){
 }
 function latestCompletedSetTime(){let t=0;exerciseCards().forEach(c=>$$('.set-detail-row',c).forEach(r=>t=Math.max(t,Number(r.dataset.completedAt)||0)));return t}
 function syncRestClock(){
- const e=$('#v36101RestClock');if(!e)return;const a=core.readActiveWorkout(),elapsed=sessionElapsed(a),t=latestCompletedSetTime(),parts=[];if(elapsed)parts.push('Session '+fmtClock(elapsed));if(t){const rest=Math.max(0,Math.floor((Date.now()-t)/1000));parts.push('Rest '+fmtClock(rest))}if(a?.status==='paused')parts.push('Paused');const value=parts.join(' • ');if(e.textContent!==value)e.textContent=value;
+ const e=$('#v36101RestClock');if(!e)return;const a=core.readActiveWorkout(),elapsed=sessionElapsed(a),t=latestCompletedSetTime(),parts=[];if(elapsed)parts.push('Session '+fmtClock(elapsed));if(t){const rest=Math.max(0,Math.floor((Date.now()-t)/1000));parts.push('Rest '+fmtClock(rest))}if(a?.status==='paused')parts.push('Paused');const value=parts.join(' • ');if(window.HybridI18n?.sourceText(e)!==value)e.textContent=value;
 }
 function syncWorkoutMode(){
  installWorkoutBar();const active=activeMatches()&&$('#log')?.classList.contains('active'),bar=$('#v36101WorkoutModeBar');document.body.classList.toggle('v36101-workout-mode',active);bar?.classList.toggle('active',active);
@@ -179,7 +179,7 @@ function installUndoCoverage(){
  document.addEventListener('click',e=>{const b=e.target.closest('[data-intent],[data-action]');if(!b)return;const v=b.dataset.intent||b.dataset.action||'';if(!['plan','active-recovery','rest','cal-adaptive','gym-adaptive','kb-heavy','kb-power','kb-volume','cond-adaptive'].includes(v))return;const snap=core.snapshotUndo();setTimeout(()=>offerStateUndo('Today’s workout changed.',snap,'undo-workout-change'),160)},true);
  const sel=$('#logSession');if(sel){sel.addEventListener('pointerdown',()=>{sel.__v36101UndoSnapshot=core.snapshotUndo()},{capture:true});sel.addEventListener('change',e=>{if(!e.isTrusted)return;const snap=sel.__v36101UndoSnapshot;if(snap)offerStateUndo('Session changed to '+sel.value+'.',snap,'undo-session-change')})}
  // Existing rest-day UI invokes the core function; capture the state immediately before that click.
- document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!/rest day|full rest|set rest/i.test((b.textContent||'')+' '+(b.title||'')))return;const snap=core.snapshotUndo(),before=JSON.stringify(state().restDays||{});setTimeout(()=>{if(JSON.stringify(state().restDays||{})!==before)offerStateUndo('Rest day changed.',snap,'undo-rest-day')},180)},true);
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!/rest day|full rest|set rest/i.test((window.HybridI18n?.sourceText(b)||'')+' '+(b.title||'')))return;const snap=core.snapshotUndo(),before=JSON.stringify(state().restDays||{});setTimeout(()=>{if(JSON.stringify(state().restDays||{})!==before)offerStateUndo('Rest day changed.',snap,'undo-rest-day')},180)},true);
 }
 
 // ---------- Comparable prior-session context in History ----------
