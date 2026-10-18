@@ -9,21 +9,23 @@
 
   const clamp=(value,low,high)=>Math.max(low,Math.min(high,Number(value)||0));
   const number=value=>{
-    const match=String(value??'').replace(/,/g,'').match(/-?\d+(?:\.\d+)?/);
+    const match=String(value??'').replace(/\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b/g,s=>s.replace(/,/g,'')).replace(/(\d),(\d)/g,'$1.$2').match(/-?\d+(?:\.\d+)?/);
     return match?Number(match[0]):0;
   };
   const averageNumbers=value=>{
-    const text=String(value??''),clock=text.trim().match(/^(\d+):(\d{2})(?:\s*(?:\/|per|each)\s*(?:side|leg|arm))?$/i);
+    const text=String(value??'');if(/^\s*-/.test(text))return 0;const clock=text.trim().match(/^(\d+):(\d{2})(?:\s*(?:\/|per|each)\s*(?:side|leg|arm))?$/i);
     if(clock)return Number(clock[1])*60+Number(clock[2]);
     const values=(text.match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);
     if(!values.length)return 0;
     return (values.length>1?(values[0]+values[1])/2:values[0])*(/\bmin(?:ute)?s?\b/i.test(text)?60:1);
   };
-  const loadPounds=(value,defaultUnit='lb')=>number(value)*(/\bkg\b|kilogram/i.test(String(value??''))||(defaultUnit==='kg'&&!/\blbs?\b|pound/i.test(String(value??'')))?2.2046226218:1);
+  function loadUnit(value,fallback){const text=String(value??''),first=text.match(/-?\d[\d,.]*/);if(!first)return fallback;const suffix=text.slice(first.index+first[0].length).trimStart(),prefix=text.slice(0,first.index).trim();return /^(?:kg\b|kilogram)/i.test(suffix)||/\b(?:kg|kilograms?)$/i.test(prefix)?'kg':/^(?:lbs?\b|pound)/i.test(suffix)||/\b(?:lbs?|pounds?)$/i.test(prefix)?'lb':fallback}
+  const loadPounds=(value,defaultUnit='lb')=>number(value)*(loadUnit(value,defaultUnit)==='kg'?2.2046226218:1);
+  const loadKilograms=(value,defaultUnit='kg')=>number(value)*(loadUnit(value,defaultUnit)==='lb'?.45359237:1);
   const nonWorking=row=>row?.warmup===true||row?.isWarmup===true||/^(?:skipped|missed)$/i.test(String(row?.status||''));
   const explicitZero=value=>String(value??'').trim()!==''&&Number.isFinite(Number(value))&&Number(value)===0;
   function workingSetDetails(row){
-    return Array.isArray(row?.setDetails)?row.setDetails.filter(set=>set&&!nonWorking(set)&&!(String(set.reps??row.reps??'').trim()&&averageNumbers(set.reps??row.reps)<=0)&&(averageNumbers(set.reps??row.reps)>0||number(set.weight)>0||number(set.rpe)>0||number(set.completedAt)>0)):[];
+    return Array.isArray(row?.setDetails)?row.setDetails.filter(set=>set&&!nonWorking(set)&&!(String(set.reps??row.reps??'').trim()&&averageNumbers(set.reps??row.reps)<=0)&&(averageNumbers(set.reps??row.reps)>0||number(set.weight)>0||number(set.rpe)>0||number(set.completedAt)>0)).map(set=>({...set,weight:String(set.weight??'').trim()?set.weight:row.weight})):[];
   }
   function noPerformedWork(row){
     if(nonWorking(row))return true;
@@ -57,6 +59,21 @@
     return 0;
   }
 
+  function setEffortRpe(row,set,fallback=effortRpe){
+    const exact=Number(set?.rpe);
+    if(Number.isFinite(exact)&&exact>=1&&exact<=10)return exact;
+    const rir=String(set?.rir??'').trim(),reps=String(set?.reps??row?.reps??''),name=String(row?.exercise||'');
+    const eligible=!isCardioRow(row)&&!/swing|snatch|high pull|(?:^| )clean$|carry|turkish|get.up|jump|sprint/i.test(name)&&!/sec|min|hold|^\d+:\d{2}/i.test(reps);
+    if(eligible&&/^(?:[0-4]|5\+)$/.test(rir))return rir==='5+'?Math.min(5,effortRpe({feel:set?.feel||row?.feel})||5):10-Number(rir);
+    const band=effortRpe({feel:set?.feel});
+    return band||Number(fallback(row))||0;
+  }
+  function workingEffortRpe(row,fallback=effortRpe){
+    if(noPerformedWork(row))return 0;
+    const sets=workingSetDetails(row);
+    return sets.length?Math.max(0,...sets.map(set=>setEffortRpe(row,set,fallback))):Number(fallback(row))||0;
+  }
+
   function parsePlannedMinutes(value){
     if(Number.isFinite(Number(value))&&Number(value)>0)return Number(value);
     const text=lower(value).replace(/[–—]/g,'-');
@@ -80,7 +97,8 @@
     // Legacy strength rows sometimes received a bogus planned "duration" parsed from
     // a bare rep target (for example 3 reps became 3 minutes). Session identity wins
     // over that old field unless the row explicitly declares itself conditioning.
-    if(session==='barbell strength'||session==='generic gym'||session==='calisthenics'||session==='strength-endurance'||session==='emom'||session.startsWith('kb '))return false;
+    if(session==='barbell strength'||session==='generic gym'||session==='home gym'||session==='calisthenics'||session==='strength-endurance'||session==='emom'||session.startsWith('kb '))return false;
+    if(session==='amrap'||type==='amrap'||m.amrap)return true;
     if(['conditioning','active recovery','class / activity'].includes(session)||Number(m.time)>0||Number(m.duration)>0||Number(row?.modelPlannedDurationMinutes)>0)return true;
     return /(?:\brun(?:ning)?\b|\bwalk(?:ing)?\b|swim|bike|cycle|cycling|rowing|rower|\berg\b|ruck|sprint|hill|stair|elliptical|cardio|aerobic|\blss\b)/i.test(String(row?.exercise||''));
   }
@@ -174,7 +192,7 @@
   }
 
   function responseQuality(row){
-    const m=metrics(row),rpe=effortRpe(row),plannedRpe=predictionUnestimated(row)?0:Number(row?.modelPlannedExpectedRpe)||Number(row?.modelExpectedRpe)||0,feel=lower(row?.feel),technique=lower(row?.technique),pain=lower(row?.painLevel),decoupling=Number(m.decouplingPct),state=status(row),
+    const m=metrics(row),rpe=workingEffortRpe(row),plannedRpe=predictionUnestimated(row)?0:Number(row?.modelPlannedExpectedRpe)||Number(row?.modelExpectedRpe)||0,feel=lower(row?.feel),technique=lower(row?.technique),pain=lower(row?.painLevel),decoupling=Number(m.decouplingPct),state=status(row),
       unexpectedlyVeryHard=feel==='very hard'&&plannedRpe>0&&plannedRpe<=7.25&&rpe-plannedRpe>=1.75,
       costly=state==='missed'||rpe>=9.5||validSetDetails(row).some(set=>Number(set.rpe)>=9.5)||unexpectedlyVeryHard||/(?:too hard|bad|grindy|failed|maximal)/.test(feel)||technique==='sloppy'||/(?:moderate|sharp|stop)/.test(pain)||(Number.isFinite(decoupling)&&decoupling>=10),
       positiveFeel=/(?:too easy|easy|comfortable|challenging|good|hard but good)/.test(feel),
@@ -238,7 +256,7 @@
       strengthSets=profiles.filter(profile=>!profile.cardio).reduce((sum,profile)=>sum+profile.actual,0),
       cardioWeight=cardioMinutes/45,strengthWeight=strengthSets/15,
       mixedWeight=Math.max(cardioWeight,strengthWeight)+Math.min(cardioWeight,strengthWeight)*.35,
-      rpes=usable.map(effortRpe).filter(value=>value>0),avgRpe=rpes.length?rpes.reduce((sum,value)=>sum+value,0)/rpes.length:0,
+      rpes=usable.map(row=>workingEffortRpe(row)).filter(value=>value>0),avgRpe=rpes.length?rpes.reduce((sum,value)=>sum+value,0)/rpes.length:0,
       effortFactor=avgRpe>=9.5?1.22:avgRpe>=8.5?1.10:avgRpe>0&&avgRpe<=5.5?.78:avgRpe>0&&avgRpe<=6.5?.88:1,
       activeRecovery=usable.length>0&&usable.every(row=>lower(row?.session)==='active recovery'),
       shortOnly=profiles.length>0&&profiles.every(profile=>profile.role==='short-secondary'),
@@ -251,5 +269,5 @@
     return {version:3,rows:profiles.length,profiles,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation,response,cardioMinutes:Math.round(cardioMinutes*10)/10,strengthSets:Math.round(strengthSets*10)/10,doseWeight:Math.round(doseWeight*100)/100,avgRpe:Math.round(avgRpe*10)/10};
   }
 
-  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,effortRpe,responseQuality,rowRole,rowProfile,sessionProfile,loadPounds,repQuantity:averageNumbers,workingSetDetails,noPerformedWork,predictionUnestimated};
+  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,effortRpe,setEffortRpe,workingEffortRpe,responseQuality,rowRole,rowProfile,sessionProfile,loadPounds,loadKilograms,repQuantity:averageNumbers,workingSetDetails,noPerformedWork,predictionUnestimated};
 });

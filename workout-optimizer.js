@@ -1,14 +1,16 @@
 /* Explicit planning rules; inputs and completed work are never mutated. */
 (function(root){'use strict';
  const F=typeof module==='object'&&module.exports?require('./session-fatigue'):root.HybridSessionFatigue;
+ const A=typeof module==='object'&&module.exports?require('./actual-load-feedback-v36.126.js'):root.HybridActualLoadFeedback;
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  function observed(v){return v!==null&&v!==undefined&&String(v).trim()!==''&&Number.isFinite(Number(v));}
  function outcome(rows,effort){
-  const usable=(rows||[]).filter(r=>!r.projectedForecast&&!/^(skipped|missed)$/i.test(r.status||''));
-  const evidence=usable.filter(r=>effort(r)>0||observed(r.modelPredictionError)||/sloppy/i.test(r.technique||''));
+  const performedEffort=r=>A.workingEffortRpe(r,effort);
+  const usable=(rows||[]).filter(r=>!r.projectedForecast&&!r.projectedPlanRow&&!A.noPerformedWork(r));
+  const evidence=usable.filter(r=>performedEffort(r)>0||observed(r.modelPredictionError)||/sloppy/i.test(r.technique||''));
   if(!evidence.length)return {known:false,score:null,rows:usable.length,evidenceRows:0};
   const pred=evidence.filter(r=>observed(r.modelPredictionError)).map(r=>Number(r.modelPredictionError));
-  const rpes=evidence.map(effort).filter(n=>n>0),bad=evidence.filter(r=>effort(r)>=9.5||/sloppy/i.test(r.technique||'')).length;
+  const rpes=evidence.map(performedEffort).filter(n=>n>0),bad=evidence.filter(r=>performedEffort(r)>=9.5||/sloppy/i.test(r.technique||'')).length;
   const mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;
   return {known:true,rows:usable.length,evidenceRows:evidence.length,coverage:evidence.length/Math.max(1,usable.length),badRate:bad/evidence.length,avgPredictionError:pred.length?mean(pred):null,avgRpe:rpes.length?mean(rpes):null,score:clamp(1-bad/evidence.length*1.4-Math.max(0,mean(pred))*.22-Math.max(0,mean(rpes)-8.5)*.14,0,1)};
  }
@@ -43,7 +45,7 @@
  }
  function shorten(rows,minutes,priority=()=>0){
   const out=rows.map(r=>({...r,setDetails:r.setDetails?.map(s=>({...s}))})),cap=Math.max(0,Number(minutes)||0)*60;
-  const cost=r=>/^(skipped|missed)$/i.test(r.status||'')?0:F.setRows(r).filter(s=>!s.completedAt).reduce((s,x)=>s+F.duration(x).seconds+(Number(x.restSeconds??r.restSeconds)||90),0)+30;
+  const cost=r=>{const pending=F.setRows(r).filter(s=>!s.completedAt);return pending.length?pending.reduce((s,x)=>{const n=Number(x.restSeconds??r.restSeconds??90);return s+F.duration(x).seconds+(Number.isFinite(n)?Math.max(0,n):90)},0)+30:0};
   const before=out.reduce((s,r)=>s+cost(r),0);let seconds=before;
   const candidates=out.map((r,i)=>({r,i})).filter(x=>!x.r.pinned).sort((a,b)=>priority(a.r)-priority(b.r)||b.i-a.i);
   for(const {r} of candidates){while(seconds>cap&&cost(r)>0){
