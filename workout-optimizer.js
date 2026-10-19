@@ -36,7 +36,10 @@
   events.sort((a,b)=>active(a)?active(b)?a.startedAt-b.startedAt:-1:active(b)?1:0);
   // Rest is one gap before each event. Keeping it both after the previous set
   // and before this one double-counts recovery; a Done stamp alone is not zero rest.
-  const ordered=[...done,...events];let previous=null;
+  const untimedCardio=events.filter(e=>e.fatigueCardio&&!e.startedAt),ordered=[...done,...events.filter(e=>!untimedCardio.includes(e))];
+  // With no observed cardio clock, retain its card position as an estimate.
+  // Keep all relative measured set ordering; never fabricate a timestamp.
+  for(const e of untimedCardio){const at=ordered.findIndex(x=>x._row>e._row);e.orderSource='card-estimate';ordered.splice(at<0?ordered.length:at,0,e)}let previous=null;
   for(const e of ordered){
    const logged=e._detailRestBefore&&observed(e.restBeforeSeconds),timed=previous?.completedAt>0&&Number(e.startedAt)>=Number(previous.completedAt)&&Number(e.startedAt)>0&&(!e.completedAt||Number(e.completedAt)>Number(e.startedAt));
    e.restBeforeFallback=false;e.restBeforeIncludesFatigue=true;
@@ -50,7 +53,7 @@
   return ordered;
  }
  function evaluate(rows,resolve,profile,demands,fatigueMuscles){
-  if(!rows.some(r=>r.alternatingGroup||r.setDetails?.some(s=>s.completedAt||s.startedAt)))return F.evaluate(rows,resolve,profile,demands,fatigueMuscles);
+  if(!rows.some(r=>r.alternatingGroup||r.fatigueCardio&&(r.startedAt||r.completedAt)||r.setDetails?.some(s=>s.completedAt||s.startedAt)))return F.evaluate(rows,resolve,profile,demands,fatigueMuscles);
   const events=timeline(rows),evaluated=F.evaluate(events,resolve,profile,demands,fatigueMuscles);
   return rows.map((r,i)=>{const pending=evaluated.filter(e=>e._row===i&&!e.completedAt),all=evaluated.filter(e=>e._row===i),pick=pending.length?pending:all;
    const first=pick[0]?.sessionFatigue||{exposure:0,localExposure:0,sharedExposure:0,priorSets:0,scale:1,extraRest:0};
@@ -61,7 +64,7 @@
   const out=rows.map(r=>({...r,setDetails:r.setDetails?.map(s=>({...s}))})),cap=Math.max(0,Number(minutes)||0)*60;
   const cost=r=>{const pending=F.setRows(r).filter(s=>!s.completedAt);return pending.length?pending.reduce((s,x)=>{const n=Number(x.restSeconds??r.restSeconds??90);return s+F.duration(x).seconds+(Number.isFinite(n)?Math.max(0,n):90)},0)+30:0};
   const before=out.reduce((s,r)=>s+cost(r),0);let seconds=before;
-  const candidates=out.map((r,i)=>({r,i})).filter(x=>!x.r.pinned).sort((a,b)=>priority(a.r)-priority(b.r)||b.i-a.i);
+  const candidates=out.map((r,i)=>({r,i})).filter(x=>!x.r.pinned&&!x.r.conditioning&&!x.r.fatigueCardio).sort((a,b)=>priority(a.r)-priority(b.r)||b.i-a.i);
   for(const {r} of candidates){while(seconds>cap&&cost(r)>0){
    const done=(r.setDetails||[]).filter(s=>s.completedAt),pending=(r.setDetails||[]).filter(s=>!s.completedAt),old=cost(r);
    if(pending.length){pending.pop();r.setDetails=[...done,...pending];r.sets=r.setDetails.length;}else if(done.length)break;else r.sets=Math.max(0,(Number(r.sets)||0)-1);
