@@ -45,11 +45,8 @@
   let decisionApi=typeof globalThis!=='undefined'?globalThis.HybridDecisionIntegrity:null;
   if(!decisionApi&&typeof require==='function'){try{decisionApi=require('./decision-integrity-v36.131.js')}catch(_error){}}
 
-  function effortRpe(row){
-    if(Number.isFinite(row?.effectiveRpe))return clamp(row.effectiveRpe,0,10);
-    const exact=Number(row?.rpe);
-    if(Number.isFinite(exact)&&exact>0)return clamp(exact,1,10);
-    const feel=lower(row?.feel);
+  function effortBand(value){
+    const feel=lower(value).replace(/_/g,' ');
     if(feel==='too easy'||feel==='very easy')return 3.5;
     if(feel==='easy')return 5;
     if(feel==='comfortable'||feel==='good')return 6.5;
@@ -58,20 +55,36 @@
     if(feel==='max / failed'||feel==='max/failed'||feel==='bad')return 10;
     return 0;
   }
-
+  // One input hierarchy for summaries, individual sets, scheduling and recovery.
+  // RIR is a controlled-repetition cue; it is not a velocity-quality measurement.
+  function rirEligible(row){
+    return !isCardioRow(row)&&row?.ballistic!==true&&!/swing|snatch|high[ -]pull|\bclean\b|carry|turkish|get.up|jump|sprint|push[ -]press|jerk|thruster|pogo|\bhop\b|\bbound|\bthrow|plyo|clap|explosive|ballistic/i.test(String(row?.exercise||''))&&!/sec|min|hold|^\s*\d+:\d{2}/i.test(String(row?.reps||''));
+  }
+  function rirRpe(row){
+    const rir=String(row?.rir??'').trim();
+    return rirEligible(row)&&/^(?:[0-4]|5\+)$/.test(rir)?rir==='5+'?Math.min(5,effortBand(row?.feel)||5):10-Number(rir):0;
+  }
+  function effortRpe(row){
+    if(Number.isFinite(row?.effectiveRpe))return clamp(row.effectiveRpe,0,10);
+    const raw=Number(row?.rpe),exact=Number.isFinite(raw)&&raw>=1&&raw<=10?raw:0,band=effortBand(row?.feel),confidence=lower(row?.rpeConfidence);
+    if(exact&&confidence==='confident')return exact;
+    const rir=rirRpe(row);if(rir)return rir;
+    if(exact&&band&&(confidence==='rough'||!confidence))return Math.round((exact*.35+band*.65)*20)/20;
+    return exact||band;
+  }
   function setEffortRpe(row,set,fallback=effortRpe){
-    const exact=Number(set?.rpe);
-    if(Number.isFinite(exact)&&exact>=1&&exact<=10)return exact;
-    const rir=String(set?.rir??'').trim(),reps=String(set?.reps??row?.reps??''),name=String(row?.exercise||'');
-    const eligible=!isCardioRow(row)&&!/swing|snatch|high pull|(?:^| )clean$|carry|turkish|get.up|jump|sprint/i.test(name)&&!/sec|min|hold|^\d+:\d{2}/i.test(reps);
-    if(eligible&&/^(?:[0-4]|5\+)$/.test(rir))return rir==='5+'?Math.min(5,effortRpe({feel:set?.feel||row?.feel})||5):10-Number(rir);
-    const band=effortRpe({feel:set?.feel});
-    return band||Number(fallback(row))||0;
+    const context={...set,exercise:row?.exercise,reps:set?.reps??row?.reps,modelConditioning:isCardioRow(row),effectiveRpe:undefined};
+    // A set's own rating stays independent of a summary of a different set.
+    // The broad parent label only refines the open-ended 5+ RIR bucket.
+    if(String(context.rir??'').trim()==='5+'&&!context.feel)context.feel=row?.feel;
+    const own=effortRpe(context);if(own)return own;
+    if(Number.isFinite(set?.effectiveRpe))return clamp(set.effectiveRpe,0,10);
+    return Number(fallback(row))||0;
   }
   function workingEffortRpe(row,fallback=effortRpe){
     if(noPerformedWork(row))return 0;
     const sets=workingSetDetails(row);
-    return sets.length?Math.max(0,...sets.map(set=>setEffortRpe(row,set,fallback))):Number(fallback(row))||0;
+    return sets.length?Math.max(0,...sets.map(set=>setEffortRpe(row,set,fallback))):effortRpe(row)||Number(fallback(row))||0;
   }
 
   function parsePlannedMinutes(value){
@@ -269,5 +282,5 @@
     return {version:3,rows:profiles.length,profiles,ratio:ratio===null?null:Math.round(ratio*1000)/1000,relation,response,cardioMinutes:Math.round(cardioMinutes*10)/10,strengthSets:Math.round(strengthSets*10)/10,doseWeight:Math.round(doseWeight*100)/100,avgRpe:Math.round(avgRpe*10)/10};
   }
 
-  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,effortRpe,setEffortRpe,workingEffortRpe,responseQuality,rowRole,rowProfile,sessionProfile,loadPounds,loadKilograms,repQuantity:averageNumbers,workingSetDetails,noPerformedWork,predictionUnestimated};
+  return {parsePlannedMinutes,isCardioRow,actualMinutes,plannedMinutes,structuredActualDoseExists,plannedStructureExists,explicitActualDose,completionFactor,effortBand,rirEligible,rirRpe,effortRpe,setEffortRpe,workingEffortRpe,responseQuality,rowRole,rowProfile,sessionProfile,loadPounds,loadKilograms,repQuantity:averageNumbers,workingSetDetails,noPerformedWork,predictionUnestimated};
 });

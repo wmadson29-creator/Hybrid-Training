@@ -35,9 +35,9 @@
   let previousEnd=0;for(const e of done){e.restBeforeSeconds=previousEnd&&e.startedAt>previousEnd?(e.startedAt-previousEnd)/1000:0;e.restSeconds=0;previousEnd=e.completedAt;}
   return [...done,...events];
  }
- function evaluate(rows,resolve,profile,demands){
-  if(!rows.some(r=>r.alternatingGroup||r.setDetails?.some(s=>s.completedAt)))return F.evaluate(rows,resolve,profile,demands);
-  const events=timeline(rows),evaluated=F.evaluate(events,resolve,profile,demands);
+ function evaluate(rows,resolve,profile,demands,fatigueMuscles){
+  if(!rows.some(r=>r.alternatingGroup||r.setDetails?.some(s=>s.completedAt)))return F.evaluate(rows,resolve,profile,demands,fatigueMuscles);
+  const events=timeline(rows),evaluated=F.evaluate(events,resolve,profile,demands,fatigueMuscles);
   return rows.map((r,i)=>{const pending=evaluated.filter(e=>e._row===i&&!e.completedAt),all=evaluated.filter(e=>e._row===i),pick=pending.length?pending:all;
    const first=pick[0]?.sessionFatigue||{exposure:0,localExposure:0,sharedExposure:0,priorSets:0,scale:1,extraRest:0};
    return {...r,sessionFatigue:{...first,estimatedSeconds:all.reduce((s,e)=>s+(e.sessionFatigue.estimatedSeconds||0),0)}};
