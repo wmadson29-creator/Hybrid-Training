@@ -185,6 +185,39 @@
   const mobile=$('#historyMobileCards'),panel=$('.panel',view);if(panel)panel.insertBefore(host,panel.children[1]||null);else view.insertBefore(host,mobile||view.firstChild);
  }
 
+ let exerciseOverviewId=0;
+ function setExerciseOpen(card,open){
+  if(!card)return;const trigger=$(':scope > .exercise-overview',card);if(!trigger)return;
+  if(!open&&card.contains(document.activeElement)&&document.activeElement!==trigger)trigger.focus();
+  card.classList.toggle('exercise-compact',!open);trigger.setAttribute('aria-expanded',String(open));
+  text($('.exercise-overview-toggle',trigger),open?'−':'+');
+ }
+ function openExercise(card){
+  if(!card)return;exerciseOverview();
+  $$('#plannedExercises > .log-exercise').forEach(other=>setExerciseOpen(other,other===card));
+ }
+ function exerciseOverview(){
+  const host=$('#plannedExercises'),cards=$$('#plannedExercises > .log-exercise');if(!host)return;
+  let tools=$('#exerciseOverviewTools');
+  if(!cards.length){tools?.remove();return;}
+  if(!tools){tools=document.createElement('div');tools.id='exerciseOverviewTools';tools.innerHTML='<span class="hint"></span><button class="btn" type="button">Expand all</button>';host.before(tools);$('button',tools).addEventListener('click',()=>{const expand=!!$('#plannedExercises > .exercise-compact');$$('#plannedExercises > .log-exercise').forEach(c=>setExerciseOpen(c,expand));exerciseOverview();});}
+  cards.forEach((card,index)=>{
+   let trigger=$(':scope > .exercise-overview',card);
+   if(!trigger){
+    trigger=document.createElement('button');trigger.type='button';trigger.className='exercise-overview';trigger.id='exercise-overview-'+(++exerciseOverviewId);trigger.innerHTML='<span class="exercise-overview-number" aria-hidden="true"></span><span class="exercise-overview-copy"><strong class="exercise-overview-name"></strong><span class="exercise-overview-dose"></span></span><span class="exercise-overview-status"></span><span class="exercise-overview-toggle" aria-hidden="true">+</span>';
+    card.prepend(trigger);card.classList.add('exercise-overview-ready');card.setAttribute('role','group');card.setAttribute('aria-labelledby',trigger.id);
+    trigger.addEventListener('click',()=>{const expand=trigger.getAttribute('aria-expanded')!=='true';if(expand)openExercise(card);else setExerciseOpen(card,false);exerciseOverview();});setExerciseOpen(card,false);
+   }
+   const name=core.currentCardExercise(card)||$('.log-title strong',card)?.textContent||'Choose an exercise',value=s=>$(s,card)?.value?.trim()||'';
+   let dose;if(card.dataset.conditioning==='1'){const time=value('.le-time'),distance=value('.le-distance'),unit=value('.le-unit');dose=[time&&time+' min',distance&&distance+' '+unit].filter(Boolean).join(' · ')||card.dataset.plannedTarget||'Open to log activity';}
+   else{let weight=value('.le-weight');if(weight&&/^\+?\d+(?:\.\d+)?$/.test(weight))weight+=' '+(window.HybridUnits?.unit?.()||'lb');dose=[value('.le-sets')&&value('.le-reps')?value('.le-sets')+' × '+value('.le-reps'):'Set target',weight].filter(Boolean).join(' · ');}
+   const rows=$$('.set-detail-row',card),done=rows.filter(r=>Number(r.dataset.completedAt)>0).length,started=rows.some(r=>Number(r.dataset.startedAt)>0),status=value('.le-status'),recorded=!!card.dataset.savedLogRow;
+   const state=/^(partial|skipped|missed)$/i.test(status)?status:done?done+'/'+(rows.length||value('.le-sets'))+' sets':started?'In progress':recorded?'Recorded':'Ready';
+   text($('.exercise-overview-number',trigger),String(index+1));text($('.exercise-overview-name',trigger),name);text($('.exercise-overview-dose',trigger),dose);text($('.exercise-overview-status',trigger),state);
+  });
+  text($('span',tools),cards.length+' exercise'+(cards.length===1?'':'s')+' · Tap to open');text($('button',tools),cards.some(c=>c.classList.contains('exercise-compact'))?'Expand all':'Collapse all');
+ }
+ document.addEventListener('invalid',event=>{const card=event.target.closest?.('.log-exercise');if(card){openExercise(card);for(let p=event.target.parentElement;p&&p!==card;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;}},true);
  function log(){
   const flow=$('#logFlowChooser'),planned=$('#plannedExercises .log-exercise'),blank=core.uiWorkoutEquipment?.().blank;
   $('#log')?.classList.toggle('v36175-blank-workout',!!blank);
@@ -203,6 +236,7 @@
    const primary=['.le-time','.le-rpe','.le-feel','.class-focus-host'].map(s=>{const n=$(s,holder);return n?.closest('.field')}).filter(Boolean);primary.reverse().forEach(n=>holder.insertBefore(n,holder.firstChild));
    const update=()=>{const filled=$$('input,select',details).filter(n=>n.value&&!(n.classList.contains('le-status')&&n.value==='Complete')).length;text($('summary',details),'More class details'+(filled?' · '+filled+' entered':''))};details.addEventListener('input',update);details.addEventListener('change',update);update();
   });
+  exerciseOverview();
  }
 
  function simplifyLog(flow,planned,emomSetup,customSetup){
@@ -319,5 +353,5 @@
  const run=()=>{raf=0;window.hybridWireExerciseSearch?.();const active=$('.view.active')?.id;if(active==='dashboard')today();else if(active==='history')history();else if(active==='log')log();else if(active==='trends')trends()};
  const queue=()=>{if(!raf)raf=requestAnimationFrame(run)};new MutationObserver(queue).observe(document.body,{childList:true,subtree:true});document.addEventListener('change',queue);document.addEventListener('click',queue);document.addEventListener('input',e=>{if(e.target.closest('#plannedExercises'))queue()});run();
  // Read-only inspection and explicit capture are useful to native controls and QA.
- window.HybridUIWorkflows=Object.freeze({beginScheduleEdit:beginEdit,refresh:queue,scheduleFeedback:()=>({pendingDate:pendingEdit?.date||'',pendingChanged:!!pendingEdit&&pendingEdit.stamp!==programmingStamp(),report:recalc})});
+ window.HybridUIWorkflows=Object.freeze({beginScheduleEdit:beginEdit,refresh:queue,openExercise,scheduleFeedback:()=>({pendingDate:pendingEdit?.date||'',pendingChanged:!!pendingEdit&&pendingEdit.stamp!==programmingStamp(),report:recalc})});
 })();
