@@ -24,7 +24,7 @@
  function penalties(parts){const local=Math.max(0,Number(parts.fatigue)||0),load=Math.max(0,Number(parts.volume)||0,Number(parts.budget)||0),recovery=Math.max(0,Number(parts.sleep)||0,Number(parts.deload)||0);return {total:local+load+recovery,local,load,recovery,avoided:Math.max(0,(parts.fatigue||0)+(parts.volume||0)+(parts.budget||0)+(parts.sleep||0)+(parts.deload||0)-local-load-recovery)};}
  function timeline(rows){
   const events=[],done=[];let i=0;
-  const emit=(row,index)=>F.setRows(row).map((s,set)=>({...s,_row:index,_set:set,sets:1,setDetails:undefined}));
+  const emit=(row,index)=>F.setRows(row).map((s,set)=>({...s,_row:index,_set:set,_restAfter:observed(row.restSeconds)?clamp(Number(row.restSeconds),0,3600):90,_restAfterIncluded:!!row.restIncludesFatigue,sets:1,setDetails:undefined}));
   while(i<rows.length){const row=rows[i],group=row.alternatingGroup;let end=i+1;
    if(group)while(end<rows.length&&rows[end].alternatingGroup===group)end++;
    const blocks=rows.slice(i,end).map((r,j)=>emit(r,i+j)),rounds=Math.max(0,...blocks.map(x=>x.length));
@@ -32,11 +32,25 @@
    i=end;
   }
   done.sort((a,b)=>a.completedAt-b.completedAt);
-  let previousEnd=0;for(const e of done){e.restBeforeSeconds=previousEnd&&e.startedAt>previousEnd?(e.startedAt-previousEnd)/1000:0;e.restSeconds=0;previousEnd=e.completedAt;}
-  return [...done,...events];
+  const lastDone=Number(done.at(-1)?.completedAt)||0,active=e=>Number(e.startedAt)>0&&Number(e.startedAt)>=lastDone;
+  events.sort((a,b)=>active(a)?active(b)?a.startedAt-b.startedAt:-1:active(b)?1:0);
+  // Rest is one gap before each event. Keeping it both after the previous set
+  // and before this one double-counts recovery; a Done stamp alone is not zero rest.
+  const ordered=[...done,...events];let previous=null;
+  for(const e of ordered){
+   const logged=e._detailRestBefore&&observed(e.restBeforeSeconds),timed=previous?.completedAt>0&&Number(e.startedAt)>=Number(previous.completedAt)&&Number(e.startedAt)>0&&(!e.completedAt||Number(e.completedAt)>Number(e.startedAt));
+   e.restBeforeFallback=false;e.restBeforeIncludesFatigue=true;
+   if(logged&&e.restSource!=='estimated'){e.restBeforeSource=e.restSource||'recorded';}
+   else if(timed){e.restBeforeSeconds=clamp((e.startedAt-previous.completedAt)/1000,0,3600);e.restBeforeSource='timed';}
+   else if(logged){e.restBeforeSource='estimated';}
+   else if(previous){e.restBeforeSeconds=previous._restAfter;e.restBeforeFallback=true;e.restBeforeIncludesFatigue=previous._restAfterIncluded;e.restBeforeSource='planned';}
+   else{e.restBeforeSeconds=0;e.restBeforeSource='initial';}
+   e.restSeconds=0;e.restIncludesFatigue=true;previous=e;
+  }
+  return ordered;
  }
  function evaluate(rows,resolve,profile,demands,fatigueMuscles){
-  if(!rows.some(r=>r.alternatingGroup||r.setDetails?.some(s=>s.completedAt)))return F.evaluate(rows,resolve,profile,demands,fatigueMuscles);
+  if(!rows.some(r=>r.alternatingGroup||r.setDetails?.some(s=>s.completedAt||s.startedAt)))return F.evaluate(rows,resolve,profile,demands,fatigueMuscles);
   const events=timeline(rows),evaluated=F.evaluate(events,resolve,profile,demands,fatigueMuscles);
   return rows.map((r,i)=>{const pending=evaluated.filter(e=>e._row===i&&!e.completedAt),all=evaluated.filter(e=>e._row===i),pick=pending.length?pending:all;
    const first=pick[0]?.sessionFatigue||{exposure:0,localExposure:0,sharedExposure:0,priorSets:0,scale:1,extraRest:0};

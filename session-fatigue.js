@@ -27,20 +27,20 @@
   return fallback;
  }
  function evaluate(rows,resolve,profile={},resolveDemands=()=>({}),resolveFatigue=null){
-  const residual={},shared={},used={},out=[],effort=({easy:.7,medium:1,hard:1.1,'very hard':1.2})[profile.difficulty]||1;
+  const residual={},shared={},used={},out=[],effort=({easy:.7,medium:1,hard:1.1,'very hard':1.2})[profile.difficulty]||1;let previousExtraRest=0;
   const decay=(map,seconds)=>{const d=Math.pow(.5,Math.max(0,seconds)/720);for(const k of Object.keys(map))map[k]*=d};
   for(const row of rows||[]){
    if(row.conditioning||row.warmup||row.isWarmup||/^(skipped|missed)$/i.test(row.status||'')){out.push({...row,sessionFatigue:{exposure:0,localExposure:0,sharedExposure:0,scale:1,extraRest:0,estimatedSeconds:0}});continue}
-   const weights=muscles(row,resolveFatigue||resolve),demands=resolveDemands(row.exercise)||{},sets=setRows(row),detailed=Array.isArray(row.setDetails)&&row.setDetails.length>0,before=clamp(Number(row.restBeforeSeconds)||0,0,3600)+(detailed&&sets[0]?._detailRestBefore?sets[0].restBeforeSeconds:0);decay(residual,before);decay(shared,before);
+   const weights=muscles(row,resolveFatigue||resolve),demands=resolveDemands(row.exercise)||{},sets=setRows(row),detailed=Array.isArray(row.setDetails)&&row.setDetails.length>0,before=clamp(Number(row.restBeforeSeconds)||0,0,3600)+(row.restBeforeFallback&&!row.restBeforeIncludesFatigue?previousExtraRest:0)+(detailed&&sets[0]?._detailRestBefore?sets[0].restBeforeSeconds:0);decay(residual,before);decay(shared,before);
    const den=Object.values(weights).reduce((s,v)=>s+v*v,0),local=den?Object.entries(weights).reduce((s,[m,v])=>s+v*(residual[m]||0),0)/den:0;
    // Shared grip/bracing demands are separate from muscle volume and capped before
    // influencing a target. Coefficients and decay remain explicit planning priors.
    const sharedExposure=Math.min(2,Object.entries(demands).reduce((s,[k,v])=>s+clamp(Number(v)||0,0,1)*(shared[k]||0)*.25,0)),exposure=local+sharedExposure;
    const priorSets=Object.entries(weights).reduce((n,[m,v])=>Math.max(n,(used[m]||0)*v),0),scale=clamp(1-Math.max(0,exposure-1.5)*.025,.8,1),extraRest=exposure>2?Math.min(60,Math.ceil((exposure-2)*5/15)*15):0;
-   const after=(set,i)=>set.completedAt>0||sets[i+1]?._detailRestBefore?0:rest(set)+(set.restIncludesFatigue?0:extraRest),plannedSeconds=sets.reduce((s,r,i)=>s+duration(r).seconds+after(r,i)+(detailed&&r._detailRestBefore?r.restBeforeSeconds:0),0);
+   const after=(set,i)=>set.completedAt>0||sets[i+1]?._detailRestBefore?0:rest(set)+(set.restIncludesFatigue?0:extraRest),plannedSeconds=sets.reduce((s,r,i)=>s+duration(r).seconds+after(r,i)+(detailed&&r._detailRestBefore?r.restBeforeSeconds:0),0)+before-(detailed&&sets[0]?._detailRestBefore?sets[0].restBeforeSeconds:0);
    out.push({...row,sessionFatigue:{exposure:Math.round(exposure*100)/100,localExposure:Math.round(local*100)/100,sharedExposure:Math.round(sharedExposure*100)/100,priorSets:Math.round(priorSets*100)/100,scale,extraRest,estimatedSeconds:Math.round(plannedSeconds)}});
    sets.forEach((set,i)=>{if(detailed&&i>0&&set._detailRestBefore){decay(residual,set.restBeforeSeconds);decay(shared,set.restBeforeSeconds)}const time=duration(set),measured=Number.isFinite(set.effectiveRpe)?set.effectiveRpe:A.setEffortRpe(set,set),rpe=measured>0?measured:clamp(5+effort*3,1,10),cost=E.setEffects({reps:A.repQuantity(set.reps),seconds:time.seconds/time.sides,timed:time.timed,rpe,strengthDemand:row.fatigueStrengthDemand??.4}),dose=cost.acuteFatigue*(row.fatigueScale??1);for(const [m,v] of Object.entries(weights))residual[m]=(residual[m]||0)+v*dose;for(const [k,v] of Object.entries(demands))shared[k]=(shared[k]||0)+clamp(Number(v)||0,0,1)*(k==='axial'?cost.fatigueChannels.mechanical*(row.fatigueScale??1):k==='systemic'?dose*.55+cost.fatigueChannels.metabolic*(row.fatigueScale??1)*.45:dose);const elapsed=set.completedAt>set.startedAt&&set.startedAt>0?(set.completedAt-set.startedAt)/1000:time.seconds,seconds=elapsed+after(set,i);decay(residual,seconds);decay(shared,seconds)});
-   for(const [m,v] of Object.entries(weights))used[m]=(used[m]||0)+v*sets.length;
+   for(const [m,v] of Object.entries(weights))used[m]=(used[m]||0)+v*sets.length;previousExtraRest=extraRest;
   }return out;
  }
  const api=Object.freeze({muscles,overlap,budget,limit,order,duration,scaleReps,setRows,effortFor,evaluate});if(typeof module==='object'&&module.exports)module.exports=api;else root.HybridSessionFatigue=api;
