@@ -78,5 +78,25 @@
   }
   return {rows:source,kg,raised,held,why,changed:eligible.some((r,i)=>!same(r.kg,rows.filter(x=>!x.kbWeeklyCore&&Number(x.kg)>0)[i]?.kg))};
  }
- return Object.freeze({context,schedule,prescription,ladder,shared,SESSIONS});
+ // Standalone ABC progresses the whole matched pair, never one movement's bell.
+ // These bounded starting doses are app choices, not another book calendar.
+ function abc(options={}){
+  const choices=[...new Set((options.choices||[]).map(Number).filter(n=>n>0&&n<=60))].sort((a,b)=>a-b);
+  if(!choices.length)return {available:false,reason:'A matched pair of kettlebells is needed.'};
+  const h=(options.history||[]).slice(0,2),last=h[0],previous=h[1],snap=n=>choices.filter(x=>x<=n+.25).at(-1)||choices[0];
+  let kg=snap(last?.kg>0?last.kg:16),rounds=last?.kg>0&&last?.rounds>0?Math.max(3,Math.min(15,Math.floor(last.rounds))):5;
+  let why=last?'Reuse the latest actual ABC load and rounds.':'Start with five rounds; confirm that one clean strict press is comfortable with this pair.';
+  const owned=x=>x?.good===true&&x.complete===true&&Number(x.kg)>0&&Math.abs(x.kg-kg)<=.25&&Number(x.rounds)>=rounds;
+  if(last?.bad){kg=snap(Math.min(kg,Number(last.kg)||kg)-.5);rounds=Math.max(3,Math.floor(rounds*.7));why='The latest ABC was too hard or incomplete; use a lighter matched pair if available and fewer rounds.';}
+  else if(!options.caution&&h.length===2&&owned(last)&&owned(previous)){
+   if(rounds<15){rounds++;why='Two independent, complete and comfortable ABC sessions earned one more round at the same load.';}
+   else {const next=choices.find(n=>n>kg+.25);if(next){kg=next;rounds=5;why='Two comfortable fifteen-round sessions earned the next shared bell setting; restart at five rounds.';}}
+  }
+  if(options.caution){rounds=Math.min(rounds,4);why+=' Readiness is reduced, so hold the load and use at most four rounds.';}
+  const budget=Number(options.minutes)>0?Number(options.minutes):Infinity,cap=Math.floor((budget-5)/1.5);
+  if(cap<3)return {available:false,reason:'Allow at least ten minutes including setup and recovery.'};
+  if(rounds>cap){rounds=cap;why+=' The round target fits the saved time limit.';}
+  return {available:true,kg,rounds,restSeconds:60,minutes:Math.ceil(5+rounds*1.5),why};
+ }
+ return Object.freeze({context,schedule,prescription,ladder,shared,abc,SESSIONS});
 });
