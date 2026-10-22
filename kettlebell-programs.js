@@ -4,6 +4,42 @@
  const SESSIONS=['KB Heavy','KB Power','KB Volume'],DAY_NAMES=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
  const clone=x=>JSON.parse(JSON.stringify(x)),same=(a,b)=>Math.abs(Number(a)-Number(b))<.02;
  const valid=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s))&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
+ // App-authored full-body hybrid, separate from the exact Armor book calendar.
+ // Six main movements each day; the last is a single-bell swing. The smaller
+ // C accessories leave room for Monday's barbell anchor.
+ function hybrid(session){
+  const table={
+   'KB Heavy':{name:'Full-body A • Double-bell strength + swings',day:'A',rows:[
+    ['Double Clean & Press',3,'4',150,4,6,'strength'],
+    ['Double Front Squat',3,'6',120,6,8,'hypertrophy'],
+    ['Double Bent-Over Row',2,'8',90,8,12,'hypertrophy'],
+    ['Double RDL',2,'8',120,8,12,'hypertrophy'],
+    ['Double Floor Press',2,'8',120,8,12,'hypertrophy'],
+    ['Two-Hand Swing',5,'10',60,0,0,'conditioning',8]]},
+   'KB Power':{name:'Full-body B • Double-bell power + muscle',day:'B',rows:[
+    ['Double Push Press',2,'5',120,5,8,'power'],
+    ['Double Front Squat',2,'8',120,8,12,'hypertrophy'],
+    ['Kettlebell Pullover',2,'10',90,10,15,'hypertrophy'],
+    ['Gorilla Row',2,'10/side',90,10,15,'hypertrophy'],
+    ['Double RDL',2,'8',120,8,12,'hypertrophy'],
+    ['Two-Hand Swing',6,'10',60,0,0,'conditioning',10]]},
+   'KB Volume':{name:'Full-body C • Double-bell volume + swings',day:'C',rows:[
+    ['Double Strict Press',2,'6',150,6,10,'hypertrophy'],
+    ['Double Reverse Lunge',2,'6/leg',120,6,10,'hypertrophy'],
+    ['Double Bent-Over Row',2,'8',90,8,12,'hypertrophy'],
+    ['Double RDL',1,'10',120,10,12,'hypertrophy'],
+    ['Double Floor Press',1,'10',120,10,12,'hypertrophy'],
+    ['Two-Hand Swing',4,'10',75,0,0,'conditioning',8]]}
+  },p=table[session]||table['KB Heavy'];
+  return {name:p.name,source:'preset',kbRoutineVersion:206,kbProgramDay:p.day,rows:p.rows.map(r=>({exercise:r[0],sets:r[1],reps:r[2],manualKg:'',restSeconds:r[3],repLow:r[4]||null,repHigh:r[5]||null,kbIntent:r[6],...(r[0]==='Kettlebell Pullover'?{kbIndependentLoad:true,kbFallback:'Double Floor Press'}:{}),...(r[7]?{roundLow:r[1],roundHigh:r[7]}:{})}))};
+ }
+ function pairPreference(ex,hasPair){
+  if(!hasPair||!ex||/swing/i.test(ex.name))return 0;
+  if(/Gorilla Row/.test(ex.name))return 12;
+  if(/Kettlebell Pullover|Around the World|^Halo$/.test(ex.name))return 8;
+  if(ex.load!=='double')return 0;
+  return /Gorilla|Renegade|Mixed Rack/i.test(ex.name)?4:12;
+ }
  function context(cycles,date){
   if(!valid(date))return null;
   for(const c of (Array.isArray(cycles)?cycles:[]).slice().sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)))){
@@ -35,7 +71,7 @@
   return blocks.map((b,i)=>({...b,id:'abf-w'+week+'-d'+(slot+1)+'-b'+i,...(b.type==='press'?{ladder:ladder(b.total,short)}:{})}));
  }
  function shared(rows,{choices=[],session='',groups=[],ready=true}={}){
-  const source=clone(rows),eligible=source.filter(r=>!r.kbWeeklyCore&&Number(r.kg)>0);
+  const source=clone(rows),eligible=source.filter(r=>!r.kbWeeklyCore&&!r.kbIndependentLoad&&Number(r.kg)>0);
   if(!eligible.length||!choices.length)return {rows:source,kg:0,changed:false};
   // Explicit per-exercise overrides keep their meaning, including deliberate different loads.
   if(eligible.some(r=>Number(r.manualKg)>0||r.manualTarget)){if(new Set(eligible.map(r=>r.kg)).size>1)for(const r of eligible){const note='Your explicit manual exercise loads are retained. This manual workout needs bell changes; choose one shared load to avoid them. ';r.targetReason=note+(r.targetReason||'');r.note=note+(r.note||'')}return {rows:source,kg:0,manual:true,changed:false};}
@@ -76,7 +112,7 @@
    const dose=!same(old,kg)?'This movement uses the shared '+kg+' kg setting for '+r.sets+' × '+r.reps+'. Build its own bounded rep or round target before changing the whole day’s load.':baseWhy;
    r.targetReason=why+' '+dose;r.note=why+' '+dose+' '+cue;delete r.kbSetupBaseReason;delete r.kbSetupBaseNote;delete r.kbSetup;
   }
-  return {rows:source,kg,raised,held,why,changed:eligible.some((r,i)=>!same(r.kg,rows.filter(x=>!x.kbWeeklyCore&&Number(x.kg)>0)[i]?.kg))};
+  return {rows:source,kg,raised,held,why,changed:eligible.some((r,i)=>!same(r.kg,rows.filter(x=>!x.kbWeeklyCore&&!x.kbIndependentLoad&&Number(x.kg)>0)[i]?.kg))};
  }
  // Standalone ABC progresses the whole matched pair, never one movement's bell.
  // These bounded starting doses are app choices, not another book calendar.
@@ -98,5 +134,5 @@
   if(rounds>cap){rounds=cap;why+=' The round target fits the saved time limit.';}
   return {available:true,kg,rounds,restSeconds:60,minutes:Math.ceil(5+rounds*1.5),why};
  }
- return Object.freeze({context,schedule,prescription,ladder,shared,abc,SESSIONS});
+ return Object.freeze({context,schedule,prescription,ladder,shared,abc,hybrid,pairPreference,SESSIONS});
 });
