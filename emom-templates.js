@@ -51,6 +51,8 @@
  ];
  function allowedMinutes(cycle,max=60){cycle=Math.max(1,Math.round(Number(cycle)||1));return Array.from({length:Math.floor(max/cycle)},(_,i)=>(i+1)*cycle).filter(x=>x>=2)}
  function alignMinutes(minutes,cycle){const requested=Math.round(clamp(minutes,2,60,16)),choices=allowedMinutes(cycle,requested);if(!choices.length)throw Error('Allow at least '+cycle+' minutes for one complete cycle, or remove minute slots.');return choices.at(-1)}
+ function normalizeRecoveryOverride(value){return value?.version===1&&value.explicit===true&&typeof value.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value.date)&&Number.isFinite(Date.parse(value.date))&&new Date(value.date).toISOString().slice(0,10)===value.date?{version:1,date:value.date,explicit:true}:null;}
+ function normalizeForecastPlan(value){const out=normalizeRecoveryOverride({...value,explicit:true});return out?{version:1,date:out.date}:null;}
  function template(id){return templates.find(t=>t.id===id)||templates[0]}
  function build(config={}){
   const t=template(config.templateId),custom=Array.isArray(config.slots)&&config.slots.length,raw=custom?config.slots:t.slots,rounds=Math.round(clamp(config.rounds,1,10,t.rounds)),kg=clamp(config.kg,0,48,8),slots=raw.slice(0,8).map((s,i)=>({...s,rest:!!s.rest||s.exercise==='Rest',exercise:String(s.exercise||'Rest'),reps:s.rest?0:Math.round(clamp(config.reps?.[i]??s.reps,1,s.dose?.estimatedWorkSeconds<=60?60:s.seconds?40:30,s.seconds?20:5))})),requestedMinutes=Math.round(clamp(config.minutes,2,60,rounds*slots.length)),minutes=config.preservePartial?requestedMinutes:alignMinutes(requestedMinutes,slots.length);
@@ -62,15 +64,15 @@
    const row={exercise:s.exercise,sets:1,reps:s.reps+(s.seconds?' sec'+(s.perSide?' / side':''):s.perSide?' / side':''),weight:s.weight||(s.bodyweight?'Bodyweight':kg+' kg'),conditioning:false,restSeconds:Number.isFinite(s.dose?.estimatedRestSeconds)?s.dose.estimatedRestSeconds:20,expectedRpe:clamp(config.expectedRpe,4,8,6.5),meta:'EMOM · minute '+(i+1)+' of each '+slots.length+'-minute round',note:'Complete the prescribed set before the next minute and rest for the remainder. Cards summarize total work across rounds: follow minute order, not all sets of one card together.',emom:{version:1,templateId:id,templateName:name,intervalSeconds:60,cycleMinutes:slots.length,rounds:Math.ceil(minutes/slots.length),plannedMinutes:minutes,slot:i,perSide:!!s.perSide,targetReps:s.reps,seconds:!!s.seconds,source:config.source||t.source}};
    byExercise.set(key,row);rows.push(row);
   }
-  rows.forEach(r=>r.emom.minuteSlots=slots.map(x=>({...x})));
-  return {version:2,durationVersion:config.preservePartial?0:1,requestedMinutes,session:'EMOM',name,templateId:id,rounds:Math.ceil(minutes/slots.length),kg,minutes,intervalSeconds:60,slots,rows,skill:config.skill||t.skill,source:config.source||t.source,url:config.url||t.url||'',note:config.note||t.note,intendedEffort:config.intendedEffort||'Submaximal: finish each work set with reps in reserve',why:config.why||[]};
+  const recoveryOverride=normalizeRecoveryOverride(config.recoveryOverride),forecastPlan=normalizeForecastPlan(config.forecastPlan);rows.forEach(r=>{r.emom.minuteSlots=slots.map(x=>({...x}));if(recoveryOverride)r.emom.recoveryOverride=recoveryOverride;if(forecastPlan)r.emom.forecastPlan=forecastPlan;});
+  return {...(recoveryOverride?{recoveryOverride}:{}),...(forecastPlan?{forecastPlan}:{}),version:2,durationVersion:config.preservePartial?0:1,requestedMinutes,session:'EMOM',name,templateId:id,rounds:Math.ceil(minutes/slots.length),kg,minutes,intervalSeconds:60,slots,rows,skill:config.skill||t.skill,source:config.source||t.source,url:config.url||t.url||'',note:config.note||t.note,intendedEffort:config.intendedEffort||'Submaximal: finish each work set with reps in reserve',why:config.why||[]};
  }
  function minuteAt(plan,elapsedSeconds){
   const elapsed=Math.max(0,Number(elapsedSeconds)||0),index=Math.floor(elapsed/60),done=index>=plan.minutes,slot=done?null:plan.slots[index%plan.slots.length];
   return {done,minute:Math.min(index+1,plan.minutes),round:Math.min(Math.floor(index/plan.slots.length)+1,plan.rounds),slot,secondsRemaining:done?0:60-Math.floor(elapsed%60)};
  }
  function schedule(plan){return Array.from({length:plan.minutes},(_,i)=>({minute:i+1,round:Math.floor(i/plan.slots.length)+1,...plan.slots[i%plan.slots.length]}))}
- return Object.freeze({version:2,blueprints:Object.freeze(blueprints),allowedMinutes,alignMinutes,templates:Object.freeze(templates),template,build,minuteAt,schedule});
+ return Object.freeze({version:2,blueprints:Object.freeze(blueprints),allowedMinutes,alignMinutes,templates:Object.freeze(templates),template,build,minuteAt,schedule,normalizeRecoveryOverride,normalizeForecastPlan});
 });
 
 
@@ -84,6 +86,8 @@
   if(!Array.isArray(value.slots)||value.slots.length<2||value.slots.length>8)return fail('keep 2–8 movements');
   const ids=new Set(),slots=[];for(let i=0;i<value.slots.length;i++){const s=value.slots[i];if(!s||typeof s!=='object')return fail('invalid movement');const id=clean(s.id||'s'+(i+1),40),exercise=clean(s.exercise),dose=Number(s.dose),unit=s.unit;if(!id||ids.has(id)||!exercise||!Number.isFinite(dose)||dose<=0||dose>1000||!['reps','sec'].includes(unit))return fail('invalid movement identity, dose or unit');ids.add(id);slots.push({id,exercise,dose,unit,perSide:s.perSide===true,load:clean(s.load,120),variant:clean(s.variant,120)});}
   const out={version:1,id:clean(value.id||'amrap',80),name:clean(value.name||'AMRAP circuit'),minutes,focus:clean(value.focus||'auto',40),source:clean(value.source||'App-authored Daily Reps-inspired circuit',240),equipment:Array.isArray(value.equipment)?[...new Set(value.equipment.map(x=>clean(x,40)).filter(Boolean))].slice(0,24):[],slots};
+  const override=value.recoveryOverride;if(override?.version===1&&override.explicit===true&&typeof override.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(override.date)&&Number.isFinite(Date.parse(override.date))&&new Date(override.date).toISOString().slice(0,10)===override.date)out.recoveryOverride={version:1,date:override.date,explicit:true};if(['recommended','custom','template'].includes(value.mode))out.mode=value.mode;
+  const forecast=value.forecastPlan;if(forecast?.version===1&&typeof forecast.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(forecast.date)&&Number.isFinite(Date.parse(forecast.date))&&new Date(forecast.date).toISOString().slice(0,10)===forecast.date)out.forecastPlan={version:1,date:forecast.date};
   if(value.target!==undefined){const t=value.target;if(!t||typeof t!=='object'||!Number.isFinite(Number(t.progress))||Number(t.progress)<0||Number(t.progress)>200)return fail('invalid target');out.target={progress:Number(t.progress),kind:['estimated','repeat','progression'].includes(t.kind)?t.kind:'estimated',samples:Math.max(0,Math.min(100,Number(t.samples)||0)),why:clean(t.why,600)};}
   return out;
  }
