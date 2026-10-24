@@ -10,28 +10,28 @@
  function hybrid(session){
   const table={
    'KB Heavy':{name:'Full-body A • Double-bell strength + swings',day:'A',rows:[
-    ['Double Clean & Press',3,'4',150,4,6,'strength'],
-    ['Double Front Squat',3,'6',120,6,8,'hypertrophy'],
-    ['Double Bent-Over Row',2,'8',90,8,12,'hypertrophy'],
-    ['Double RDL',2,'8',120,8,12,'hypertrophy'],
-    ['Double Floor Press',2,'8',120,8,12,'hypertrophy'],
-    ['Two-Hand Swing',5,'10',60,0,0,'conditioning',8]]},
+    ['Double Clean & Press',4,'5',60,5,6,'strength'],
+    ['Double Front Squat',4,'6',60,6,8,'hypertrophy'],
+    ['Double Bent-Over Row',4,'8',60,8,12,'hypertrophy'],
+    ['Double RDL',4,'8',60,8,12,'hypertrophy'],
+    ['Double Floor Press',3,'8',60,8,12,'hypertrophy'],
+    ['Two-Hand Swing',7,'10',60,0,0,'conditioning',10]]},
    'KB Power':{name:'Full-body B • Double-bell power + muscle',day:'B',rows:[
-    ['Double Push Press',2,'5',120,5,8,'power'],
-    ['Double Front Squat',2,'8',120,8,12,'hypertrophy'],
-    ['Kettlebell Pullover',2,'10',90,10,15,'hypertrophy'],
-    ['Gorilla Row',2,'10/side',90,10,15,'hypertrophy'],
-    ['Double RDL',2,'8',120,8,12,'hypertrophy'],
-    ['Two-Hand Swing',6,'10',60,0,0,'conditioning',10]]},
+    ['Double Push Press',4,'6',60,6,8,'power'],
+    ['Double Front Squat',4,'8',60,8,12,'hypertrophy'],
+    ['Kettlebell Pullover',3,'10',60,10,15,'hypertrophy'],
+    ['Gorilla Row',4,'10/side',60,10,15,'hypertrophy'],
+    ['Double RDL',3,'8',60,8,12,'hypertrophy'],
+    ['Two-Hand Swing',7,'10',60,0,0,'conditioning',10]]},
    'KB Volume':{name:'Full-body C • Double-bell volume + swings',day:'C',rows:[
-    ['Double Strict Press',2,'6',150,6,10,'hypertrophy'],
-    ['Double Reverse Lunge',2,'6/leg',120,6,10,'hypertrophy'],
-    ['Double Bent-Over Row',2,'8',90,8,12,'hypertrophy'],
-    ['Double RDL',1,'10',120,10,12,'hypertrophy'],
-    ['Double Floor Press',1,'10',120,10,12,'hypertrophy'],
-    ['Two-Hand Swing',4,'10',75,0,0,'conditioning',8]]}
+    ['Double Strict Press',4,'6',60,6,10,'hypertrophy'],
+    ['Double Reverse Lunge',3,'8/leg',60,8,12,'hypertrophy'],
+    ['Double Bent-Over Row',4,'8',60,8,12,'hypertrophy'],
+    ['Double RDL',3,'10',60,10,12,'hypertrophy'],
+    ['Double Floor Press',3,'10',60,10,12,'hypertrophy'],
+    ['Two-Hand Swing',8,'10',60,0,0,'conditioning',10]]}
   },p=table[session]||table['KB Heavy'];
-  return {name:p.name,source:'preset',kbRoutineVersion:206,kbProgramDay:p.day,rows:p.rows.map(r=>({exercise:r[0],sets:r[1],reps:r[2],manualKg:'',restSeconds:r[3],repLow:r[4]||null,repHigh:r[5]||null,kbIntent:r[6],...(r[0]==='Kettlebell Pullover'?{kbIndependentLoad:true,kbFallback:'Double Floor Press'}:{}),...(r[7]?{roundLow:r[1],roundHigh:r[7]}:{})}))};
+  return {name:p.name,source:'preset',kbRoutineVersion:207,kbProgramDay:p.day,rows:p.rows.map(r=>({exercise:r[0],sets:r[1],reps:r[2],manualKg:'',restSeconds:r[3],repLow:r[4]||null,repHigh:r[5]||null,kbIntent:r[6],...(r[0]==='Kettlebell Pullover'?{kbIndependentLoad:true,kbFallback:'Double Floor Press'}:{}),...(r[7]?{roundLow:r[1],roundHigh:r[7]}:{})}))};
  }
  function pairPreference(ex,hasPair){
   if(!hasPair||!ex||/swing/i.test(ex.name))return 0;
@@ -39,6 +39,20 @@
   if(/Kettlebell Pullover|Around the World|^Halo$/.test(ex.name))return 8;
   if(ex.load!=='double')return 0;
   return /Gorilla|Renegade|Mixed Rack/i.test(ex.name)?4:12;
+ }
+ // Main work only. Every adjacent pair of sets gets one rest gap, including
+ // exercise changes. Warm-up and the separate core finisher do not fill time.
+ function time(rows){
+  let sets=0,work=0,rest=0,lastRest=60,controlled=0,rounds=0;
+  for(const r of rows||[]){
+   if(r.kbWeeklyCore||r.untimedCoreFinisher||/^(skipped|missed)$/i.test(r.status||''))continue;
+   const count=Math.max(0,Math.min(100,Math.floor(Number(r.sets)||0)));if(!count)continue;
+   const reps=String(r.reps||''),n=Number.parseFloat(reps)||0,sides=/side|leg|each arm/i.test(reps)?2:1,timed=/sec/i.test(reps),tempo=/clean.*press/i.test(r.exercise)?5:r.kbIntent==='conditioning'||/swing/i.test(r.exercise)?2:3,gap=r.restSeconds!=null&&String(r.restSeconds)!==''&&Number.isFinite(Number(r.restSeconds))?Math.max(0,Number(r.restSeconds)):60;
+   if(sets)rest+=lastRest/60;
+   rest+=Math.max(0,count-1)*gap/60;work+=count*n*sides*(timed?1:tempo)/60;sets+=count;lastRest=gap;
+   if(r.kbIntent==='conditioning'||/swing/i.test(r.exercise))rounds+=count;else controlled+=count;
+  }
+  return {sets,controlledSets:controlled,swingRounds:rounds,workMinutes:work,restMinutes:rest,totalMinutes:work+rest,estimatedMinutes:Math.ceil(work+rest)};
  }
  function context(cycles,date){
   if(!valid(date))return null;
@@ -134,5 +148,5 @@
   if(rounds>cap){rounds=cap;why+=' The round target fits the saved time limit.';}
   return {available:true,kg,rounds,restSeconds:60,minutes:Math.ceil(5+rounds*1.5),why};
  }
- return Object.freeze({context,schedule,prescription,ladder,shared,abc,hybrid,pairPreference,SESSIONS});
+ return Object.freeze({context,schedule,prescription,ladder,shared,abc,hybrid,pairPreference,time,SESSIONS});
 });
