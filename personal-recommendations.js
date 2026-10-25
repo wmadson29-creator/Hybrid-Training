@@ -13,10 +13,8 @@
  }
  function order(rows,date,p){return rows.slice().sort((a,z)=>Number(!!a.untimedCoreFinisher)-Number(!!z.untimedCoreFinisher)||score(z.exercise,date,p).value-score(a.exercise,date,p).value||((window.HybridUserProfiles.hash(date+a.exercise)%100)-(window.HybridUserProfiles.hash(date+z.exercise)%100)))}
  function timing(rows,session,date){
-  if(!rows.length||rows.every(r=>r.conditioning))return {warmup:0,work:0,rest:0,setup:0,total:0};
-  const factor=b.v36107SessionDurationFactor(session,date),warmup=Math.min(8,Math.max(3,rows.length));let work=0,rest=0;
-  for(const r of rows){const sets=Math.max(1,Number(r.sets)||1);work+=sets*window.HybridSessionFatigue.duration(r).seconds/60;rest+=Math.max(0,sets-1)*(Number.isFinite(Number(r.restSeconds))?Number(r.restSeconds):90)/60}
-  const setup=rows.length*.75,round=n=>Math.round(n*10)/10;return {warmup,work:round(work*factor),rest:round(rest*factor),setup:round(setup*factor),total:round(warmup+(work+rest+setup)*factor)};
+  if(b.workoutTime){const t=b.workoutTime(rows,session);return {warmup:0,work:t.workMinutes,rest:t.restMinutes,setup:t.setupMinutes,total:t.estimatedMinutes}}
+  return {warmup:0,work:0,rest:0,setup:0,total:0};
  }
  function estimate(rows,session,date){return timing(rows,session,date).total}
  function adapt(rows,session,date,job,p,options={}){

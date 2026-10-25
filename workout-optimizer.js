@@ -62,13 +62,14 @@
  }
  function shorten(rows,minutes,priority=()=>0){
   const out=rows.map(r=>({...r,setDetails:r.setDetails?.map(s=>({...s}))})),cap=Math.max(0,Number(minutes)||0)*60;
-  const cost=r=>{const pending=F.setRows(r).filter(s=>!s.completedAt);return pending.length?pending.reduce((s,x)=>{const n=Number(x.restSeconds??r.restSeconds??90);return s+F.duration(x).seconds+(Number.isFinite(n)?Math.max(0,n):90)},0)+30:0};
-  const before=out.reduce((s,r)=>s+cost(r),0);let seconds=before;
+  const cost=r=>F.setRows(r).filter(s=>!s.completedAt).length;
+  const total=()=>{const pending=timeline(out).filter(s=>!s.completedAt);return pending.reduce((sum,s,i)=>sum+F.duration(s).seconds+(i===0?0:Math.max(Number(s.restBeforeSeconds)||0,pending[i-1]._row!==s._row?30:0)),0);};
+  const before=total();let seconds=before;
   const candidates=out.map((r,i)=>({r,i})).filter(x=>!x.r.pinned&&!x.r.conditioning&&!x.r.fatigueCardio).sort((a,b)=>priority(a.r)-priority(b.r)||b.i-a.i);
   for(const {r} of candidates){while(seconds>cap&&cost(r)>0){
-   const done=(r.setDetails||[]).filter(s=>s.completedAt),pending=(r.setDetails||[]).filter(s=>!s.completedAt),old=cost(r);
+   const done=(r.setDetails||[]).filter(s=>s.completedAt),pending=(r.setDetails||[]).filter(s=>!s.completedAt);
    if(pending.length){pending.pop();r.setDetails=[...done,...pending];r.sets=r.setDetails.length;}else if(done.length)break;else r.sets=Math.max(0,(Number(r.sets)||0)-1);
-   if(Number(r.sets)===0)r.status='Skipped';seconds-=old-cost(r);
+   if(Number(r.sets)===0)r.status='Skipped';seconds=total();
   }}
   return {rows:out,beforeSeconds:before,remainingSeconds:seconds,fits:seconds<=cap,omitted:out.filter((r,i)=>Number(r.sets)<Number(rows[i].sets)).map(r=>({exercise:r.exercise,setsRemoved:Math.max(0,Number(rows[out.indexOf(r)].sets)-Number(r.sets))}))};
  }
