@@ -23,7 +23,7 @@
   if(!primary.has('core')&&assist.has('core')){assist.delete('core');stabilizers.add('core')}
   if(!primary.has('grip')&&assist.has('grip')){assist.delete('grip');stabilizers.add('grip')}
   if(/tibialis|dorsiflexion/.test(n)){primary.clear();primary.add('tibialis');assist.clear();stabilizers.delete('calves');stabilizers.delete('gastroc');stabilizers.delete('soleus')}
-  if(/pullover|straight-arm.*pulldown/.test(n)){primary.clear();primary.add('lats');assist.delete('biceps');stabilizers.delete('biceps')}
+  if(/pullover|straight-arm.*pulldown/.test(n)&&!/standing pullover/.test(n)){primary.clear();primary.add('lats');assist.delete('biceps');stabilizers.delete('biceps')}
   if(/hip thrust|glute bridge|frog pump|glute drive/.test(n)){primary.clear();primary.add('glutes');assist.delete('hamstrings');assist.add('hamHipExt')}
   for(const m of primary){assist.delete(m);stabilizers.delete(m)}for(const m of assist)stabilizers.delete(m);
   const credits={},involvement={},fatigueMuscles={},put=(m,credit,involve,stress)=>{credits[m]=credit;involvement[m]=involve;fatigueMuscles[m]=stress};

@@ -5,15 +5,16 @@
  const clone=x=>JSON.parse(JSON.stringify(x)),same=(a,b)=>Math.abs(Number(a)-Number(b))<.02;
  const valid=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s))&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
  // App-authored full-body hybrid, separate from the exact Armor book calendar.
- // Six main movements each day; the last is a single-bell swing. The smaller
+ // Six or seven main movements each day; the last is a single-bell swing. The smaller
  // C accessories leave room for Monday's barbell anchor.
- function hybrid(session){
+ function hybrid(session,{week=1}={}){
   const table={
    'KB Heavy':{name:'Full-body A • Double-bell strength + swings',day:'A',rows:[
     ['Double Clean & Press',4,'5',60,5,6,'strength'],
     ['Double Front Squat',4,'6',60,6,8,'hypertrophy'],
     ['Double Bent-Over Row',4,'8',60,8,12,'hypertrophy'],
-    ['Double RDL',4,'8',60,8,12,'hypertrophy'],
+    ['Double RDL',2,'8',60,8,12,'hypertrophy'],
+    ['Kettlebell Upright Row',2,'12',60,10,15,'hypertrophy'],
     ['Double Floor Press',3,'8',60,8,12,'hypertrophy'],
     ['Two-Hand Swing',7,'10',60,0,0,'conditioning',10]]},
    'KB Power':{name:'Full-body B • Double-bell power + muscle',day:'B',rows:[
@@ -31,7 +32,8 @@
     ['Double Floor Press',3,'10',60,10,12,'hypertrophy'],
     ['Two-Hand Swing',8,'10',60,0,0,'conditioning',10]]}
   },p=table[session]||table['KB Heavy'];
-  return {name:p.name,source:'preset',kbRoutineVersion:207,kbProgramDay:p.day,rows:p.rows.map(r=>({exercise:r[0],sets:r[1],reps:r[2],manualKg:'',restSeconds:r[3],repLow:r[4]||null,repHigh:r[5]||null,kbIntent:r[6],...(r[0]==='Kettlebell Pullover'?{kbIndependentLoad:true,kbFallback:'Double Floor Press'}:{}),...(r[7]?{roundLow:r[1],roundHigh:r[7]}:{})}))};
+  if(session==='KB Power'&&Number(week)%2===0)p.rows=[['Double Thruster',4,'8',60,8,10,'strength-endurance'],['Gorilla Row',4,'10/side',60,10,15,'hypertrophy'],['Double RDL',4,'8',60,8,12,'hypertrophy'],['Double Floor Press',3,'8',60,8,12,'hypertrophy'],['Kettlebell Pullover',3,'10',60,10,15,'hypertrophy'],['Two-Hand Swing',7,'10',60,0,0,'conditioning',10]];
+  return {name:p.name,source:'preset',kbRoutineVersion:210,kbProgramDay:p.day,rows:p.rows.map(r=>({exercise:r[0],sets:r[1],reps:r[2],manualKg:'',restSeconds:r[3],repLow:r[4]||null,repHigh:r[5]||null,kbIntent:r[6],...(r[0]==='Kettlebell Pullover'?{kbIndependentLoad:true,kbFallback:'Double Floor Press'}:r[0]==='Kettlebell Upright Row'?{kbIndependentLoad:true,kbSkipWithoutLight:true}:{}),...(r[7]?{roundLow:r[1],roundHigh:r[7]}:{})}))};
  }
  function pairPreference(ex,hasPair){
   if(!hasPair||!ex||/swing/i.test(ex.name))return 0;
@@ -45,9 +47,9 @@
  function time(rows){
   let sets=0,work=0,rest=0,lastRest=60,controlled=0,rounds=0;
   for(const r of rows||[]){
-   if(r.kbWeeklyCore||r.untimedCoreFinisher||/^(skipped|missed)$/i.test(r.status||''))continue;
+   if(r.warmup||r.isWarmup||r.kbWeeklyCore||r.untimedCoreFinisher||/^(skipped|missed)$/i.test(r.status||''))continue;
    const count=Math.max(0,Math.min(100,Math.floor(Number(r.sets)||0)));if(!count)continue;
-   const reps=String(r.reps||''),n=Number.parseFloat(reps)||0,sides=/side|leg|each arm/i.test(reps)?2:1,timed=/sec/i.test(reps),tempo=/clean.*press/i.test(r.exercise)?5:r.kbIntent==='conditioning'||/swing/i.test(r.exercise)?2:3,gap=r.restSeconds!=null&&String(r.restSeconds)!==''&&Number.isFinite(Number(r.restSeconds))?Math.max(0,Number(r.restSeconds)):60;
+   const reps=String(r.reps||''),n=Number.parseFloat(reps)||0,sides=/side|leg|each arm/i.test(reps)?2:1,timed=/sec/i.test(reps),tempo=/clean.*press|thruster/i.test(r.exercise)?5:r.kbIntent==='conditioning'||/swing/i.test(r.exercise)?2:3,gap=r.restSeconds!=null&&String(r.restSeconds)!==''&&Number.isFinite(Number(r.restSeconds))?Math.max(0,Number(r.restSeconds)):60;
    if(sets)rest+=lastRest/60;
    rest+=Math.max(0,count-1)*gap/60;work+=count*n*sides*(timed?1:tempo)/60;sets+=count;lastRest=gap;
    if(r.kbIntent==='conditioning'||/swing/i.test(r.exercise))rounds+=count;else controlled+=count;
@@ -57,15 +59,16 @@
  function context(cycles,date){
   if(!valid(date))return null;
   for(const c of (Array.isArray(cycles)?cycles:[]).slice().sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate)))){
-   if(!valid(c?.startDate)||!['armor','armor-barbell'].includes(c.mode)||new Date(c.startDate+'T12:00:00Z').getUTCDay()!==1)continue;
+   if(!valid(c?.startDate)||!['armor','armor-barbell','kb-four'].includes(c.mode)||new Date(c.startDate+'T12:00:00Z').getUTCDay()!==1)continue;
    const days=Math.round((Date.parse(date+'T12:00:00Z')-Date.parse(c.startDate+'T12:00:00Z'))/86400000);
-   if(days<0||days>=56)continue;
+   if(days<0||days>=(c.mode==='kb-four'?42:56))continue;
+   if(c.mode==='kb-four'){const day=days%7,slot=[0,1,3,5].indexOf(day),session=slot<0?'Open Training':['KB Heavy','KB Volume','KB Heavy','KB Power'][slot];return {cycle:c,week:Math.floor(days/7)+1,day,slot,hybrid:false,fourDay:true,session,label:slot<0?'Open day':['Upper strength','Lower strength','Full-body strength','Conditioning / strength-endurance'][slot]};}
    const hybrid=c.mode==='armor-barbell',daysOfKb=hybrid?[1,4,6]:[0,2,4],day=days%7,slot=daysOfKb.indexOf(day);
    return {cycle:c,week:Math.floor(days/7)+1,day,slot,hybrid,session:slot>=0?SESSIONS[slot]:hybrid&&[0,3].includes(day)?'Barbell Strength':'Open Training'};
   }
   return null;
  }
- function schedule(c){return DAY_NAMES.map((day,i)=>{const slot=(c.hybrid?[1,4,6]:[0,2,4]).indexOf(i);return [day,slot>=0?SESSIONS[slot]:c.hybrid&&[0,3].includes(i)?'Barbell Strength':'Open Training',slot>=0?prescription(c.week,slot,{hybrid:c.hybrid,short:c.cycle?.pressLadder==='short'}).map(b=>b.type==='press'?b.total+' presses in ladders':b.rounds+' ABC rounds').join(' then '):c.hybrid&&[0,3].includes(i)?'Barbell maintenance':'Adaptive open day']})}
+ function schedule(c){if(c.fourDay)return DAY_NAMES.map((day,i)=>{const slot=[0,1,3,5].indexOf(i);return [day,slot<0?'Open Training':['KB Heavy','KB Volume','KB Heavy','KB Power'][slot],slot<0?'Adaptive open day':['Upper strength','Lower strength','Full-body strength','Conditioning / strength-endurance'][slot]]});return DAY_NAMES.map((day,i)=>{const slot=(c.hybrid?[1,4,6]:[0,2,4]).indexOf(i);return [day,slot>=0?SESSIONS[slot]:c.hybrid&&[0,3].includes(i)?'Barbell Strength':'Open Training',slot>=0?prescription(c.week,slot,{hybrid:c.hybrid,short:c.cycle?.pressLadder==='short'}).map(b=>b.type==='press'?b.total+' presses in ladders':b.rounds+' ABC rounds').join(' then '):c.hybrid&&[0,3].includes(i)?'Barbell maintenance':'Adaptive open day']})}
  function ladder(total,short=false){
   const scheme=short?[2,3,5]:[2,3,5,10],out=[];let left=Math.max(0,Math.floor(total)),i=0;
   while(left>0&&out.length<50){const n=Math.min(left,scheme[i++%scheme.length]);out.push(n);left-=n}
@@ -148,5 +151,20 @@
   if(rounds>cap){rounds=cap;why+=' The round target fits the saved time limit.';}
   return {available:true,kg,rounds,restSeconds:60,minutes:Math.ceil(5+rounds*1.5),why};
  }
- return Object.freeze({context,schedule,prescription,ladder,shared,abc,hybrid,pairPreference,time,SESSIONS});
+// Six-week app-authored option; the separate Armor calendars remain unchanged.
+function fourRecipe(c){
+ const specs=[
+  ['Upper strength',[
+   ['Double Strict Press',5,'6',6,10],['Double Bent-Over Row',5,'10',8,12],['Double Floor Press',5,'10',8,12],['Kettlebell Upright Row',3,'12',10,15,'light'],['Kettlebell Pullover',3,'10',10,15,'light'],['Gorilla Row',3,'10/side',10,15]]],
+  ['Lower strength',[
+   ['Double Front Squat',5,'8',8,12],['Double RDL',5,'10',8,12],['Double Reverse Lunge',4,'8/leg',8,12],['Two-Hand Swing',8,'10',0,0,'swing']]],
+  ['Full-body strength',[
+   ['Double Clean & Press',4,'5',5,6],['Double Front Squat',4,'8',8,12],['Double Bent-Over Row',4,'10',8,12],['Double RDL',3,'10',10,12],['Double Floor Press',3,'10',10,12],['Two-Hand Swing',7,'10',0,0,'swing']]],
+  ['Conditioning / strength-endurance',[
+   ['Double Thruster',5,'8',8,10],['Double Bent-Over Row',4,'10',8,12],['Double Floor Press',4,'10',8,12],['Gorilla Row',3,'10/side',10,15],['Two-Hand Swing',6,'10',0,0,'swing']]]
+ ],[label,spec]=specs[c.slot];
+ return {name:'KB 4 + Open · '+label,source:'preset',kbRoutineVersion:210,kbProgramDay:['A','B','C','D'][c.slot],kbFourDay:true,rows:spec.map(r=>({exercise:r[0],kbReview:c.week===6,sets:c.week===6?Math.max(1,Math.ceil(r[1]*.65)):r[1],reps:r[2],restSeconds:60,repLow:r[3]||null,repHigh:r[4]||null,kbIntent:r[5]==='swing'?'conditioning':/Thruster/.test(r[0])?'strength-endurance':'strength',...(r[5]==='light'?{kbIndependentLoad:true,...(/Upright/.test(r[0])?{kbSkipWithoutLight:true}:{kbFallback:'Double Floor Press'})}:{}),...(r[5]==='swing'?{roundHigh:r[1]+2}:{} )}))};
+}
+
+ return Object.freeze({fourRecipe,context,schedule,prescription,ladder,shared,abc,hybrid,pairPreference,time,SESSIONS});
 });
