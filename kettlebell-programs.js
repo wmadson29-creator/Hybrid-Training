@@ -1,6 +1,8 @@
 /* Dated Armor Building cycles and one-setup daily kettlebell prescriptions. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.HybridKbPrograms=api})(typeof window==='undefined'?null:window,function(){
  'use strict';
+ const R=typeof module==='object'&&module.exports?require('./kb-refinement.js'):globalThis.HybridKbRefinement;
+ const refined=w=>R?R.recipe(w):w;
  const SESSIONS=['KB Heavy','KB Power','KB Volume'],DAY_NAMES=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
  const clone=x=>JSON.parse(JSON.stringify(x)),same=(a,b)=>Math.abs(Number(a)-Number(b))<.02;
  const valid=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s))&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
@@ -33,7 +35,7 @@
     ['Two-Hand Swing',8,'10',60,0,0,'conditioning',10]]}
   },p=table[session]||table['KB Heavy'];
   if(session==='KB Power'&&Number(week)%2===0)p.rows=[['Double Thruster',4,'8',60,8,10,'strength-endurance'],['Gorilla Row',4,'10/side',60,10,15,'hypertrophy'],['Double RDL',4,'8',60,8,12,'hypertrophy'],['Double Floor Press',3,'8',60,8,12,'hypertrophy'],['Kettlebell Pullover',3,'10',60,10,15,'hypertrophy'],['Two-Hand Swing',7,'10',60,0,0,'conditioning',10]];
-  return {name:p.name,source:'preset',kbRoutineVersion:210,kbProgramDay:p.day,rows:p.rows.map(r=>({exercise:r[0],sets:r[1],reps:r[2],manualKg:'',restSeconds:r[3],repLow:r[4]||null,repHigh:r[5]||null,kbIntent:r[6],...(r[0]==='Kettlebell Pullover'?{kbIndependentLoad:true,kbFallback:'Double Floor Press'}:r[0]==='Kettlebell Upright Row'?{kbIndependentLoad:true,kbSkipWithoutLight:true}:{}),...(r[7]?{roundLow:r[1],roundHigh:r[7]}:{})}))};
+  return refined({name:p.name,source:'preset',kbRoutineVersion:210,kbProgramDay:p.day,rows:p.rows.map(r=>({exercise:r[0],sets:r[1],reps:r[2],manualKg:'',restSeconds:r[3],repLow:r[4]||null,repHigh:r[5]||null,kbIntent:r[6],...(r[0]==='Kettlebell Pullover'?{kbIndependentLoad:true,kbFallback:'Double Floor Press'}:r[0]==='Kettlebell Upright Row'?{kbIndependentLoad:true,kbSkipWithoutLight:true}:{}),...(r[7]?{roundLow:r[1],roundHigh:r[7]}:{})}))});
  }
  function pairPreference(ex,hasPair){
   if(!hasPair||!ex||/swing/i.test(ex.name))return 0;
@@ -49,7 +51,7 @@
   for(const r of rows||[]){
    if(r.warmup||r.isWarmup||r.kbWeeklyCore||r.untimedCoreFinisher||/^(skipped|missed)$/i.test(r.status||''))continue;
    const count=Math.max(0,Math.min(100,Math.floor(Number(r.sets)||0)));if(!count)continue;
-   const reps=String(r.reps||''),n=Number.parseFloat(reps)||0,sides=/side|leg|each arm/i.test(reps)?2:1,timed=/sec/i.test(reps),tempo=/clean.*press|thruster/i.test(r.exercise)?5:r.kbIntent==='conditioning'||/swing/i.test(r.exercise)?2:3,gap=r.restSeconds!=null&&String(r.restSeconds)!==''&&Number.isFinite(Number(r.restSeconds))?Math.max(0,Number(r.restSeconds)):60;
+   const reps=String(r.reps||''),clock=reps.trim().match(/^(\d+):(\d{2})/),range=reps.match(/^(\d+(?:\.\d+)?)\s*[–—-]\s*(\d+(?:\.\d+)?)/),n=clock?Number(clock[1])*60+Number(clock[2]):(range?(Number(range[1])+Number(range[2]))/2:Number.parseFloat(reps)||0)*(/\bmin(?:ute)?s?\b/i.test(reps)?60:1),sides=/side|leg|each arm/i.test(reps)?2:1,timed=/sec|min|^\s*\d+:\d{2}/i.test(reps),tempo=R?R.tempo(r.exercise):3,gap=r.restSeconds!=null&&String(r.restSeconds)!==''&&Number.isFinite(Number(r.restSeconds))?Math.max(0,Number(r.restSeconds)):60;
    if(sets)rest+=lastRest/60;
    rest+=Math.max(0,count-1)*gap/60;work+=count*n*sides*(timed?1:tempo)/60;sets+=count;lastRest=gap;
    if(r.kbIntent==='conditioning'||/swing/i.test(r.exercise))rounds+=count;else controlled+=count;
@@ -163,7 +165,7 @@ function fourRecipe(c){
   ['Conditioning / strength-endurance',[
    ['Double Thruster',5,'8',8,10],['Double Bent-Over Row',4,'10',8,12],['Double Floor Press',4,'10',8,12],['Gorilla Row',3,'10/side',10,15],['Two-Hand Swing',6,'10',0,0,'swing']]]
  ],[label,spec]=specs[c.slot];
- return {name:'KB 4 + Open · '+label,source:'preset',kbRoutineVersion:210,kbProgramDay:['A','B','C','D'][c.slot],kbFourDay:true,rows:spec.map(r=>({exercise:r[0],kbReview:c.week===6,sets:c.week===6?Math.max(1,Math.ceil(r[1]*.65)):r[1],reps:r[2],restSeconds:60,repLow:r[3]||null,repHigh:r[4]||null,kbIntent:r[5]==='swing'?'conditioning':/Thruster/.test(r[0])?'strength-endurance':'strength',...(r[5]==='light'?{kbIndependentLoad:true,...(/Upright/.test(r[0])?{kbSkipWithoutLight:true}:{kbFallback:'Double Floor Press'})}:{}),...(r[5]==='swing'?{roundHigh:r[1]+2}:{} )}))};
+ return refined({name:'KB 4 + Open · '+label,source:'preset',kbRoutineVersion:210,kbProgramDay:['A','B','C','D'][c.slot],kbFourDay:true,rows:spec.map(r=>({exercise:r[0],kbBaseSets:r[1],kbReview:c.week===6,sets:c.week===6?Math.max(1,Math.ceil(r[1]*.65)):r[1],reps:r[2],restSeconds:60,repLow:r[3]||null,repHigh:r[4]||null,kbIntent:r[5]==='swing'?'conditioning':/Thruster/.test(r[0])?'strength-endurance':'strength',...(r[5]==='light'?{kbIndependentLoad:true,...(/Upright/.test(r[0])?{kbSkipWithoutLight:true}:{kbFallback:'Double Floor Press'})}:{}),...(r[5]==='swing'?{roundHigh:r[1]+2}:{} )}))});
 }
 
  return Object.freeze({fourRecipe,context,schedule,prescription,ladder,shared,abc,hybrid,pairPreference,time,SESSIONS});

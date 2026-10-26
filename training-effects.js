@@ -12,7 +12,7 @@
   return curve(r,[[1,.18],[4,.35],[6,.62],[8,.92],[9,1],[10,1.02]]);
  }
  function anatomy(name,definition,fp={}){
-  const ex=definition||{},p=ex.exerciseProfile||{},n=String(name||'').toLowerCase(),raw=fp.muscles||{},primary=new Set(p.primary||ex.primaryMuscles||[]),assist=new Set(p.assist||ex.secondaryMuscles||[]),stabilizers=new Set(p.stabilizers||[]);
+  const ex=definition||{},p=ex.exerciseProfile||{},n=String(name||'').toLowerCase(),raw=fp.muscles||{},primary=new Set(p.primary||ex.primaryMuscles||[]),assist=new Set(p.assist||ex.secondaryMuscles||[]),stabilizers=new Set([...(p.stabilizers||[]),...(ex.stabilizers||[])]);
   if(!primary.size){for(const [m,v]of Object.entries(raw)){if(v>=.82)primary.add(m);else if(v>=.38)assist.add(m);else if(v>0)stabilizers.add(m)}}
   // Holding the torso or implement is relevant to fatigue, but is different from
   // direct trunk/grip work. Broad families cannot turn wrist curls into biceps work.
