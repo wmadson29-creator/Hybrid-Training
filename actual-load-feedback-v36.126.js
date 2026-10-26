@@ -58,7 +58,7 @@
   // One input hierarchy for summaries, individual sets, scheduling and recovery.
   // RIR is a controlled-repetition cue; it is not a velocity-quality measurement.
   function rirEligible(row){
-    return !isCardioRow(row)&&row?.ballistic!==true&&!/swing|snatch|high[ -]pull|\bclean\b|carry|turkish|get.up|jump|sprint|push[ -]press|jerk|thruster|pogo|\bhop\b|\bbound|\bthrow|plyo|clap|explosive|ballistic/i.test(String(row?.exercise||''))&&!/sec|min|hold|^\s*\d+:\d{2}/i.test(String(row?.reps||''));
+    return !isCardioRow(row)&&row?.ballistic!==true&&!/gunslinger|swing|snatch|high[ -]pull|\bclean\b|carry|turkish|get.up|jump|sprint|push[ -]press|jerk|thruster|pogo|\bhop\b|\bbound|\bthrow|plyo|clap|explosive|ballistic/i.test(String(row?.exercise||''))&&!/sec|min|hold|^\s*\d+:\d{2}/i.test(String(row?.reps||''));
   }
   function rirRpe(row){
     const rir=String(row?.rir??'').trim();
