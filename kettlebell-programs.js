@@ -7,6 +7,27 @@
  const SESSIONS=['KB Heavy','KB Power','KB Volume'],DAY_NAMES=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
  const clone=x=>JSON.parse(JSON.stringify(x)),same=(a,b)=>Math.abs(Number(a)-Number(b))<.02;
  const valid=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s))&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
+ const shift=(s,n)=>new Date(Date.parse(s+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);
+ // Finite Monday–Sunday overlays. The dated entry remains after the trip so
+ // historical program-week numbering still includes the frozen week.
+ function normalizeTravelWeeks(value,{strict=false}={}){
+  if(value===undefined)return [];
+  if(!Array.isArray(value)||value.length>520){if(strict)throw Error('Invalid KB travel-week schedule.');return [];}
+  const dates=new Set(),ids=new Set(),out=[];
+  for(const c of value){
+   if(c?.version!==1||typeof c.id!=='string'||!/^[-\w]{1,80}$/.test(c.id)||!valid(c.startDate)||new Date(c.startDate+'T12:00:00Z').getUTCDay()!==1||dates.has(c.startDate)||ids.has(c.id)){
+    if(strict)throw Error('Each KB travel week needs a unique ID and Monday start date.');continue;
+   }
+   dates.add(c.startDate);ids.add(c.id);out.push({version:1,id:c.id,startDate:c.startDate});
+  }
+  return out.sort((a,b)=>a.startDate.localeCompare(b.startDate));
+ }
+ function travelContext(weeks,date){
+  if(!valid(date))return null;
+  const c=normalizeTravelWeeks(weeks).find(c=>date>=c.startDate&&date<=shift(c.startDate,6));if(!c)return null;
+  const day=new Date(date+'T12:00:00Z').getUTCDay(),slot=[0,1,3,5].indexOf(day);
+  return {cycle:{...c,mode:'kb-travel',endDate:shift(c.startDate,6)},start:c.startDate,next:shift(c.startDate,7),week:1,round:0,day,slot,hybrid:false,fourDay:true,travel:true,session:slot<0?'Open Training':['KB Heavy','KB Volume','KB Heavy','KB Power'][slot],label:slot<0?'Open day':['Upper strength','Lower strength','Full-body strength','Conditioning / strength-endurance'][slot]};
+ }
  // App-authored full-body hybrid, separate from the exact Armor book calendar.
  // Six or seven main movements each day; the last is a single-bell swing. The smaller
  // C accessories leave room for Monday's barbell anchor.
@@ -171,5 +192,5 @@ function fourRecipe(c){
  return refined({name:'KB 4 + Open · '+label,source:'preset',kbRoutineVersion:210,kbProgramWeek:c.week,kbProgramDay:['A','B','C','D'][c.slot],kbFourDay:true,rows:spec.map(r=>({exercise:r[0],kbBaseSets:r[1],kbReview:c.week===6,sets:c.week===6?Math.max(1,Math.ceil(r[1]*.65)):r[1],reps:r[2],restSeconds:60,repLow:r[3]||null,repHigh:r[4]||null,kbIntent:r[5]==='swing'?'conditioning':/Thruster/.test(r[0])?'strength-endurance':'strength',...(r[5]==='light'?{kbIndependentLoad:true,...(/Upright/.test(r[0])?{kbSkipWithoutLight:true}:{kbFallback:'Double Floor Press'})}:{}),...(r[5]==='swing'?{roundHigh:r[1]+2}:{} )}))});
 }
 
- return Object.freeze({fourRecipe,context,schedule,prescription,ladder,shared,abc,hybrid,pairPreference,time,SESSIONS});
+ return Object.freeze({normalizeTravelWeeks,travelContext,fourRecipe,context,schedule,prescription,ladder,shared,abc,hybrid,pairPreference,time,SESSIONS});
 });
