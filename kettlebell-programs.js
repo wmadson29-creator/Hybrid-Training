@@ -12,21 +12,21 @@
  // historical program-week numbering still includes the frozen week.
  function normalizeTravelWeeks(value,{strict=false}={}){
   if(value===undefined)return [];
-  if(!Array.isArray(value)||value.length>520){if(strict)throw Error('Invalid KB travel-week schedule.');return [];}
+  if(!Array.isArray(value)||value.length>520){if(strict)throw Error('Invalid travel-week schedule.');return [];}
   const dates=new Set(),ids=new Set(),out=[];
   for(const c of value){
-   if(c?.version!==1||typeof c.id!=='string'||!/^[-\w]{1,80}$/.test(c.id)||!valid(c.startDate)||new Date(c.startDate+'T12:00:00Z').getUTCDay()!==1||dates.has(c.startDate)||ids.has(c.id)){
-    if(strict)throw Error('Each KB travel week needs a unique ID and Monday start date.');continue;
+   if(c?.version!==1||typeof c.id!=='string'||!/^[-\w]{1,80}$/.test(c.id)||!valid(c.startDate)||new Date(c.startDate+'T12:00:00Z').getUTCDay()!==1||dates.has(c.startDate)||ids.has(c.id)||c.kind!==undefined&&!['kb','calisthenics','calisthenics-bands'].includes(c.kind)){
+    if(strict)throw Error('Each travel week needs a valid type, unique ID and Monday start date.');continue;
    }
-   dates.add(c.startDate);ids.add(c.id);out.push({version:1,id:c.id,startDate:c.startDate});
+   dates.add(c.startDate);ids.add(c.id);out.push({version:1,id:c.id,startDate:c.startDate,...(c.kind&&c.kind!=='kb'?{kind:c.kind}:{})});
   }
   return out.sort((a,b)=>a.startDate.localeCompare(b.startDate));
  }
  function travelContext(weeks,date){
   if(!valid(date))return null;
   const c=normalizeTravelWeeks(weeks).find(c=>date>=c.startDate&&date<=shift(c.startDate,6));if(!c)return null;
-  const day=new Date(date+'T12:00:00Z').getUTCDay(),slot=[0,1,3,5].indexOf(day);
-  return {cycle:{...c,mode:'kb-travel',endDate:shift(c.startDate,6)},start:c.startDate,next:shift(c.startDate,7),week:1,round:0,day,slot,hybrid:false,fourDay:true,travel:true,session:slot<0?'Open Training':['KB Heavy','KB Volume','KB Heavy','KB Power'][slot],label:slot<0?'Open day':['Upper strength','Lower strength','Full-body strength','Conditioning / strength-endurance'][slot]};
+  const day=new Date(date+'T12:00:00Z').getUTCDay(),slot=[0,1,3,5].indexOf(day),kind=c.kind||'kb',calisthenics=kind!=='kb';
+  return {cycle:{...c,mode:kind+'-travel',endDate:shift(c.startDate,6)},kind,calisthenics,bands:kind==='calisthenics-bands',start:c.startDate,next:shift(c.startDate,7),week:1,round:0,day,slot,hybrid:false,fourDay:true,travel:true,session:slot<0?'Open Training':calisthenics?'Calisthenics':['KB Heavy','KB Volume','KB Heavy','KB Power'][slot],label:slot<0?'Open day':['Upper strength','Lower strength','Full-body strength','Conditioning / strength-endurance'][slot]};
  }
  // App-authored full-body hybrid, separate from the exact Armor book calendar.
  // Six or seven main movements each day; the last is a single-bell swing. The smaller
@@ -93,7 +93,7 @@
   }
   return null;
  }
- function schedule(c){if(c.fourDay)return DAY_NAMES.map((day,i)=>{const slot=[6,0,2,4].indexOf(i);return [day,slot<0?'Open Training':['KB Heavy','KB Volume','KB Heavy','KB Power'][slot],slot<0?'Adaptive open day':['Upper strength','Lower strength','Full-body strength','Conditioning / strength-endurance'][slot]]});return DAY_NAMES.map((day,i)=>{const slot=(c.hybrid?[1,4,6]:[0,2,4]).indexOf(i);return [day,slot>=0?SESSIONS[slot]:c.hybrid&&[0,3].includes(i)?'Barbell Strength':'Open Training',slot>=0?prescription(c.week,slot,{hybrid:c.hybrid,short:c.cycle?.pressLadder==='short'}).map(b=>b.type==='press'?b.total+' presses in ladders':b.rounds+' ABC rounds').join(' then '):c.hybrid&&[0,3].includes(i)?'Barbell maintenance':'Adaptive open day']})}
+ function schedule(c){if(c.fourDay)return DAY_NAMES.map((day,i)=>{const slot=[6,0,2,4].indexOf(i);return [day,slot<0?'Open Training':c.calisthenics?'Calisthenics':['KB Heavy','KB Volume','KB Heavy','KB Power'][slot],slot<0?'Adaptive open day':['Upper strength','Lower strength','Full-body strength','Conditioning / strength-endurance'][slot]]});return DAY_NAMES.map((day,i)=>{const slot=(c.hybrid?[1,4,6]:[0,2,4]).indexOf(i);return [day,slot>=0?SESSIONS[slot]:c.hybrid&&[0,3].includes(i)?'Barbell Strength':'Open Training',slot>=0?prescription(c.week,slot,{hybrid:c.hybrid,short:c.cycle?.pressLadder==='short'}).map(b=>b.type==='press'?b.total+' presses in ladders':b.rounds+' ABC rounds').join(' then '):c.hybrid&&[0,3].includes(i)?'Barbell maintenance':'Adaptive open day']})}
  function ladder(total,short=false){
   const scheme=short?[2,3,5]:[2,3,5,10],out=[];let left=Math.max(0,Math.floor(total)),i=0;
   while(left>0&&out.length<50){const n=Math.min(left,scheme[i++%scheme.length]);out.push(n);left-=n}
