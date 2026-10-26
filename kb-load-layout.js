@@ -18,7 +18,7 @@
     return bells;
   }
   function assignments(row,bells){
-    const eligible=bells.map((b,i)=>b.weights.some(kg=>same(kg,row.kg))?i:-1).filter(i=>i>=0);
+    const eligible=bells.map((b,i)=>(!row.forceHeavy||b.kind==='heavy')&&b.weights.some(kg=>same(kg,row.kg))?i:-1).filter(i=>i>=0);
     if(row.load!=='double')return eligible.flatMap(i=>{
       const spare=eligible.find(j=>j!==i&&bells[i].kind==='heavy'&&bells[j].kind==='heavy');
       // A forthcoming paired movement may use the same load. Preparing the
@@ -63,7 +63,7 @@
   }
   function layout(rows,hardware,{group=true}={}){
     if(!rows.length||rows.some(r=>!Number.isFinite(r.kg)||r.kg<=0))return null;
-    const key=JSON.stringify([rows.map(r=>[r.kg,r.load,r.conditioning]),hardware,group]);
+    const key=JSON.stringify([rows.map(r=>[r.kg,r.load,r.conditioning,!!r.forceHeavy]),hardware,group]);
     if(cache.has(key))return JSON.parse(JSON.stringify(cache.get(key)));
     const bells=bellsFor(hardware),original=rows.map((_,i)=>i),baseline=allocate(rows,original,bells);
     if(!baseline)return null;
