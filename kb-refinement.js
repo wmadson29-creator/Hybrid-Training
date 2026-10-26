@@ -5,6 +5,7 @@
  const clone=x=>JSON.parse(JSON.stringify(x)),clamp=(x,a,b)=>Math.max(a,Math.min(b,Number(x)||0));
  const kb=(name,family,kg,primary,assist,note,extra={})=>({name,family,defaultKg:kg,load:'single',primaryMuscles:primary,secondaryMuscles:assist,note,...extra});
  const catalog=[
+  kb('Kettlebell Somersault Squat','squat',14,['quads'],['glutes','core'],'Hold one bell with both hands between the legs and brace the forearms into the hip creases. Keep the torso folded, extend the knees to raise the hips, then bend the knees to return under control. Use a comfortable range with the feet grounded.',{anatomyFamily:'squat',strengthDemand:.5,movementWeights:{squat:1},aliases:['Somersault Squat','KB Somersault Squat']}),
   kb('Two-Hand Kettlebell Biceps Curl','biceps',14,['biceps'],['grip'],'Hold one heavy bell with both hands by the handle, palms up. Curl under control without swinging the torso. Use the same setting as the heavy pair.',{anatomyFamily:'biceps',strengthDemand:.35}),
   kb('Double Kettlebell Standing Calf Raise','calves',14,['calves','gastroc'],['soleus','grip'],'Hold both bells at the sides. Raise both heels together, pause, and lower under control. Reps are total, not per leg.',{load:'double',anatomyFamily:'calves',strengthDemand:.35}),
   kb('Double Kettlebell Suitcase Split Squat','lunge',14,['quads','glutes'],['adductors','core','grip'],'Hold one bell at each side and keep the feet planted in a split stance. Lower and rise under control; complete both legs.',{load:'double',unilateral:true,anatomyFamily:'lunge',strengthDemand:.65}),

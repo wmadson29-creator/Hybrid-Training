@@ -3,12 +3,13 @@
  'use strict';
  const row=(exercise,sets,base,group='',side=false,slow=false,light=false)=>({exercise,sets,base,group,side,slow,light});
  const three=[
-  [row('Turkish Get-Up',2,1,'',true,true,true),row('Single-Arm High Pull',2,4,'',true,true),row('Double Clean & Press',2,3,'',false,true),row('Two-Hand Swing',3,10),row('Double Pause Front Squat',3,6,'main'),row('Double Floor Press',3,6,'main'),row('Double Bent-Over Row',3,8,'main'),row('Double Strict Press',2,5,'accessory'),row('Double Kettlebell Standing Calf Raise',2,12,'accessory'),row('Two-Hand Kettlebell Biceps Curl',2,8,'accessory')],
+  [row('Turkish Get-Up',2,1,'',true,true),row('Single-Arm High Pull',2,4,'',true,true),row('Double Clean & Press',2,3,'',false,true),row('Two-Hand Swing',3,10),row('Double Pause Front Squat',3,6,'main'),row('Double Floor Press',3,6,'main'),row('Double Bent-Over Row',3,8,'main'),row('Double Strict Press',2,5,'accessory'),row('Double Kettlebell Standing Calf Raise',2,12,'accessory'),row('Two-Hand Kettlebell Biceps Curl',2,8,'accessory')],
   [row('Kettlebell Gunslinger',2,4,'',true,true),row('Double Clean',2,3,'',false,true),row('Double Thruster',2,4,'',false,true),row('Double Kettlebell Sumo Deadlift',3,8,'main'),row('Feet-Elevated Kettlebell Push-Up',3,6,'main'),row('Renegade Row',3,4,'main',true),row('Seated Alternating Kettlebell Press',2,5,'press-legs',true),row('Double Kettlebell Suitcase Split Squat',2,6,'press-legs',true),row('Kettlebell Upright Row',2,8,'arms'),row('Kettlebell Overhead Triceps Extension',2,8,'arms')],
   [row('Single-Arm Snatch',2,3,'',true,true),row('Double Swing to Press',2,3,'',false,true),row('Kettlebell Corkscrew Swing',2,5,'',true,true),row('Double Front Squat',3,6,'main'),row('Alternating Double Kettlebell Floor Press',3,6,'main',true),row('Double RDL',3,8,'main'),row('Two-Hand Kettlebell Front Raise',2,8,'accessory'),row('Goblet Squat',2,8,'accessory'),row('Double Kettlebell Shrug',2,12,'accessory'),row('Kettlebell Pullover',2,8,'accessory'),row('Kettlebell Hammer Curl',2,8,'accessory')]
  ];
  // Repeated foundations supplement the 31; nothing is removed to make room.
  const originalNames=three.flat().map(x=>x.exercise);
+ three[0].splice(8,0,row('Kettlebell Somersault Squat',2,8,'accessory'));
  three[0].push(three[0].splice(3,1)[0]);
  three[1].splice(6,0,row('Double Floor Press',3,6,'main'));
  three[1].splice(5,0,row('Gorilla Row',3,6,'main',true));
@@ -33,6 +34,7 @@
  for(const list of four)for(const r of list)if(r.exercise!=='Turkish Get-Up')r.sets++;
  four[0].push(row('Kettlebell Crush Press',3,8,'accessory'));
  four[2].push(row('Double Kettlebell Standing Calf Raise',3,12,'accessory'));
+ four[1].splice(5,0,row('Kettlebell Somersault Squat',3,8,'accessory'));
  // Keep circuit groups contiguous and use the same number of rounds inside
  // each group. Technical opening blocks and the final swing remain separate.
  for(const list of four){let group=0,lastSets=0;for(let i=0;i<list.length;i++){const r=list[i];if(r.slow||r.exercise==='Two-Hand Swing'){r.group='';lastSets=0;continue;}if(r.sets!==lastSets)group++;r.group='circuit-'+group;lastSets=r.sets;}}
@@ -44,13 +46,13 @@
  }
  function recipe(slot,{fourDay=false,week=1}={}){
   const specs=(fourDay?four:three)[slot]||three[0];
-  return {name:(fourDay?'Four-day':'Three-day')+' KB circuit · Day '+String.fromCharCode(65+slot),source:'preset',kbRoutineVersion:213,kbCircuit:true,kbFourDay:fourDay,kbProgramDay:String.fromCharCode(65+slot),kbProgramWeek:wave(week),rows:specs.map(r=>({...r,reps:String(r.base)+(r.side?'/side':''),kbSetReps:sequence(r,week),restSeconds:r.group?30:90,kbIntent:r.exercise==='Two-Hand Swing'?'conditioning':r.slow?'power':'strength',kbIndependentLoad:r.light}))};
+  return {name:(fourDay?'Four-day':'Three-day')+' KB circuit · Day '+String.fromCharCode(65+slot),source:'preset',kbRoutineVersion:214,kbCircuit:true,kbFourDay:fourDay,kbProgramDay:String.fromCharCode(65+slot),kbProgramWeek:wave(week),rows:specs.map(r=>({...r,reps:String(r.base)+(r.side?'/side':''),kbSetReps:sequence(r,week),restSeconds:r.group?30:90,kbIntent:r.exercise==='Two-Hand Swing'?'conditioning':r.slow?'power':'strength',kbIndependentLoad:false}))};
  }
  function chooseCore(random=Math.random){return core[Math.min(5,Math.floor(Math.max(0,random())*6))];}
  function reviewSuggestion(spec,history,currentKg,choices){
   const h=history.slice(0,2),good=h.length===2&&h.every(x=>x.complete&&x.good&&x.rpe>0&&x.rpe<=8&&x.sets>=spec.sets&&x.reps>=spec.base&&Math.abs(x.kg-currentKg)<.26),bad=h.some(x=>x.bad);
   return {sets:spec.sets,reps:spec.base+(good&&!spec.slow?1:0),earned:good,bad,nextKg:good&&!bad?choices.find(x=>x>currentKg+.01)||currentKg:currentKg,reason:bad?'Recent difficulty: repeat or reduce this target.':good?'Two completed comfortable results support a small progression.':'Keep the starting target until actual results support progression.'};
  }
- const requiredNames=[...originalNames,'Gorilla Row'];
+ const requiredNames=[...originalNames,'Gorilla Row','Kettlebell Somersault Squat'];
  return Object.freeze({three,four,core,originalNames,requiredNames,wave,sequence,recipe,chooseCore,reviewSuggestion});
 });
