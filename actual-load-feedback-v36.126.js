@@ -8,24 +8,35 @@
   'use strict';
 
   const clamp=(value,low,high)=>Math.max(low,Math.min(high,Number(value)||0));
+  // Parsing is pure for the input text. Keep bounded scalar caches, never row
+  // objects or live set arrays, so edits remain immediately observable.
+  const numberCache=new Map(),repCache=new Map();
+  const remember=(cache,key,value)=>{if(cache.size>=1024)cache.delete(cache.keys().next().value);cache.set(key,value);return value;};
   const number=value=>{
-    const match=String(value??'').replace(/\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b/g,s=>s.replace(/,/g,'')).replace(/(\d),(\d)/g,'$1.$2').match(/-?\d+(?:\.\d+)?/);
-    return match?Number(match[0]):0;
+    const text=String(value??'');if(numberCache.has(text))return numberCache.get(text);
+    const match=text.replace(/\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b/g,s=>s.replace(/,/g,'')).replace(/(\d),(\d)/g,'$1.$2').match(/-?\d+(?:\.\d+)?/);
+    return remember(numberCache,text,match?Number(match[0]):0);
   };
   const averageNumbers=value=>{
-    const text=String(value??'');if(/^\s*-/.test(text))return 0;const clock=text.trim().match(/^(\d+):(\d{2})(?:\s*(?:\/|per|each)\s*(?:side|leg|arm))?$/i);
-    if(clock)return Number(clock[1])*60+Number(clock[2]);
+    const text=String(value??'');if(repCache.has(text))return repCache.get(text);if(/^\s*-/.test(text))return remember(repCache,text,0);const clock=text.trim().match(/^(\d+):(\d{2})(?:\s*(?:\/|per|each)\s*(?:side|leg|arm))?$/i);
+    if(clock)return remember(repCache,text,Number(clock[1])*60+Number(clock[2]));
     const values=(text.match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);
-    if(!values.length)return 0;
-    return (values.length>1?(values[0]+values[1])/2:values[0])*(/\bmin(?:ute)?s?\b/i.test(text)?60:1);
+    if(!values.length)return remember(repCache,text,0);
+    return remember(repCache,text,(values.length>1?(values[0]+values[1])/2:values[0])*(/\bmin(?:ute)?s?\b/i.test(text)?60:1));
   };
   function loadUnit(value,fallback){const text=String(value??''),first=text.match(/-?\d[\d,.]*/);if(!first)return fallback;const suffix=text.slice(first.index+first[0].length).trimStart(),prefix=text.slice(0,first.index).trim();return /^(?:kg\b|kilogram)/i.test(suffix)||/\b(?:kg|kilograms?)$/i.test(prefix)?'kg':/^(?:lbs?\b|pound)/i.test(suffix)||/\b(?:lbs?|pounds?)$/i.test(prefix)?'lb':fallback}
   const loadPounds=(value,defaultUnit='lb')=>number(value)*(loadUnit(value,defaultUnit)==='kg'?2.2046226218:1);
   const loadKilograms=(value,defaultUnit='kg')=>number(value)*(loadUnit(value,defaultUnit)==='lb'?.45359237:1);
   const nonWorking=row=>row?.warmup===true||row?.isWarmup===true||/^(?:skipped|missed)$/i.test(String(row?.status||''));
   const explicitZero=value=>String(value??'').trim()!==''&&Number.isFinite(Number(value))&&Number(value)===0;
+  function workingSet(set,row){
+    if(!set||nonWorking(set))return false;
+    const reps=set.reps??row.reps,amount=averageNumbers(reps);
+    if(String(reps??'').trim()&&amount<=0)return false;
+    return amount>0||number(set.weight)>0||number(set.rpe)>0||number(set.completedAt)>0;
+  }
   function workingSetDetails(row){
-    return Array.isArray(row?.setDetails)?row.setDetails.filter(set=>set&&!nonWorking(set)&&!(String(set.reps??row.reps??'').trim()&&averageNumbers(set.reps??row.reps)<=0)&&(averageNumbers(set.reps??row.reps)>0||number(set.weight)>0||number(set.rpe)>0||number(set.completedAt)>0)).map(set=>({...set,weight:String(set.weight??'').trim()?set.weight:row.weight})):[];
+    return Array.isArray(row?.setDetails)?row.setDetails.filter(set=>workingSet(set,row)).map(set=>({...set,weight:String(set.weight??'').trim()?set.weight:row.weight})):[];
   }
   function noPerformedWork(row){
     if(nonWorking(row))return true;
@@ -36,7 +47,7 @@
       const knownZero=explicitZero(m.time)||explicitZero(m.duration)||explicitZero(row?.effectiveDurationMinutes)||explicitZero(row?.trackedSessionDurationMinutes)||explicitZero(row?.sessionDurationMinutes);
       return knownZero&&actualMinutes(row)===0&&!structuredActualDoseExists(row)&&!(number(m.distance)>0||number(m.intervals)>0||number(m.poolLengths)>0);
     }
-    if(Array.isArray(row?.setDetails)&&row.setDetails.length)return workingSetDetails(row).length===0;
+    if(Array.isArray(row?.setDetails)&&row.setDetails.length)return !row.setDetails.some(set=>workingSet(set,row));
     return explicitZero(row?.sets)||(String(row?.reps??'').trim()!==''&&averageNumbers(row.reps)===0);
   }
   const lower=value=>String(value??'').trim().toLowerCase();
