@@ -1,0 +1,104 @@
+/* Anatomical planning model. Coefficients are ordinal priors, not measured
+   activation percentages, regional set equivalents, or independent recovery clocks. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.HybridMuscleModel=api;})(typeof globalThis==='undefined'?null:globalThis,function(){
+ 'use strict';
+ const groups={
+  chest:[['pecClavicular','Pectoralis major · clavicular region'],['pecSternocostal','Pectoralis major · sternocostal region']],
+  shoulders:[['deltAnterior','Anterior deltoid'],['deltLateral','Lateral deltoid'],['deltPosterior','Posterior deltoid'],['supraspinatus','Supraspinatus'],['infraspinatus','Infraspinatus'],['teresMinor','Teres minor'],['subscapularis','Subscapularis']],
+  upperBack:[['trapUpper','Upper trapezius'],['trapMiddle','Middle trapezius'],['trapLower','Lower trapezius'],['rhomboidMajor','Rhomboid major'],['rhomboidMinor','Rhomboid minor'],['levatorScapulae','Levator scapulae']],
+  lats:[['latissimus','Latissimus dorsi'],['teresMajor','Teres major']],
+  serratus:[['serratusAnterior','Serratus anterior'],['pectoralisMinor','Pectoralis minor']],
+  biceps:[['bicepsLong','Biceps brachii · long head'],['bicepsShort','Biceps brachii · short head'],['brachialis','Brachialis'],['brachioradialis','Brachioradialis']],
+  triceps:[['tricepsLongHead','Triceps brachii · long head'],['tricepsLateral','Triceps brachii · lateral head'],['tricepsMedial','Triceps brachii · medial head']],
+  grip:[['flexorDigitorumSuperficialis','Flexor digitorum superficialis'],['flexorDigitorumProfundus','Flexor digitorum profundus'],['flexorCarpiRadialis','Flexor carpi radialis'],['flexorCarpiUlnaris','Flexor carpi ulnaris'],['extensorCarpiRadialis','Extensor carpi radialis longus/brevis'],['extensorCarpiUlnaris','Extensor carpi ulnaris'],['pronatorTeres','Pronator teres'],['supinator','Supinator']],
+  quads:[['rectusFemoris','Rectus femoris'],['vastusLateralis','Vastus lateralis'],['vastusMedialis','Vastus medialis'],['vastusIntermedius','Vastus intermedius']],
+  hamstrings:[['bicepsFemorisLong','Biceps femoris · long head'],['bicepsFemorisShort','Biceps femoris · short head'],['semitendinosus','Semitendinosus'],['semimembranosus','Semimembranosus']],
+  glutes:[['gluteMax','Gluteus maximus'],['gluteMed','Gluteus medius'],['gluteMin','Gluteus minimus'],['tensorFasciaeLatae','Tensor fasciae latae']],
+  adductors:[['adductorMagnus','Adductor magnus'],['adductorLongus','Adductor longus'],['adductorBrevis','Adductor brevis'],['gracilis','Gracilis'],['pectineus','Pectineus']],
+  calves:[['gastrocMedial','Gastrocnemius · medial head'],['gastrocLateral','Gastrocnemius · lateral head'],['soleusMuscle','Soleus'],['tibialisPosterior','Tibialis posterior'],['fibularisLongus','Fibularis longus'],['fibularisBrevis','Fibularis brevis']],
+  tibialis:[['tibialisAnterior','Tibialis anterior']],
+  core:[['rectusAbdominis','Rectus abdominis'],['obliqueInternal','Internal oblique'],['obliqueExternal','External oblique'],['transversus','Transversus abdominis'],['multifidus','Multifidus'],['iliocostalis','Erector spinae · iliocostalis'],['longissimus','Erector spinae · longissimus'],['spinalis','Erector spinae · spinalis'],['quadratusLumborum','Quadratus lumborum'],['psoasMajor','Psoas major'],['iliacus','Iliacus'],['sartorius','Sartorius'],['diaphragm','Diaphragm'],['intercostals','Intercostal muscles']]
+ };
+ const registry=Object.freeze(Object.fromEntries(Object.entries(groups).flatMap(([parent,list])=>list.map(([id,label])=>[id,Object.freeze({id,label,parent,recoveryFamily:parent})]))));
+ const aliases={tricepsLong:'triceps',tricepsOther:'triceps',hamKneeFlex:'hamstrings',hamHipExt:'hamstrings',gastroc:'calves',soleus:'calves',forearms:'grip'};
+ const source={anatomy:'https://openstax.org/books/anatomy-and-physiology-2e/pages/11-5-muscles-of-the-pectoral-girdle-and-upper-limbs',lower:'https://openstax.org/books/anatomy-and-physiology-2e/pages/11-6-appendicular-muscles-of-the-pelvic-girdle-and-lower-limbs',squat:'https://pubmed.ncbi.nlm.nih.gov/31230110/',triceps:'https://pubmed.ncbi.nlm.nih.gov/35819335/',hamstrings:'https://pubmed.ncbi.nlm.nih.gov/33009197/',calves:'https://pubmed.ncbi.nlm.nih.gov/38156065/',chest:'https://pubmed.ncbi.nlm.nih.gov/32922646/',emg:'https://pubmed.ncbi.nlm.nih.gov/35006527/'};
+ const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,Number(v)||0));
+ const cuff=['supraspinatus','infraspinatus','teresMinor','subscapularis'],brace=['transversus','multifidus','obliqueInternal','obliqueExternal'],erectors=['iliocostalis','longissimus','spinalis'],vasti=['vastusLateralis','vastusMedialis','vastusIntermedius'],hamHip=['bicepsFemorisLong','semitendinosus','semimembranosus'],elbowFlex=['bicepsLong','bicepsShort','brachialis','brachioradialis'],elbowExt=['tricepsLongHead','tricepsLateral','tricepsMedial'],scapRetract=['trapMiddle','rhomboidMajor','rhomboidMinor'],fingerFlex=['flexorDigitorumSuperficialis','flexorDigitorumProfundus'];
+ const definitionCache=new WeakMap();
+ function profile(name,fp={},definition={}){
+  const cacheable=definition&&typeof definition==='object'&&Object.keys(definition).length>0,signature=cacheable?[name,fp.type,definition.load,!!definition.unilateral,(definition.primaryMuscles||[]).join(','),(definition.secondaryMuscles||[]).join(','),(definition.stabilizers||[]).join(',')].join('|'):null,cached=cacheable?definitionCache.get(definition):null;
+  if(cached?.signature===signature)return cached.value;
+  const n=String(name||'').toLowerCase(),entries={},functions=new Set(),evidence=new Set(['anatomy']),notes=[];let specific=false,confidence='anatomical inference';
+  const put=(ids,role='primary',emphasis=1)=>{for(const id of Array.isArray(ids)?ids:[ids]){if(!registry[id])continue;const rank={primary:3,secondary:2,stabilizer:1};if(!entries[id]||rank[role]>rank[entries[id].role])entries[id]={role,emphasis:clamp(emphasis)};else if(entries[id].role===role)entries[id].emphasis=Math.max(entries[id].emphasis,clamp(emphasis));}};
+  const P=(ids,e=1)=>put(ids,'primary',e),S=(ids,e=1)=>put(ids,'secondary',e),T=(ids,e=1)=>put(ids,'stabilizer',e),mark=(key)=>{specific=true;if(key)evidence.add(key);};
+  const isCardio=fp.type==='conditioning'||/^(?:lss |sprint|short hills|standard issue hills|fast 5|warrior run|600 meter|oxygen debt)/.test(n);
+  if(isCardio){
+   mark();confidence='modality inference';
+   if(/swim|ski.?erg/.test(n)){P(['latissimus','teresMajor']);S(['pecSternocostal','deltAnterior','deltPosterior',...elbowExt,'serratusAnterior']);T([...cuff,...brace]);functions.add('cyclic shoulder propulsion');}
+   else if(/\brow(?:ing|er)?\b/.test(n)){P([...vasti,'gluteMax','latissimus',...scapRetract]);S([...hamHip,...elbowFlex]);T([...brace,...erectors,...fingerFlex]);functions.add('cyclic leg drive and pull');}
+   else{P([...vasti,'gluteMax']);if(/run|hills|sprint|walk|hike|ruck|treadmill|jump|600 meter|warrior/.test(n)){P(['soleusMuscle','gastrocMedial','gastrocLateral']);S(['tibialisAnterior',...hamHip,'psoasMajor','iliacus']);T(['gluteMed','gluteMin','tibialisPosterior','fibularisLongus','fibularisBrevis']);}else S(['rectusFemoris',...hamHip,'soleusMuscle']);T(brace);functions.add('cyclic locomotion');}
+   S(['diaphragm','intercostals']);notes.push('Local endurance demand; this activity does not earn resistance-training sets.');
+  }else{
+   if(/(?:bench|chest|floor|crush|incline|decline).*press|push.up|\bdip\b|\bdips\b|fly(?:e|es)?\b|pec deck/.test(n)&&!/pike|handstand|rear|reverse fly|reverse pec/.test(n)){mark('chest');const incline=/incline|feet.elevated|decline push.up|low.to.high/.test(n)&&!/incline push.up/.test(n);P('pecSternocostal',incline?.75:1);P('pecClavicular',incline?1:.65);S(elbowExt);S('deltAnterior');T(cuff);if(/push.up/.test(n))S('serratusAnterior');functions.add('horizontal adduction');}
+   if(/(?:strict|shoulder|overhead|military|arnold|push|alternating|z).?press|kneeling.*press|seated.*press|kettlebell press|bottom.up.*press|landmine press|\bjerk\b|clean.*press|swing.*press|thruster|pike push|handstand push/.test(n)&&!/triceps/.test(n)){mark();P(['deltAnterior','deltLateral']);P(elbowExt,.85);S(['trapUpper','trapLower','serratusAnterior']);T([...cuff,...brace]);functions.add('overhead elevation');}
+   if(/lateral raise|upright row|high pull/.test(n)){mark();P('deltLateral');P('trapUpper',.8);S(['deltAnterior','supraspinatus']);T(cuff);functions.add('shoulder abduction');}
+   if(/front raise/.test(n)){mark();P('deltAnterior');S('pecClavicular');T([...cuff,...brace]);functions.add('shoulder flexion');}
+   if(/rear.*(?:delt|fly|raise)|reverse (?:fly|pec deck|snow angel)|face pull|pull.apart|y.t.w|prone cobra|back widow/.test(n)){mark();P('deltPosterior');P(scapRetract,.8);S(['trapLower','infraspinatus','teresMinor']);functions.add('horizontal abduction');}
+   if(/\brow\b/.test(n)&&!/upright/.test(n)){mark();P(['latissimus',...scapRetract]);S(['teresMajor','deltPosterior',...elbowFlex]);if(/wide|high row/.test(n))P('deltPosterior',.8);T(cuff);if(!/chest.supported|machine|seated/.test(n))T([...brace,...erectors]);functions.add('scapular retraction');functions.add('shoulder extension');}
+   if(/pull.up|chin.up|pull.?down|pullover|straight.arm.*pull|front lever/.test(n)&&!/standing pullover/.test(n)){mark();P(['latissimus','teresMajor']);S(['trapLower','trapMiddle','rhomboidMajor']);if(!/pullover|straight.arm/.test(n))S(elbowFlex);else S(['pecSternocostal','tricepsLongHead']);T([...cuff,...brace]);functions.add('shoulder adduction/extension');}
+   if(/shrug/.test(n)){mark();P('trapUpper');S('levatorScapulae');T([...fingerFlex,...erectors]);functions.add('scapular elevation');}
+   if(/external rotation/.test(n)){mark();P(['infraspinatus','teresMinor']);T(['deltPosterior','serratusAnterior']);functions.add('shoulder external rotation');}
+   if(/internal rotation/.test(n)){mark();P('subscapularis');S(['pecSternocostal','latissimus','teresMajor']);functions.add('shoulder internal rotation');}
+   if(/serratus|push.up plus|scapular push/.test(n)){mark();P('serratusAnterior');T(brace);functions.add('scapular protraction');}
+   if(/\bcurl\b/.test(n)&&!/leg curl|hamstring curl|wrist/.test(n)){mark();P(['brachialis','brachioradialis']);if(/hammer|reverse/.test(n))S(['bicepsLong','bicepsShort']);else P(['bicepsLong','bicepsShort']);T(['supinator','flexorCarpiRadialis','flexorCarpiUlnaris']);functions.add('elbow flexion');notes.push('Both biceps heads contribute; no unsupported grip-based head isolation.');}
+   if(/triceps|skull.?crusher|push.?down|close.grip.*press/.test(n)){mark('triceps');P(elbowExt);if(/overhead/.test(n)){functions.add('lengthened long-head elbow extension');notes.push('Overhead position lengthens the biarticular long head; all three heads still extend the elbow.');}else functions.add('elbow extension');T(cuff);}
+   if(/wrist|forearm|dead hang|flexed.arm hang|farmer|carry|suitcase hold/.test(n)){mark();if(/reverse wrist|wrist extension/.test(n))P(['extensorCarpiRadialis','extensorCarpiUlnaris']);else P([...fingerFlex,'flexorCarpiRadialis','flexorCarpiUlnaris']);if(/pronat/.test(n))P('pronatorTeres');if(/supinat/.test(n))P('supinator');functions.add('grip / wrist control');}
+   if(/squat|lunge|step.up|leg press|thruster|wall sit/.test(n)){mark('squat');P(vasti);P('gluteMax',/somersault|sissy/.test(n)?.4:.85);S('adductorMagnus');S('rectusFemoris',.3);T([...brace,...erectors]);if(/lunge|split|single.leg|step.up|pistol|skater/.test(n))T(['gluteMed','gluteMin','quadratusLumborum']);if(/sumo|cossack|lateral/.test(n))S(['adductorLongus','adductorBrevis','gracilis']);functions.add('knee extension');functions.add('hip extension');notes.push('Squat knee-extension volume is not interchangeable with direct rectus-femoris or knee-flexion work.');}
+   if(/leg extension|reverse nordic/.test(n)){mark();P([...vasti,'rectusFemoris']);functions.add('knee extension');}
+   if(/deadlift|\brdl\b|romanian|good morning|back extension|hyperextension|swing|clean|snatch|gunslinger/.test(n)){mark();P(['gluteMax',...hamHip]);if(/sumo/.test(n)){P('adductorMagnus');S(vasti);}T([...erectors,...brace,...fingerFlex]);if(/snatch|clean|high pull|gunslinger/.test(n)){S('trapUpper');T(cuff);}if(/snatch/.test(n))T(['deltAnterior','deltLateral','serratusAnterior']);functions.add('hip extension');}
+   if(/leg curl|hamstring curl|nordic|hamstring walkout|glute.ham raise/.test(n)&&!/reverse nordic/.test(n)){mark('hamstrings');P([...hamHip,'bicepsFemorisShort']);S(['gastrocMedial','gastrocLateral']);functions.add('knee flexion');if(/seated/.test(n))functions.add('lengthened biarticular hamstrings');}
+   if(/hip thrust|glute bridge|heel.dig bridge|quadruped hip extension|frog pump|glute drive|kickback/.test(n)){mark();P('gluteMax');S(hamHip,.5);T(brace);functions.add('hip extension');}
+   if(/hip abduction|lateral walk|monster walk|clamshell|fire hydrant|hip airplane/.test(n)){mark();P(['gluteMed','gluteMin']);S('tensorFasciaeLatae');functions.add('hip abduction / pelvic control');}
+   if(/hip adduction|copenhagen/.test(n)){mark();P(['adductorMagnus','adductorLongus','adductorBrevis','gracilis','pectineus']);T(['obliqueInternal','obliqueExternal']);functions.add('hip adduction');}
+   if(/calf|soleus|plantarflex/.test(n)){mark('calves');P('soleusMuscle');if(/seated|bent.knee|soleus/.test(n))S(['gastrocMedial','gastrocLateral'],.3);else P(['gastrocMedial','gastrocLateral']);T(['tibialisPosterior','fibularisLongus','fibularisBrevis']);functions.add('plantarflexion');}
+   if(/tibialis|dorsiflex/.test(n)){mark();P('tibialisAnterior');functions.add('dorsiflexion');}
+   if(/crunch|sit.up|reverse crunch|leg raise|knee raise|toes.to.bar/.test(n)){mark();P('rectusAbdominis');if(/sit.up|leg raise|knee raise|toes.to.bar/.test(n))S(['psoasMajor','iliacus','rectusFemoris']);S(['obliqueInternal','obliqueExternal']);functions.add('trunk flexion');}
+   if(/russian twist|wood.?chop|kettlebell chop|rotary torso|torso rotation/.test(n)){mark();P(['obliqueInternal','obliqueExternal']);S('rectusAbdominis');T(['multifidus','transversus']);functions.add('trunk rotation');}
+   if(/side plank|side bend|suitcase|windmill/.test(n)){mark();P(['obliqueInternal','obliqueExternal','quadratusLumborum']);T(['gluteMed','multifidus']);functions.add('lateral flexion / anti-lateral flexion');}
+   if(/plank|dead bug|ab wheel|rollout|body saw|pallof|pull.through|around the world|renegade|bird dog/.test(n)){mark();if(/renegade/.test(n))T(['rectusAbdominis',...brace]);else P(['rectusAbdominis','transversus','obliqueInternal','obliqueExternal'],.8);T(['multifidus','quadratusLumborum']);functions.add(/pallof|pull.through|renegade|around the world/.test(n)?'anti-rotation':'anti-extension');}
+   if(/turkish get.up|halo|standing pullover/.test(n)){mark();T([...cuff,'serratusAnterior','trapLower',...brace,...erectors]);S(['gluteMax','deltAnterior']);functions.add('integrated stability / shoulder control');}
+   if(/cable y raise/.test(n)){mark();P(['trapLower','serratusAnterior']);S(['deltAnterior','deltLateral']);T(cuff);functions.add('scapular upward rotation');}
+   if(/hip flexion|compression lift/.test(n)){mark();P(['psoasMajor','iliacus','rectusFemoris']);S(['sartorius','tensorFasciaeLatae']);T(brace);functions.add('hip flexion');}
+   if(/hollow|v.up|l.sit|dragon flag|windshield wiper|fallout|knee hover|planche lean/.test(n)){mark();P(['rectusAbdominis','obliqueInternal','obliqueExternal','transversus']);if(/v.up|l.sit|compression/.test(n))S(['psoasMajor','iliacus']);T(['multifidus','serratusAnterior']);functions.add('anti-extension / trunk control');}
+   if(/superman|prone cobra/.test(n)){mark();P(erectors);S(['gluteMax','deltPosterior']);functions.add('spinal extension');}
+   if(/handstand|support hold|shoulder tap|bear crawl|crab walk|mountain climber/.test(n)){mark();P(['deltAnterior','serratusAnterior']);if(/handstand|support hold/.test(n))S(elbowExt);T([...cuff,...brace,'quadratusLumborum']);functions.add('closed-chain shoulder / trunk support');}
+   if(/jump|hop|bound|burpee|sled drag/.test(n)){mark();P([...vasti,'gluteMax']);S(['soleusMuscle','gastrocMedial','gastrocLateral']);T(['gluteMed','gluteMin',...brace]);functions.add(/sled/.test(n)?'concentric leg drive':'ballistic leg drive');}
+   if(/rack (?:hold|march)|overhead hold|bottom.up.*hold|arm bar|figure eight/.test(n)){mark();T([...cuff,...brace,...erectors,'quadratusLumborum']);S([...fingerFlex,'deltAnterior','serratusAnterior']);functions.add('loaded isometric stability');}
+   if(/cable lift/.test(n)){mark();P(['obliqueInternal','obliqueExternal']);S(['deltAnterior','serratusAnterior']);T(brace);functions.add('diagonal trunk / shoulder control');}
+   // Unmodeled catalog entries retain their explicit anatomical family, with
+   // an honest evidence marker. No arbitrary region preference is invented.
+   const broad=fp.muscleRoles||{},primary=broad.primary||definition.primaryMuscles||[],secondary=broad.assist||definition.secondaryMuscles||[],stabilizers=broad.stabilizers||definition.stabilizers||[];
+   if(!specific){for(const [role,list]of [['primary',primary],['secondary',secondary],['stabilizer',stabilizers]])for(const raw of list){const parent=aliases[raw]||raw;put((groups[parent]||[]).map(x=>x[0]),role,.6);}notes.push('Family-level inference; technique details or direct regional evidence are unavailable.');}
+   if(!Object.keys(entries).length)for(const [raw,v]of Object.entries(fp.muscles||{})){const parent=aliases[raw]||raw;put((groups[parent]||[]).map(x=>x[0]),v>=.8?'primary':v>=.4?'secondary':'stabilizer',v);}
+   const loaded=definition.load&&definition.load!=='bodyweight'||/kettlebell|dumbbell|barbell|weighted|deadlift|\brdl\b|row|pull.up|chin.up|snatch|clean|swing/.test(n);
+   if(loaded)T([...fingerFlex,'flexorCarpiRadialis','flexorCarpiUlnaris']);
+   if(definition.unilateral||/single.arm|single.leg|alternating|gorilla|renegade|split squat/.test(n))T(['quadratusLumborum',...brace]);
+  }
+  const credits={},fatigue={},involvement={},roles={primary:[],secondary:[],stabilizers:[]};
+  for(const [id,e]of Object.entries(entries)){roles[e.role==='stabilizer'?'stabilizers':e.role].push(id);credits[id]=isCardio?0:e.emphasis*(e.role==='primary'?1:e.role==='secondary'?.5:0);fatigue[id]=e.emphasis*(e.role==='primary'?1:e.role==='secondary'?.6:.3);involvement[id]=e.emphasis*(e.role==='primary'?1:e.role==='secondary'?.6:.4);}
+  const result=deepFreeze({version:218,name,roles,credits,fatigue,involvement,vectors:{credits:normalized(credits),fatigue:normalized(fatigue),involvement:normalized(involvement)},functions:[...functions],evidence:[...evidence].map(k=>({key:k,url:source[k]})),confidence,specific,isCardio,notes});
+  if(cacheable&&specific&&!isCardio)definitionCache.set(definition,{signature,value:result});
+  return result;
+ }
+ function deepFreeze(v){if(v&&typeof v==='object'&&!Object.isFrozen(v)){Object.values(v).forEach(deepFreeze);Object.freeze(v);}return v;}
+ function normalized(map={}){const counts={},out={};for(const id of Object.keys(map))if(registry[id])counts[registry[id].parent]=(counts[registry[id].parent]||0)+1;for(const [id,v]of Object.entries(map))if(registry[id])out[id]=clamp(v)/Math.sqrt(counts[registry[id].parent]);return out;}
+ function similarity(a,b,kind='credits'){const x=a?.vectors?.[kind]||normalized(a?.[kind]||{}),y=b?.vectors?.[kind]||normalized(b?.[kind]||{});let dot=0,xx=0,yy=0;for(const [k,v]of Object.entries(x)){xx+=v*v;dot+=v*(y[k]||0);}for(const v of Object.values(y))yy+=v*v;return xx&&yy?clamp(dot/Math.sqrt(xx*yy)):0;}
+ function localOverlap(profile,recent={}){const map=profile?.vectors?.fatigue||normalized(profile?.fatigue||{});let s=0,w=0;for(const [id,v]of Object.entries(map)){s+=(recent[id]||0)*v;w+=v;}return w?s/w:0;}
+ function dose(profile,effectiveSets=0,scale=1){return Object.fromEntries(Object.entries(profile?.credits||{}).map(([id,v])=>[id,Math.max(0,effectiveSets)*v*clamp(scale)]));}
+ function need(profile,volume={}){const grouped={};for(const [id,v]of Object.entries(profile?.credits||{})){if(v<=0)continue;const parent=registry[id].parent,item=grouped[parent]||(grouped[parent]={s:0,w:0});item.s+=v*clamp((4.5-(volume[id]||0))/4.5,-1,1);item.w+=v;}const vals=Object.values(grouped);return vals.length?vals.reduce((n,x)=>n+x.s/x.w,0)/vals.length:0;}
+ // The full region vector is diagnostic. Averaging within each parent prevents
+ // an eight-muscle forearm inventory from outweighing a two-region chest.
+ function sessionMap(profile,kind='fatigue'){return profile?.vectors?.[kind]||normalized(profile?.[kind]||{});}
+ function describe(profile){return Object.fromEntries(Object.entries(profile.roles).map(([role,ids])=>[role,ids.map(id=>registry[id].label)]));}
+ return Object.freeze({registry,groups,source,profile,normalized,similarity,localOverlap,dose,need,sessionMap,describe,deepFreeze});
+});

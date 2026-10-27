@@ -25,35 +25,37 @@
 <meta name="theme-color" content="#0b1117">
 <meta name="application-name" content="Hybrid Training">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest-v36.webmanifest?v=36.217">
-<script src="training-profile.js?v=36.217"></script>
-<script src="reactive-schedule.js?v=36.217"></script>
-<script src="personal-recommendations.js?v=36.217"></script>
-<script src="personal-training.js?v=36.217"></script>
-<script src="locales-pl.js?v=36.217"></script>
-<script src="weight-units.js?v=36.217"></script>
-<script src="app-language.js?v=36.217"></script>
-<script src="decision-integrity-v36.131.js?v=36.217"></script>
-<script src="actual-load-feedback-v36.126.js?v=36.217"></script>
-<script src="forecast-balance-v36.127.js?v=36.217"></script>
-<script src="machine-context.js?v=36.217"></script>
-<script src="exercise-expansion-v36.128.js?v=36.217"></script>
-<script src="kb-weekly-circuit.js?v=36.217"></script>
-<script src="kb-refinement.js?v=36.217"></script>
-<script src="performed-training.js?v=36.217"></script>
-<script src="kettlebell-programs.js?v=36.217"></script>
-<script src="kb-load-layout.js?v=36.217"></script>
-<script src="barbell-plate-layout.js?v=36.217"></script>
-<script src="kb-internal-stack.js?v=36.217"></script>
-<script src="emom-templates.js?v=36.217"></script>
-<script src="training-effects.js?v=36.217"></script>
-<script src="session-fatigue.js?v=36.217"></script>
-<script src="workout-optimizer.js?v=36.217"></script>
+<link rel="manifest" href="manifest-v36.webmanifest?v=36.218">
+<script src="training-profile.js?v=36.218"></script>
+<script src="reactive-schedule.js?v=36.218"></script>
+<script src="personal-recommendations.js?v=36.218"></script>
+<script src="personal-training.js?v=36.218"></script>
+<script src="locales-pl.js?v=36.218"></script>
+<script src="weight-units.js?v=36.218"></script>
+<script src="app-language.js?v=36.218"></script>
+<script src="decision-integrity-v36.131.js?v=36.218"></script>
+<script src="actual-load-feedback-v36.126.js?v=36.218"></script>
+<script src="forecast-balance-v36.127.js?v=36.218"></script>
+<script src="machine-context.js?v=36.218"></script>
+<script src="exercise-expansion-v36.128.js?v=36.218"></script>
+<script src="muscle-model.js?v=36.218"></script>
+<script src="kb-programming.js?v=36.218"></script>
+<script src="kb-weekly-circuit.js?v=36.218"></script>
+<script src="kb-refinement.js?v=36.218"></script>
+<script src="performed-training.js?v=36.218"></script>
+<script src="kettlebell-programs.js?v=36.218"></script>
+<script src="kb-load-layout.js?v=36.218"></script>
+<script src="barbell-plate-layout.js?v=36.218"></script>
+<script src="kb-internal-stack.js?v=36.218"></script>
+<script src="emom-templates.js?v=36.218"></script>
+<script src="training-effects.js?v=36.218"></script>
+<script src="session-fatigue.js?v=36.218"></script>
+<script src="workout-optimizer.js?v=36.218"></script>
 <link rel="icon" type="image/png" sizes="64x64" href="hybrid-training-v34-64.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hybrid-training-v34-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="hybrid-training-v34-180.png">
 <meta name="apple-mobile-web-app-title" content="Hybrid Training">
-<link rel="stylesheet" href="app-shell-v36.119.css?v=36.217">
+<link rel="stylesheet" href="app-shell-v36.119.css?v=36.218">
 <style>
 :root{
   --bg:#0b0f14; --surface:#111821; --surface2:#17212d; --text:#f6f8fb; --muted:#98a6b7;
@@ -2129,7 +2131,7 @@ input:focus,select:focus,textarea:focus{border-color:#4daff8;box-shadow:0 0 0 3p
         <div class="muted" id="trainingGoalSummary" style="font-size:.69rem;margin-top:6px"></div>
       </div>
       <button class="btn primary" id="saveSettings" type="button">Save Settings</button>
-      <div class="notice"><strong>Adaptive Engine v36.217</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Barbell and KB days stay in the program; the KB dose can respond to the week.</div>
+      <div class="notice"><strong>Adaptive Engine v36.218</strong><br>Your completed workouts, recovery, schedule changes, and performance history update future recommendations. Barbell and KB days stay in the program; the KB dose can respond to the week.</div>
       <div class="notice"><strong>Storage:</strong> <span id="storageStatus">Checking…</span><br>
       The installed version automatically saves workouts, notes, block modes, and Barbell Strength max overrides on this device. Export Data remains your backup/share file.</div>
       <div class="notice">Export Data creates a complete JSON snapshot including workouts, daily recovery, Helio session metrics, rest days, progression metadata, and model context.</div>
@@ -3519,13 +3521,32 @@ function utmExplicitExerciseMuscles(ex,p){
  if(!ex)return p;(ex.primaryMuscles||[]).forEach(key=>utmPut(p.muscles,key,1));(ex.secondaryMuscles||[]).forEach(key=>utmPut(p.muscles,key,.52));return p;
 }
 var v36138FingerprintCache;
+
+function v36218MuscleSimilarity(a,b,kind='credits'){
+ const legacy=utmDot(kind==='fatigue'?(a.fatigueMuscles||a.muscles):(a.muscleCredits||a.muscles),kind==='fatigue'?(b.fatigueMuscles||b.muscles):(b.muscleCredits||b.muscles),UTM_MUSCLES);
+ if(!a.granular||!b.granular)return legacy;
+ const evidence=Object.keys(a.granular[kind]||{}).some(k=>a.granular[kind][k]>0)&&Object.keys(b.granular[kind]||{}).some(k=>b.granular[kind][k]>0);
+ return evidence?legacy*.15+HybridMuscleModel.similarity(a.granular,b.granular,kind)*.85:legacy;
+}
+function v36218ContextAnatomy(row,fp){
+ const key=row.exercise+'|'+JSON.stringify(fp.muscles),cache=v36218ContextAnatomy.cache||(v36218ContextAnatomy.cache=new Map());if(cache.has(key))return cache.get(key);
+ const base=HybridMuscleModel.profile(row.exercise,fp),weights=fp.muscles||{},fatigue={...base.fatigue},involvement={...base.involvement};
+ for(const [id,def]of Object.entries(HybridMuscleModel.registry)){const amount=Number(weights[def.parent])||0;if(amount>0){fatigue[id]=base.fatigue[id]>0?base.fatigue[id]*amount:amount*.35;involvement[id]=base.involvement[id]>0?base.involvement[id]*amount:amount*.35;}}
+ const result=HybridMuscleModel.deepFreeze({...base,fatigue,involvement,vectors:{...base.vectors,fatigue:HybridMuscleModel.normalized(fatigue),involvement:HybridMuscleModel.normalized(involvement)}});cache.set(key,result);if(cache.size>512)cache.delete(cache.keys().next().value);return result;
+}
+function v36218BlendAnatomy(items,name){
+ const credits={},fatigue={},involvement={},total=Math.max(.001,items.reduce((s,x)=>s+x.weight,0));
+ for(const {p,weight}of items)for(const [key,dest]of [['credits',credits],['fatigue',fatigue],['involvement',involvement]])for(const [id,v]of Object.entries(p[key]||{}))dest[id]=(dest[id]||0)+v*weight/total;
+ return HybridMuscleModel.deepFreeze({version:218,name,credits,fatigue,involvement,roles:{primary:Object.keys(involvement).filter(k=>involvement[k]>=.7),secondary:Object.keys(involvement).filter(k=>involvement[k]>=.4&&involvement[k]<.7),stabilizers:Object.keys(involvement).filter(k=>involvement[k]<.4)},functions:['mixed recorded movements'],notes:['Weighted by recorded movement components; regional demand is not extra whole-muscle volume.'],evidence:[],confidence:'component inference',specific:true,isCardio:true});
+}
+
 function utmFingerprint(name){
  const cache=v36138FingerprintCache||(v36138FingerprintCache=new Map()),cacheKey=String(name||"");if(cache.has(cacheKey))return cache.get(cacheKey);
  const n=cacheKey.toLowerCase(),p=utmBlank(),custom=customExerciseDefinition(name),g=gymExercise(name),k=kbExercise(name),c=calisthenicsExercise(name),cls=classActivity(name);
  if(custom){
   p.type="custom";utmPut(p.muscles,custom.primary,1);(custom.secondary||[]).forEach(x=>utmPut(p.muscles,x,.55));utmPut(p.moves,custom.move,1);(custom.fatigue||[]).forEach(x=>utmPut(p.fatigue,x,.65));p.strengthDemand=Math.max(.1,Math.min(1,Number(custom.strengthDemand)||.45));
   const a=HybridTrainingEffects.anatomy(name,{primaryMuscles:[custom.primary],secondaryMuscles:custom.secondary||[]},p);p.muscleRoles={primary:a.primary,assist:a.assist,stabilizers:a.stabilizers};p.muscleCredits=a.credits;p.fatigueMuscles=a.fatigueMuscles;p.muscles=a.involvement;p.adaptationScale=1;p.fatigueScale=1;
-  cache.set(cacheKey,p);return p;
+  p.granular=HybridMuscleModel.profile(name,p,custom);cache.set(cacheKey,p);return p;
  }
  if(g){utmMerge(p,utmFamilyFingerprint(g.family));utmExplicitExerciseMuscles(g,p);p.type="gym";if(g.load==="barbell")utmPut(p.fatigue,"axial",Math.max(p.fatigue.axial||0,.35))}
  if(k){
@@ -3636,7 +3657,7 @@ function utmFingerprint(name){
   // selection scale, while fatigue and set credit use their own explicit maps.
   p.muscles=Object.fromEntries(Object.entries(anatomy.involvement).map(([m,v])=>[m,v*p.adaptationScale]));
  }
- cache.set(cacheKey,p);return p;
+ p.granular=HybridMuscleModel.profile(name,p,scoped||{});cache.set(cacheKey,p);return p;
 }
 function utmDot(a,b,keys){let dot=0,wa=0,wb=0;keys.forEach(k=>{const x=Number(a?.[k]||0),y=Number(b?.[k]||0);dot+=x*y;wa+=x*x;wb+=y*y});return wa&&wb?utmClamp(dot/Math.sqrt(wa*wb),0,1):0}
 function utmDirectionalTransfer(targetName,sourceName,dateISO=localISO(new Date())){
@@ -3644,11 +3665,11 @@ function utmDirectionalTransfer(targetName,sourceName,dateISO=localISO(new Date(
  utmDirectionalTransfer.geometryCache=utmDirectionalTransfer.geometryCache||new Map();if(utmDirectionalTransfer.geometryRevision!==utmModelRevision){utmDirectionalTransfer.geometryCache.clear();utmDirectionalTransfer.geometryRevision=utmModelRevision}
  const geometryKey=targetName+'|'+sourceName;let geometry=utmDirectionalTransfer.geometryCache.get(geometryKey);
  if(!geometry){
- const t=utmFingerprint(targetName),src=utmFingerprint(sourceName),muscle=utmDot(t.muscles,src.muscles,UTM_MUSCLES),move=utmDot(t.moves,src.moves,UTM_MOVES),mechanicKeys=[...new Set([...Object.keys(t.mechanics||{}),...Object.keys(src.mechanics||{})])],mechanical=mechanicKeys.length?utmDot(t.mechanics,src.mechanics,mechanicKeys):0,
+ const t=utmFingerprint(targetName),src=utmFingerprint(sourceName),muscle=v36218MuscleSimilarity(t,src),move=utmDot(t.moves,src.moves,UTM_MOVES),mechanicKeys=[...new Set([...Object.keys(t.mechanics||{}),...Object.keys(src.mechanics||{})])],mechanical=mechanicKeys.length?utmDot(t.mechanics,src.mechanics,mechanicKeys):0,
   strengthDirection=Math.min(1,(src.strengthDemand+.12)/(Math.max(.2,t.strengthDemand)+.12)),
   strength=Math.max(0,Math.min(.96,(move*.50+muscle*.34+mechanical*.16)*(.55+.45*strengthDirection))),
-  hypertrophy=Math.max(0,Math.min(.98,utmDot(t.muscleCredits||t.muscles,src.muscleCredits||src.muscles,UTM_MUSCLES)*.78+move*.12+mechanical*.10)),
-  fatigue=Math.max(0,Math.min(1,utmDot(t.fatigueMuscles||t.muscles,src.fatigueMuscles||src.muscles,UTM_MUSCLES)*.52+utmDot(t.fatigue,src.fatigue,UTM_FATIGUE)*.28+mechanical*.20)),
+  hypertrophy=Math.max(0,Math.min(.98,v36218MuscleSimilarity(t,src,"credits")*.78+move*.12+mechanical*.10)),
+  fatigue=Math.max(0,Math.min(1,v36218MuscleSimilarity(t,src,"fatigue")*.52+utmDot(t.fatigue,src.fatigue,UTM_FATIGUE)*.28+mechanical*.20)),
   technique=Math.max(0,Math.min(1,move*.66+mechanical*.16+muscle*.10+(t.type===src.type?.08:0))),
   tissue=Math.max(0,Math.min(1,mechanical*.66+muscle*.20+move*.14)),
   power=Math.max(0,Math.min(1,Math.min(t.powerDemand||((t.moves.power||0)),src.powerDemand||((src.moves.power||0)))*.55+(t.moves.power||0)*(src.moves.power||0)*.30+move*.15));
@@ -3997,17 +4018,18 @@ function utmRowFingerprint(row){
      else if(drill.includes("movement")||drill.includes("footwork")||drill.includes("conditioning")){utmPut(p.moves,"locomotion",1);utmPut(p.moves,"lunge",.80);utmPut(p.moves,"power",.62);utmPut(p.muscles,"calves",.82);utmPut(p.muscles,"quads",.74);utmPut(p.muscles,"glutes",.70);utmPut(p.muscles,"hamstrings",.52);utmPut(p.fatigue,"impact",.80);utmPut(p.fatigue,"anaerobic",.82);utmPut(p.fatigue,"systemic",.86)}
    }
    if(shots>=250){utmPut(p.muscles,"shoulders",utmClamp(.44+shots/2500,0,.72));utmPut(p.muscles,"grip",utmClamp(.40+shots/3000,0,.66));utmPut(p.fatigue,"technical",.96)}
-   return p;
+   p.granular=v36218ContextAnatomy(row,p);return p;
  }
- const swimFp=swimStrokeFingerprint(row);if(swimFp)return swimFp;
- if(classActivity(row?.exercise))return v36144ClassFocusFingerprint(row,utmFingerprint(row?.exercise));
+ const swimFp=swimStrokeFingerprint(row);if(swimFp){swimFp.granular=v36218ContextAnatomy(row,swimFp);return swimFp;}
+ if(classActivity(row?.exercise)){const p=v36144ClassFocusFingerprint(row,utmFingerprint(row?.exercise));p.granular=v36218ContextAnatomy(row,p);return p;}
  const comps=v36180StructureComponents(row);if(!Array.isArray(comps)||!comps.length)return row?.metrics?.workoutStructure?.tracking?utmBlank("conditioning"):utmCloneFingerprint(utmFingerprint(row?.exercise));
  const p=utmBlank("conditioning"),ratings=comps.map(c=>Number(c.rpe)).filter(x=>x>0),avg=ratings.length?utmMean(ratings):6,
    raw=comps.map(c=>Math.max(.01,Number(c._weight)||1)*utmClamp(.55+((Number(c.rpe)||avg)-5)*.08,.38,1.05)),sum=Math.max(.01,raw.reduce((a,b)=>a+b,0)),
    diversityWeight=row?.metrics?.workoutStructure?1:Math.min(1.28,.92+Math.max(0,comps.length-2)*.07);
  comps.forEach((c,i)=>utmMerge(p,utmFingerprintForComponent(c.actual||c.planned),(raw[i]/sum)*diversityWeight));
- return p;
+ p.granular=v36218BlendAnatomy(comps.map(c=>{const name=c.actual||c.planned,fp=utmFingerprintForComponent(name);return {p:fp.granular||HybridMuscleModel.profile(name,fp),weight:Math.max(.01,Number(c._weight)||1)};}),row.exercise);return p;
 }
+
 function utmRowConditioningRpe(row){
  const comps=v36180StructureComponents(row);if(Array.isArray(comps)&&comps.length>=1){const r=conditioningComponentDerivedRpe(comps);if(r)return r}
  return numberRpe(row?.rpe);
@@ -4195,7 +4217,7 @@ function utmFatigueDomainDose(stim,domain){
  if(domain==='systemic')return local*.55+(Number(f.metabolic)||0)*.45;
  return local;
 }
-const UTM_PREDICTION_MODEL_VERSION=5;
+const UTM_PREDICTION_MODEL_VERSION=6;
 function utmFatigueRpePenalty(overlap){return utmClamp((Number(overlap)-.75)*.32,0,.65)}
 // A within-exercise burden proxy, not supported body mass, force or a barbell 1RM.
 // Keep the bodyweight skill scale when resistance is added; changing implements
@@ -4429,32 +4451,36 @@ function v36193PersonalScheduleSignals(dateISO){
 }
 function utmRecentFatigue(dateISO,days=7){
  const target=modelAsOfTimestamp(dateISO),cacheKey=utmModelRevision+"|fatigue-v2|"+dateISO+"|"+days+"|"+target+'|'+v36126ForecastMemoSignature();if(utmFatigueCache.has(cacheKey))return utmFatigueCache.get(cacheKey);
- const muscle={},fatigue={},recoveryMult=utmRecoveryDecayMultiplier(dateISO),profiles=[];
+ const muscle={},regions={},fatigue={},recoveryMult=utmRecoveryDecayMultiplier(dateISO),profiles=[];
  historyRowsBefore(dateISO,days).forEach(row=>{
   if(['skipped','missed'].includes(String(row.status||"").toLowerCase()))return;
   const rt=rowSessionTimestamp(row);if(!Number.isFinite(rt)||!Number.isFinite(target)||rt>=target)return;
   const hours=Math.max(.25,hoursBetweenTimestamps(rt,target)),fp=utmRowFingerprint(row),stim=utmRowStimulus(row),profile=utmFatiguePersistenceProfile(row,stim,fp),base=(Number(stim.acuteFatigue)||0)*profile.loadFactor;
   if(!(base>0))return;
   Object.entries(fp.fatigueMuscles||fp.muscles).forEach(([k,v])=>{const hl=utmHalfLifeHours("muscles",k)*profile.halfLifeMultiplier*recoveryMult,decay=Math.pow(.5,hours/Math.max(4,hl)),c=v*base*decay*v36164ReboundMultiplier(row,dateISO,k);muscle[k]=utmResidualFatigueAdd(muscle[k]||0,c)});
+  for(const [id,v]of Object.entries(fp.granular?.fatigue||{})){const parent=HybridMuscleModel.registry[id].recoveryFamily,hl=utmHalfLifeHours("muscles",parent)*profile.halfLifeMultiplier*recoveryMult,c=v*base*Math.pow(.5,hours/Math.max(4,hl))*v36164ReboundMultiplier(row,dateISO,parent);regions[id]=utmResidualFatigueAdd(regions[id]||0,c);}
   Object.entries(fp.fatigue).forEach(([k,v])=>{const hl=utmHalfLifeHours("fatigue",k)*profile.halfLifeMultiplier*recoveryMult,decay=Math.pow(.5,hours/Math.max(4,hl)),domain=utmFatigueDomainDose(stim,k)*profile.loadFactor,c=v*domain*decay;fatigue[k]=utmResidualFatigueAdd(fatigue[k]||0,c)});
   if(profiles.length<12)profiles.push({exercise:row.exercise,rpe:profile.effectiveRpe,load:Math.round(profile.loadFactor*100)/100,persistence:Math.round(profile.halfLifeMultiplier*100)/100,familiarity:profile.familiarity.multiplier});
  });
  const scale=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,Math.round(Math.min(4.5,v)*100)/100]));
- const result={muscles:scale(muscle),fatigue:scale(fatigue),recoveryHalfLifeMultiplier:Math.round(recoveryMult*100)/100,model:"performance-fatigue-v2",recentPersistenceProfiles:profiles};utmFatigueCache.set(cacheKey,result);return result;
+ const result={muscles:scale(muscle),regions:Object.freeze(scale(regions)),fatigue:scale(fatigue),recoveryHalfLifeMultiplier:Math.round(recoveryMult*100)/100,model:"performance-fatigue-v2",recentPersistenceProfiles:profiles};utmFatigueCache.set(cacheKey,result);return result;
 }
 function utmFatigueOverlap(name,dateISO){
- const fp=utmFingerprint(name),recent=utmRecentFatigue(dateISO,4);let sum=0,w=0;
- Object.entries(fp.fatigueMuscles||fp.muscles).forEach(([k,v])=>{sum+=(recent.muscles[k]||0)*v;w+=v});Object.entries(fp.fatigue).forEach(([k,v])=>{sum+=(recent.fatigue[k]||0)*v*.50;w+=v*.50});return w?sum/w:0
+ const fp=utmFingerprint(name),recent=utmRecentFatigue(dateISO,4),local=HybridMuscleModel.localOverlap(fp.granular,recent.regions||{});let sum=0,w=0;
+ const hasRegions=Object.keys(fp.granular?.fatigue||{}).length>0;
+ if(hasRegions){sum=local;w=1;}else Object.entries(fp.fatigueMuscles||fp.muscles).forEach(([k,v])=>{sum+=(recent.muscles[k]||0)*v;w+=v;});
+ Object.entries(fp.fatigue).forEach(([k,v])=>{sum+=(recent.fatigue[k]||0)*v*.50;w+=v*.50;});return w?sum/w:0;
 }
 function utmEffectiveVolume(dateISO,days=7){
  const cacheKey=utmModelRevision+"|"+dateISO+"|"+days+"|"+modelAsOfTimestamp(dateISO)+'|'+v36126ForecastMemoSignature();if(utmVolumeCache.has(cacheKey))return utmVolumeCache.get(cacheKey);
- const out={};historyRowsBefore(dateISO,days).forEach(row=>{
+ const out={},regions={};historyRowsBefore(dateISO,days).forEach(row=>{
   if(["skipped","missed"].includes(String(row.status||"").toLowerCase()))return;
   if(rowUsesConditioningMetrics(row))return;
   const fp=utmRowFingerprint(row),stim=utmRowStimulus(row),fractional=stim.fractionalMuscleSets||utmFractionalMuscleSets(row,stim);
+  for(const [id,dose]of Object.entries(HybridMuscleModel.dose(fp.granular,stim.effectiveSets||0)))regions[id]=(regions[id]||0)+dose;
   Object.entries(fp.muscles).forEach(([k,v])=>{const counted=Number(fractional[k]);if(Object.prototype.hasOwnProperty.call(fractional,k))out[k]=(out[k]||0)+(Number.isFinite(counted)?counted:0);else if(!fp.muscleCredits&&v>=.18)out[k]=(out[k]||0)+stim.hypertrophyStimulus*Math.min(.5,v)});
  });
- const result=Object.fromEntries(Object.entries(out).map(([k,v])=>[k,Math.round(v*10)/10]));utmVolumeCache.set(cacheKey,result);return result;
+ const result=Object.fromEntries(Object.entries(out).map(([k,v])=>[k,Math.round(v*10)/10]));Object.defineProperty(result,"regions",{value:Object.freeze(regions),enumerable:false});utmVolumeCache.set(cacheKey,result);return result;
 }
 function utmModelExpectedRpe(session,exercise,week,dateISO="",plan={}){
  const d=dateISO||((typeof logDate!=="undefined"&&logDate?.value)?logDate.value:localISO(new Date()));
@@ -4959,7 +4985,7 @@ function utmFutureInterference(name,dateISO,horizon=2){
 }
 function utmPairRedundancy(a,b,dateISO){
  const fn=utmPairRedundancy;if(fn.revision!==utmModelRevision){fn.cache=new Map();fn.revision=utmModelRevision}const key=a<=b?a+'\u0000'+b:b+'\u0000'+a;if(fn.cache.has(key))return fn.cache.get(key);
- const fa=utmFingerprint(a),fb=utmFingerprint(b),muscle=utmDot(fa.muscles,fb.muscles,UTM_MUSCLES),move=utmDot(fa.moves,fb.moves,UTM_MOVES),fatigue=utmDot(fa.fatigue,fb.fatigue,UTM_FATIGUE),value=muscle*.48+move*.36+fatigue*.16;
+ const fa=utmFingerprint(a),fb=utmFingerprint(b),muscle=v36218MuscleSimilarity(fa,fb),move=utmDot(fa.moves,fb.moves,UTM_MOVES),fatigue=utmDot(fa.fatigue,fb.fatigue,UTM_FATIGUE),value=muscle*.48+move*.36+fatigue*.16;
  fn.cache.set(key,value);if(fn.cache.size>12000)fn.cache.delete(fn.cache.keys().next().value);return value;
 }
 function utmWorkoutSetScore(items,dateISO,nameFn,baseFn){
@@ -5037,12 +5063,13 @@ function utmBuilderContext(name,dateISO){
    else if(vol<low)undertrainedBonus+=(low-vol)*v*(learned.learned?.50:.42);
  });
  Object.entries(fp.fatigueMuscles||fp.muscles).forEach(([k,v])=>{fatiguePenalty+=Math.max(0,(fatigue.muscles[k]||0)-1.10)*v*1.35});
+ const regionalBonus=HybridMuscleModel.need(fp.granular,volume.regions||{})*4;fatiguePenalty=Object.keys(fp.granular?.fatigue||{}).length?HybridMuscleModel.localOverlap(fp.granular,fatigue.regions||{})*1.35:fatiguePenalty;
  const confidenceConservative=(cap.exposures>0&&cap.confidence<.45&&(fp.strengthDemand||0)>.75)?-2:0,
    goalBonus=(goalAlignment-1)*8,deloadPenalty=deload.level==="recommend"?(fp.strengthDemand||.4)*3:deload.level==="watch"?(fp.strengthDemand||.4)*1:0,
    sleepPenalty=(Number(fp.moves?.power)||0)>=.35?sleep.speedPowerPenalty*.65:(fp.strengthDemand||0)>=.8?sleep.heavyStrengthPenalty:0;
  const penaltyDomains=HybridWorkoutOptimizer.penalties({fatigue:fatiguePenalty,volume:volumePenalty,budget:budget.penalty,sleep:sleepPenalty,deload:deloadPenalty});
- return {penaltyDomains,score:undertrainedBonus-penaltyDomains.total-future.penalty+goalBonus+utmOverridePreference(name,dateISO)+confidenceConservative+(spacing.score||0)+(tod.score||0),
-   volumePenalty,fatiguePenalty,undertrainedBonus,volume,fatigue,capability:cap,future,budget,goalAlignment:Math.round(goalAlignment*100)/100,goalBonus:Math.round(goalBonus*10)/10,doseResponse:dose,deload,recoverySpacing:spacing,timeOfDay:tod,sleepPerformance:sleep,sleepPenalty:Math.round(sleepPenalty*10)/10};
+ return {penaltyDomains,score:undertrainedBonus+regionalBonus-penaltyDomains.total-future.penalty+goalBonus+utmOverridePreference(name,dateISO)+confidenceConservative+(spacing.score||0)+(tod.score||0),
+   regionalBonus,volumePenalty,fatiguePenalty,undertrainedBonus,volume,fatigue,capability:cap,future,budget,goalAlignment:Math.round(goalAlignment*100)/100,goalBonus:Math.round(goalBonus*10)/10,doseResponse:dose,deload,recoverySpacing:spacing,timeOfDay:tod,sleepPerformance:sleep,sleepPenalty:Math.round(sleepPenalty*10)/10};
 }
 
 function progressionRelationshipSummary(name){
@@ -5361,9 +5388,13 @@ function movementGuideListHtml(text){
  return '<ul>'+items.map(x=>'<li>'+htmlSafe(x)+'</li>').join('')+'</ul>';
 }
 function exerciseTaxonomyHtml(name){
- const ex=gymExercise(name)||kbExercise(name)||calisthenicsExercise(name);if(!ex?.primaryMuscles?.length)return '';const roles=utmFingerprint(name).muscleRoles||{primary:ex.primaryMuscles,assist:ex.secondaryMuscles||[],stabilizers:[]};
+ const ex=gymExercise(name)||kbExercise(name)||calisthenicsExercise(name);if(!ex?.primaryMuscles?.length)return '';const detail=utmFingerprint(name).granular,described=detail?HybridMuscleModel.describe(detail):null,roles=described?{primary:described.primary,assist:described.secondary,stabilizers:described.stabilizers}:utmFingerprint(name).muscleRoles||{primary:ex.primaryMuscles,assist:ex.secondaryMuscles||[],stabilizers:[]};
  const label=key=>({upperBack:'upper back',tricepsLong:'long-head triceps',tricepsOther:'other triceps',hamKneeFlex:'knee-flexor hamstrings',hamHipExt:'hip-extension hamstrings',gastroc:'gastrocnemius',soleus:'soleus',tibialis:'tibialis',serratus:'serratus',adductors:'adductors',grip:'grip / forearms'}[key]||String(key).replace(/([a-z])([A-Z])/g,'$1 $2')).toLowerCase(),related=(ex.related||[]),shown=related.slice(0,4).join(' • ')+(related.length>4?' • +'+(related.length-4):'');
  return '<div class="exercise-taxonomy"><div><strong>Primary</strong><span>'+htmlSafe(roles.primary.map(label).join(' • '))+'</span></div><div><strong>Assists</strong><span>'+htmlSafe(roles.assist.map(label).join(' • ')||'—')+'</span>'+(roles.stabilizers.length?'<strong>Stabilizers</strong><span>'+htmlSafe(roles.stabilizers.map(label).join(' • '))+'</span>':'')+'</div><div><strong>Related movements</strong><span>'+htmlSafe(shown||'—')+'</span></div></div>';
+}
+function v36218AnatomyHtml(name){
+ const p=utmFingerprint(name).granular;if(!p)return '';const d=HybridMuscleModel.describe(p),line=(label,values)=>'<p><strong>'+label+'</strong> '+htmlSafe(values.join(' · ')||'No specific assignment')+'</p>';
+ return '<details class="notice"><summary>Specific muscles and training role</summary>'+line('Primary',d.primary)+line('Secondary',d.secondary)+line('Stabilizing',d.stabilizers)+'<p>'+htmlSafe(p.functions.join(' · '))+'</p><p class="hint">Anatomical planning estimates. Stabilizing activity is tracked for fatigue but receives no automatic hypertrophy-set credit. Regions share a parent recovery clock; these are not measured activation percentages or independent recovery predictions.</p>'+p.notes.map(t=>'<p class="hint">'+htmlSafe(t)+'</p>').join('')+'<p class="hint">Evidence: '+htmlSafe(p.confidence)+'</p>'+p.evidence.map(e=>'<a target="_blank" rel="noopener noreferrer" href="'+attrSafe(e.url)+'">'+htmlSafe(e.key)+'</a>').join(' · ')+'</details>';
 }
 function v36166ExerciseProfileHtml(name){
  const ex=gymExercise(name)||kbExercise(name)||calisthenicsExercise(name),p=ex?.exerciseProfile;if(!p)return '';
@@ -5372,7 +5403,7 @@ function v36166ExerciseProfileHtml(name){
 }
 function movementGuideDetailHtml(name){
  const d=movementGuideData(name),meta=movementGuideMeta(name),frames=movementGuideFrameLabels(d.kind),mistakes=movementGuideCommonMistakes(d.kind);
- return '<div class="movement-guide-top"><div class="movement-chip-row">'+meta.map((m,i)=>'<span class="movement-chip'+(i===2?' subtle':'')+'">'+htmlSafe(m)+'</span>').join('')+'</div><div class="movement-guide-headline">Use the real demo when available; the diagram below is only a backup.</div></div>'+exerciseTaxonomyHtml(name)+v36166ExerciseProfileHtml(name)+
+ return '<div class="movement-guide-top"><div class="movement-chip-row">'+meta.map((m,i)=>'<span class="movement-chip'+(i===2?' subtle':'')+'">'+htmlSafe(m)+'</span>').join('')+'</div><div class="movement-guide-headline">Use the real demo when available; the diagram below is only a backup.</div></div>'+exerciseTaxonomyHtml(name)+v36218AnatomyHtml(name)+v36166ExerciseProfileHtml(name)+
  '<div class="real-demo-shell"><div class="real-demo-head"><div><div class="real-demo-title">Real exercise demo</div><div class="real-demo-sub">The app will try to match this exercise to open exercise media. If no match is available, use the real-video search button instead of relying on the diagram.</div></div><span class="real-demo-badge">REAL MEDIA FIRST</span></div><div class="real-demo-host" data-real-demo="1"><div class="real-demo-loading">Looking for a real image or video…</div></div><div class="real-demo-actions"><a class="real-demo-btn youtube-demo-link" target="_blank" rel="noopener noreferrer" href="'+realDemoYoutubeUrl(name)+'">▶ Watch real demo</a><button class="real-demo-btn secondary" type="button" onclick="refreshRealDemo(this)">↻ Retry media match</button></div><div class="real-demo-attrib">Online exercise media is matched from the public wger exercise database when available. License/author details are shown with matched media. Internet is required for live media.</div></div>'+
  '<details class="diagram-fallback"><summary>Show simplified diagram fallback</summary><div class="movement-guide-toolbar"><button class="movement-stage-btn active" type="button" data-stage="overview" onclick="focusMovementGuide(this,&quot;overview&quot;)">Overview</button><button class="movement-stage-btn" type="button" data-stage="start" onclick="focusMovementGuide(this,&quot;start&quot;)">Start</button><button class="movement-stage-btn" type="button" data-stage="mid" onclick="focusMovementGuide(this,&quot;mid&quot;)">Move</button><button class="movement-stage-btn" type="button" data-stage="finish" onclick="focusMovementGuide(this,&quot;finish&quot;)">Finish</button><button class="movement-stage-btn movement-play-btn" type="button" onclick="playMovementGuide(this)">▶ Play</button></div><div class="movement-focus-host" data-stage="overview">'+movementVisualSvg(name,"overview")+'</div><div class="movement-visual-key"><span class="movement-key-item"><span class="movement-key-swatch"></span>motion / load path</span><span class="movement-key-item"><span class="movement-key-swatch body"></span>body position</span><span class="movement-key-item"><span class="movement-key-swatch joint"></span>joint focus</span><span class="movement-key-item"><span class="movement-key-swatch equipment"></span>equipment / support</span></div></details>'+
  '<div class="movement-legend-row"><div class="movement-legend-item"><strong>Start</strong><span>'+htmlSafe(frames[0])+'</span></div><div class="movement-legend-item"><strong>Move</strong><span>'+htmlSafe(frames[1])+'</span></div><div class="movement-legend-item"><strong>Finish</strong><span>'+htmlSafe(frames[2])+'</span></div></div>'+
@@ -7928,8 +7959,8 @@ function v36131EvidenceRevision(dateISO){return window.HybridDecisionIntegrity?.
 // Recommendation snapshots and generated Gym plans must survive ordinary re-renders, but
 // they cannot remain authoritative after the recommendation logic itself changes. These are
 // semantic model versions (not app-build numbers) so unrelated UI releases do not churn plans.
-const OPEN_DAY_RECOMMENDATION_MODEL_VERSION=45;
-const GYM_AUTOMATIC_PLAN_MODEL_VERSION=11;
+const OPEN_DAY_RECOMMENDATION_MODEL_VERSION=46;
+const GYM_AUTOMATIC_PLAN_MODEL_VERSION=12;
 // A recommendation the model generated can remain stable while its evidence is unchanged,
 // but it is not a permanent user lock. A later manual rest/workout/activity, completed
 // session, recovery entry, or other evidence change must make the generated choice yield to
@@ -8191,7 +8222,7 @@ function markActiveRecoveryDay(dateISO){
  save("active-recovery-day");render();return true;
 }
 
-// v36.217 — completed training and full-rest credit use observed work.
+// v36.218 — completed training and full-rest credit use observed work.
 function v36209IsRestRow(row){return row?.session==='Recovery / Rest'||/^(?:full\s+)?rest day$|^recovery\s*\/\s*rest$/i.test(String(row?.exercise||'').trim());}
 function v36209IsTrainingRow(row){return !!row&&!v36209IsRestRow(row)&&!['planned','draft','started','pending','skipped','missed'].includes(String(row.status||'').toLowerCase())&&utmObservedWork(row);}
 function v36209UsableCompletedRow(row){
@@ -9454,7 +9485,7 @@ function strengthCapabilityProfile(name,dateISO=localISO(new Date())){
 function predictionCalibrationKey(exercise){const machineKey=v36202MachineKey(exercise,'');if(machineKey)return 'machine:'+machineKey;const cls=v36150ClassPrior(exercise);if(cls)return 'class:'+cls.kind;const fp=utmFingerprint(exercise),q=conditioningQualityForName(exercise);return fp.type==="conditioning"||entryForName(exercise)?"cond:"+q:"type:"+(fp.type||"strength")}
 function utmPredictionCalibrationForType(exercise,dateISO=localISO(new Date())){const context=v36202MachineContext(exercise,dateISO),key=context?'machine:'+HybridMachineContext.key(context):predictionCalibrationKey(exercise),rows=historyRowsBefore(dateISO,180).filter(r=>!r.modelPredictionRetrospective&&!window.HybridActualLoadFeedback.predictionUnestimated(r)&&Number(r.modelPredictionVersion)>=UTM_PREDICTION_MODEL_VERSION&&Number.isFinite(Number(r.modelPredictionError))&&(context?(r.exercise===exercise&&v36202MachineEvidence(r,exercise,dateISO,context)):predictionCalibrationKey(r.exercise)===key)).slice(-30);if(rows.length<4)return {key,n:rows.length,bias:0,confidence:0};const vals=rows.map((r,i)=>({v:Number(r.modelPredictionError),w:Math.pow(.94,rows.length-1-i)})),ws=vals.reduce((s,x)=>s+x.w,0),mean=vals.reduce((s,x)=>s+x.v*x.w,0)/Math.max(.01,ws),confidence=utmClamp((rows.length-3)/14,0,.8);return {key,n:rows.length,bias:Math.round(mean*10)/10,confidence:Math.round(confidence*100)/100,adjustment:Math.round(utmClamp(mean*.22*confidence,-.45,.45)*10)/10};}
 var v36138ExposureOverlapCache;
-function relatedExposureOverlap(a,b){const cache=v36138ExposureOverlapCache||(v36138ExposureOverlapCache=new Map()),left=String(a||''),right=String(b||''),key=left<=right?left+'\u0000'+right:right+'\u0000'+left;if(cache.has(key))return cache.get(key);const fa=utmFingerprint(left),fb=utmFingerprint(right),out=utmDot(fa.muscles,fb.muscles,UTM_MUSCLES)*.6+utmDot(fa.moves,fb.moves,UTM_MOVES)*.2+utmDot(fa.fatigue,fb.fatigue,UTM_FATIGUE)*.2;cache.set(key,out);if(cache.size>12000)cache.delete(cache.keys().next().value);return out}
+function relatedExposureOverlap(a,b){const cache=v36138ExposureOverlapCache||(v36138ExposureOverlapCache=new Map()),left=String(a||''),right=String(b||''),key=left<=right?left+'\u0000'+right:right+'\u0000'+left;if(cache.has(key))return cache.get(key);const fa=utmFingerprint(left),fb=utmFingerprint(right),out=v36218MuscleSimilarity(fa,fb)*.6+utmDot(fa.moves,fb.moves,UTM_MOVES)*.2+utmDot(fa.fatigue,fb.fatigue,UTM_FATIGUE)*.2;cache.set(key,out);if(cache.size>12000)cache.delete(cache.keys().next().value);return out}
 function utmRecoveryResponseProfile(name,dateISO=localISO(new Date())){
  const direct=historyRowsBefore(dateISO,730).filter(r=>r.exercise===name&&String(r.status||'').toLowerCase()==='complete').sort((a,b)=>rowSessionTimestamp(a)-rowSessionTimestamp(b)).slice(-24),samples=[];
  for(const r of direct){const rt=rowSessionTimestamp(r),prior=state.logs.filter(x=>rowSessionTimestamp(x)<rt&&!['skipped','missed'].includes(String(x.status||'').toLowerCase())&&relatedExposureOverlap(name,x.exercise)>=.42).sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a))[0];if(!prior)continue;const hours=(rt-rowSessionTimestamp(prior))/3600000;if(!(hours>=0&&hours<=168))continue;const perf=utmPerformanceIndex(r,name);if(!(perf>0))continue;const expected=utmCapabilityState(name,r.date).capability||0,residual=expected>0?(perf/expected-1)*100:null;samples.push({hours,perf,residual})}
@@ -10898,7 +10929,7 @@ function v36141FitKbMinutes(rows,minutes){
  while(out.length&&v36141KbPlanMinutes(out)>minutes){const swing=out.find(r=>r.kbIntent==='conditioning'&&Number(r.sets)>2),reducible=swing||out.slice().reverse().find(r=>Number(r.sets)>1);if(!reducible)break;reducible.sets=Number(reducible.sets)-1}
  return v36141KbPlanMinutes(out)<=minutes?out:[];
 }
-// v36.217 — coordinate the preset KB dose with the same regional/domain model
+// v36.218 — coordinate the preset KB dose with the same regional/domain model
 // used by the rest of the week. Future anchors are read as commitments, never
 // generated recursively here and never used as completed progression evidence.
 function v36201BarbellAnchor(dateISO){
@@ -11249,7 +11280,7 @@ function gymExerciseOrderScore(ex,p={}){
  if(p.style==="strength"&&gymIsMajorFreeCompound(ex))score+=12;if(p.style==="power"&&gymPowerSuitable(ex))score+=28;if(p.style==="optimized"&&gymIsCompound(ex))score+=6;const priority=p.priorityFocus||"";if(priority&&gymFocusFamilyMap[priority]?.includes(ex.family))score+=85;return score;
 }
 function v36159Muscles(name){return HybridTrainingEffects.muscleDoseMap(utmFingerprint(name))}
-function v36195FatigueMuscles(name,row){const fp=utmFingerprint(name);return row?.fatigueCardio?.muscles||fp.fatigueMuscles||fp.muscles||{}}
+function v36195FatigueMuscles(name,row){const fp=row?utmRowFingerprint(row):utmFingerprint(name);return fp.granular?HybridMuscleModel.sessionMap(fp.granular,'fatigue'):row?.fatigueCardio?.muscles||fp.fatigueMuscles||fp.muscles||{}}
 function v36161Demands(name,row){const fp=utmFingerprint(name),f=row?.fatigueCardio?.demands||fp.fatigue||{},m=row?.fatigueCardio?.muscles||fp.fatigueMuscles||fp.muscles;return Object.fromEntries(['grip','axial','systemic','impact','aerobic','anaerobic','technical'].map(k=>[k,k==='grip'&&(m?.grip||0)>=.15?0:Number(f[k])||0]))}
 function v36161OrderMuscles(name){return {...v36195FatigueMuscles(name),...Object.fromEntries(Object.entries(v36161Demands(name)).filter(([,v])=>v>0).map(([k,v])=>['shared:'+k,v*.5]))}}
 function v36161EvaluateSession(rows,profile={}){return HybridWorkoutOptimizer.evaluate(rows.map(v36199SessionEvidence),v36159Muscles,profile,v36161Demands,v36195FatigueMuscles)}
@@ -12957,7 +12988,8 @@ function strengthSubstitutionOptions(current,dateISO){
     familyOverlap=cur.families.some(f=>d.families.includes(f)),samePrimary=!!cur.primary&&d.primary===cur.primary,sameEquipment=cur.equipment===d.equipment,
     isDirect=directIndex.has(name),classMatch=!!(currentClass&&d.cls&&d.cls.kind===currentClass.kind);
    const sameModality=(cur.k&&d.k)||(cur.c&&d.c)||(cur.g&&d.g),sameKbFamily=!!(cur.k&&d.k&&cur.k.family===d.k.family),sameCalFocus=!!(cur.c&&d.c&&cur.c.focus===d.c.focus),calLevelPenalty=cur.c&&d.c?Math.abs((cur.c.level||1)-(d.c.level||1))*5:0;
-   let score=relation*100+(sameKind?34:0)+(samePrimary?24:familyOverlap?14:0)+(sameEquipment?6:0)+(sameModality?18:0)+(sameKbFamily?18:0)+(sameCalFocus?10:0)-calLevelPenalty+(classMatch?40:0)+(isDirect?160-directIndex.get(name)*6:0);
+   const regionalMatch=v36218MuscleSimilarity(utmFingerprint(current),utmFingerprint(name),"credits");
+   let score=regionalMatch*45-(isDirect?(1-regionalMatch)*90:0)+relation*100+(sameKind?34:0)+(samePrimary?24:familyOverlap?14:0)+(sameEquipment?6:0)+(sameModality?18:0)+(sameKbFamily?18:0)+(sameCalFocus?10:0)-calLevelPenalty+(classMatch?40:0)+(isDirect?160-directIndex.get(name)*6:0);
    if(!isDirect&&!classMatch&&!sameKind&&!familyOverlap&&relation<.28)return null;
    let tier="Related option",reason="Related training stimulus based on movement and muscle overlap.";
    if(isDirect){const rank=directIndex.get(name)||0;tier=rank<2?"Closest match":rank<5?"Same pattern":"Equipment alternative";reason=rank<2?"Closest curated replacement for the programmed movement.":rank<5?"Preserves the same main movement pattern with a different setup or loading style.":"Keeps the same main training role when the original setup is unavailable."}
@@ -12965,7 +12997,7 @@ function strengthSubstitutionOptions(current,dateISO){
    else if(sameKind&&samePrimary){tier="Very close";reason="Same movement pattern and primary training family."}
    else if(sameKind){tier="Same pattern";reason="Preserves the main movement pattern with different equipment or loading."}
    else if(familyOverlap){tier="Same muscle role";reason="Preserves the main muscle/training family with a somewhat different pattern."}
-   return {name,score,tier,reason,relation,sameKind,familyOverlap,equipment:d.equipment};
+   return {name,score,tier,reason:reason+" Regional match: "+(regionalMatch>.8?'close':regionalMatch>.5?'partial':'limited')+" (model prior).",regionalMatch,relation,sameKind,familyOverlap,equipment:d.equipment};
  }).filter(Boolean).sort((a,b)=>b.score-a.score||b.relation-a.relation||a.name.localeCompare(b.name));
  const picked=[],used=new Set();
  for(const x of candidates){if(used.has(x.name))continue;picked.push(x);used.add(x.name);if(picked.length>=24)break}
@@ -16098,7 +16130,7 @@ installApp.addEventListener("click",async()=>{
   }
   alert("If Chrome does not show the install prompt yet, use Chrome's menu and choose Add to Home screen / Install app.");
 });
-const HYBRID_APP_BUILD="36.217";
+const HYBRID_APP_BUILD="36.218";
 function hybridBuildParts(v){return String(v||"").replace(/^v/,"").split(".").map(x=>Number(x)||0)}
 function compareHybridBuilds(a,b){
  const aa=hybridBuildParts(a),bb=hybridBuildParts(b),n=Math.max(aa.length,bb.length);
@@ -17972,7 +18004,7 @@ function v3679ReconcileSecondaryOutcomes(){
    restore snapshots, quick-complete controls, and permanent runtime self-checks. */
 (function(){
 'use strict';
-const V3691_BUILD='36.217';
+const V3691_BUILD='36.218';
 const V3691_DB_NAME='hybrid-training-v36';
 const V3691_DB_VERSION=1;
 const V3691_CURRENT_ID='current';
@@ -19628,14 +19660,14 @@ try{window.__hybridRuntimeDiagnostics=window.__hybridRuntimeDiagnostics||[]}catc
   f.moves.locomotion=1;f.moves.power=p.power;if(p.hinge)f.moves.hinge=Math.max(Number(f.moves.hinge)||0,.82);
   for(const [k,v] of Object.entries(p.muscles||{}))f.muscles[k]=v;
   f.fatigue.aerobic=p.aerobic;f.fatigue.anaerobic=p.anaerobic;f.fatigue.impact=p.impact;f.fatigue.systemic=p.systemic;f.powerDemand=p.power;
-  return f;
+  f.granular=v36218ContextAnatomy({exercise:name},f);return f;
  };
  const priorRowFingerprint=utmRowFingerprint;
  utmRowFingerprint=function(row){const f=priorRowFingerprint(row);if(v36180ActualComponentEvidence(row)!==null)return f;const g=hillGradePct(row?.exercise,row?.metrics||{}),p=profile(row?.exercise,g);if(!p)return f;const scale=actualVolumeScale(row,p);
   f.moves=f.moves||{};f.muscles=f.muscles||{};f.fatigue=f.fatigue||{};f.moves.locomotion=1;f.moves.power=p.power;if(p.hinge)f.moves.hinge=Math.max(Number(f.moves.hinge)||0,.82);
   for(const [k,v] of Object.entries(p.muscles||{}))f.muscles[k]=clamp(v*(.94+.06*scale),0,1);
   f.fatigue.aerobic=clamp(p.aerobic*(.90+.10*scale),0,1);f.fatigue.anaerobic=clamp(p.anaerobic*(.88+.12*scale),0,1);f.fatigue.impact=clamp(p.impact*(.92+.08*scale),0,1);f.fatigue.systemic=clamp(p.systemic*(.86+.14*scale),0,1);f.powerDemand=p.power;
-  return f;
+  f.granular=v36218ContextAnatomy(row,f);return f;
  };
 
  const priorTissueDose=v36118RowTissueDose;
@@ -21416,7 +21448,7 @@ function v36181SECircuit(equipment,date,reps,focus){
 function v36181PlanMinutes(rows,session='',profile={}){
  return Math.ceil(v36209WorkoutTime(rows,session||rows[0]?.session||'',profile).estimatedMinutes);
 }
-// v36.217 — custom KB time is a requested session dose, bounded by useful
+// v36.218 — custom KB time is a requested session dose, bounded by useful
 // volume and the same recovery evidence as other recommendations. These are
 // planning estimates, never inferred completed minutes or working sets.
 function v36205TimeParts(rows){
@@ -21716,7 +21748,7 @@ function v36182LoadAMRAP(schedule=false){
  save('prepare-amrap');v36182Return=null;v36114LoadRows(c.date,'AMRAP',wrapped.rows,normalized.name,'Time cap '+normalized.minutes+' min. Keep going after the target and record actual completed work.');if(logGuidedPlan)logGuidedPlan.amrap=normalized;writeLogWorkspace(true);return true;
 }
 
-// v36.217 — explicit results and workout-scoped recovery choices for density setup.
+// v36.218 — explicit results and workout-scoped recovery choices for density setup.
 function v36208DensityHold(format,date,manual=false,overrideRecovery=false,planning=false){
  if(manual)return null;
  if(!validIsoDateValue(date))return {blocked:true,blockCode:'date',why:['Choose a workout date before recommending a plan.']};
@@ -21795,7 +21827,7 @@ document.getElementById('addRecommendedLogExercise').onclick=v36191AddExercise;
 v36191Refresh();
 
 v36194ModelExtensionsReady=true;
-// v36.217 — a fixed bell setup for each day, and the supplied eight-week ABF.
+// v36.218 — a fixed bell setup for each day, and the supplied eight-week ABF.
 function v36203ArmorPauseWeeks(){
  const today=localISO(new Date()),horizon=localISO(addDays(parseLocalISO(today),371));
  return [...new Set((state.settings.armorBuildingCycles||[]).filter(c=>validIsoDateValue(c?.startDate)&&['armor','armor-barbell','kb-four'].includes(c.mode)).flatMap(c=>{const base=c.mode==='kb-four'&&dayNameFromDate(c.startDate)==='Sunday'?localISO(addDays(parseLocalISO(c.startDate),1)):c.startDate,count=c.mode==='kb-four'?Math.max(0,Math.ceil((daysBetweenISO(base,c.endDate||horizon)+1)/7)):8;return Array.from({length:Math.min(5200,count)},(_,i)=>localISO(addDays(parseLocalISO(base),i*7)));}))].sort();
@@ -21889,7 +21921,7 @@ function v36203Init(){
 }
 v36203Init();
 
-// v36.217 — standalone Armor Building Complex conditioning.
+// v36.218 — standalone Armor Building Complex conditioning.
 const V36204_ABC='Armor Building Complex (ABC)';
 function v36204IsAbc(name){return String(name||'')==='Armor Building Complex (ABC)'}
 // A small tie-breaker requested by the user; doses and exposure targets stay intact.
@@ -21913,7 +21945,7 @@ function v36204AbcFingerprint(work){
  const p=utmBlank('conditioning'),totals=new Map(),sum=work.reduce((n,w)=>n+w.reps,0);p.strengthDemand=0;
  for(const w of work)totals.set(w.exercise,(totals.get(w.exercise)||0)+w.reps);
  for(const [name,reps] of totals){const f=utmFingerprintForComponent(name),weight=reps/Math.max(1,sum);for(const group of ['muscles','moves','fatigue','mechanics'])for(const [key,value] of Object.entries(f[group]||{}))p[group][key]=(p[group][key]||0)+Number(value)*weight;p.strengthDemand+=(f.strengthDemand||0)*weight;p.powerDemand+=(f.powerDemand||0)*weight}
- return p;
+ p.granular=v36218BlendAnatomy([...totals].map(([name,reps])=>{const f=utmFingerprintForComponent(name);return {p:f.granular||HybridMuscleModel.profile(name,f),weight:reps};}),'Armor Building Complex');return p;
 }
 const v36204PriorFingerprint=utmFingerprint;
 utmFingerprint=function(name){return v36204IsAbc(name)?v36204AbcFingerprint([['Double Clean',2],['Double Strict Press',1],['Double Front Squat',3]].map(([exercise,reps])=>({exercise,reps}))):v36204PriorFingerprint(name)};
@@ -22004,7 +22036,7 @@ const v36204PriorSummary=conditioningSummary;
 conditioningSummary=function(row){if(!v36204IsAbc(row?.exercise))return v36204PriorSummary(row);const e=v36204AbcEvidence(row),bits=[];if(e.rounds)bits.push(e.rounds+' complete ABC rounds');if(e.kg)bits.push(e.kg+' kg / bell');if(row.metrics?.time)bits.push(row.metrics.time+' min');if(row.metrics?.workoutStructure?.tracking)bits.push(v36180StructureSummary(row.metrics.workoutStructure));return bits.join(' · ')||'ABC · no completed work recorded'};
 
 
-// v36.217 — date-scoped activity availability. No global preference or actual
+// v36.218 — date-scoped activity availability. No global preference or actual
 // workout is changed by removing a planning option for one date.
 function v36206ActivityKeys(name){
  const n=String(name||'').trim(),s=n.toLowerCase(),keys=[];
@@ -22099,7 +22131,7 @@ const v36206PriorCommitment=explicitConditioningCommitmentForDate;
 explicitConditioningCommitmentForDate=function(date){const c=v36206PriorCommitment.apply(this,arguments);return c&&v36206ActivityUnavailable(c.activity,date)?null:c};
 
 const v36209PriorWeek=renderWeek;renderWeek=function(){const r=v36209PriorWeek.apply(this,arguments);v36209ActualCalendar();return r;};
-// v36.217 — duration is a planning estimate, separate from recorded activity time.
+// v36.218 — duration is a planning estimate, separate from recorded activity time.
 function v36209TimeQuantity(value){
  const text=String(value??'').trim(),clock=text.match(/^(\d+):(\d{2})\b/);
  if(clock)return {amount:Number(clock[1])*60+Number(clock[2]),seconds:true};
@@ -22288,9 +22320,9 @@ v36209WorkoutTime=function(input,session='',profile={}){
  const t=v36211OldTime(input,session,profile),active=(input||[]).filter(r=>!r.warmup&&!r.isWarmup&&!/skipped|missed/i.test(r.status||'')),core=active.filter(r=>r.kbWeeklyCore||r.untimedCoreFinisher),main=active.filter(r=>!r.kbWeeklyCore&&!r.untimedCoreFinisher),plain=rows=>rows.map(r=>({...r,untimedCoreFinisher:false,kbWeeklyCore:false,armorBlock:null,armorSetReps:null})),c=core.length?v36211OldTime(plain(core),'Calisthenics',{}):null;
  if(main.some(r=>r.armorBlock)&&main.some(r=>!r.armorBlock)){const book=v36211OldTime(main.filter(r=>r.armorBlock),session,profile),extra=v36211OldTime(plain(main.filter(r=>!r.armorBlock)),session,profile);for(const key of ['estimatedMinutes','lowMinutes','highMinutes','restMinutes'])t[key]=book[key]+extra[key]+1;for(const key of ['workMinutes','setupMinutes'])t[key]=book[key]+extra[key];t.method='armor-plus-complement';}
  const bridge=core.length&&main.length?1:0,coreMinutes=c?Math.round((c.estimatedMinutes+bridge)*10)/10:0;
- return {...t,version:2,estimator:'36.217',coreMinutes,coreWorkMinutes:c?.workMinutes||0,coreRestMinutes:c?.restMinutes||0,coreTransitionMinutes:c?(c.setupMinutes||0)+bridge:0,totalEstimatedMinutes:Math.round((t.estimatedMinutes+coreMinutes)*10)/10,totalLowMinutes:Math.round((t.lowMinutes+(c?.lowMinutes||0)+bridge)*10)/10,totalHighMinutes:Math.round((t.highMinutes+(c?.highMinutes||0)+bridge)*10)/10};
+ return {...t,version:2,estimator:'36.218',coreMinutes,coreWorkMinutes:c?.workMinutes||0,coreRestMinutes:c?.restMinutes||0,coreTransitionMinutes:c?(c.setupMinutes||0)+bridge:0,totalEstimatedMinutes:Math.round((t.estimatedMinutes+coreMinutes)*10)/10,totalLowMinutes:Math.round((t.lowMinutes+(c?.lowMinutes||0)+bridge)*10)/10,totalHighMinutes:Math.round((t.highMinutes+(c?.highMinutes||0)+bridge)*10)/10};
 };
-const v36211OldNormalizeTime=v36209NormalizeTime;v36209NormalizeTime=function(value){let t=value;if(typeof t==='string'){try{t=JSON.parse(t)}catch{return null}}if(t?.version!==2||!['36.211','36.212','36.213','36.217'].includes(t.estimator))return v36211OldNormalizeTime(t);const coreOnly=t.estimatedMinutes===0&&t.coreMinutes>0,base=v36211OldNormalizeTime({...t,version:1,estimator:'36.209',...(coreOnly?{estimatedMinutes:1,lowMinutes:0,highMinutes:1}:{})});if(!base)return null;const out={...base,version:2,estimator:t.estimator,...(coreOnly?{estimatedMinutes:0,lowMinutes:Number(t.lowMinutes),highMinutes:Number(t.highMinutes)}:{})};if(!Number.isFinite(out.lowMinutes)||!Number.isFinite(out.highMinutes)||out.lowMinutes<0||out.lowMinutes>out.estimatedMinutes||out.highMinutes<out.estimatedMinutes)return null;for(const k of ['coreMinutes','coreWorkMinutes','coreRestMinutes','coreTransitionMinutes','totalEstimatedMinutes','totalLowMinutes','totalHighMinutes']){if(!Number.isFinite(Number(t[k]))||Number(t[k])<0||Number(t[k])>1440)return null;out[k]=Number(t[k]);}if(!(out.totalEstimatedMinutes>0)||Math.abs(out.totalEstimatedMinutes-out.estimatedMinutes-out.coreMinutes)>.11||out.totalLowMinutes>out.totalEstimatedMinutes||out.totalHighMinutes<out.totalEstimatedMinutes)return null;return out;};
+const v36211OldNormalizeTime=v36209NormalizeTime;v36209NormalizeTime=function(value){let t=value;if(typeof t==='string'){try{t=JSON.parse(t)}catch{return null}}if(t?.version!==2||!['36.211','36.212','36.213','36.217','36.218'].includes(t.estimator))return v36211OldNormalizeTime(t);const coreOnly=t.estimatedMinutes===0&&t.coreMinutes>0,base=v36211OldNormalizeTime({...t,version:1,estimator:'36.209',...(coreOnly?{estimatedMinutes:1,lowMinutes:0,highMinutes:1}:{})});if(!base)return null;const out={...base,version:2,estimator:t.estimator,...(coreOnly?{estimatedMinutes:0,lowMinutes:Number(t.lowMinutes),highMinutes:Number(t.highMinutes)}:{})};if(!Number.isFinite(out.lowMinutes)||!Number.isFinite(out.highMinutes)||out.lowMinutes<0||out.lowMinutes>out.estimatedMinutes||out.highMinutes<out.estimatedMinutes)return null;for(const k of ['coreMinutes','coreWorkMinutes','coreRestMinutes','coreTransitionMinutes','totalEstimatedMinutes','totalLowMinutes','totalHighMinutes']){if(!Number.isFinite(Number(t[k]))||Number(t[k])<0||Number(t[k])>1440)return null;out[k]=Number(t[k]);}if(!(out.totalEstimatedMinutes>0)||Math.abs(out.totalEstimatedMinutes-out.estimatedMinutes-out.coreMinutes)>.11||out.totalLowMinutes>out.totalEstimatedMinutes||out.totalHighMinutes<out.totalEstimatedMinutes)return null;return out;};
 v36209RenderTime=function(){let box=document.getElementById('workoutTimeSummary');const rows=v36209TimeRows();if(editingSessionId||!rows.length||logSession.value==='Recovery / Rest'){box?.remove();return;}const t=v36209WorkoutTime(rows,logSession.value,currentLogGuidedPlan()?.profile||{});if(!t.totalEstimatedMinutes){box?.remove();return;}if(!box){box=document.createElement('details');box.id='workoutTimeSummary';box.className='notice';document.getElementById('workoutSessionTracker')?.insertAdjacentElement('afterend',box);}box.innerHTML='<summary>Total workout time: '+(t.totalLowMinutes===t.totalHighMinutes?t.totalEstimatedMinutes:Math.floor(t.totalLowMinutes)+'–'+Math.ceil(t.totalHighMinutes))+' min</summary><p>Main work: '+t.estimatedMinutes+' min'+(t.coreMinutes?' · Core and its transition: '+t.coreMinutes+' min':'')+' · Total: '+t.totalEstimatedMinutes+' min.</p><p>'+t.workMinutes+' min main execution · '+t.restMinutes+' min main rest · '+t.setupMinutes+' min main exercise changes. Warm-up is separate. Actual cadence, rests and equipment changes can alter completion time.</p>';};
 const v36211OldKbTimeSummary=v36207RenderProgramDuration;v36207RenderProgramDuration=function(){v36211OldKbTimeSummary();const box=document.getElementById('kbProgramTimeSummary');if(box){const t=v36209WorkoutTime(v36209TimeRows(),logSession.value,currentLogGuidedPlan()?.profile||{}),p=document.createElement('p');p.textContent='Estimated core: '+t.coreMinutes+' min · Whole workout: '+t.totalEstimatedMinutes+' min before warm-up. Productive work determines volume; time is an estimate.';box.append(p);}};
 const v36211OldBand=cardioIntensityBand;cardioIntensityBand=function(row,date,hr,cs){const p=v36211Performance(row);if(p?.inferred.conflicts.length)return {band:'moderate',basis:'Conflicting effort and objective evidence; uncertain planning estimate',minutes:p.actual.minutes,confidence:p.inferred.confidence,uncertain:true};if(p&&p.inferred.confidence>=.5&&['low','moderate','high'].includes(p.inferred.domain))return {band:p.inferred.domain,basis:p.inferred.basis.join('; '),minutes:p.actual.minutes,confidence:p.inferred.confidence};const prior=v36211OldBand.apply(this,arguments);return p?.inferred.domain==='unknown'?{...prior,basis:'Intended category prior; actual intensity is uncertain',uncertain:true,confidence:0}:prior;};
@@ -22389,7 +22421,7 @@ for(const name of ['loadPlannedSession','restoreLogDraft','v3685RenderWorkoutTra
 queueMicrotask(v36212RenderFocus);
 
 function v36214HeavyCue(text){return text.replace(/Start with the easy-adjust light bell\./g,'Use one 70 lb adjustable bell at the day’s working setting.').replace(/Use the light single bell/g,'Use one 70 lb adjustable bell').replace(/with a light bell/g,'with one working bell').replace(/a light bell/g,'one working bell').replace(/the light bell/g,'the working bell');}
-// v36.217 — approved circuits with only the heavy adjustable bells.
+// v36.218 — approved circuits with only the heavy adjustable bells.
 function v36213CircuitContext(date,session){
  const travel=v36215TravelContext(date);if(travel?.calisthenics)return null;if(travel)return {program:'travel:'+travel.cycle.id,key:'travel:'+travel.cycle.id+'|'+travel.start,start:travel.start,lastWeek:travel.start,next:travel.next,week:1,slot:travel.slot,fourDay:true,travel:true};
  const c=v36203ArmorContext(programPrescriptionDate(date));
@@ -22400,12 +22432,14 @@ function v36213CircuitContext(date,session){
 }
 function v36213Actual(row){return row&&!row.projectedForecast&&!row.projectedPlanRow&&row.date<=localISO(new Date())&&utmObservedWork(row)&&!v36140ShortSecondaryRow(row);}
 function v36213ReviewFor(ctx){return Object.values(state.settings.kbCircuitReviews||{}).filter(r=>r.program===ctx.program&&r.nextStart<=ctx.start).sort((a,b)=>b.nextStart.localeCompare(a.nextStart))[0]||null;}
+function v36218CircuitEvidence(start){
+ const key=utmModelRevision+'|'+start,cache=v36218CircuitEvidence.cache||(v36218CircuitEvidence.cache=new Map());if(cache.has(key))return cache.get(key);
+ const history=(state.logs||[]).filter(v36213Actual).filter(r=>r.date<start).sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a)).map(r=>({exercise:r.exercise,kg:Number(r.kbSharedLoad?.kg)||utmLoadKg(r.weight),complete:String(r.status).toLowerCase()==='complete',good:kbRowQuality(r).good,bad:kbRowQuality(r).bad,rpe:effectiveEffortRpe(r)}));cache.set(key,history);if(cache.size>12)cache.delete(cache.keys().next().value);return history;
+}
 function v36213DaySettings(ctx,slot,equipment){
- const choices=kbEquipmentWeightsKg(equipment,'double').length?kbEquipmentWeightsKg(equipment,'double'):kbEquipmentWeightsKg(equipment,'single'),review=v36213ReviewFor(ctx),day=review?.days?.[slot];
- const targetSession=(ctx.fourDay?['KB Heavy','KB Volume','KB Heavy','KB Power']:['KB Heavy','KB Power','KB Volume'])[slot],actual=(state.logs||[]).filter(v36213Actual).filter(r=>r.date<ctx.start&&r.session===targetSession&&!r.kbIndependentLoad&&!r.kbWeeklyCore&&r.kbSharedLoad&&(!r.kbCircuitPlan||r.kbCircuitPlan.program===ctx.program&&r.kbCircuitPlan.slot===slot)&&(!r.kbCycle||!ctx.fourDay||r.kbCycle.slot===slot)).sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a));
- if(ctx.travel){const specs=HybridKbCircuit.four[slot]||[],known=specs.map(spec=>(state.logs||[]).filter(v36213Actual).filter(r=>r.date<ctx.start&&r.exercise===spec.exercise&&r.kbSharedLoad&&String(r.status).toLowerCase()==='complete').sort((a,b)=>rowSessionTimestamp(b)-rowSessionTimestamp(a))[0]).filter(Boolean).map(r=>Number(r.kbSharedLoad.kg)).filter(n=>n>0);const requested=known.length?Math.min(...known):14;return {kg:choices.filter(n=>n<=requested+.01).at(-1)||choices[0]||0,rows:{}};}
- const requested=Number(day?.kg)||Number(actual[0]?.kbSharedLoad?.kg)||14,kg=choices.filter(n=>n<=requested+.01).at(-1)||choices[0]||0;
- return {kg,rows:day?.rows||{}};
+ const specs=(ctx.fourDay?HybridKbCircuit.four:HybridKbCircuit.three)[slot]||[],config=HybridKbProgramming.settings(ctx.fourDay,slot),review=v36213ReviewFor(ctx),day=review?.days?.[slot],choices=kbSetupHasPair(equipment)?kbEquipmentWeightsKg(equipment,'double').filter(n=>n>=12&&n<=32):[],history=v36218CircuitEvidence(ctx.start),approved=review?.programmingVersion===218&&!ctx.travel?Number(day?.kg)||0:0,result=HybridKbProgramming.chooseLoad(specs,choices,history,approved,config.kg),rows={};
+ for(const saved of Object.values(review?.days||{}))for(const [name,value]of Object.entries(saved.rows||{}))if(specs.some(s=>s.exercise===name))rows[name]=value;
+ return {...result,rows,role:config.role};
 }
 function v36213SetSequence(spec,week,override){
  const sets=Math.max(1,Math.min(8,Number(override?.sets)||spec.sets)),base=Array.isArray(override?.reps)&&override.reps.length?override.reps:Array(sets).fill(spec.base),step=HybridKbCircuit.wave(week)-1,add=spec.exercise==='Turkish Get-Up'?0:spec.slow?Math.max(0,step-1):step;
@@ -22432,11 +22466,11 @@ function v36213CircuitPlan(workout,session,date,equipment){
  const ctx=v36213CircuitContext(date,session);if(!ctx||ctx.slot<0)return [];
  const day=v36213DaySettings(ctx,ctx.slot,equipment),used=new Set(),ready=adaptiveReadiness(date),rows=[];
  for(const spec of workout.rows){
-  const original=kbExercise(spec.exercise),ex=original?.bodyweight?original:v36141KbExerciseForSetup(spec.exercise,equipment);if(!ex||used.has(ex.name))continue;
+  const original=kbExercise(spec.exercise),ex=original;if(!ex||!kbSetupHasPair(equipment)||used.has(ex.name))continue;
   used.add(ex.name);const override=day.rows[spec.exercise],setReps=v36213SetSequence(spec,ctx.week,override),load=ex.load==='double'?'double':'single',light=false,scope=equipment,kg=ex.bodyweight?0:day.kg;
   if(!ex.bodyweight&&!kg)continue;
-  const side=spec.side||ex.unilateral,suffix=side?'/side':'',weight=ex.bodyweight?'Bodyweight':kbEquipmentLoadText(kg,scope,load),group=spec.group?ctx.key+'|'+ctx.slot+'|'+spec.group:'',why=(ctx.travel?'One-week KB travel circuit. Your barbell or hybrid progression is frozen; it resumes on '+ctx.next+'. Use the full four-day KB pattern at its starting rep targets. ':ctx.fourDay?'Three-week KB-only circuit · week '+ctx.week+'/3. ':'Six-week hybrid block · week '+ctx.hybridWeek+'/6 · KB progression week '+ctx.week+'/3. ')+ (ctx.travel?'Keep one heavy-bell setting for this workout. This travel week does not advance or reset your paused circuit.':'Keep this day’s working weight fixed through all three weeks. The same exercises repeat every week; a progression review resets the starting point after week 3.'),circuit=group?' Alternate the exercises in this circuit, completing one set of each before the next round.':' Complete this movement as its own block before continuing.',pain=v36131PainConstraintForExercise(ex.name,date),note=why+circuit+' Set targets: '+setReps.join(' / ')+(side?' per side.':'.')+' '+v36214HeavyCue(ex.note||'')+(ready.recoveryGuard?' Recovery is reduced: keep the full plan visible, reduce your actual dose or rest as needed, and record what you do.':'')+(pain.suppress?' Your recorded pain constraint applies here: use a comfortable substitution or skip and record it.':'');
-  rows.push({exercise:ex.name,sets:setReps.length,reps:setReps.join(', ')+suffix,setDetails:setReps.map(n=>({reps:String(n)+suffix,weight,_mainRowLinked:false,_mainRepsLinked:false,_mainWeightLinked:true})),weight,kg,load,restSeconds:spec.restSeconds,conditioning:false,bar:false,numeric:null,kbIntent:spec.kbIntent,kbRoutineVersion:214,kbProgramDay:workout.kbProgramDay,kbIndependentLoad:light,kbCircuitPlan:{version:1,program:ctx.program,roundStart:ctx.start,week:ctx.week,slot:ctx.slot,group:spec.group||'',setReps,heavy:!light&&!ex.bodyweight},...(group?{alternatingGroup:group}:{}),...(!light&&!ex.bodyweight?{kbSharedLoad:{version:1,session,kg,goalSets:setReps.length,goalReps:Math.max(...setReps),raised:false}}:{}),meta:(ctx.travel?'KB TRAVEL WEEK · ':'KB CIRCUIT · WEEK '+ctx.week+'/3 · ')+(group?spec.group.toUpperCase()+' CIRCUIT':'SEPARATE BLOCK'),note,targetReason:why});
+  const loadWarning=day.conflicts.filter(t=>t.startsWith(spec.exercise+':')).join(' '),side=spec.side||ex.unilateral,suffix=side?'/side':'',weight=ex.bodyweight?'Bodyweight':kbEquipmentLoadText(kg,scope,load),group=spec.group?ctx.key+'|'+ctx.slot+'|'+spec.group:'',why=(ctx.travel?'One-week KB travel circuit. Your barbell or hybrid progression is frozen; it resumes on '+ctx.next+'. Use the full four-day KB pattern at its starting rep targets. ':ctx.fourDay?'Three-week KB-only circuit · week '+ctx.week+'/3. ':'Six-week hybrid block · week '+ctx.hybridWeek+'/6 · KB progression week '+ctx.week+'/3. ')+ (ctx.travel?'Keep one heavy-bell setting for this workout. This travel week does not advance or reset your paused circuit.':'Keep this day’s working weight fixed through all three weeks. The same exercises repeat every week; a progression review resets the starting point after week 3.'),circuit=group?' Alternate the exercises in this circuit, completing one set of each before the next round.':' Complete this movement as its own block before continuing.',pain=v36131PainConstraintForExercise(ex.name,date),note=why+' '+day.reason+' '+loadWarning+circuit+' Set targets: '+setReps.join(' / ')+(side?' per side.':'.')+' '+v36214HeavyCue(ex.note||'')+(ready.recoveryGuard?' Recovery is reduced: keep the full plan visible, reduce your actual dose or rest as needed, and record what you do.':'')+(pain.suppress?' Your recorded pain constraint applies here: skip and record the conflict; this fixed-list circuit does not substitute another exercise.':'');
+  rows.push({exercise:ex.name,sets:setReps.length,reps:setReps.join(', ')+suffix,setDetails:setReps.map(n=>({reps:String(n)+suffix,weight,_mainRowLinked:false,_mainRepsLinked:false,_mainWeightLinked:true})),weight,kg,load,restSeconds:spec.restSeconds,conditioning:false,bar:false,numeric:null,kbIntent:spec.kbIntent,kbRoutineVersion:218,kbProgramDay:workout.kbProgramDay,kbIndependentLoad:light,kbCircuitPlan:{version:1,program:ctx.program,roundStart:ctx.start,week:ctx.week,slot:ctx.slot,group:spec.group||'',setReps,heavy:!light&&!ex.bodyweight},...(group?{alternatingGroup:group}:{}),...(loadWarning?{kbLoadConflict:loadWarning}:{}),...(!light&&!ex.bodyweight?{kbSharedLoad:{version:1,session,kg,goalSets:setReps.length,goalReps:Math.max(...setReps),raised:false}}:{}),meta:(ctx.travel?'KB TRAVEL WEEK · ':'KB CIRCUIT · WEEK '+ctx.week+'/3 · ')+(group?spec.group.toUpperCase()+' CIRCUIT':'SEPARATE BLOCK'),note,targetReason:why+' '+day.reason+' '+loadWarning});
  }
  const withCore=v36213RandomCore(rows,session,date,equipment),loaded=withCore.filter(r=>r.kg>0),organized=v36153OrganizeKbPlan(loaded,equipment,{group:false}),byName=new Map(organized.map(r=>[r.exercise,r]));
  return withCore.map(r=>byName.get(r.exercise)||r);
@@ -22462,7 +22496,7 @@ function v36213ApplyReview(){
  const modal=document.getElementById('kbCircuitReviewModal'),ctx=modal?._ctx;if(!ctx)return false;const days={},equipment=v36141KbEquipment(localISO(new Date())),choices=kbEquipmentWeightsKg(equipment,'double').length?kbEquipmentWeightsKg(equipment,'double'):kbEquipmentWeightsKg(equipment,'single');
  for(const box of modal.querySelectorAll('[data-circuit-day]')){const slot=Number(box.dataset.circuitDay),kg=Number(box.querySelector('[data-circuit-kg]').value),rows={};if(!choices.includes(kg))return false;
   for(const el of box.querySelectorAll('[data-circuit-exercise]')){const sets=Number(el.querySelector('[data-circuit-sets]').value),text=el.querySelector('[data-circuit-reps]').value.trim(),reps=text.split(/\s*[,/]\s*/).map(Number);if(!Number.isInteger(sets)||sets<1||sets>8||!reps.length||reps.some(n=>!Number.isInteger(n)||n<1||n>40)||reps.length!==sets){modal.querySelector('#kbCircuitReviewStatus').textContent='Enter one rep target for each set (for example, 7 / 6 / 6 for three sets).';return false;}rows[el.dataset.circuitExercise]={sets,reps};}days[slot]={kg,rows};}
- const previous=state.settings.kbCircuitReviews,refresh=!editingSessionId&&!v3685ReadActiveWorkout()&&logDate.value>=ctx.next&&v36212PlanCanRefresh();state.settings.kbCircuitReviews={...(previous||{}),[ctx.key]:{version:1,program:ctx.program,completedStart:ctx.start,nextStart:ctx.next,approvedAt:localISO(new Date()),days}};
+ const previous=state.settings.kbCircuitReviews,refresh=!editingSessionId&&!v3685ReadActiveWorkout()&&logDate.value>=ctx.next&&v36212PlanCanRefresh();state.settings.kbCircuitReviews={...(previous||{}),[ctx.key]:{version:1,programmingVersion:218,program:ctx.program,completedStart:ctx.start,nextStart:ctx.next,approvedAt:localISO(new Date()),days}};
  if(!save('kb-three-week-progression-review')){state.settings.kbCircuitReviews=previous;modal.querySelector('#kbCircuitReviewStatus').textContent='Could not save. Keep this window open and try again.';return false;}v36213CloseReview();if(refresh){v36155ClearPrepared?.();logGuidedPlan=null;clearLogWorkspace();loadPlannedSession();}render();return true;
 }
 function v36213MaybeReview(date=localISO(new Date()),session=''){
@@ -22475,7 +22509,7 @@ function v36213MaybeReview(date=localISO(new Date()),session=''){
 }
 function v36213NormalizeReviews(value){
  if(!value||typeof value!=='object'||Array.isArray(value))return {};const out={};
- for(const [key,r]of Object.entries(value).slice(-300)){if(key.length>180||key!==r?.program+'|'+r?.completedStart||r?.version!==1||!validIsoDateValue(r.completedStart)||!validIsoDateValue(r.nextStart)||typeof r.program!=='string'||r.program.length>120)continue;const days={};for(const [slot,day]of Object.entries(r.days||{})){if(!/^[0-3]$/.test(slot)||!Number.isFinite(day.kg)||day.kg<3||day.kg>60)continue;const rows={};for(const [name,target]of Object.entries(day.rows||{}).slice(0,40)){if(!kbExercise(name)||!Number.isInteger(target.sets)||target.sets<1||target.sets>8||!Array.isArray(target.reps)||target.reps.length!==target.sets||target.reps.some(n=>!Number.isInteger(n)||n<1||n>40))continue;rows[name]={sets:target.sets,reps:target.reps};}days[slot]={kg:day.kg,rows};}out[key]={version:1,program:r.program,completedStart:r.completedStart,nextStart:r.nextStart,approvedAt:validIsoDateValue(r.approvedAt)?r.approvedAt:r.nextStart,days};}return out;
+ for(const [key,r]of Object.entries(value).slice(-300)){if(key.length>180||key!==r?.program+'|'+r?.completedStart||r?.version!==1||!validIsoDateValue(r.completedStart)||!validIsoDateValue(r.nextStart)||typeof r.program!=='string'||r.program.length>120)continue;const days={};for(const [slot,day]of Object.entries(r.days||{})){if(!/^[0-3]$/.test(slot)||!Number.isFinite(day.kg)||day.kg<3||day.kg>60)continue;const rows={};for(const [name,target]of Object.entries(day.rows||{}).slice(0,40)){if(!kbExercise(name)||!Number.isInteger(target.sets)||target.sets<1||target.sets>8||!Array.isArray(target.reps)||target.reps.length!==target.sets||target.reps.some(n=>!Number.isInteger(n)||n<1||n>40))continue;rows[name]={sets:target.sets,reps:target.reps};}days[slot]={kg:day.kg,rows};}out[key]={version:1,programmingVersion:r.programmingVersion===218?218:0,program:r.program,completedStart:r.completedStart,nextStart:r.nextStart,approvedAt:validIsoDateValue(r.approvedAt)?r.approvedAt:r.nextStart,days};}return out;
 }
 function v36213CircuitMeta(value){let v=value;if(typeof v==='string'){try{v=JSON.parse(v)}catch{return null}}if(v?.version!==1||typeof v.program!=='string'||v.program.length>120||!validIsoDateValue(v.roundStart)||!Number.isInteger(v.slot)||v.slot<0||v.slot>3||![1,2,3].includes(v.week)||!Array.isArray(v.setReps)||!v.setReps.length||v.setReps.length>8||v.setReps.some(n=>!Number.isInteger(n)||n<1||n>42))return null;return {version:1,program:v.program,roundStart:v.roundStart,slot:v.slot,week:v.week,setReps:v.setReps,group:safePlainText(v.group||'',40),heavy:!!v.heavy};}
 const v36213PriorNormalizeMeta=v36203NormalizeProgramMeta;
@@ -22501,7 +22535,7 @@ const v36213PriorConfirmBlock=confirmTransitionReview;
 confirmBlockReview.removeEventListener('click',v36213PriorConfirmBlock);
 confirmTransitionReview=function(){
  const section=document.getElementById('kbCircuitFullReview'),ctx=section?._ctx,target=activeReviewBlock,previous=state.settings.kbCircuitReviews,priorReview=state.settings.blockReviews?.[String(target)];
- if(ctx&&transitionMode.value==='hybrid'){const days=v36213CollectFullReview(section);if(!days){section.open=true;section.querySelector('#kbCircuitFullReviewStatus').textContent='Enter one rep target for every set before confirming.';return;}state.settings.kbCircuitReviews={...(previous||{}),[ctx.key]:{version:1,program:ctx.program,completedStart:ctx.start,nextStart:ctx.next,approvedAt:localISO(new Date()),days}};}
+ if(ctx&&transitionMode.value==='hybrid'){const days=v36213CollectFullReview(section);if(!days){section.open=true;section.querySelector('#kbCircuitFullReviewStatus').textContent='Enter one rep target for every set before confirming.';return;}state.settings.kbCircuitReviews={...(previous||{}),[ctx.key]:{version:1,programmingVersion:218,program:ctx.program,completedStart:ctx.start,nextStart:ctx.next,approvedAt:localISO(new Date()),days}};}
  v36213PriorConfirmBlock.apply(this,arguments);if(state.settings.blockReviews?.[String(target)]===priorReview)state.settings.kbCircuitReviews=previous;
 };
 confirmBlockReview.addEventListener('click',confirmTransitionReview);
@@ -22515,7 +22549,7 @@ const v36213ReviewStyle=document.createElement('style');v36213ReviewStyle.textCo
 const v36213ProgramNote=document.createElement('p');v36213ProgramNote.className='notice';v36213ProgramNote.textContent='Hybrid: six-week barbell + KB block, KB progression check-in after week 3, full review after week 6. KB-only: repeating three-week circuit on Sunday, Monday, Wednesday and Friday. Keep every required movement each week; core finishes each workout.';document.getElementById('kbworkouts')?.prepend(v36213ProgramNote);
 const v36213ReviewButton=document.createElement('button');v36213ReviewButton.className='btn';v36213ReviewButton.id='kbCircuitReviewOpen';v36213ReviewButton.textContent='Review three-week progression';v36213ReviewButton.onclick=()=>{const today=localISO(new Date()),ctx=v36213CircuitContext(today,programScheduledSessionForDate(today));if(ctx)v36213OpenReview(ctx);};document.getElementById('kbworkouts')?.prepend(v36213ReviewButton);
 function v36213RenderCircuitGuide(){
- const cards=[...plannedExercises.querySelectorAll('.log-exercise')],rows=cards.map(c=>({name:currentCardExercise(c),meta:v36213CircuitMeta(c.dataset.kbCircuitPlan)})).filter(r=>r.meta);let box=document.getElementById('kbCircuitGuide');if(!rows.length){box?.remove();return;}if(!box){box=document.createElement('details');box.id='kbCircuitGuide';box.className='notice';plannedExercises.insertAdjacentElement('beforebegin',box);}document.getElementById('kbTrainingFocusLog')?.remove();const groups=[];for(const r of rows){const key=r.meta.group||r.name,last=groups.at(-1);if(last?.key===key)last.names.push(r.name);else groups.push({key,group:r.meta.group,rounds:r.meta.setReps.length,names:[r.name]});}const travel=v36215TravelContext(logDate.value);box.innerHTML='<summary>'+(travel?'KB travel week':'Three-week circuit · week '+rows[0].meta.week+'/3')+' · '+rows.length+' main exercises + one random KB core</summary><p>'+htmlSafe(travel?'Use one heavy-bell setting per day and follow the individual set targets. Your underlying program is frozen and resumes on '+travel.next+'. This week has no separate progression reset.':'Keep the same exercises each week and one heavy-bell setting per day. Follow the individual set targets. Review KB progression after week 3; the hybrid’s full review remains at week 6. KB-only cycles repeat after each three-week review.')+'</p><ol>'+groups.map(g=>'<li>'+(g.group?g.rounds+' rounds: '+g.names.map(htmlSafe).join(' → '):htmlSafe(g.names[0])+' · separate block')+'</li>').join('')+'</ol><p>The complete exercise list determines duration. The core finisher is last.</p>';
+ const cards=[...plannedExercises.querySelectorAll('.log-exercise')],rows=cards.map(c=>({name:currentCardExercise(c),meta:v36213CircuitMeta(c.dataset.kbCircuitPlan)})).filter(r=>r.meta);let box=document.getElementById('kbCircuitGuide');if(!rows.length){const ctx=/^KB /.test(logSession.value)?v36213CircuitContext(logDate.value,logSession.value):null;if(ctx&&!kbSetupHasPair(v36141KbEquipment(logDate.value))){if(!box){box=document.createElement('details');box.id='kbCircuitGuide';box.className='notice';plannedExercises.insertAdjacentElement('beforebegin',box);}box.innerHTML='<summary>Two heavy adjustable kettlebells required</summary><p>This fixed-list circuit needs both heavy adjustable bells. Select the matching equipment setup before generating it. A smaller bell or single-bell substitute does not satisfy this circuit.</p>';}else box?.remove();return;}if(!box){box=document.createElement('details');box.id='kbCircuitGuide';box.className='notice';plannedExercises.insertAdjacentElement('beforebegin',box);}document.getElementById('kbTrainingFocusLog')?.remove();const groups=[];for(const r of rows){const key=r.meta.group||r.name,last=groups.at(-1);if(last?.key===key)last.names.push(r.name);else groups.push({key,group:r.meta.group,rounds:r.meta.setReps.length,names:[r.name]});}const travel=v36215TravelContext(logDate.value);box.innerHTML='<summary>'+(travel?'KB travel week':'Three-week circuit · week '+rows[0].meta.week+'/3')+' · '+rows.length+' main exercises + one random KB core</summary><p>'+htmlSafe(travel?'Use one heavy-bell setting per day and follow the individual set targets. Your underlying program is frozen and resumes on '+travel.next+'. This week has no separate progression reset.':'Keep the same exercises each week and one heavy-bell setting per day. Follow the individual set targets. Review KB progression after week 3; the hybrid’s full review remains at week 6. KB-only cycles repeat after each three-week review.')+'</p><ol>'+groups.map(g=>'<li>'+(g.group?g.rounds+' rounds: '+g.names.map(htmlSafe).join(' → '):htmlSafe(g.names[0])+' · separate block')+'</li>').join('')+'</ol><p>The complete exercise list determines duration. The core finisher is last and uses the same bell setting. These are substantial sessions; do not rush technical work to match the estimate.</p><p>If a listed movement cannot be controlled at the fixed setting, keep its card and record the conflict. A 12 kg empty shell can still be too heavy for some raises, overhead skills or core movements; adding reps cannot fix an unsuitable load.</p>';
 }
 const v36213PriorLoadPlanned=loadPlannedSession;loadPlannedSession=function(){const r=v36213PriorLoadPlanned.apply(this,arguments);v36213RenderCircuitGuide();return r;};
 const v36213PriorRestoreDraft=restoreLogDraft;restoreLogDraft=function(){const r=v36213PriorRestoreDraft.apply(this,arguments);v36213RenderCircuitGuide();return r;};
@@ -22529,7 +22563,7 @@ function v36213RestoreStartupMetadata(){
 queueMicrotask(v36213RestoreStartupMetadata);
 queueMicrotask(()=>v36213MaybeReview());
 
-// v36.217 — a finite KB travel week without advancing the underlying circuit.
+// v36.218 — a finite KB travel week without advancing the underlying circuit.
 function v36215TravelWeeks(){return v36217TravelStore().weeks;}
 function v36215TravelContext(date){if(window.HybridPersonalTraining?.active())return null;const store=v36217TravelStore();if(!store.weeks.length)return null;if(!store.contexts.has(date)){store.contexts.set(date,HybridKbPrograms.travelContext(store.weeks,date));if(store.contexts.size>768)store.contexts.delete(store.contexts.keys().next().value);}const value=store.contexts.get(date);return value?{...value,cycle:{...value.cycle}}:null;}
 function v36215TravelDayContext(date){
@@ -22604,7 +22638,7 @@ function v36215InitTravel(){
 }
 v36215InitTravel();
 
-// v36.217 — portable bodyweight/band weeks and equipment-safe open days.
+// v36.218 — portable bodyweight/band weeks and equipment-safe open days.
 function v36216TravelTitle(travel){return travel?.kind==='calisthenics-bands'?'Bodyweight + bands travel week':travel?.kind==='calisthenics'?'Bodyweight travel week':'KB travel week';}
 function v36216TravelEquipment(date){const t=v36215TravelContext(date);return !t?[]:t.calisthenics?['bodyweight',...(t.bands?['bands']:[])]:['bodyweight','kettlebells','kbSetup:70pair'];}
 function v36216TravelRules(){
@@ -22686,7 +22720,7 @@ function v36216InitCalTravel(){
 }
 v36216InitCalTravel();
 
-// v36.217 — pure model reuse and local form audits keep foreground interactions responsive.
+// v36.218 — pure model reuse and local form audits keep foreground interactions responsive.
 function v36217AuditControls(controls,reset=false){
  const labels=v36217AuditControls.labels||(v36217AuditControls.labels=new WeakMap());
  const missing=v36217AuditControls.missing||(v36217AuditControls.missing=new Set());if(reset)missing.clear();
@@ -23244,13 +23278,13 @@ window.HybridCore=Object.seal({
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>scan());else scan();new MutationObserver(items=>items.forEach(m=>m.addedNodes.forEach(queue))).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
-<script src="app-shell-v36.119.js?v=36.217"></script>
-<script src="adaptive-personalization-v36.120.js?v=36.217"></script>
-<script src="ui-workflows.js?v=36.217"></script>
-<script src="profile-week-editor.js?v=36.217"></script>
-<script src="profile-equipment.js?v=36.217"></script>
-<script src="profile-setup.js?v=36.217"></script>
-<script src="equipment-views.js?v=36.217"></script>
+<script src="app-shell-v36.119.js?v=36.218"></script>
+<script src="adaptive-personalization-v36.120.js?v=36.218"></script>
+<script src="ui-workflows.js?v=36.218"></script>
+<script src="profile-week-editor.js?v=36.218"></script>
+<script src="profile-equipment.js?v=36.218"></script>
+<script src="profile-setup.js?v=36.218"></script>
+<script src="equipment-views.js?v=36.218"></script>
 
 <script id="v36116-build-note">
 // v36.119 — landmine one-ended loading hardening + TB-only secondary phase guard.

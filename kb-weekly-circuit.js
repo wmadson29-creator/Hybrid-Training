@@ -38,6 +38,7 @@
  // Keep circuit groups contiguous and use the same number of rounds inside
  // each group. Technical opening blocks and the final swing remain separate.
  for(const list of four){let group=0,lastSets=0;for(let i=0;i<list.length;i++){const r=list[i];if(r.slow||r.exercise==='Two-Hand Swing'){r.group='';lastSets=0;continue;}if(r.sets!==lastSets)group++;r.group='circuit-'+group;lastSets=r.sets;}}
+ const redesigned=(typeof module==='object'&&module.exports?require('./kb-programming.js'):globalThis.HybridKbProgramming).redesign(three,four);three.splice(0,three.length,...redesigned.three);four.splice(0,four.length,...redesigned.four);
  const core=['Kettlebell Around the World','Kettlebell Sit-Up','Kettlebell Russian Twist','Bear-Plank Kettlebell Pull-Through','Kettlebell Dead Bug','Half-Kneeling Kettlebell Chop'];
  const wave=week=>((Math.max(1,Math.floor(Number(week)||1))-1)%3)+1;
  function sequence(r,week,base=r.base,sets=r.sets){
@@ -46,7 +47,7 @@
  }
  function recipe(slot,{fourDay=false,week=1}={}){
   const specs=(fourDay?four:three)[slot]||three[0];
-  return {name:(fourDay?'Four-day':'Three-day')+' KB circuit · Day '+String.fromCharCode(65+slot),source:'preset',kbRoutineVersion:214,kbCircuit:true,kbFourDay:fourDay,kbProgramDay:String.fromCharCode(65+slot),kbProgramWeek:wave(week),rows:specs.map(r=>({...r,reps:String(r.base)+(r.side?'/side':''),kbSetReps:sequence(r,week),restSeconds:r.group?30:90,kbIntent:r.exercise==='Two-Hand Swing'?'conditioning':r.slow?'power':'strength',kbIndependentLoad:false}))};
+  return {name:(fourDay?'Four-day':'Three-day')+' KB circuit · Day '+String.fromCharCode(65+slot),source:'preset',kbRoutineVersion:218,kbCircuit:true,kbFourDay:fourDay,kbProgramDay:String.fromCharCode(65+slot),kbProgramWeek:wave(week),rows:specs.map(r=>({...r,reps:String(r.base)+(r.side?'/side':''),kbSetReps:sequence(r,week),restSeconds:60,kbIntent:r.exercise==='Two-Hand Swing'?'conditioning':r.kbIntent||(r.slow?'power':'strength'),kbIndependentLoad:false}))};
  }
  function chooseCore(random=Math.random){return core[Math.min(5,Math.floor(Math.max(0,random())*6))];}
  function reviewSuggestion(spec,history,currentKg,choices){
