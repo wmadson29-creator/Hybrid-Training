@@ -1,0 +1,62 @@
+/* Hybrid Training: retrospective, causal session reviews. No prescription writes. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.HybridSessionFeedback=Object.freeze(api)})(typeof window!=='undefined'?window:globalThis,function(){
+ 'use strict';
+ const num=v=>Number.isFinite(Number(v))?Number(v):0;
+ const mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;
+ const pct=(a,b)=>b>0?(a/b-1)*100:null;
+ const lower=v=>String(v||'').toLowerCase();
+ const round=v=>Number.isFinite(v)?Math.round(v*10)/10:null;
+ function clock(row){if(num(row.sessionTimestamp)>0)return num(row.sessionTimestamp);if(/^\d\d:\d\d/.test(row.sessionTime||''))return Date.parse(row.date+'T'+row.sessionTime+':00');return 0}
+ function earlier(a,b){return a.date<b.date||(a.date===b.date&&clock(a)>0&&clock(b)>0&&clock(a)<clock(b))}
+ function observed(r,S){return r&&r.exercise&&r.exercise!=='Rest Day'&&!r.projectedForecast&&!r.projectedPlanRow&&!r.warmup&&!r.isWarmup&&!/^(skipped|missed)$/i.test(r.status||'')&&!S.noWork(r)}
+ function contextMatch(a,b,S){return a.exercise===b.exercise&&S.contextKey(a)===S.contextKey(b)&&(!/weighted pull-up/i.test(a.exercise)||String(a.pullupGrip||'unknown')===String(b.pullupGrip||'unknown'))}
+ function repKind(r){return /sec|min|^\d+:\d\d/i.test(String(r.reps||''))?'time':'reps'}
+ function sameSession(a,b){return a.sessionId&&b.sessionId?a.sessionId===b.sessionId:a.date===b.date&&a.session===b.session&&clock(a)===clock(b)}
+ function priorRows(row,logs,S){const seen=new Set();return logs.filter(r=>observed(r,S)&&!sameSession(r,row)&&earlier(r,row)&&contextMatch(r,row,S)&&repKind(r)===repKind(row)).sort((a,b)=>b.date.localeCompare(a.date)||clock(b)-clock(a)).filter(r=>{const k=r.sessionId||r.date+'|'+r.session+'|'+clock(r);if(seen.has(k))return false;seen.add(k);return true})}
+ function target(row){if(!row.modelTargetExercise&&!row.modelPlannedExercise&&!row.modelTargetSets&&!row.modelTargetWeight&&!row.modelTargetReps)return null;return {exercise:row.modelTargetExercise||row.modelPlannedExercise||row.exercise,sets:row.modelTargetSets??row.modelPlannedSets,reps:row.modelTargetReps??row.modelPlannedReps,weight:row.modelTargetWeight??row.modelPlannedWeight,reason:row.modelTargetReason||''}}
+ function prediction(row,S){const expected=num(row.modelExpectedRpe),actual=S.effort(row),version=num(row.modelPredictionVersion);if(row.modelPredictionRetrospective)return {known:false,label:'Retrospective estimate',note:'This estimate was recalculated after the event. It cannot show how accurate an earlier prediction was.'};if(S.unestimated(row))return {known:false,label:'No comparable saved estimate',note:'The performed structure or exercise was not covered by a comparable saved estimate.'};if(!expected||version<num(S.predictionVersion))return {known:false,label:version?'Earlier model version':'No saved effort estimate',note:version?'The saved estimate belongs to an earlier model. Actual performance is retained; its old prediction error is excluded from this review.':'There is no saved numeric estimate to compare with your recorded effort.'};return {known:actual>0,label:'Saved model effort estimate',expected,actual:actual||null,error:actual?round(actual-expected):null,note:'A saved estimate for this dose; it is not a measured capacity or proof of muscle growth.'}}
+ function review(row,logs,S){
+  const direct=priorRows(row,logs,S),past=direct.slice(0,8),last=past[0],effort=S.effort(row),quality=lower(row.technique),partial=lower(row.status)==='partial',isCardio=S.cardio(row),warnings=[],limits=[],planned=target(row);
+  if(!effort)limits.push('Exercise effort is missing. Easier and harder sets are harder to distinguish.');
+  if(!row.technique&&!isCardio)limits.push('Technique quality was not recorded.');
+  if(partial)warnings.push('This entry was partial. Reduced completed work is recorded separately from a change in ability.');
+  if(/sloppy|failed|pain/.test(quality)||row.failure===true)warnings.push('Execution or failure needs attention even if the session felt good overall.');
+  if(!clock(row))limits.push('Session time is missing; other entries on this same date are excluded from prior-session comparisons.');
+  const allEarlier=logs.filter(r=>observed(r,S)&&!sameSession(r,row)&&earlier(r,row));
+  const related=[],relatedNames=new Set();
+  for(const r of allEarlier.slice().sort((a,b)=>b.date.localeCompare(a.date)||clock(b)-clock(a))){if(r.exercise===row.exercise||relatedNames.has(r.exercise)||S.cardio(r)!==isCardio)continue;const overlap=S.overlap(row.exercise,r.exercise);if(overlap>=.35){relatedNames.add(r.exercise);related.push({exercise:r.exercise,date:r.date,overlap:round(overlap*100),dose:S.dose(r),effort:S.effortText(r)})}if(related.length>=4)break;}
+  const rejected=allEarlier.filter(r=>r.exercise===row.exercise&&!contextMatch(r,row,S)).length;if(rejected)limits.push(rejected+' same-exercise record(s) use a different machine context or pull-up grip and are excluded from the direct comparison.');
+  let verdict={direction:'unknown',label:'Building a baseline',reason:'This is useful actual training data. More comparable sessions are needed before describing a performance trend.'},comparison=null,trend=null,metric=null;
+  if(!observed(row,S)){verdict={direction:'unknown',label:'No performed work to assess',reason:'Skipped, missed, warm-up or zero-work entries do not establish improvement or decline.'};return {verdict,direct:[],related:[],warnings,limits,effort,prediction:prediction(row,S),planned,confidence:'Low',comparison:null,trend:null,metric:null}}
+  if(isCardio){
+   metric=S.metric(row);const comparable=past.map(r=>({r,m:S.metric(r)})).filter(x=>metric.primary>0&&metric.kind!=='duration'&&x.m.primary>0&&x.m.kind===metric.kind),prior=comparable[0];
+   if(metric.kind==='duration'||!metric.primary){verdict={direction:'unknown',label:'Endurance work recorded',reason:'Duration confirms time spent training. Distance, pace, power or repeat output is needed to judge performance change.'};limits.push('Duration alone does not establish improved speed, efficiency or fitness.');}
+   else if(prior){
+    const delta=pct(metric.primary,prior.m.primary),env=metric.environment!==prior.m.environment||metric.surface!==prior.m.surface||Math.abs(metric.temperature-prior.m.temperature)>=8||Math.abs(metric.altitudeFt-prior.m.altitudeFt)>=1000||Math.abs(num(row.metrics?.hillGradePct)-num(prior.r.metrics?.hillGradePct))>=2,durationChanged=metric.minutes>0&&prior.m.minutes>0&&Math.max(metric.minutes,prior.m.minutes)/Math.min(metric.minutes,prior.m.minutes)>1.35,harder=effort>0&&S.effort(prior.r)>0&&effort-S.effort(prior.r)>1;
+    comparison={row:prior.r,deltaPct:round(delta),metric:metric.kind,effortChange:effort&&S.effort(prior.r)?round(effort-S.effort(prior.r)):null,efficiencyPct:metric.efficiency>0&&prior.m.efficiency>0?round(pct(metric.efficiency,prior.m.efficiency)):null,confounded:env||durationChanged};
+    if(env)limits.push('Environment, surface, elevation or temperature differs. These sessions are not a controlled comparison.');if(durationChanged)limits.push('Session durations differ substantially; sustaining output for longer and producing faster output are separate outcomes.');
+    const sequence=[...comparable.slice(0,8).reverse().map(x=>({r:x.r,m:x.m})),{r:row,m:metric}],dates=new Set(sequence.map(x=>x.r.date));
+    if(sequence.length>=4&&dates.size>=3){const values=sequence.map(x=>x.m.primary),split=Math.floor(values.length/2),change=pct(mean(values.slice(split)),mean(values.slice(0,split)));trend={n:values.length,dates:dates.size,deltaPct:round(change),gatePct:3,direction:Math.abs(change)<3?'steady':change>0?'up':'down',note:'Recent half versus earlier half of direct sessions with the same output metric. Environment, duration and effort can still differ; this pattern does not isolate fitness changes.'};}
+    verdict=env||durationChanged||partial?{direction:'mixed',label:'Different conditions or dose',reason:'The recorded output changed, but this comparison cannot isolate a change in fitness.'}:delta>=3&&!harder?{direction:'up',label:'Stronger comparable output',reason:'Output improved versus the previous comparable session without a large recorded effort increase.'}:delta<=-3?{direction:'down',label:'Lower output this time',reason:'Output was lower in this exposure. One session does not establish a continuing decline.'}:harder?{direction:'mixed',label:'Similar output, more effort',reason:'You sustained similar output at a higher recorded effort. Recovery and conditions can contribute.'}:{direction:'steady',label:'Comparable performance maintained',reason:'Output is within the review’s small-change band.'};
+   }
+  }else if(last){
+   const value=S.performance(row),before=S.performance(last),delta=pct(value,before),priorEffort=S.effort(last),effortChange=effort&&priorEffort?effort-priorEffort:null,gate=Math.max(3,num(S.noise(past.map(S.performance)))||3),sameDose=S.sameDose(row,last),lighterTarget=planned&&planned.exercise===row.exercise&&S.targetMet(row,planned)&&S.demand(planned,row.date)<S.demand(last,last.date)*.95;
+   comparison={row:last,deltaPct:round(delta),metric:'within-exercise performance estimate',effortChange:round(effortChange),sameDose,gatePct:round(gate),confounded:false};
+   if(!effort||!priorEffort)limits.push('The performance estimate uses an assumed effort where effort is missing. Treat the percentage cautiously.');
+   if(lighterTarget)verdict={direction:'steady',label:'Lighter prescribed work completed',reason:'The saved target called for less work than the previous exposure. Completing it is not evidence of declining strength.'};
+   else if(partial||warnings.length)verdict={direction:'mixed',label:'Completion or execution needs attention',reason:'Review the completed dose and execution before treating a higher performance estimate as progress.'};
+   else if(sameDose&&effortChange!==null&&effortChange<=-1)verdict={direction:'up',label:'Same work, less effort',reason:'You repeated the dose with meaningfully lower recorded effort, which supports improved tolerance.'};
+   else if(sameDose&&effortChange!==null&&effortChange>=1)verdict={direction:'mixed',label:'Same work felt harder',reason:'The dose was maintained but required more effort. This can reflect day-to-day fatigue rather than lost strength.'};
+   else if(delta!==null&&delta>=gate&&effortChange!==null&&effortChange<=1)verdict={direction:'up',label:'Improvement signal',reason:'The within-exercise performance estimate increased beyond the small-change band at comparable recorded effort.'};
+   else if(delta!==null&&delta<=-gate)verdict={direction:'down',label:'Lower performance estimate this time',reason:'This exposure was below the previous comparable one. Confirm the pattern over several sessions before calling it a decline.'};
+   else if(delta!==null)verdict={direction:'steady',label:'Performance broadly maintained',reason:'The estimate is within the small-change band, or the changed effort makes the result uncertain.'};
+   const history=[...past.slice().reverse(),row],values=history.map(S.performance).filter(v=>v>0),dates=new Set(history.map(r=>r.date));
+   if(values.length>=4&&dates.size>=3){const split=Math.floor(values.length/2),change=pct(mean(values.slice(split)),mean(values.slice(0,split)));trend={n:values.length,dates:dates.size,deltaPct:round(change),gatePct:round(gate),direction:Math.abs(change)<gate?'steady':change>0?'up':'down',note:'Recent half versus earlier half of up to nine direct exposures. This is a model estimate with changing dose and effort, not a measured strength test.'};}
+  }
+  let confidence=direct.length>=5&&effort&&!partial&&warnings.length===0?'Higher':direct.length>=2&&effort?'Moderate':'Low';if(limits.length>=3||comparison?.confounded||partial||warnings.length)confidence=confidence==='Higher'?'Moderate':'Low';
+  if(!last)limits.push('There is no earlier performed session with matching exercise context. Related movements provide background only.');
+  if(isCardio&&!metric?.primary)confidence='Low';
+  return {verdict,direct:past.map(r=>({date:r.date,dose:S.dose(r),effort:S.effortText(r),status:r.status||'Complete',technique:r.technique||'',session:r.session})),directCount:direct.length,related,warnings,limits,effort,prediction:prediction(row,S),planned,confidence,comparison,trend,metric};
+ }
+ return {version:219,review,earlier,observed};
+});
