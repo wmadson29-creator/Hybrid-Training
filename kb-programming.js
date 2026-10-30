@@ -3,7 +3,7 @@
 (function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./muscle-model.js'):root.HybridMuscleModel);if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.HybridKbProgramming=api;})(typeof globalThis==='undefined'?null:globalThis,function(M){
  'use strict';
  const technical=/get.up|snatch|high pull|gunslinger|corkscrew|clean|swing to press|thruster|push press/i;
- const delicate=/get.up|snatch|gunslinger|corkscrew|front raise|upright row|pullover|triceps extension/i;
+ const delicate=/get.up|snatch|gunslinger|corkscrew|front raise|upright row|pullover|triceps extension|bottoms?.up|overhead.*lunge|figure eight.*catch/i;
  const accessory=/curl|raise|shrug|pullover|triceps extension|upright row/i;
  const plans={three:[
   [['Turkish Get-Up',2,1],['Single-Arm Snatch',3,3],['Double Clean & Press',3,4],['Double Pause Front Squat',3,8],['Double Floor Press',3,10],['Gorilla Row',3,8],['Seated Alternating Kettlebell Press',2,6],['Kettlebell Somersault Squat',2,10],['Two-Hand Kettlebell Biceps Curl',3,10],['Kettlebell Overhead Triceps Extension',2,10],['Double Kettlebell Standing Calf Raise',3,18],['Two-Hand Swing',3,15]],

@@ -78,7 +78,7 @@
 
   const calisthenics=[
     c('Close-Grip Push-Up','push','triceps',3,10,['triceps','chest'],['shoulders','core','serratus'],['Push-Up','Diamond Push-Up','Close-Grip Barbell Bench Press'],'Narrow push-up that increases elbow-extension demand while retaining a chest stimulus.'),
-    c('Deficit Push-Up','push','chest_press',3,8,['chest'],['triceps','shoulders','core'],['Push-Up','Dumbbell Bench Press','Push-Up Plus'],'Hands elevated on stable handles to add controlled bottom range; stop before shoulder position deteriorates.',{auto:false}),
+    c('Deficit Push-Up','push','chest_press',3,8,['chest'],['triceps','shoulders','core'],['Push-Up','Dumbbell Bench Press','Push-Up Plus'],'Hands elevated on stable handles to add controlled bottom range; stop before shoulder position deteriorates.',{auto:false,aliases:['Kettlebell Handle Push-Up','KB Handle Push Up','Kettlebell Deficit Push-Up','Feet-on-Floor Kettlebell Push-Up']}),
     c('Scapular Push-Up','push','chest_press',1,12,['serratus'],['shoulders','core'],['Push-Up','Plank Shoulder Tap','Cable Y Raise'],'Straight-arm protraction/retraction drill; the torso stays rigid while the shoulder blades move.'),
     c('Wall Handstand Hold','push','shoulder_press',4,0,['shoulders','triceps'],['serratus','core','upperBack'],['Pike Push-Up','Wall Handstand Push-Up','Barbell Overhead Press'],'Wall-supported inversion hold for overhead strength and control.',{baseSeconds:20,auto:false}),
     c('Wall Handstand Push-Up','push','shoulder_press',5,5,['shoulders','triceps'],['serratus','upperBack','core'],['Wall Handstand Hold','Elevated Pike Push-Up','Barbell Overhead Press'],'Advanced wall-supported vertical press; progress range before repetitions.',{auto:false}),

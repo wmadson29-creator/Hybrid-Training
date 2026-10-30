@@ -92,3 +92,9 @@ Object.assign(window.HybridPolish,{"Double Pause Front Squat": "Przysiad przedni
 window.HybridPolishTemplates.push(["Training focus: {text}","Priorytety treningowe: {text}"]);
 
 Object.assign(window.HybridPolish,{"Double Swing to Press": "Wymach, zarzut i wyciskanie dwóch kettlebell", "Single-Arm Swing to Press": "Wymach, zarzut i wyciskanie kettlebell jednorącz"});
+
+Object.assign(window.HybridPolish,{"Single-Rack Kettlebell Front Squat":"Przysiad przedni z kettlebell po jednej stronie","Double Bottoms-Up Kettlebell Press":"Wyciskanie dwóch kettlebell dnem do góry","Single-Arm Overhead Kettlebell Reverse Lunge":"Wykrok w tył z kettlebell nad głową w jednej ręce","Kettlebell Figure Eight to Goblet Catch":"Ósemka z kettlebell z chwytem przed klatką","Source demonstration":"Demonstracja źródłowa","Optional workout ideas":"Opcjonalne pomysły na trening","Original written movement lessons":"Oryginalne pisemne lekcje ruchu","Source example":"Przykład źródłowy","Trevor Shan · exercise demos and workout ideas":"Trevor Shan · demonstracje ćwiczeń i pomysły na trening"});
+
+Object.assign(window.HybridPolish,{"One extra plate per side keeps more of the stack in place.":"Jeden dodatkowy talerz na stronę pozwala pozostawić więcej obciążenia na sztandze."});
+
+Object.assign(window.HybridPolish,{"Kettlebell Gorilla High Pull":"Naprzemienne wysokie podciąganie kettlebell w pozycji goryla"});

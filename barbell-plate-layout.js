@@ -1,7 +1,7 @@
-/* Exact symmetric plate stacks; minimizes unload/load moves between lifts. */
+/* Exact symmetric stacks; one spare plate per side can reduce between-lift swaps. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.HybridBarbellPlates=api})(typeof window==='undefined'?null:window,function(){
  'use strict';
- const sizes=[55,45,25,10,5,2.5],cache=new Map();
+ const sizes=[55,45,25,10,5,2.5],maxExtraPlatesPerSide=1,cache=new Map();
  const sum=stack=>stack.reduce((n,p)=>n+p,0);
  function transition(from,to){let kept=0;while(kept<Math.min(from.length,to.length)&&from[kept]===to[kept])kept++;return {keep:to.slice(0,kept),remove:from.slice(kept).reverse(),add:to.slice(kept),moves:from.length+to.length-2*kept}}
  function less(a,b){if(!b)return true;for(let i=0;i<a.length;i++){if(a[i]!==b[i])return a[i]<b[i]}return false}
@@ -17,18 +17,20 @@
   }
   let best=null,bestRank=null;
   function offer(stacks){
-   if(stacks.some((stack,i)=>stack.length!==dp[u[i]].length))return;
-   const changes=stacks.slice(1).map((to,i)=>transition(stacks[i],to)),moves=changes.reduce((n,c)=>n+c.moves,0),rank=[moves,Math.max(...stacks.map(s=>s.length)),stacks.reduce((n,s)=>n+s.length,0),stacks[0].length,...stacks.flatMap(s=>[...s.map(p=>-p),0])];
+   const extra=stacks.map((stack,i)=>stack.length-dp[u[i]].length);
+   if(extra.some(n=>n>maxExtraPlatesPerSide))return;
+   const changes=stacks.slice(1).map((to,i)=>transition(stacks[i],to)),moves=changes.reduce((n,c)=>n+c.moves,0),rank=[moves,Math.max(...extra),sum(extra),Math.max(...stacks.map(s=>s.length)),stacks.reduce((n,s)=>n+s.length,0),stacks[0].length,...stacks.flatMap(s=>[...s.map(p=>-p),0])];
    if(less(rank,bestRank)){best={stacks:stacks.map(s=>s.slice()),changes,movesPerSide:moves,totalPlateMoves:moves*2};bestRank=rank}
   }
-  if(u.length===1)offer([dp[u[0]]]);
+  if(u.length===1||u.every(n=>n===u[0]))offer(u.map(n=>dp[n]));
   else if(u.length===2){
    for(let shared=0;shared<=Math.min(...u);shared++)offer([[...dp[shared],...dp[u[0]-shared]],[...dp[shared],...dp[u[1]-shared]]]);
   }else{
    // The two retained prefixes of the middle stack are necessarily nested.
    // Enumerate their shared weight and the longer prefix's extra weight.
-   // Minimal-coin segments cover every possible exact stack without factorial
-   // permutation enumeration, including a 55 outside a retained 45/25 base.
+   // At fixed prefix weights, shortening any segment cannot increase moves or
+   // plate counts. Minimal-coin segments therefore cover the optimum inside
+   // the one-extra-plate bound without factorial permutation enumeration.
    for(let common=0;common<=Math.min(...u);common++)for(const longer of [0,2]){
     const limit=Math.min(u[1],u[longer])-common;
     for(let extra=0;extra<=limit;extra++){
@@ -38,7 +40,7 @@
     }
    }
   }
-  best.totals=totals.map(Number);best.stacks.forEach((s,i)=>{if(Math.abs(sum(s)*2+45-best.totals[i])>1e-7)throw Error('Inexact plate layout')});
+  best.totals=totals.map(Number);best.minimumPlatesPerSide=u.map(n=>dp[n].length);best.extraPlatesPerSide=best.stacks.map((s,i)=>s.length-best.minimumPlatesPerSide[i]);best.maxExtraPlatesPerSide=maxExtraPlatesPerSide;best.stacks.forEach((s,i)=>{if(Math.abs(sum(s)*2+45-best.totals[i])>1e-7)throw Error('Inexact plate layout')});
   cache.set(key,best);if(cache.size>150)cache.delete(cache.keys().next().value);
   return JSON.parse(JSON.stringify(best));
  }
