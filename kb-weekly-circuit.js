@@ -8,7 +8,7 @@
   [row('Single-Arm Snatch',2,3,'',true,true),row('Double Swing to Press',2,3,'',false,true),row('Kettlebell Corkscrew Swing',2,5,'',true,true),row('Double Front Squat',3,6,'main'),row('Alternating Double Kettlebell Floor Press',3,6,'main',true),row('Double RDL',3,8,'main'),row('Two-Hand Kettlebell Front Raise',2,8,'accessory'),row('Goblet Squat',2,8,'accessory'),row('Double Kettlebell Shrug',2,12,'accessory'),row('Kettlebell Pullover',2,8,'accessory'),row('Kettlebell Hammer Curl',2,8,'accessory')]
  ];
  // Repeated foundations supplement the 31; nothing is removed to make room.
- const originalNames=three.flat().map(x=>x.exercise);
+ const originalNames=three.flat().map(x=>x.exercise).filter(n=>!/turkish|get[ -]?up/i.test(n));
  three[0].splice(8,0,row('Kettlebell Somersault Squat',2,8,'accessory'));
  three[0].push(three[0].splice(3,1)[0]);
  three[1].splice(6,0,row('Double Floor Press',3,6,'main'));
@@ -39,6 +39,8 @@
  // each group. Technical opening blocks and the final swing remain separate.
  for(const list of four){let group=0,lastSets=0;for(let i=0;i<list.length;i++){const r=list[i];if(r.slow||r.exercise==='Two-Hand Swing'){r.group='';lastSets=0;continue;}if(r.sets!==lastSets)group++;r.group='circuit-'+group;lastSets=r.sets;}}
  const redesigned=(typeof module==='object'&&module.exports?require('./kb-programming.js'):globalThis.HybridKbProgramming).redesign(three,four);three.splice(0,three.length,...redesigned.three);four.splice(0,four.length,...redesigned.four);
+ // Manual-only exclusion; original library entries and completed logs remain.
+ for(const days of [three,four])for(let i=0;i<days.length;i++)days[i]=days[i].filter(r=>!/turkish|get[ -]?up/i.test(r.exercise));
  const core=['Kettlebell Around the World','Kettlebell Sit-Up','Kettlebell Russian Twist','Bear-Plank Kettlebell Pull-Through','Kettlebell Dead Bug','Half-Kneeling Kettlebell Chop'];
  const wave=week=>((Math.max(1,Math.floor(Number(week)||1))-1)%3)+1;
  function sequence(r,week,base=r.base,sets=r.sets){

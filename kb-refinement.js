@@ -45,6 +45,7 @@
    kb('Half-Kneeling Kettlebell Windmill','stability',6,['core'],[],'Hold a light bell overhead, hinge sideways under control and return. Learn the unloaded path first; count complete repetitions per side.',{coreFunctions:['lateral','integrated'],unilateral:true,auto:false,skill:'overhead',adaptationScale:.4,fatigueScale:.65,strengthDemand:.3,stabilizers:['shoulders','grip'],aliases:['Half Kneeling Windmill','Kneeling Kettlebell Windmill']}),
   kb('Seated Alternating Kettlebell Press','press',14,['shoulders'],['triceps'],'Sit tall with legs apart and alternate presses. Count reps per side; use the standing alternative if the floor position prevents a stacked torso.',{load:'double',unilateral:true,auto:false,strengthDemand:.6,stabilizers:['core'],aliases:['Alternating Kettlebell Z Press','Seated Kettlebell Z-Press']})
  ];
+ catalog.push(kb('Kettlebell Ballistic Row','pull',12,['lats','upperBack'],['biceps','glutes','hamstrings','grip','core'],'Hold one bell in a stable hinge with softly bent knees. Pull it quickly toward the lower ribs, transfer the handle to the other hand near the top, then lower under control and alternate arms. Repetitions are per arm. Learn the hand exchange at a manageable load; keep the back position stable and stop when the exchange or speed deteriorates.',{auto:false,unilateral:true,skill:'ballistic-hand-transfer',sourceUrl:'https://calisteniapp.com/exercises/kettlebell_ballistic_row/EX570',anatomyFamily:'horizontal_pull',strengthDemand:.5,adaptationScale:.65,movementWeights:{hPull:.7,hinge:.15,power:.45},fatigueWeights:{technical:.7,systemic:.5},aliases:['Ballistic Kettlebell Row','Explosive KB Row','Kettlebell Ballistic Rows']}));
  const core=[
   {name:'Kettlebell Around the World',pattern:'integrated',seconds:30,high:45,loaded:true,kg:8,sets:2,supportOnly:true},
   {name:'RKC Plank',pattern:'anti-extension',seconds:15,high:30,sets:3},
@@ -59,7 +60,6 @@
   {name:'Bear-Plank Kettlebell Pull-Through',pattern:'anti-rotation',reps:6,high:10,side:true,loaded:true,kg:6,sets:2,skill:'plank'},
   {name:'Forearm-Plank Kettlebell Reach and Pull',pattern:'anti-rotation',reps:4,high:8,side:true,loaded:true,kg:5.5,sets:2,skill:'plank'},
   {name:'Half-Kneeling Kettlebell Windmill',pattern:'lateral',reps:3,high:5,side:true,loaded:true,kg:6,sets:2,skill:'overhead',supportOnly:true},
-  {name:'Turkish Get-Up',pattern:'integrated',reps:1,high:2,side:true,loaded:true,kg:6,sets:2,skill:'overhead',supportOnly:true},
   {name:'Single-Arm Overhead Kettlebell Sit-Up',pattern:'flexion',reps:3,high:6,side:true,loaded:true,kg:5.5,sets:2,skill:'advanced'},
   {name:'Kettlebell Side Plank with Top-Leg Raise',pattern:'lateral',seconds:10,high:20,side:true,loaded:true,kg:5.5,sets:2,skill:'advanced'},
   {name:'Reverse Crunch',pattern:'flexion',reps:10,high:15,sets:2},
