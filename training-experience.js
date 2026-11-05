@@ -15,7 +15,9 @@
   ['kbworkouts','Kettlebells','Exercise library and fixed KB workouts','equipment','Training'],
   ['gymworkouts','Gym','Build substantial gym sessions','equipment','Training'],
   ['calisthenics','Bodyweight','Bodyweight and band workouts','train','Training'],
-  ['emom','EMOM & AMRAP','Timed density workouts','clock','Training'],
+  ['emom','EMOM','Minute-based density workouts','clock','Training'],
+  ['amrap','AMRAP','Timed rounds and repetitions','clock','Training'],
+  ['stretching','Stretching & flexibility','Mobility and stretching routines','run','Training'],
   ['conditioninglib','Cardio & speed','Running, swimming, biking and sprints','run','Training'],
   ['classes','Classes & activities','Schedule other training','train','Training'],
   ['history','History','Your completed sessions','history','Progress'],
@@ -32,7 +34,7 @@
   ['settings','Settings & data','Preferences, backups and app settings','settings','Your setup']
  ];
  const route=id=>{if(!document.getElementById(id))return;core.uiNavigate(id);activate(id);};
- function newScreen(id,title,copy){let view=document.getElementById(id);if(view)return view;view=document.createElement('section');view.id=id;view.className='view experience-view';view.innerHTML='<div class="screen-intro"><div class="experience-eyebrow">YOUR TRAINING</div><h2>'+esc(title)+'</h2><p>'+esc(copy)+'</p></div>';$('.shell').append(view);return view;}
+ function newScreen(id,title,copy){let view=document.getElementById(id);if(view)return view;view=document.createElement('section');view.id=id;view.className='view experience-view';view.setAttribute('aria-label',title);view.innerHTML='<div class="screen-intro screen-description"><p>'+esc(copy)+'</p></div>';$('.shell').append(view);return view;}
  const tile=(id,title,copy,glyph,tag='')=>'<button class="experience-tile" type="button" data-experience-view="'+id+'"><span class="tile-symbol">'+icon(glyph)+'</span><span class="tile-copy">'+(tag?'<small>'+esc(tag)+'</small>':'')+'<strong>'+esc(title)+'</strong><span>'+esc(copy)+'</span></span>'+icon('arrow')+'</button>';
  function installShell(){
   if($('#experienceSidebar'))return;
@@ -45,26 +47,52 @@
   const header=document.createElement('header');header.className='experience-header';header.innerHTML='<div class="header-location"><span id="experienceSection">Daily training</span><h1 id="experienceTitle">Today</h1></div><div class="experience-header-actions"><button type="button" class="experience-search" id="experienceSearch">'+icon('search')+'<span>Find a screen</span><kbd>⌘ K</kbd></button><button class="btn" type="button" data-experience-view="trainhub">'+icon('train')+'<span>Train</span></button><div id="experienceQuickLog"></div></div>';shell.prepend(header);
   const quick=$('#quickLog');if(quick)$('#experienceQuickLog').append(quick);
   const hero=$('.hero');if(hero){hero.classList.add('experience-legacy-hero');hero.setAttribute('aria-hidden','true');}
-  const more=$('#mobileMoreSheet');if(more){const row=document.createElement('div');row.className='experience-more-routes';row.innerHTML='<button class="btn" type="button" data-experience-view="trainhub">Train</button><button class="btn" type="button" data-experience-view="programs">Programs</button><button class="btn" type="button" data-experience-view="kbformats">Circuits & complexes</button><button class="btn" type="button" data-experience-view="insights">Insights</button>';more.prepend(row);}const nav=$('#mobileBottomNav');if(nav){const names={dashboard:'home',log:'log',history:'history',feedback:'feedback'};for(const b of $$('button',nav)){const text=b.textContent.trim();b.innerHTML=icon(names[b.dataset.mobileView]||'train')+'<span>'+esc(text)+'</span>';}}
+  installMore();const nav=$('#mobileBottomNav');if(nav){const names={dashboard:'home',log:'log',history:'history',feedback:'feedback'};for(const b of $$('button',nav)){const text=b.textContent.trim();b.innerHTML=icon(names[b.dataset.mobileView]||'train')+'<span>'+esc(text)+'</span>';}}
   const status=document.createElement('div');status.id='trainingComputeStatus';status.className='training-compute-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.textContent='Plan up to date';header.append(status);
  }
+ function installMore(){
+  const more=$('#mobileMoreSheet');if(!more)return;const head=$('.mobile-more-head',more);if(!head)return;
+  const old=$$(':scope > button',more),take=selector=>old.find(b=>b.matches(selector));
+  const fresh=id=>{const screen=screens.find(x=>x[0]===id),b=document.createElement('button');b.type='button';b.className='btn';b.dataset.experienceView=id;b.textContent=screen[1];return b;};
+  const stretching=take('[data-mobile-view="stretching"]')||fresh('stretching');stretching.id='stretchFlexMobileNav';
+  const groups=[
+   ['Plan & build',[fresh('trainhub'),fresh('programs'),fresh('kbformats')]],
+   ['Workouts',[take('[data-mobile-view="kbworkouts"]'),take('[data-mobile-view="gymworkouts"]'),take('[data-mobile-view="calisthenics"]'),take('[data-conditioning-nav-family="aerobic"]'),take('[data-conditioning-nav-family="hard"]'),take('[data-mobile-view="emom"]'),take('[data-mobile-view="amrap"]'),stretching,take('[data-class-activity-nav="class"]'),take('[data-class-activity-nav="activity"]')]],
+   ['Progress',[fresh('insights'),take('[data-mobile-view="feedback"]'),take('[data-mobile-view="trends"]'),take('[data-mobile-view="recovery"]'),take('[data-mobile-view="bodyweight"]'),take('[data-mobile-view="progress"]')]],
+   ['Your setup',[take('[data-mobile-view="homegym"]'),take('[data-mobile-view="mygym"]'),take('[data-mobile-view="traininglibrary"]'),take('[data-mobile-view="maxes"]'),take('[data-mobile-view="settings"]')]]
+  ];
+  const used=new Set(groups.flatMap(g=>g[1]));groups[1][1].push(...old.filter(b=>!used.has(b)));
+  const body=document.createElement('nav');body.className='experience-more-body';body.setAttribute('aria-label','More screens');
+  for(const [label,buttons]of groups){const section=document.createElement('section');section.className='experience-more-group';const title=document.createElement('h3');title.textContent=label;section.append(title);
+   for(const b of buttons.filter(Boolean)){const id=b.dataset.experienceView||b.dataset.mobileView,screen=screens.find(x=>x[0]===id),text=b.textContent.trim(),glyph=screen?.[3]||(b.dataset.conditioningNavFamily?'run':'train');b.classList.add('experience-more-link');b.innerHTML=icon(glyph)+'<span>'+esc(text)+'</span>'+icon('arrow');section.append(b);}body.append(section);
+  }
+  more.replaceChildren(head,body);
+ }
+ function installRecoveryLayout(){
+  const snapshot=$('#recoverySnapshot');if(!snapshot)return;const grid=$('.recovery-mini-grid',snapshot);if(!grid)return;
+  const note=document.createElement('p');note.className='experience-recovery-missing';grid.after(note);
+  const update=()=>{const missing=[];for(const tile of [...grid.children]){const value=$('strong',tile)?.textContent.trim()||'',empty=value==='—'||value==='No data'||value==='';tile.dataset.recoveryMissing=String(empty);if(empty)missing.push($('span',tile)?.textContent.trim()||'');}
+   const show=missing.length>0&&missing.length<grid.children.length;note.hidden=!show;const text=show?'Not recorded: '+missing.join(', ')+'.':'';if(note.textContent!==text)note.textContent=text;
+  };
+  update();new MutationObserver(update).observe(grid,{childList:true,characterData:true,subtree:true});
+ }
  function installTraining(){
-  const hub=newScreen('trainhub','Make room for great training.','Follow a structured block or build the session that fits today.');
+  const hub=newScreen('trainhub','Train','Choose a program or build a workout.');
   if(!$('#experienceProgramCard')){const p=document.createElement('div');p.id='experienceProgramCard';p.className='experience-program-current';hub.append(p);const grid=document.createElement('div');grid.className='experience-tile-grid';grid.innerHTML=tile('programs','Choose your program','Kettlebell, barbell and gym combinations.','train','YOUR NEXT BLOCK')+tile('kbformats','Circuits, complexes & rep targets','Choose the format, purpose and prescribed workload.','clock','BUILD A WORKOUT')+tile('kbworkouts','Kettlebells','Your full exercise library and fixed routines.','equipment')+tile('gymworkouts','Gym workout','A complete session for the equipment you have.','equipment')+tile('calisthenics','Bodyweight & bands','Useful training with a smaller setup.','train')+tile('emom','EMOM & AMRAP','Set the time, movements and workout role.','clock')+tile('conditioninglib','Cardio & speed','Easy endurance, intervals, hills and sprints.','run')+tile('classes','Classes & activities','Bring other training into your week.','train');hub.append(grid);}
-  const programs=newScreen('programs','A plan you can keep building.','Schedule a block, review your progress and make room for travel.');
-  const formats=newScreen('kbformats','Choose how you want to work.','Conventional sets, prescribed circuits, continuous complexes or a rep target.');
-  const p=$('#rotatingProgramSetup'),f=$('#kbDynamicFormats');if(p)programs.append(p);if(f)formats.append(f);
+  const programs=newScreen('programs','Programs','Schedule training blocks, reviews and travel.');
+  const formats=newScreen('kbformats','Workout formats','Conventional sets, circuits, continuous complexes and total-rep targets.');
+  const p=$('#rotatingProgramSetup'),f=$('#kbDynamicFormats');if(p){programs.append(p);const title=$(':scope > h2',p);if(title)title.textContent='Schedule a program';for(const label of $$('.rotation-program > span',p))label.textContent=label.textContent.replace('1 open days','1 open day');}if(f)formats.append(f);
   const travel=$('#kbTravelScheduler')||$('#kbTravelSettings')||$('#kbTravelSetup');if(travel)programs.append(travel);
   const old=$('#kbworkouts');if(old&&!$('#experienceKbRoutes')){const box=document.createElement('div');box.id='experienceKbRoutes';box.className='experience-route-banner';box.innerHTML='<div><strong>Programs and workout formats have their own space.</strong><span>Use this screen for the kettlebell library and established fixed routines.</span></div><div class="inline-actions"><button class="btn" type="button" data-experience-view="programs">Programs</button><button class="btn" type="button" data-experience-view="kbformats">Workout formats</button></div>';old.prepend(box);}
  }
  function installInsights(){
-  const view=newScreen('insights','See what your training is building.','Explore the results you have logged, with estimates and observations kept distinct.');
+  const view=newScreen('insights','Insights','Review your completed training and progress.');
   if($('#experienceInsightTiles'))return;const grid=document.createElement('div');grid.id='experienceInsightTiles';grid.className='experience-tile-grid';grid.innerHTML=tile('feedback','Workout feedback','Actual effort, completed work and next-step learning.','feedback')+tile('trends','Training trends','Muscle coverage, fitness qualities and workload.','chart')+tile('progress','Strength progression','Benchmark lifts and your training wave.','chart')+tile('bodyweight','Body measurements','Weight and body-composition trends.','chart')+tile('history','Completed sessions','Review or correct exactly what you recorded.','history')+tile('recovery','Recovery check-in','Sleep, alertness, soreness and wearable observations.','heart');view.append(grid);
   const recent=document.createElement('div');recent.className='panel';recent.innerHTML='<div class="panel-head"><div><div class="panel-title">Recent training</div><div class="panel-sub">Completed sessions from your history.</div></div></div><div id="experienceRecentSessions"></div>';view.append(recent);
  }
  function installDashboard(){
   const home=$('#dashboard');if(!home||$('#experienceTodayIntro'))return;
-  const intro=document.createElement('div');intro.id='experienceTodayIntro';intro.className='experience-today-intro';intro.innerHTML='<div><div class="experience-eyebrow" id="experienceTodayDate"></div><h2>Build on yesterday.<br><span>Train for what’s next.</span></h2><p id="experienceTodayProgram">Your training adapts to the work you actually do.</p></div><div class="today-actions"><button class="btn primary" type="button" data-experience-view="trainhub">Explore training '+icon('arrow')+'</button><button class="btn" type="button" data-experience-view="programs">Manage program</button></div>';
+  const intro=document.createElement('div');intro.id='experienceTodayIntro';intro.className='experience-today-intro';intro.innerHTML='<div class="today-context"><div class="experience-eyebrow" id="experienceTodayDate"></div><p id="experienceTodayProgram"></p></div>';
   home.prepend(intro);
   const recovery=$('#recoverySnapshot'),calendar=$('.calendar-panel',home),workout=$('.workout-prescription-panel',home),primary=$('#v36152Primary');if(recovery)intro.after(recovery);if(calendar)(recovery||intro).after(calendar);if(primary)(calendar||recovery||intro).after(primary);if(workout)(primary||calendar||recovery||intro).after(workout);
   const context=document.createElement('details');context.className='experience-context';context.id='experienceTrainingContext';context.innerHTML='<summary><span>'+icon('chart')+'Training context & analysis</span><small>Progress, readiness and program details</small></summary><div class="experience-context-body"></div>';home.append(context);
@@ -72,12 +100,12 @@
   const title=$('.panel-title',calendar);if(title)title.textContent='Your week';
  }
  function installScreenHeaders(){
-  for(const s of screens){const view=document.getElementById(s[0]);if(!view||$('.screen-intro',view)||s[0]==='dashboard')continue;const head=document.createElement('div');head.className='screen-intro screen-intro-compact';head.innerHTML='<div class="experience-eyebrow">'+esc(s[4])+'</div><h2>'+esc(s[1])+'</h2><p>'+esc(s[2])+'</p>';view.prepend(head);}
+  for(const s of screens){const view=document.getElementById(s[0]);if(view)view.setAttribute('aria-label',s[1]);}
  }
  function installSettings(){
   const settings=$('#settings');if(!settings||$('#experienceSettingsIndex'))return;
   const index=document.createElement('div');index.id='experienceSettingsIndex';index.className='experience-settings-index';
-  const panels=$$(':scope > .panel',settings);panels.forEach((p,i)=>{const title=$('.panel-title',p)?.textContent.trim()||'More settings';p.dataset.settingsGroup=title;if(!p.id)p.id='experienceSettingsGroup'+i;const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=title;b.onclick=()=>p.scrollIntoView({behavior:'smooth',block:'start'});index.append(b);});$('.screen-intro',settings)?.after(index);
+  const panels=$$(':scope > .panel',settings);panels.forEach((p,i)=>{const title=$('.panel-title',p)?.textContent.trim()||'More settings';p.dataset.settingsGroup=title;if(!p.id)p.id='experienceSettingsGroup'+i;const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=title;b.onclick=()=>p.scrollIntoView({behavior:'smooth',block:'start'});index.append(b);});const intro=$('.screen-intro',settings);if(intro)intro.after(index);else settings.prepend(index);
  }
  function installSearch(){
   if($('#experienceSearchDialog'))return;const d=document.createElement('dialog');d.id='experienceSearchDialog';d.className='experience-search-dialog';d.setAttribute('aria-label','Find a screen');d.innerHTML='<div class="search-dialog-head">'+icon('search')+'<input id="experienceSearchInput" type="search" placeholder="Where would you like to go?" aria-label="Find a screen"><button class="btn" type="button" id="experienceSearchClose">Close</button></div><div id="experienceSearchResults"></div>';document.body.append(d);
@@ -93,11 +121,11 @@
   const state=core.getState(),today=core.localISO(new Date()),ctx=window.HybridTrainingRotation?.context(state.settings.rotatingPrograms,today,state.settings.kbTravelWeeks||[]),travel=(state.settings.kbTravelWeeks||[]).find(t=>today>=t.startDate&&today<window.HybridTrainingRotation.shift(t.startDate,7));
   const label=ctx?ctx.name:'Your established training program';
   const date=$('#experienceTodayDate');if(date)date.textContent=new Date(today+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
-  const program=$('#experienceTodayProgram');if(program)program.textContent=travel?'Travel week · your main program is paused.':ctx?label+' · active week '+ctx.week+' of 3.':'Your plan follows actual training, recovery and available equipment.';
+  const program=$('#experienceTodayProgram');if(program){program.textContent=travel?'Travel week · your main program is paused.':ctx?label+' · active week '+ctx.week+' of 3.':'';program.hidden=!travel&&!ctx;}
   const card=$('#experienceProgramCard');if(card){const text=travel?'Travel week':label,detail=travel?'Your program resumes after travel.':ctx?'Week '+ctx.week+' / 3 · '+ctx.label+' · next review '+ctx.next:'Keep your current routine or schedule a new block.';card.innerHTML='<div><span class="experience-eyebrow">CURRENT PROGRAM</span><h3>'+esc(text)+'</h3><p>'+esc(detail)+'</p></div><button class="btn" type="button" data-experience-view="programs">Review program '+icon('arrow')+'</button>';}
   const recent=$('#experienceRecentSessions');if(recent&&$('#insights')?.classList.contains('active')){const groups=new Map();for(const r of state.logs||[])if(r.date<=today&&!r.projectedForecast&&!r.projectedPlanRow&&!['skipped','missed'].includes(String(r.status||'').toLowerCase())){const key=r.sessionId||r.date+'|'+r.session;if(!groups.has(key))groups.set(key,{date:r.date,session:r.session,count:0});groups.get(key).count++;}const rows=[...groups.values()].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);recent.innerHTML=rows.length?rows.map(r=>'<div class="experience-recent-row"><span class="recent-check">'+icon('check')+'</span><span><strong>'+esc(r.session)+'</strong><small>'+esc(r.count+' recorded movements')+'</small></span><time>'+esc(r.date)+'</time></div>').join(''):'<div class="experience-empty">Your completed sessions will appear here after you log training.</div>';}
  }
- function boot(){installShell();installTraining();installInsights();installDashboard();installScreenHeaders();installSettings();installSearch();document.addEventListener('click',e=>{const b=e.target.closest('[data-experience-view]');if(!b)return;e.preventDefault();$('#experienceSearchDialog')?.close();route(b.dataset.experienceView);});activate($('.view.active')?.id||'dashboard');}
+ function boot(){installShell();installTraining();installInsights();installDashboard();installRecoveryLayout();installScreenHeaders();installSettings();installSearch();document.addEventListener('click',e=>{const b=e.target.closest('[data-experience-view]');if(!b)return;e.preventDefault();$('#experienceSearchDialog')?.close();route(b.dataset.experienceView);if(b.closest('#mobileMoreSheet'))$('#mobileMoreClose')?.click();});activate($('.view.active')?.id||'dashboard');}
  window.HybridExperience=Object.freeze({activate,refresh,navigate:route,screens:()=>screens.map(s=>({id:s[0],title:s[1],group:s[4]}))});
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

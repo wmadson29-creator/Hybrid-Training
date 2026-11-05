@@ -38,7 +38,7 @@ const apiSource=`window.__hybridForecastEngine={
  analysis(date){return {date,weak:weakLinkDiagnostics(date),plateau:plateauDiagnostics(date),asymmetry:asymmetryDiagnostics(date),missing:missingStimulusDiagnostics(date),cardio:cardioDoseGuidance(date),quality:dataQualityWarnings(date),conditioning:conditioningFitnessPortfolio(date)};}
 };`;
 async function initialize(){
- setupRealm();const response=await fetch('index.html?v=36.223');if(!response.ok)throw Error('Forecast model source unavailable');const html=await response.text();if(!html.includes('HYBRID_APP_BUILD="36.223"'))throw Error('Forecast model version does not match this app. Reload to update.');for(const m of html.matchAll(/\bid=["']([A-Za-z_$][\w$]*)["']/g))if(!(m[1] in self))self[m[1]]=element(m[1]);
+ setupRealm();const response=await fetch('index.html?v=36.224');if(!response.ok)throw Error('Forecast model source unavailable');const html=await response.text();if(!html.includes('HYBRID_APP_BUILD="36.224"'))throw Error('Forecast model version does not match this app. Reload to update.');for(const m of html.matchAll(/\bid=["']([A-Za-z_$][\w$]*)["']/g))if(!(m[1] in self))self[m[1]]=element(m[1]);
  const head=html.split('</head>')[0],scripts=[...head.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m=>m[1]);for(const src of scripts)importScripts(src);
  let source=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(s=>s.includes('window.HybridCore=Object.seal({'));if(!source)throw Error('Forecast model bridge unavailable');
  source=source.replace(/\/\* BEGIN COMPLETION WORKFLOWS \*\/[\s\S]*?\/\* END COMPLETION WORKFLOWS \*\//,'');
@@ -52,5 +52,5 @@ self.onmessage=async event=>{const m=event.data||{};try{
  if(!engineReady){if(!initPromise)initPromise=initialize();await initPromise;}
  if(lastRevision!==m.revision){self.__hybridForecastEngine.replace(m.state,m.controls);lastRevision=m.revision;}
  const value=m.type==='analysis'?self.__hybridForecastEngine.analysis(m.date):m.type==='recovery'?self.__hybridForecastEngine.recovery(m.date):self.__hybridForecastEngine.snapshot(m.date);
- self.postMessage({id:m.id,revision:m.revision,build:'36.223',type:'result',value:JSON.parse(JSON.stringify(value))});
- }catch(error){self.postMessage({id:m.id,revision:m.revision,build:'36.223',type:'error',message:String(error?.message||error),stack:error?.stack||''});}};
+ self.postMessage({id:m.id,revision:m.revision,build:'36.224',type:'result',value:JSON.parse(JSON.stringify(value))});
+ }catch(error){self.postMessage({id:m.id,revision:m.revision,build:'36.224',type:'error',message:String(error?.message||error),stack:error?.stack||''});}};
