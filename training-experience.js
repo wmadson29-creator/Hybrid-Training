@@ -44,8 +44,8 @@
   document.body.prepend(sidebar);
   const skip=document.createElement('a');skip.className='experience-skip';skip.href='#experienceMain';skip.textContent='Skip to content';document.body.prepend(skip);
   const shell=$('.shell');shell.id='experienceMain';shell.setAttribute('role','main');shell.setAttribute('tabindex','-1');
-  const header=document.createElement('header');header.className='experience-header';header.innerHTML='<div class="header-location"><span id="experienceSection">Daily training</span><h1 id="experienceTitle">Today</h1></div><div class="experience-header-actions"><button type="button" class="experience-search" id="experienceSearch">'+icon('search')+'<span>Find a screen</span><kbd>⌘ K</kbd></button><button class="btn" type="button" data-experience-view="trainhub">'+icon('train')+'<span>Train</span></button><div id="experienceQuickLog"></div></div>';shell.prepend(header);
-  const quick=$('#quickLog');if(quick)$('#experienceQuickLog').append(quick);
+  const header=document.createElement('header');header.className='experience-header';header.innerHTML='<div class="header-location"><span id="experienceSection">Daily training</span><h1 id="experienceTitle">Today</h1></div><div class="experience-header-actions"><button type="button" class="experience-search" id="experienceSearch" aria-label="Find a screen">'+icon('search')+'<span>Find a screen</span><kbd>⌘ K</kbd></button><button class="btn" type="button" data-experience-view="trainhub" aria-label="Train">'+icon('train')+'<span>Train</span></button><div id="experienceQuickLog"></div></div>';shell.prepend(header);
+  const quick=$('#quickLog');if(quick){quick.setAttribute('aria-label',"Log today's workout");quick.innerHTML=icon('log')+'<span>Log workout</span>';$('#experienceQuickLog').append(quick);}
   const hero=$('.hero');if(hero){hero.classList.add('experience-legacy-hero');hero.setAttribute('aria-hidden','true');}
   installMore();const nav=$('#mobileBottomNav');if(nav){const names={dashboard:'home',log:'log',history:'history',feedback:'feedback'};for(const b of $$('button',nav)){const text=b.textContent.trim();b.innerHTML=icon(names[b.dataset.mobileView]||'train')+'<span>'+esc(text)+'</span>';}}
   const status=document.createElement('div');status.id='trainingComputeStatus';status.className='training-compute-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.textContent='Plan up to date';header.append(status);
@@ -108,7 +108,7 @@
   const panels=$$(':scope > .panel',settings);panels.forEach((p,i)=>{const title=$('.panel-title',p)?.textContent.trim()||'More settings';p.dataset.settingsGroup=title;if(!p.id)p.id='experienceSettingsGroup'+i;const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=title;b.onclick=()=>p.scrollIntoView({behavior:'smooth',block:'start'});index.append(b);});const intro=$('.screen-intro',settings);if(intro)intro.after(index);else settings.prepend(index);
  }
  function installSearch(){
-  if($('#experienceSearchDialog'))return;const d=document.createElement('dialog');d.id='experienceSearchDialog';d.className='experience-search-dialog';d.setAttribute('aria-label','Find a screen');d.innerHTML='<div class="search-dialog-head">'+icon('search')+'<input id="experienceSearchInput" type="search" placeholder="Where would you like to go?" aria-label="Find a screen"><button class="btn" type="button" id="experienceSearchClose">Close</button></div><div id="experienceSearchResults"></div>';document.body.append(d);
+  if($('#experienceSearchDialog'))return;const d=document.createElement('dialog');d.id='experienceSearchDialog';d.className='experience-search-dialog';d.setAttribute('aria-label','Find a screen');d.innerHTML='<div class="search-dialog-head">'+icon('search')+'<input id="experienceSearchInput" type="search" placeholder="Find a screen" aria-label="Find a screen"><button class="btn" type="button" id="experienceSearchClose">Close</button></div><div id="experienceSearchResults"></div>';document.body.append(d);
   const input=$('input',d),render=()=>{const q=input.value.toLowerCase().trim(),matches=screens.filter(s=>(s[1]+' '+s[2]+' '+s[4]).toLowerCase().includes(q)).sort((a,b)=>{const rank=s=>s[1].toLowerCase().startsWith(q)?2:s[1].toLowerCase().includes(q)?1:0;return rank(b)-rank(a);});$('#experienceSearchResults').innerHTML=matches.map(s=>'<button class="search-screen-result" type="button" data-experience-view="'+s[0]+'">'+icon(s[3])+'<span><strong>'+s[1]+'</strong><small>'+s[2]+'</small></span>'+icon('arrow')+'</button>').join('')||'<p class="experience-empty">No matching screen. Try “program”, “recovery” or “gym”.</p>';};
   input.addEventListener('input',render);$('#experienceSearchClose').onclick=()=>d.close();$('#experienceSearch').onclick=()=>{input.value='';render();d.showModal();input.focus();};d.addEventListener('click',e=>{if(e.target===d)d.close();});document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#experienceSearch').click();}});
  }
@@ -119,13 +119,84 @@
  }
  function refresh(){
   const state=core.getState(),today=core.localISO(new Date()),ctx=window.HybridTrainingRotation?.context(state.settings.rotatingPrograms,today,state.settings.kbTravelWeeks||[]),travel=(state.settings.kbTravelWeeks||[]).find(t=>today>=t.startDate&&today<window.HybridTrainingRotation.shift(t.startDate,7));
-  const label=ctx?ctx.name:'Your established training program';
+  const label=ctx?ctx.name:(state.settings.blockMode==='tb'?'Barbell strength':state.settings.blockMode==='hybrid'?'Barbell + kettlebells':'Your current program');
   const date=$('#experienceTodayDate');if(date)date.textContent=new Date(today+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}).toUpperCase();
   const program=$('#experienceTodayProgram');if(program){program.textContent=travel?'Travel week · your main program is paused.':ctx?label+' · active week '+ctx.week+' of 3.':'';program.hidden=!travel&&!ctx;}
   const card=$('#experienceProgramCard');if(card){const text=travel?'Travel week':label,detail=travel?'Your program resumes after travel.':ctx?'Week '+ctx.week+' / 3 · '+ctx.label+' · next review '+ctx.next:'Keep your current routine or schedule a new block.';card.innerHTML='<div><span class="experience-eyebrow">CURRENT PROGRAM</span><h3>'+esc(text)+'</h3><p>'+esc(detail)+'</p></div><button class="btn" type="button" data-experience-view="programs">Review program '+icon('arrow')+'</button>';}
   const recent=$('#experienceRecentSessions');if(recent&&$('#insights')?.classList.contains('active')){const groups=new Map();for(const r of state.logs||[])if(r.date<=today&&!r.projectedForecast&&!r.projectedPlanRow&&!['skipped','missed'].includes(String(r.status||'').toLowerCase())){const key=r.sessionId||r.date+'|'+r.session;if(!groups.has(key))groups.set(key,{date:r.date,session:r.session,count:0});groups.get(key).count++;}const rows=[...groups.values()].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);recent.innerHTML=rows.length?rows.map(r=>'<div class="experience-recent-row"><span class="recent-check">'+icon('check')+'</span><span><strong>'+esc(r.session)+'</strong><small>'+esc(r.count+' recorded movements')+'</small></span><time>'+esc(r.date)+'</time></div>').join(''):'<div class="experience-empty">Your completed sessions will appear here after you log training.</div>';}
  }
- function boot(){installShell();installTraining();installInsights();installDashboard();installRecoveryLayout();installScreenHeaders();installSettings();installSearch();document.addEventListener('click',e=>{const b=e.target.closest('[data-experience-view]');if(!b)return;e.preventDefault();$('#experienceSearchDialog')?.close();route(b.dataset.experienceView);if(b.closest('#mobileMoreSheet'))$('#mobileMoreClose')?.click();});activate($('.view.active')?.id||'dashboard');}
+ function installReadableControls(){
+  const programLabels={tb:'Barbell strength',hybrid:'Barbell + kettlebells',conditioning:'Cardio & sprints',armor:'Armor Building','armor-barbell':'Armor + barbell','kb-four':'4 KB days + 3 open','kb-travel':'Travel · kettlebells','calisthenics-travel':'Travel · bodyweight','calisthenics-bands-travel':'Travel · bands'};for(const option of $$('#blockModeSelect option'))if(programLabels[option.value]){option.title=option.textContent;option.textContent=programLabels[option.value];}
+
+  for(const label of $$('.toggle-line')){if(label.querySelector('.toggle-copy'))continue;const copy=document.createElement('span');copy.className='toggle-copy';for(const node of [...label.childNodes])if(!(node.nodeType===1&&node.tagName==='INPUT'))copy.append(node);label.append(copy);}
+  const adapt=()=>{for(const table of $$('#progress table,#traininglibrary table')){const headers=$$('thead th',table).map(th=>th.textContent.trim());if(!headers.length)continue;table.classList.add('responsive-records');for(const row of $$('tbody tr',table))for(const [i,cell]of [...row.cells].entries()){const label=headers[i]||'';if(cell.dataset.columnLabel!==label)cell.dataset.columnLabel=label;}}};
+  adapt();for(const id of ['progress','traininglibrary']){const root=document.getElementById(id);if(root)new MutationObserver(adapt).observe(root,{childList:true,subtree:true});}
+ }
+/* Readable screens: each task has one surface and optional detail stays optional. */
+function installClarity226(){
+ const detail=(label,nodes,anchor)=>{nodes=nodes.filter(Boolean);if(!nodes.length)return null;const d=document.createElement('details');d.className='clarity-details';d.innerHTML='<summary>'+esc(label)+'</summary><div class="clarity-details-body"></div>';if(anchor)anchor.after(d);else nodes[0].before(d);for(const n of nodes)$('div',d).append(n);return d;};
+ const stepFor=id=>document.getElementById(id)?.closest('.gym-step');
+ const cleanSteps=root=>{for(const title of $$('.gym-step-title',root))title.textContent=title.textContent.replace(/^\d+\.\s*/,'');};
+ // Replace duplicate recommendation introductions with a single optional assistant.
+ for(const [panelId,key]of [['logGuidedGymPanel','logGym'],['logGuidedCalPanel','logCal'],['logGuidedSEPanel','logSE'],['logGuidedKettlebellPanel','logKb'],['gymworkouts','gym'],['calisthenics','cal']]){
+  const root=document.getElementById(panelId);if(!root)continue;cleanSteps(root);
+  const advice=$('.v36181-recommendation',root);if(advice){const old=key.startsWith('log')?$(':scope > .notice:not(.v36181-recommendation)',root):$('#'+(key==='gym'?'recommendGymWorkout':'recommendCalWorkout'),root)?.closest('.notice');if(old)old.classList.add('clarity-redundant');const d=detail('Suggest settings for me',[advice]);d.classList.add('clarity-suggestion');const mode=$('select',advice);if(mode)$('label',advice).textContent='What should the app choose?';}
+ }
+ // The custom builder is a focused task, with one workout type control.
+ const custom=$('#logGuidedBuilderDetails');if(custom){
+  for(const select of $$('select',custom)){select.classList.remove('v3677-inline-hidden');if(select.nextElementSibling?.classList.contains('inline-choice-buttons'))select.nextElementSibling.remove();}
+
+  custom.classList.add('clarity-builder');cleanSteps(custom);
+  const mode=$('.log-guided-builder-mode',custom);if(mode){const name=$('#logGuidedWorkoutName').closest('.field');const nameDetails=detail('Workout name',[name],mode);custom.insertBefore(nameDetails,$('#logBuildGuidedWorkout')?.closest('.inline-actions')||null);}
+  for(const id of ['logGuidedAerobicPanel','logGuidedSpeedPanel','logGuidedClassPanel']){const panel=document.getElementById(id);const notice=$(':scope > .notice',panel);if(notice){const action=$('.inline-actions',notice);if(action){notice.replaceChildren(action);notice.classList.add('clarity-plain-action');const b=$('button',action);if(b)b.textContent='Suggest a session';}else notice.classList.add('clarity-redundant');}}
+  for(const id of ['logGymDifficulty','logGymRepStyle','logGymPriorityFocus','logGymDbMin']){const step=stepFor(id);if(step)step.classList.add('clarity-advanced-step');}
+  const gym=$('#logGuidedGymPanel'),existing=$('.v36175-more-preferences',gym);if(existing){existing.classList.add('clarity-redundant');for(const step of $$('.gym-step',existing))gym.append(step);}
+  detail('Difficulty & exercise preferences',$$('.clarity-advanced-step',gym));
+  // Keep time before muscle selection and tuck persistent equipment configuration away.
+  const equipment=stepFor('logGymDbMin');if(equipment)equipment.classList.remove('clarity-advanced-step');
+  const gymTime=stepFor('logGymDuration'),gymGear=$('.log-gym-equipment-pref',gym)?.closest('.gym-step'),gymFocus=stepFor('logGymFocusChoices');if(gymGear&&$('.gym-step-sub',gymGear))$('.gym-step-sub',gymGear).textContent='Only affects this workout.';if(gymFocus&&$('.gym-step-sub',gymFocus))$('.gym-step-sub',gymFocus).textContent='Choose groups. Use the arrow for specific regions.';if(gymFocus){const presets=$('.inline-actions',gymFocus);if(presets)$('#logGymFocusChoices').before(presets);}if(gymTime&&gymGear&&gymFocus){const assistant=$('.clarity-suggestion',gym);assistant.after(gymTime,gymGear,gymFocus);}
+  for(const [id,label]of [['logCalDifficulty','Difficulty'],['logKbStyle','Style & exercise priority']]){const el=document.getElementById(id);if(!el)continue;const nodes=id==='logKbStyle'?[el.closest('.field'),$('#logKbFocus')?.closest('.field')]:[stepFor(id)];detail(label,nodes);}
+  const cal=$('#logGuidedCalPanel');for(const step of $$('.gym-step',cal))if($(' .notice',step)&&!$('input,select',step))detail('How sets & reps are chosen',[step]);
+  const calTime=stepFor('logCalDuration');if(calTime)$('.clarity-suggestion',cal).after(calTime);
+  for(const [id,title]of [['logAerobicActivity','Activity'],['logSpeedActivity','Session'],['logClassActivity','Activity']]){const select=document.getElementById(id);if(select){const field=select.closest('.field');if(field)$('label',field).textContent=title;}}
+  for(const id of ['logKbSetup','logSEKbSetup'])for(const option of $$('#'+id+' option'))if(option.value==='40single'){option.disabled=true;option.textContent='40 lb bell · not used in these plans';}
+ }
+ // Simple muscle rows, with a separate large, accessible region-disclosure control.
+ for(const card of $$('#logGymFocusChoices .log-builder-focus-parent')){const d=$(':scope > details',card),label=$(':scope > label',card),summary=d&&$('summary',d);if(summary){summary.textContent='›';summary.setAttribute('aria-label',(label?.textContent.trim()||'Muscle')+' specifics');}}
+ // Dedicated builders share the same time → equipment → focus order.
+ for(const [rootId,timeId,focusId,difficultyId]of [['gymworkouts','gymDuration','gymFocusChoices','gymDifficulty'],['calisthenics','calDuration','calSelectFullBody','calDifficulty']]){
+  const root=document.getElementById(rootId),panel=$(':scope > .panel',root);if(!panel)continue;
+  const extraIds=rootId==='gymworkouts'?['gymDifficulty','gymRepStyle','gymPriorityFocus']:['calDifficulty'];
+  const extras=[...new Set(extraIds.map(stepFor).filter(Boolean))];detail('More workout preferences',extras);
+  const time=stepFor(timeId),advice=$('.clarity-suggestion',panel);if(time&&advice)advice.after(time);
+  for(const sub of $$('.gym-step-sub',panel))if(sub.textContent.length>100)detail('Selection help',[sub]);
+  if(rootId==='calisthenics')for(const step of $$('.gym-step',panel))if($('.notice',step)&&!$('input,select',step))detail('How sets & reps are chosen',[step]);
+ }
+ // Programs belong together. Long explanations are available without burying controls.
+ const programs=$('#programs');
+ for(const [id,label]of [['kbTravelSetup','Travel with kettlebells'],['calTravelSetup','Travel with bodyweight or bands'],['kbFourDaySetup','Four-day repeating kettlebell circuit'],['armorBuildingSetup','Armor Building · eight-week cycle']]){
+  const panel=document.getElementById(id);if(!panel||!programs)continue;programs.append(panel);const h=$(':scope > h2',panel);if(h)h.remove();const d=detail(label,[panel]);d.classList.add('clarity-program');
+  const paragraphs=$$(':scope > p',panel).filter(p=>!p.id&&p.textContent.trim());detail('Program details',paragraphs);
+ }
+ const rotation=$('#rotatingProgramSetup');if(rotation){const copy=$$(':scope > p',rotation).filter(p=>!p.id);detail('How this program progresses',copy);}
+ // Settings has three useful sections, instead of an index and nested unnamed boxes.
+ $('#experienceSettingsIndex')?.remove();
+ const settings=$('#settings');if(settings){const panel=$(':scope > .panel',settings);if(panel){const data=$('#toolsDetails',panel);if(data){data.classList.add('clarity-details');$('summary',data).textContent='Backup, import & app data';panel.after(data);}const head=$(':scope > .panel-head',panel);if(head){$('.panel-title',head).textContent='Training preferences';$('.panel-sub',head).textContent='Program settings and training maxes.';}const notes=$$(':scope > .notice',panel);detail('About these settings',notes);}}
+ const week=$('.calendar-panel'),weekHead=week&&$('.panel-head',week),weekTitle=weekHead&&$(':scope > div:not(.week-nav)',weekHead);if(weekTitle&&$('#jumpToday')){weekTitle.classList.add('clarity-week-title');weekTitle.append($('#jumpToday'));}
+ for(const id of ['gymFocusChoices','logGymFocusChoices']){const choices=document.getElementById(id),step=choices?.closest('.gym-step'),presets=step&&$('.inline-actions',step);if(choices&&presets){presets.classList.add('clarity-focus-presets');choices.before(presets);}}
+ const demos=$('#kbCoachReferenceShelf > summary');if(demos)demos.textContent='Exercise demos & workout ideas';
+ // Give the kettlebell library a clear choice before the long fixed routine editor.
+ const kb=$('#kbworkouts');if(kb){const routine=$(':scope > .panel:not(.library-panel)',kb);if(routine){const callout=$('.notice:has(button)',routine);if(callout){kb.prepend(callout);callout.classList.add('clarity-kb-start');const b=$('button',callout);if(b)b.textContent='Build kettlebell workout';const strong=$('strong',callout);if(strong)strong.textContent='One workout';for(const paragraph of $$('p',callout))paragraph.textContent='Choose bells, time and focus.';}detail('Edit an established fixed routine',[routine]);}const legacy=$(':scope > p.notice',kb),review=$('#kbCircuitReviewOpen');if(legacy||review){const context=detail('Kettlebell progression',[review,legacy].filter(Boolean));if(context)programs.append(context);}}
+ for(const rootId of ['gymworkouts','calisthenics']){const panel=$('#'+rootId+' > .panel');if(!panel)continue;for(const notice of $$('.notice',panel))if($('strong',notice)?.textContent.trim()==='Want a starting point?')notice.classList.add('clarity-redundant');const name=$('#'+(rootId==='gymworkouts'?'gymWorkoutName':'calWorkoutName'));if(name)detail('Workout name',[name.closest('.field')],$('.clarity-suggestion',panel));}
+ for(const [id,copy]of [['conditioningSearch','Search cardio sessions'],['classSearch','Search classes or activities']]){const field=document.getElementById(id);if(field)field.placeholder=copy;}
+ const formats=$('#kbDynamicFormats');if(formats){const paragraph=$(':scope > p',formats);if(paragraph)paragraph.textContent='Choose a format, then review the exercises in Log.';const goal=$('#kbTargetGoal');if(goal){const update=()=>{goal.closest('label,.field').hidden=$('#kbDynamicFormat').value!=='rep-target';};$('#kbDynamicFormat').addEventListener('change',update);update();}}
+ // Labels should be useful without reading a paragraph inside every action.
+ for(const [id,label]of Object.entries({logResetGuidedBuilder:'Reset choices',logBuildGuidedWorkout:'Build workout',logGuidedSecondaryCancel:'Cancel',logRecommendAerobic:'Suggest a session',logRecommendSpeed:'Suggest a session',logRecommendGym:'Suggest settings',logRecommendCal:'Suggest settings',logRecommendSE:'Suggest settings',logRecommendKettlebell:'Suggest settings',kbFourSchedule:'Start circuit',armorSchedule:'Schedule cycle'})){const b=document.getElementById(id);if(b)b.textContent=label;}
+ // One stable type select replaces the duplicate pill selector added by older UI.
+ const type=$('#logGuidedBuilderType');if(type){type.setAttribute('aria-label','Workout type');type.closest('.field').classList.add('clarity-workout-type');}
+}
+
+ function boot(){installShell();installTraining();installInsights();installDashboard();installRecoveryLayout();installScreenHeaders();installSettings();installSearch();installReadableControls();installClarity226();document.addEventListener('click',e=>{const b=e.target.closest('[data-experience-view]');if(!b)return;e.preventDefault();$('#experienceSearchDialog')?.close();route(b.dataset.experienceView);if(b.closest('#mobileMoreSheet'))$('#mobileMoreClose')?.click();});activate($('.view.active')?.id||'dashboard');}
  window.HybridExperience=Object.freeze({activate,refresh,navigate:route,screens:()=>screens.map(s=>({id:s[0],title:s[1],group:s[4]}))});
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

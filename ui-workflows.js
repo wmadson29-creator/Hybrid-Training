@@ -147,8 +147,8 @@
    const details=document.createElement('details');details.id='v36152RecoveryMore';details.className='v36152-recovery';details.innerHTML='<summary><span class="v36176-disclosure-copy"><strong>Progress & program details</strong><small>Training balance and plan settings</small></span><span class="v36176-disclosure-toggle" aria-hidden="true"></span></summary><div></div>';dash.append(details);
    const body=$('div',details);[$('.dashboard-priority-grid',dash),$('.program-details',dash),$('#recoverySnapshot')].filter(Boolean).forEach(n=>body.append(n));
   }
-  const recovery=$('#recoverySnapshot');if(document.body.classList.contains('experience')){const calendar=$('.calendar-panel',dash);if(top.parentElement!==dash)dash.insertBefore(top,calendar?.nextSibling||null);if(recovery&&calendar&&(recovery.parentElement!==dash||recovery.nextElementSibling!==calendar))dash.insertBefore(recovery,calendar);}else if(recovery&&(recovery.parentElement!==dash||recovery.previousElementSibling!==top))dash.insertBefore(recovery,top.nextElementSibling);
-  const d=core.uiDayState(),title=d.completed?.count?d.completed.title:window.HybridI18n?.sourceText($('#workoutTitle'))||'Your workout',selected=$('#weekStrip .day-card.selected'),dose=d.completed?.count?d.completed.summary:window.HybridI18n?.sourceText(selected?.querySelector('.day-focus'))||window.HybridI18n?.sourceText($('#tbSub'))||'';
+  const recovery=$('#recoverySnapshot');if(document.body.classList.contains('experience')){const intro=$('#experienceTodayIntro'),calendar=$('.calendar-panel',dash);if(intro&&intro.nextElementSibling!==top)intro.after(top);if(calendar&&top.nextElementSibling!==calendar)top.after(calendar);let peek=$('#clarityRecoveryPeek');if(!peek){peek=document.createElement('details');peek.id='clarityRecoveryPeek';peek.className='clarity-details';peek.innerHTML='<summary>Recovery check-in</summary><div class="clarity-details-body"></div>';dash.append(peek);}if(recovery&&recovery.parentElement!==$('div',peek))$('div',peek).append(recovery);}else if(recovery&&(recovery.parentElement!==dash||recovery.previousElementSibling!==top))dash.insertBefore(recovery,top.nextElementSibling);
+  const d=core.uiDayState(),title=d.completed?.count?d.completed.title:window.HybridI18n?.sourceText($('#workoutTitle'))||'Your workout',selected=$('#weekStrip .day-card.selected'),ready=window.HybridCompute?.primary(d.date),cardio=ready?.conditioning||ready?.recommendation?.plan,dose=d.completed?.count?d.completed.summary:cardio?.activity?[cardio.activity,cardio.target].filter(Boolean).join(' · '):ready?.rows?.length?ready.rows.length+' exercises':window.HybridI18n?.sourceText(selected?.querySelector('.day-focus'))||window.HybridI18n?.sourceText($('#tbSub'))||'';
   text($('#v36152PrimaryDate'),(d.date===iso()?'Today':'Selected day')+' · '+d.date);text($('#v36152PrimaryTitle'),title);text($('#v36152PrimaryDose'),dose);text($('#v36152PrimaryContext'),d.contextText||'');
   const why=$('.v3691-why-panel',top);let whyMore=$('#v36152Why');if(why){if(!whyMore){whyMore=document.createElement('details');whyMore.id='v36152Why';whyMore.className='v36152-more';whyMore.innerHTML='<summary>Why this workout</summary>';top.append(whyMore)}if(why.parentElement!==whyMore)whyMore.append(why);text($('summary',whyMore),d.completed?.count?'After completed training':'Why this workout')}else whyMore?.remove();
   const primary=$('#selectedWorkoutActions .primary');if(d.active?.date===d.date)text(primary,'Resume Workout');
@@ -159,6 +159,7 @@
    if(!discard){discard=button('Discard saved edits',()=>core.uiDiscardPrepared(core.uiDayState().date));discard.id='v36183DiscardPrepared';$('#selectedWorkoutActions').append(discard);}discard.title='Discard saved edits for '+d.date+' and return to the default workout.';
   }else{resume?.remove();discard?.remove();}
   const other=$('#v36152ResumeOther');if(d.active&&d.active.date!==d.date){if(other.dataset.date!==d.active.date){other.replaceChildren(button('Resume '+d.active.date+' workout',()=>core.uiOpenWorkout(d.active.date)));other.dataset.date=d.active.date}}else if(other.childNodes.length){other.replaceChildren();delete other.dataset.date}
+  let options=$('#clarityWorkoutOptions');if(!options){options=document.createElement('details');options.id='clarityWorkoutOptions';options.className='clarity-details';options.innerHTML='<summary>Workout options</summary><div class="inline-actions"></div>';top.append(options);}for(const id of ['editWorkoutBeforeStart','selectedActivityUnavailable','v36176ResumePrepared','v36183DiscardPrepared']){const b=document.getElementById(id);if(b&&b.parentElement!==$('div',options))$('div',options).append(b);}options.hidden=!$('div',options).children.length;
   conflicts(d);classOverlap(d);renderRecalc();
  }
  function classOverlap(d){
@@ -196,6 +197,18 @@
   if(!card)return;exerciseOverview();
   $$('#plannedExercises > .log-exercise').forEach(other=>setExerciseOpen(other,other===card));
  }
+ function quickExerciseControls226(card){
+  const active=core.readActiveWorkout(),available=!!active&&active.date===$('#logDate')?.value&&active.session===$('#logSession')?.value,name=core.currentCardExercise(card)||'exercise';let quick=$(':scope > .exercise-quick-controls',card);
+  if(!quick){quick=document.createElement('div');quick.className='exercise-quick-controls';quick.innerHTML='<button type="button" class="btn quick-exercise-done">Done</button><select class="quick-exercise-effort"></select>';const trigger=$(':scope > .exercise-overview',card);trigger.after(quick);
+   $('.quick-exercise-done',quick).addEventListener('click',()=>{const live=core.readActiveWorkout();if(!live||live.date!==$('#logDate')?.value||live.session!==$('#logSession')?.value)return;const was=Number(card.dataset.quickCompletedAt)>0;card.dataset.quickCompletedAt=was?'':String(Date.now());const status=$('.le-status',card);if(!was&&status&&[...status.options].some(o=>o.value==='Complete'))status.value='Complete';status?.dispatchEvent(new Event('change',{bubbles:true}));core.writeLogWorkspace();exerciseOverview();});
+   $('.quick-exercise-effort',quick).addEventListener('change',event=>{const source=$('.le-feel',card);if(!source)return;source.value=event.target.value;source.dispatchEvent(new Event('change',{bubbles:true}));core.writeLogWorkspace();exerciseOverview();});
+   $('.le-status',card)?.addEventListener('change',event=>{if(!/^(partial|skipped|missed)$/i.test(event.target.value)||!Number(card.dataset.quickCompletedAt))return;card.dataset.quickCompletedAt='';core.writeLogWorkspace();exerciseOverview();});
+  }
+  quick.hidden=!available;const done=$('.quick-exercise-done',quick),select=$('.quick-exercise-effort',quick),source=$('.le-feel',card),sets=$$('.set-detail-row',card),allSets=sets.length>0&&sets.every(s=>Number(s.dataset.completedAt)>0),marked=Number(card.dataset.quickCompletedAt)>0,complete=marked||allSets;
+  text(done,complete?'✓ Done':'Done');done.setAttribute('aria-pressed',String(complete));done.setAttribute('aria-label',(complete?'Undo completion for ':'Mark done: ')+name);done.disabled=!marked&&allSets;done.title=done.disabled?'Individual sets are complete. Edit a set to change its completion.':'';
+  if(source?.classList.contains('sr-control'))source.tabIndex=-1;
+  const options=source?[...source.options].map(o=>({value:o.value,label:o.value||'Difficulty…'})):[];const signature=JSON.stringify(options);if(select.dataset.options!==signature){select.innerHTML=options.map(o=>'<option value="'+esc(o.value)+'">'+esc(o.label)+'</option>').join('');select.dataset.options=signature;}select.value=source?.value||'';select.disabled=!source||source.disabled;select.setAttribute('aria-label','Difficulty for '+name);
+ }
  function exerciseOverview(){
   const host=$('#plannedExercises'),cards=$$('#plannedExercises > .log-exercise');if(!host)return;
   let tools=$('#exerciseOverviewTools');
@@ -213,13 +226,15 @@
    else{let weight=value('.le-weight');if(weight&&/^\+?\d+(?:\.\d+)?$/.test(weight))weight+=' '+(window.HybridUnits?.unit?.()||'lb');dose=[value('.le-sets')&&value('.le-reps')?value('.le-sets')+' × '+value('.le-reps'):'Set target',weight].filter(Boolean).join(' · ');}
    const pendingWeights=[...new Set($$('.set-detail-row',card).filter(r=>!Number(r.dataset.startedAt)&&!Number(r.dataset.completedAt)).map(r=>$('.sd-weight',r)?.value.trim()).filter(Boolean))];if(pendingWeights.length&&pendingWeights.some(w=>w!==value('.le-weight')))dose+=' · Remaining: '+pendingWeights.join(' / ');
    const rows=$$('.set-detail-row',card),done=rows.filter(r=>Number(r.dataset.completedAt)>0).length,started=rows.some(r=>Number(r.dataset.startedAt)>0),status=value('.le-status'),recorded=!!card.dataset.savedLogRow;
-   const state=/^(partial|skipped|missed)$/i.test(status)?status:done?done+'/'+(rows.length||value('.le-sets'))+' sets':started?'In progress':recorded?'Recorded':'Ready';
-   text($('.exercise-overview-number',trigger),String(index+1));text($('.exercise-overview-name',trigger),name);text($('.exercise-overview-dose',trigger),dose);text($('.exercise-overview-status',trigger),state);
+   const state=/^(partial|skipped|missed)$/i.test(status)?status:Number(card.dataset.quickCompletedAt)>0?'Done':done?done+'/'+(rows.length||value('.le-sets'))+' sets':started?'In progress':recorded?'Recorded':'Ready';
+   text($('.exercise-overview-number',trigger),String(index+1));text($('.exercise-overview-name',trigger),name);text($('.exercise-overview-dose',trigger),dose);text($('.exercise-overview-status',trigger),state);quickExerciseControls226(card);
   });
-  text($('span',tools),cards.length+' exercise'+(cards.length===1?'':'s')+' · Tap to open');text($('button',tools),cards.some(c=>c.classList.contains('exercise-compact'))?'Expand all':'Collapse all');
+  text($('span',tools),cards.length+' exercise'+(cards.length===1?'':'s'));text($('button',tools),cards.some(c=>c.classList.contains('exercise-compact'))?'Expand':'Collapse');
  }
  document.addEventListener('invalid',event=>{const card=event.target.closest?.('.log-exercise');if(card){openExercise(card);for(let p=event.target.parentElement;p&&p!==card;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;}},true);
  function log(){
+  if($('#log')?.classList.contains('custom-setup-open'))return;
+  const finish=$('#v36101FinishDetails>summary');if(finish)text(finish,'Finish & feedback');const quick=$('#log>.panel>.v3691-quick-complete');if(quick&&$('#v36101FinishDetails'))$('#v36101FinishDetails').append(quick);
   const flow=$('#logFlowChooser'),planned=$('#plannedExercises .log-exercise'),blank=core.uiWorkoutEquipment?.().blank;
   $('#log')?.classList.toggle('v36175-blank-workout',!!blank);
   if(flow&&(planned||blank)&&$('.v36114-first-actions',flow)&&!$('.v36152-log-change',flow)){
@@ -237,7 +252,16 @@
    const primary=['.le-time','.le-rpe','.le-feel','.class-focus-host'].map(s=>{const n=$(s,holder);return n?.closest('.field')}).filter(Boolean);primary.reverse().forEach(n=>holder.insertBefore(n,holder.firstChild));
    const update=()=>{const filled=$$('input,select',details).filter(n=>n.value&&!(n.classList.contains('le-status')&&n.value==='Complete')).length;text($('summary',details),'More class details'+(filled?' · '+filled+' entered':''))};details.addEventListener('input',update);details.addEventListener('change',update);update();
   });
+  for(const card of $$('#plannedExercises .log-exercise'))for(const select of $$('select.v3677-inline-hidden',card)){select.classList.remove('v3677-inline-hidden');if(select.nextElementSibling?.classList.contains('inline-choice-buttons'))select.nextElementSibling.remove();}
+  for(const card of $$('#plannedExercises .log-exercise[data-conditioning="1"]')){
+   if(core.uiIsClass(core.currentCardExercise(card)))continue;const fields=$('.conditioning-fields',card),grid=$(':scope > .log-grid',card);if(!fields||!grid)continue;
+   const activity=$('.le-ex',grid)?.closest('.field');if(activity&&!activity.closest('.clarity-activity-chooser')){const d=document.createElement('details');d.className='clarity-details clarity-activity-chooser';d.innerHTML='<summary>Change activity</summary>';grid.append(d);d.append(activity);}
+   if(!$('.clarity-card-extras',fields)){const optional=[...fields.children].filter(n=>n.matches('.field,details')&&!n.querySelector('.le-time,.le-distance,.le-rpe,.le-avghr,.le-swimstroke,.le-laps,.le-lengths'));if(optional.length){const more=document.createElement('details');more.className='clarity-details clarity-card-extras';more.innerHTML='<summary>More activity details</summary><div class="log-grid"></div>';optional.forEach(n=>$('div',more).append(n));fields.append(more);}}
+   const title=$(':scope > .log-title',card);if(title&&title.nextElementSibling!==grid&&!grid.contains(document.activeElement))title.after(grid);
+   for(const [selector,label]of [['.conditioning-log-helper','Instructions & alternatives'],['.conditioning-components-host','Intervals & movement details']]){const n=$(selector,card);if(n&&!n.closest('.clarity-card-guide')){const d=document.createElement('details');d.className='clarity-details clarity-card-guide';d.innerHTML='<summary>'+label+'</summary>';n.before(d);d.append(n);card.append(d);}}
+  }
   exerciseOverview();
+  let aids=$('#clarityLogAids');if(!aids){aids=document.createElement('details');aids.id='clarityLogAids';aids.className='clarity-details';aids.innerHTML='<summary>Workout tools & timing</summary><div class="clarity-details-body"></div>';$('#plannedExercises').after(aids);}const aidBody=$('div',aids);for(const id of ['workoutTimeSummary','kbProgramTimeSummary','kbTrainingFocusLog','customDurationSummary','workoutTools','singleExerciseTools','workoutLoadingOverview','kbDayWeightControl']){const n=document.getElementById(id);if(n&&n.parentElement!==aidBody&&!n.contains(document.activeElement))aidBody.append(n);}
  }
 
  function simplifyLog(flow,planned,emomSetup,customSetup){
@@ -261,14 +285,14 @@
   // Defer cosmetic reparenting while typing: moving an input's ancestor drops focus.
   $$('#plannedExercises .log-exercise[data-conditioning="0"]').forEach(card=>{
    const grid=$(':scope > .log-grid',card),swapAction=$(':scope > .log-swap-action',card);if(grid&&swapAction&&swapAction.nextElementSibling!==grid&&!grid.contains(document.activeElement))swapAction.after(grid);const evidence=$(':scope > .target-evidence',card);if(grid&&evidence&&grid.nextElementSibling!==evidence)grid.after(evidence);
-   const field=$('.le-ex',card)?.closest('.field');if(field&&!field.closest('.v36175-exercise-chooser')){const details=document.createElement('details');details.className='v36175-exercise-chooser';details.innerHTML='<summary>More exercise choices / custom exercise</summary>';field.before(details);details.append(field);details.open=card.dataset.unplannedExercise==='1';}
+   const field=$('.le-ex',card)?.closest('.field');if(field&&!field.closest('.v36175-exercise-chooser')){const details=document.createElement('details');details.className='v36175-exercise-chooser';details.innerHTML='<summary>Exercise options</summary>';field.before(details);details.append(field);details.open=card.dataset.unplannedExercise==='1';}
    const name=core.currentCardExercise(card),meta=(()=>{try{return JSON.parse(card.dataset.emomPlan||'null')}catch(__hybridComputeError){return null}})();
    if(meta?.dose){const d=meta.dose,reps=$('.le-reps',card),weight=$('.le-weight',card),sets=$('.le-sets',card);text($('.log-title .planned',card),'Target: '+(sets?.value||'')+' rounds · '+(reps?.value||'')+' each minute · '+(weight?.value||'')+' · '+d.estimatedWorkSeconds+'s total work / '+d.estimatedRestSeconds+'s rest');if(reps){const label=$('label',reps.closest('.field'));text(label,(meta.seconds?'Seconds':'Reps')+(meta.perSide?' per side':' total'));}if(sets)text($('label',sets.closest('.field')),'Rounds');}
    else if(!active&&name){const sets=$('.le-sets',card)?.value,reps=$('.le-reps',card)?.value,weight=$('.le-weight',card)?.value;text($('.log-title .planned',card),'Target: '+[sets&&reps?sets+' × '+reps:'',weight||'',card.dataset.plannedRestSeconds?card.dataset.plannedRestSeconds+'s rest':''].filter(Boolean).join(' · '));}
    const swap=$('.log-swap-copy span',card);if(swap)text(swap,'Choose an available '+(meta?'exercise for this minute':'substitute')+'.');
    const note=$('.substitution-rx-note',card);if(note)note.classList.toggle('v36175-redundant-target',window.HybridI18n?.sourceText(note)?.startsWith('Updated substitute target:'));
   });
-  const gym=$('#logGuidedGymPanel');if(gym&&!$('.v36175-more-preferences',gym)){const extra=document.createElement('details');extra.className='optional-details v36175-more-preferences';extra.innerHTML='<summary>More workout preferences</summary>';['#logGymRepStyle','#logGymPriorityFocus'].forEach(selector=>{const step=$(selector,gym)?.closest('.gym-step');if(step)extra.append(step);});gym.append(extra);}
+  const gym=$('#logGuidedGymPanel');if(gym&&!$('.v36175-more-preferences',gym)&&!$('.clarity-advanced-step',gym)){const extra=document.createElement('details');extra.className='optional-details v36175-more-preferences';extra.innerHTML='<summary>More workout preferences</summary>';['#logGymRepStyle','#logGymPriorityFocus'].forEach(selector=>{const step=$(selector,gym)?.closest('.gym-step');if(step)extra.append(step);});gym.append(extra);}
   // Context belongs with the optional rows, outside the narrow title/actions area.
   $$('#plannedExercises .log-exercise').forEach(card=>{
    const context=$('.workout-card-context',card);if(!context||context.parentElement===card)return;
@@ -282,7 +306,7 @@
   const stats=$('#trendStats'),filters=$('#trendFilterRow');if(filters&&filters.nextElementSibling!==$('#v36152TrendSummary')){const summary=$('#v36152TrendSummary');if(summary)filters.insertAdjacentElement('afterend',summary);else stats.before(filters)}
   let summary=$('#v36152TrendSummary');if(!summary){summary=document.createElement('div');summary.id='v36152TrendSummary';filters.insertAdjacentElement('afterend',summary);const more=document.createElement('details');more.className='v36152-more';more.innerHTML='<summary>More totals & model metrics</summary>';stats.before(more);more.append(stats)}
   const totals=stats.closest('details');if(totals&&summary.nextElementSibling!==totals)summary.insertAdjacentElement('afterend',totals);
-  const stamp=String(state()._persistedAt||0)+'|'+iso();if(trendsStamp!==stamp||!$('#trendExerciseFocus')?.children.length){trendsStamp=stamp;renderSummary(summary);exerciseChart();strengthCards();balance();}
+  if(window.HybridCompute&&!HybridCompute.hasTrends(iso())){renderSummary(summary);return;}const stamp=String(state()._persistedAt||0)+'|'+iso();if(trendsStamp!==stamp||!$('#trendExerciseFocus')?.children.length){trendsStamp=stamp;renderSummary(summary);exerciseChart();strengthCards();balance();}
   phoneTable($('#trendProgression'),'Progression details');
  }
  function renderSummary(host){
@@ -351,7 +375,12 @@
  document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;if(pendingEdit&&Date.now()-pendingEdit.at>300000)pendingEdit=null;const id=t.id||'',scope=t.closest('#tbList,#workoutIntentPanel,#conditioningLibrary,#dayContextModal,#v3677DayContextModal');if(t.matches('[data-intent]')||t.closest('[data-v3677="context"]')||/save.*context|context.*save|builder.*save|save.*builder|use.*conditioning|switch.*mode/i.test(id)||scope&&t.matches('[data-session],[data-mode],.use-conditioning,.adaptive-mode-btn'))beginEdit(t.matches('.use-conditioning')?$('#conditioningTargetDate')?.value||core.uiDayState().date:core.uiDayState().date)},true);
  document.addEventListener('change',e=>{if(e.target.id==='blockModeSelect')beginEdit(core.uiDayState().date)},true);
  window.addEventListener('hybrid:state-saved',()=>{if(pendingEdit&&pendingEdit.stamp!==programmingStamp())setTimeout(settleEdit,0)});
- const run=()=>{raf=0;window.hybridWireExerciseSearch?.();const active=$('.view.active')?.id;if(active==='dashboard')today();else if(active==='history')history();else if(active==='log')log();else if(active==='trends')trends()};
+ function readability226(active){
+  if(active==='traininglibrary'||active==='progress')for(const panel of $$('#'+active+'>.panel')){if(panel.dataset.clarityGrouped||active==='progress'&&panel.textContent.includes('Weighted Pull-Up Progression'))continue;panel.dataset.clarityGrouped='1';const title=$('.panel-title',panel)?.textContent.trim()||$('h2,h3',panel)?.textContent.trim();if(!title)continue;const group=document.createElement('details');group.className='clarity-details clarity-reference-group';group.innerHTML='<summary>'+esc(title)+'</summary><div class="clarity-details-body"></div>';panel.before(group);$('div',group).append(panel);$('.panel-head',panel)?.classList.add('clarity-redundant');}
+  if(active==='settings'){const panel=$('#saveSettings')?.closest('.panel');if(panel&&!panel.dataset.clarityGrouped){panel.dataset.clarityGrouped='1';const d=document.createElement('details');d.className='clarity-details clarity-reference-group';d.innerHTML='<summary>Program settings</summary><div class="clarity-details-body"></div>';panel.before(d);$('div',d).append(panel);$('.panel-head',panel)?.classList.add('clarity-redundant');}}
+  if(active==='history'){const clear=$('#clearLog');if(clear&&!clear.closest('details')){const d=document.createElement('details');d.className='clarity-details';d.innerHTML='<summary>History options</summary>';$('#v36152HistoryFilters')?.after(d);if(!d.isConnected)$('#history').append(d);d.append(clear);}const help=$('#v36152HistoryFilters .hint');if(help)text(help,'Filters include all saved dates.');}
+ }
+ const run=()=>{raf=0;window.HybridWeightEntry?.refresh();window.hybridWireExerciseSearch?.();const active=$('.view.active')?.id;if(active==='dashboard')today();else if(active==='history')history();else if(active==='log')log();else if(active==='trends')trends();readability226(active)};
  const queue=()=>{if(!raf)raf=requestAnimationFrame(run)};new MutationObserver(queue).observe(document.body,{childList:true,subtree:true});document.addEventListener('change',queue);document.addEventListener('click',queue);document.addEventListener('input',e=>{if(e.target.closest('#plannedExercises'))queue()});run();
  // Read-only inspection and explicit capture are useful to native controls and QA.
  window.HybridUIWorkflows=Object.freeze({beginScheduleEdit:beginEdit,refresh:queue,openExercise,scheduleFeedback:()=>({pendingDate:pendingEdit?.date||'',pendingChanged:!!pendingEdit&&pendingEdit.stamp!==programmingStamp(),report:recalc})});

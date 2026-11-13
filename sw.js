@@ -1,51 +1,53 @@
-const BUILD="36.225";
-const CACHE="hybrid-training-v36-225-workout-workflows";
-const FALLBACK="./index.html?v=36.225";
-const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.225";
+const BUILD="36.226";
+const CACHE="hybrid-training-v36-226-workout-workflows";
+const FALLBACK="./index.html?v=36.226";
+const PERSONALIZATION="./adaptive-personalization-v36.120.js?v=36.226";
 const REQUIRED_PRECACHE=[
-  "./training-injuries.js?v=36.225",
-  "./training-forecast-worker.js?v=36.225",
-  "./training-rotation.js?v=36.225",
-  "./training-modern.css?v=36.225",
-  "./training-experience.js?v=36.225",
-  "./session-feedback.js?v=36.225",
-  "./workout-preferences.js?v=36.225",
-  "./muscle-model.js?v=36.225",
-  "./kb-programming.js?v=36.225",
+  "./weight-entry.js?v=36.226",
+  "./training-core.js?v=36.226",
+  "./training-injuries.js?v=36.226",
+  "./training-forecast-worker.js?v=36.226",
+  "./training-rotation.js?v=36.226",
+  "./training-modern.css?v=36.226",
+  "./training-experience.js?v=36.226",
+  "./session-feedback.js?v=36.226",
+  "./workout-preferences.js?v=36.226",
+  "./muscle-model.js?v=36.226",
+  "./kb-programming.js?v=36.226",
   FALLBACK,
-  "./weight-units.js?v=36.225",
-  "./training-profile.js?v=36.225",
-  "./reactive-schedule.js?v=36.225",
-  "./personal-recommendations.js?v=36.225",
-  "./personal-training.js?v=36.225",
-  "./profile-week-editor.js?v=36.225",
-  "./profile-setup.js?v=36.225",
-  "./profile-equipment.js?v=36.225",
-  "./equipment-views.js?v=36.225",
-  "./app-language.js?v=36.225",
-  "./locales-pl.js?v=36.225",
+  "./weight-units.js?v=36.226",
+  "./training-profile.js?v=36.226",
+  "./reactive-schedule.js?v=36.226",
+  "./personal-recommendations.js?v=36.226",
+  "./personal-training.js?v=36.226",
+  "./profile-week-editor.js?v=36.226",
+  "./profile-setup.js?v=36.226",
+  "./profile-equipment.js?v=36.226",
+  "./equipment-views.js?v=36.226",
+  "./app-language.js?v=36.226",
+  "./locales-pl.js?v=36.226",
 
-  "./manifest-v36.webmanifest?v=36.225",
-  "./decision-integrity-v36.131.js?v=36.225",
-  "./actual-load-feedback-v36.126.js?v=36.225",
-  "./forecast-balance-v36.127.js?v=36.225",
-  "./machine-context.js?v=36.225",
-  "./exercise-expansion-v36.128.js?v=36.225",
-  "./app-shell-v36.119.css?v=36.225",
-  "./app-shell-v36.119.js?v=36.225",
-  "./stretching-flexibility-v36.119.js?v=36.225",
-  "./ui-workflows.js?v=36.225",
-  "./kb-load-layout.js?v=36.225",
-  "./kettlebell-programs.js?v=36.225",
-  "./kb-weekly-circuit.js?v=36.225",
-  "./kb-refinement.js?v=36.225",
-  "./performed-training.js?v=36.225",
-  "./barbell-plate-layout.js?v=36.225",
-  "./kb-internal-stack.js?v=36.225",
-  "./emom-templates.js?v=36.225",
-  "./training-effects.js?v=36.225",
-  "./session-fatigue.js?v=36.225",
-  "./workout-optimizer.js?v=36.225",
+  "./manifest-v36.webmanifest?v=36.226",
+  "./decision-integrity-v36.131.js?v=36.226",
+  "./actual-load-feedback-v36.126.js?v=36.226",
+  "./forecast-balance-v36.127.js?v=36.226",
+  "./machine-context.js?v=36.226",
+  "./exercise-expansion-v36.128.js?v=36.226",
+  "./app-shell-v36.119.css?v=36.226",
+  "./app-shell-v36.119.js?v=36.226",
+  "./stretching-flexibility-v36.119.js?v=36.226",
+  "./ui-workflows.js?v=36.226",
+  "./kb-load-layout.js?v=36.226",
+  "./kettlebell-programs.js?v=36.226",
+  "./kb-weekly-circuit.js?v=36.226",
+  "./kb-refinement.js?v=36.226",
+  "./performed-training.js?v=36.226",
+  "./barbell-plate-layout.js?v=36.226",
+  "./kb-internal-stack.js?v=36.226",
+  "./emom-templates.js?v=36.226",
+  "./training-effects.js?v=36.226",
+  "./session-fatigue.js?v=36.226",
+  "./workout-optimizer.js?v=36.226",
   PERSONALIZATION
 ];
 const OPTIONAL_PRECACHE=[
@@ -78,6 +80,7 @@ self.addEventListener("fetch",event=>{
     event.respondWith(fetch(event.request,{cache:"no-store"}).catch(()=>caches.match(event.request)));
     return;
   }
+  if(event.request.mode==="navigate"&&!url.pathname.endsWith("/")&&!url.pathname.endsWith("/index.html"))return;
   if(event.request.mode==="navigate"){
     event.respondWith((async()=>{
       const cache=await caches.open(CACHE),cached=await cache.match(FALLBACK);
